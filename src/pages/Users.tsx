@@ -22,8 +22,8 @@ const Users = () => {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("internal");
 
-  // Define filter options
-  const filterOptions: FilterOption[] = [
+  // Define filter options - create separate arrays for different tabs
+  const internalFilterOptions: FilterOption[] = [
     {
       id: "teams",
       name: "Team",
@@ -39,6 +39,15 @@ const Users = () => {
         { id: "admin", label: "Admin" },
         { id: "manager", label: "Manager" },
         { id: "developer", label: "Developer" },
+      ],
+    },
+  ];
+  
+  const clientFilterOptions: FilterOption[] = [
+    {
+      id: "roles",
+      name: "Role",
+      options: [
         { id: "client", label: "Client" },
       ],
     },
@@ -49,7 +58,6 @@ const Users = () => {
         id: client.id,
         label: client.name,
       })),
-      hidden: activeTab !== "client",
     },
   ];
 
@@ -125,7 +133,7 @@ const Users = () => {
         </TabsList>
         
         <TabsContent value="internal" className="space-y-6">
-          <FilterBar filters={filterOptions.filter(f => f.id !== "clients")} onFilterChange={handleFilterChange} />
+          <FilterBar filters={internalFilterOptions} onFilterChange={handleFilterChange} />
 
           <div className="space-y-6">
             {filteredTeams.map((team) => {
@@ -194,7 +202,7 @@ const Users = () => {
         </TabsContent>
 
         <TabsContent value="client" className="space-y-6">
-          <FilterBar filters={filterOptions.filter(f => f.id !== "teams" || f.id === "clients")} onFilterChange={handleFilterChange} />
+          <FilterBar filters={clientFilterOptions} onFilterChange={handleFilterChange} />
 
           <Card>
             <CardHeader>

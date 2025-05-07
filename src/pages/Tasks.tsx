@@ -160,7 +160,6 @@ export default function Tasks() {
                           <TaskCard 
                             key={task.id} 
                             task={task} 
-                            showProjectBadge={false} 
                             onClick={() => {
                               // Navigate to project details with task focus
                               const projectUrl = `/projects/${task.projectId}?taskId=${task.id}`;

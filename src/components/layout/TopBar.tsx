@@ -56,7 +56,7 @@ export function TopBar() {
               ) : (
                 unreadMessages.slice(0, 5).map((msg) => (
                   <DropdownMenuItem key={msg.id} onClick={() => navigate(`/messages/${msg.id}`)}>
-                    <span className="font-medium">{msg.subject}</span>
+                    <span className="font-medium">{msg.content.slice(0, 30)}...</span>
                   </DropdownMenuItem>
                 ))
               )}

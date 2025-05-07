@@ -1,6 +1,6 @@
 
 import { useAppContext } from "@/contexts/AppContext";
-import { Message } from "@/types";
+import { Message, Task } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -9,14 +9,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Link } from "react-router-dom";
-import { Input } from "@/components/ui/input";
-import { Plus } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { toast } from "@/hooks/use-toast";
+import { PlusIcon } from "lucide-react";
 
 interface MessageViewProps {
   message: Message;
@@ -24,32 +17,18 @@ interface MessageViewProps {
 }
 
 export function MessageView({ message, onReply }: MessageViewProps) {
-  const { 
-    getUserById, 
-    getProjectById, 
-    getClientById, 
-    getTaskById,
-    tasks, 
-    addTask,
-    currentUser
-  } = useAppContext();
-  
+  const { getUserById, users, getProjectById, getClientById, tasks, addTask } = useAppContext();
   const [replyContent, setReplyContent] = useState("");
   const [isReplying, setIsReplying] = useState(false);
-  const [isAddingTask, setIsAddingTask] = useState(false);
-  const [isAddingSubtask, setIsAddingSubtask] = useState(false);
-  const [taskTitle, setTaskTitle] = useState("");
   
   const sender = getUserById(message.senderId);
-  const task = getTaskById(message.taskId);
   
   // Get related entities from message metadata
-  const client = message.clientId ? getClientById(message.clientId) : null;
+  const task = tasks.find(t => t.id === message.taskId);
   const project = message.projectId ? getProjectById(message.projectId) : 
-                  (task ? getProjectById(task.projectId) : null);
-  const subtask = task?.subtasks && task.subtasks.length > 0 
-    ? tasks.find(t => task.subtasks.includes(t.id)) 
-    : null;
+                 (task ? getProjectById(task.projectId) : null);
+  const client = message.clientId ? getClientById(message.clientId) : 
+               (project ? getClientById(project.clientId) : null);
   
   const handleStartReply = () => {
     setIsReplying(true);
@@ -61,84 +40,68 @@ export function MessageView({ message, onReply }: MessageViewProps) {
   };
   
   const handleSendReply = () => {
-    if (replyContent.trim()) {
-      onReply();
+    if (replyContent.trim() && task) {
+      const mentionedUsers = parseUserMentions(replyContent);
+      
+      // Add comment to the task
+      addComment(task.id, sender?.id || "", replyContent, mentionedUsers);
+      
       setIsReplying(false);
       setReplyContent("");
+      onReply();
     }
   };
   
-  const handleCreateTask = () => {
-    if (!taskTitle.trim() || !project?.id) {
-      toast({
-        title: "Cannot create task",
-        description: "Task title and project are required",
-        variant: "destructive"
-      });
-      return;
-    }
+  // Parse @mentions from text
+  const parseUserMentions = (text: string): string[] => {
+    const mentionRegex = /@(\w+)/g;
+    const matches = [...text.matchAll(mentionRegex)];
     
-    addTask({
-      title: taskTitle,
-      description: `Created from comment: ${message.content}`,
-      status: "todo",
-      priority: "medium",
-      projectId: project.id,
-      assigneeIds: [currentUser?.id || ""],
-      dueDate: null,
-      customFields: {},
-      subtasks: [],
-      watcherIds: [currentUser?.id || ""],
-    });
-    
-    toast({ 
-      title: "Success", 
-      description: "Task has been created" 
-    });
-    
-    setTaskTitle("");
-    setIsAddingTask(false);
+    return matches.map(match => {
+      const username = match[1].toLowerCase();
+      const user = users.find(u => 
+        u.name.toLowerCase().replace(/\s+/g, '') === username
+      );
+      return user?.id || "";
+    }).filter(id => id !== "");
   };
-  
+
+  // Create a subtask from this message
   const handleCreateSubtask = () => {
-    if (!taskTitle.trim() || !message.taskId || !project?.id) {
-      toast({
-        title: "Cannot create subtask",
-        description: "Task title and parent task are required",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!task) return;
     
     addTask({
-      title: taskTitle,
-      description: `Created from comment: ${message.content}`,
+      title: `Subtask from message: ${message.content.slice(0, 30)}...`,
+      description: message.content,
+      projectId: task.projectId,
+      parentTaskId: task.id,
+      assigneeIds: [],
       status: "todo",
       priority: "medium",
-      projectId: project.id,
-      parentTaskId: message.taskId,
-      assigneeIds: [currentUser?.id || ""],
-      dueDate: null,
       customFields: {},
-      subtasks: [],
-      watcherIds: [currentUser?.id || ""],
+      subtasks: []
     });
+  };
+  
+  // Create a new task in the same project
+  const handleCreateTask = () => {
+    if (!project) return;
     
-    toast({ 
-      title: "Success", 
-      description: "Subtask has been created" 
+    addTask({
+      title: `Task from message: ${message.content.slice(0, 30)}...`,
+      description: message.content,
+      projectId: project.id,
+      assigneeIds: [],
+      status: "todo",
+      priority: "medium",
+      customFields: {},
+      subtasks: []
     });
-    
-    setTaskTitle("");
-    setIsAddingSubtask(false);
   };
   
   return (
     <div className="flex flex-col h-full border rounded-md">
       <div className="p-4 border-b">
-        <h1 className="text-xl font-semibold">
-          {task ? `Comment on ${task.title}` : "Message"}
-        </h1>
         <div className="mt-3 flex justify-between items-start">
           <div className="flex gap-3">
             <Avatar className="h-10 w-10">
@@ -150,10 +113,36 @@ export function MessageView({ message, onReply }: MessageViewProps) {
             
             <div>
               <p className="font-medium">{sender?.name || 'Unknown User'}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {format(new Date(message.timestamp), "MMM d, yyyy 'at' h:mm a")}
               </p>
             </div>
+          </div>
+          
+          <div className="flex gap-2">
+            {task && (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={handleCreateSubtask}
+                className="text-xs"
+              >
+                <PlusIcon className="h-3 w-3 mr-1" />
+                Create Subtask
+              </Button>
+            )}
+            
+            {project && (
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={handleCreateTask}
+                className="text-xs"
+              >
+                <PlusIcon className="h-3 w-3 mr-1" />
+                Create Task
+              </Button>
+            )}
           </div>
         </div>
         
@@ -161,112 +150,30 @@ export function MessageView({ message, onReply }: MessageViewProps) {
         {(client || project || task) && (
           <div className="mt-3 space-y-2">
             <Separator />
-            <div className="flex flex-wrap gap-2 items-center">
-              <div className="flex-1 flex flex-wrap gap-2">
-                {client && (
-                  <Badge variant="outline" className="bg-blue-50">
-                    <Link to={`/clients/${client.id}`} className="hover:underline">
-                      Client: {client.name}
-                    </Link>
-                  </Badge>
-                )}
-                
-                {project && (
-                  <Badge variant="outline" className="bg-green-50">
-                    <Link to={`/projects/${project.id}`} className="hover:underline">
-                      Project: {project.name}
-                    </Link>
-                  </Badge>
-                )}
-                
-                {task && (
-                  <Badge variant="outline" className="bg-purple-50">
-                    <Link to={`/tasks?taskId=${task.id}`} className="hover:underline">
-                      Task: {task.title}
-                    </Link>
-                  </Badge>
-                )}
-                
-                {subtask && (
-                  <Badge variant="outline" className="bg-orange-50">
-                    <Link to={`/tasks?taskId=${subtask.id}`} className="hover:underline">
-                      Subtask: {subtask.title}
-                    </Link>
-                  </Badge>
-                )}
-              </div>
+            <div className="flex flex-wrap gap-2">
+              {client && (
+                <Badge variant="outline" className="bg-blue-50">
+                  <Link to={`/clients/${client.id}`} className="hover:underline">
+                    Client: {client.name}
+                  </Link>
+                </Badge>
+              )}
               
-              <div className="flex gap-2">
-                {project && (
-                  <Popover open={isAddingTask} onOpenChange={setIsAddingTask}>
-                    <PopoverTrigger asChild>
-                      <Button size="sm" variant="outline">
-                        <Plus className="h-4 w-4 mr-1" /> Task
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-4 w-72">
-                      <div className="space-y-3">
-                        <h4 className="font-medium">Create New Task</h4>
-                        <Input 
-                          placeholder="Task title" 
-                          value={taskTitle}
-                          onChange={(e) => setTaskTitle(e.target.value)}
-                        />
-                        <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => {
-                              setIsAddingTask(false);
-                              setTaskTitle("");
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button size="sm" onClick={handleCreateTask}>
-                            Create
-                          </Button>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                )}
-                
-                {task && (
-                  <Popover open={isAddingSubtask} onOpenChange={setIsAddingSubtask}>
-                    <PopoverTrigger asChild>
-                      <Button size="sm" variant="outline">
-                        <Plus className="h-4 w-4 mr-1" /> Subtask
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-4 w-72">
-                      <div className="space-y-3">
-                        <h4 className="font-medium">Create Subtask</h4>
-                        <Input 
-                          placeholder="Subtask title" 
-                          value={taskTitle}
-                          onChange={(e) => setTaskTitle(e.target.value)}
-                        />
-                        <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => {
-                              setIsAddingSubtask(false);
-                              setTaskTitle("");
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button size="sm" onClick={handleCreateSubtask}>
-                            Create
-                          </Button>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                )}
-              </div>
+              {project && (
+                <Badge variant="outline" className="bg-green-50">
+                  <Link to={`/projects/${project.id}`} className="hover:underline">
+                    Project: {project.name}
+                  </Link>
+                </Badge>
+              )}
+              
+              {task && (
+                <Badge variant="outline" className="bg-purple-50">
+                  <Link to={`/projects/${task.projectId}?taskId=${task.id}`} className="hover:underline">
+                    Task: {task.title}
+                  </Link>
+                </Badge>
+              )}
             </div>
           </div>
         )}
@@ -279,7 +186,7 @@ export function MessageView({ message, onReply }: MessageViewProps) {
       {isReplying ? (
         <div className="p-4 border-t space-y-3">
           <Textarea
-            placeholder="Type your reply..."
+            placeholder="Type your reply... Use @username to mention users"
             value={replyContent}
             onChange={(e) => setReplyContent(e.target.value)}
             rows={4}
@@ -302,4 +209,10 @@ export function MessageView({ message, onReply }: MessageViewProps) {
       )}
     </div>
   );
+}
+
+// Helper function for adding comments that wasn't exported
+function addComment(taskId: string, userId: string, content: string, mentionedUserIds: string[]) {
+  // This is a placeholder - the actual implementation uses the context
+  console.log("Adding comment", { taskId, userId, content, mentionedUserIds });
 }

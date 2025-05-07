@@ -1,6 +1,7 @@
+
 import { createContext, useContext, useState, ReactNode } from "react";
 import {
-  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment
+  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role
 } from "@/types";
 import { AppContextType } from "./AppContextType";
 import {
