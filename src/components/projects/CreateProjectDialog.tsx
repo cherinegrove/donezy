@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -111,6 +112,7 @@ export function CreateProjectDialog({
                   <FormMessage />
                 </FormItem>
               )}
+            />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
