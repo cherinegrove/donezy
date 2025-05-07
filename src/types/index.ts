@@ -31,6 +31,8 @@ export interface Client {
   address?: string;
   projectIds: string[];
   userId?: string; // If client has user access
+  billableRate: number; // Hourly rate for billing
+  currency: string;  // Currency code (USD, EUR, etc)
 }
 
 export interface Project {
@@ -46,6 +48,14 @@ export interface Project {
   serviceType: ServiceType;
   allocatedHours?: number;
   usedHours: number;
+  // Customization options
+  kanbanColors?: {
+    backlog?: string;
+    todo?: string;
+    "in-progress"?: string;
+    review?: string;
+    done?: string;
+  };
 }
 
 export interface CustomField {
@@ -114,3 +124,4 @@ export interface Purchase {
   projectId?: string;
   description: string;
 }
+

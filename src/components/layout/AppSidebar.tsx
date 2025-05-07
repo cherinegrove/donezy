@@ -1,195 +1,118 @@
 
+import { useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useMobile } from "@/hooks/use-mobile";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
+  SidebarTrigger
 } from "@/components/ui/sidebar";
-import { useNavigate, useLocation } from "react-router-dom";
-import { 
-  Briefcase, 
-  List,
+import {
   Clock,
+  Home,
+  Briefcase,
+  BarChart,
+  Building,
   Users,
-  User,
   Settings,
-  FileChart,
+  FileText,
   MessageSquare
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { useAppContext } from "@/contexts/AppContext";
 
 export function AppSidebar() {
-  const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser, clients, projects, getUnreadMessageCount } = useAppContext();
+  const isMobile = useMobile();
+  const { currentUser, getUnreadMessageCount } = useAppContext();
   
-  const unreadMessages = getUnreadMessageCount(currentUser?.id || "");
+  const unreadMessages = currentUser ? getUnreadMessageCount(currentUser.id) : 0;
   
-  const mainMenuItems = [
+  const isActive = (path: string) => {
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
+  
+  const navItems = [
     {
-      title: "Dashboard",
-      url: "/",
-      icon: List,
+      name: "Dashboard",
+      icon: Home,
+      path: "/",
     },
     {
-      title: "Clients",
-      url: "/clients",
+      name: "Projects",
       icon: Briefcase,
+      path: "/projects",
     },
     {
-      title: "Projects",
-      url: "/projects",
-      icon: List,
+      name: "Clients",
+      icon: Building,
+      path: "/clients",
     },
     {
-      title: "Team",
-      url: "/team",
-      icon: Users,
-    },
-    {
-      title: "Time Tracking",
-      url: "/time",
+      name: "Time Tracking",
       icon: Clock,
+      path: "/time",
     },
     {
-      title: "Messages",
-      url: "/messages",
+      name: "Team",
+      icon: Users,
+      path: "/team",
+    },
+    {
+      name: "Reports",
+      icon: BarChart,
+      path: "/reports",
+    },
+    {
+      name: "Messages",
       icon: MessageSquare,
+      path: "/messages",
       badge: unreadMessages > 0 ? unreadMessages : undefined,
-    },
-    {
-      title: "Reports",
-      url: "/reports",
-      icon: FileChart,
-    },
-    {
-      title: "Settings",
-      url: "/settings",
-      icon: Settings,
-    },
+    }
   ];
 
   return (
     <Sidebar>
-      <SidebarHeader>
-        <div className="flex items-center px-4 py-3">
-          <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
-            <span className="text-lg font-bold text-white">M</span>
-          </div>
-          <span className="ml-2 text-lg font-semibold">Manex</span>
-        </div>
+      <SidebarHeader className="border-b px-4 py-6">
+        <a href="/" className="flex items-center gap-2 font-semibold">
+          <FileText className="h-6 w-6" />
+          <span className="text-xl">Manex</span>
+        </a>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    active={location.pathname === item.url}
-                    onClick={() => navigate(item.url)}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    <span>{item.title}</span>
-                    {item.badge && (
-                      <Badge variant="destructive" className="ml-auto">
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Clients</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {clients.slice(0, 5).map((client) => (
-                <SidebarMenuItem key={client.id}>
-                  <SidebarMenuButton asChild>
-                    <button
-                      className="w-full"
-                      onClick={() => navigate(`/clients/${client.id}`)}
-                    >
-                      <User className="h-5 w-5" />
-                      <span>{client.name}</span>
-                    </button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-              {clients.length > 5 && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <button
-                      className="w-full"
-                      onClick={() => navigate("/clients")}
-                    >
-                      <span className="text-sm text-muted-foreground">View all clients</span>
-                    </button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+        <nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center">
+          {navItems.map((item) => (
+            <Button
+              key={item.path}
+              variant={isActive(item.path) ? "secondary" : "ghost"}
+              className={cn(
+                "w-full justify-start gap-3",
+                isActive(item.path) && "bg-secondary/50"
               )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Recent Projects</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {projects.slice(0, 5).map((project) => (
-                <SidebarMenuItem key={project.id}>
-                  <SidebarMenuButton asChild>
-                    <button
-                      className="w-full"
-                      onClick={() => navigate(`/projects/${project.id}`)}
-                    >
-                      <List className="h-5 w-5" />
-                      <span>{project.name}</span>
-                    </button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-              {projects.length > 5 && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <button
-                      className="w-full"
-                      onClick={() => navigate("/projects")}
-                    >
-                      <span className="text-sm text-muted-foreground">View all projects</span>
-                    </button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+              onClick={() => window.location.href = item.path}
+            >
+              <item.icon className="h-5 w-5" />
+              <span>{item.name}</span>
+              {item.badge && (
+                <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                  {item.badge}
+                </span>
               )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+            </Button>
+          ))}
+        </nav>
       </SidebarContent>
       <SidebarFooter>
-        <div className="p-2">
-          <div className="flex items-center p-2 gap-2">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={currentUser?.avatar || ""} />
-              <AvatarFallback>{currentUser?.name?.slice(0, 2) || "U"}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-sm font-medium">{currentUser?.name}</p>
-              <p className="text-xs text-muted-foreground">{currentUser?.email}</p>
-            </div>
-          </div>
-        </div>
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3"
+          onClick={() => window.location.href = "/settings"}
+        >
+          <Settings className="h-5 w-5" />
+          <span>Settings</span>
+        </Button>
       </SidebarFooter>
     </Sidebar>
   );
