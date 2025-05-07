@@ -2,7 +2,7 @@
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Sidebar,
   SidebarContent,
@@ -25,7 +25,7 @@ import { useAppContext } from "@/contexts/AppContext";
 
 export function AppSidebar() {
   const location = useLocation();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const { currentUser, getUnreadMessageCount } = useAppContext();
   
   const unreadMessages = currentUser ? getUnreadMessageCount(currentUser.id) : 0;

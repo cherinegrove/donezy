@@ -23,6 +23,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { TaskStatus } from "@/types";
 
 const taskSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
@@ -69,6 +70,8 @@ export function CreateTaskDialog({
     addTask({
       ...data,
       subtasks: [],
+      status: data.status as TaskStatus,
+      priority: data.priority as "low" | "medium" | "high",
     });
     
     form.reset();

@@ -1,4 +1,3 @@
-
 import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField } from "@/types";
 
 export const mockUsers: User[] = [
@@ -47,6 +46,8 @@ export const mockClients: Client[] = [
     phone: "123-456-7890",
     address: "123 Business Ave, Suite 100",
     projectIds: ["project-1"],
+    billableRate: 125,
+    currency: "USD",
   },
   {
     id: "client-2",
@@ -55,6 +56,8 @@ export const mockClients: Client[] = [
     email: "jane@techstart.com",
     phone: "987-654-3210",
     projectIds: ["project-2"],
+    billableRate: 150,
+    currency: "EUR",
   },
 ];
 

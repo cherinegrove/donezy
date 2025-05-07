@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -19,7 +18,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAppContext } from "@/contexts/AppContext";
 import { useState } from "react";
-import { Task } from "@/types";
+import { Task, TaskStatus } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,8 +35,8 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   // Form state
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
-  const [status, setStatus] = useState(task.status);
-  const [priority, setPriority] = useState(task.priority);
+  const [status, setStatus] = useState<TaskStatus>(task.status);
+  const [priority, setPriority] = useState<"low" | "medium" | "high">(task.priority);
   const [dueDate, setDueDate] = useState(task.dueDate || "");
   const [assigneeIds, setAssigneeIds] = useState<string[]>(task.assigneeIds);
   const [activeTab, setActiveTab] = useState("details");
@@ -150,7 +149,10 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Status</Label>
-                <Select value={status} onValueChange={setStatus}>
+                <Select 
+                  value={status} 
+                  onValueChange={(value: TaskStatus) => setStatus(value)}
+                >
                   <SelectTrigger className="mt-2">
                     <SelectValue />
                   </SelectTrigger>
@@ -166,7 +168,10 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
               
               <div>
                 <Label>Priority</Label>
-                <Select value={priority} onValueChange={setPriority}>
+                <Select 
+                  value={priority} 
+                  onValueChange={(value: "low" | "medium" | "high") => setPriority(value)}
+                >
                   <SelectTrigger className="mt-2">
                     <SelectValue />
                   </SelectTrigger>

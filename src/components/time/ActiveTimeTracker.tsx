@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Clock, Play, Stop } from "lucide-react";
+import { Clock, Play, Square } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Textarea } from "@/components/ui/textarea";
@@ -67,7 +67,7 @@ export function ActiveTimeTracker() {
             className="border-red-200 bg-red-50 hover:bg-red-100 text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-500 dark:hover:bg-red-900/40"
             onClick={handleStopTracking}
           >
-            <Stop className="mr-1 h-3 w-3" />
+            <Square className="mr-1 h-3 w-3" />
             Stop
           </Button>
         </div>

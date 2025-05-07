@@ -56,7 +56,6 @@ export function CreateProjectDialog({
       teamIds: [],
       startDate: new Date().toISOString().split("T")[0],
       serviceType: "project",
-      teamIds: [],
     },
   });
   
