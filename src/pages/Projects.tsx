@@ -1,0 +1,126 @@
+
+import { useAppContext } from "@/contexts/AppContext";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus } from "lucide-react";
+import { useState } from "react";
+import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
+import { useNavigate } from "react-router-dom";
+import { Progress } from "@/components/ui/progress";
+import { format } from "date-fns";
+
+const Projects = () => {
+  const { projects, tasks, clients } = useAppContext();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const getProjectProgress = (projectId: string) => {
+    const projectTasks = tasks.filter(task => task.projectId === projectId);
+    const totalTasks = projectTasks.length;
+    if (totalTasks === 0) return 0;
+    
+    const completedTasks = projectTasks.filter(task => task.status === "done").length;
+    return Math.round((completedTasks / totalTasks) * 100);
+  };
+  
+  const getClientName = (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    return client?.name || "Unknown Client";
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Projects</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage and track your team's projects
+          </p>
+        </div>
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          New Project
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {projects.map((project) => {
+          const progress = getProjectProgress(project.id);
+          
+          return (
+            <Card 
+              key={project.id} 
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate(`/projects/${project.id}`)}
+            >
+              <CardHeader>
+                <CardTitle>{project.name}</CardTitle>
+                <CardDescription>{project.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="flex justify-between mb-1 text-sm">
+                    <span>Client</span>
+                    <span className="font-medium">{getClientName(project.clientId)}</span>
+                  </div>
+                  <div className="flex justify-between mb-1 text-sm">
+                    <span>Status</span>
+                    <span className="capitalize font-medium">{project.status.replace("-", " ")}</span>
+                  </div>
+                  <div className="flex justify-between mb-1 text-sm">
+                    <span>Start Date</span>
+                    <span>{format(new Date(project.startDate), "MMM d, yyyy")}</span>
+                  </div>
+                  {project.dueDate && (
+                    <div className="flex justify-between mb-1 text-sm">
+                      <span>Due Date</span>
+                      <span>{format(new Date(project.dueDate), "MMM d, yyyy")}</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm">Progress</span>
+                    <span className="text-sm font-medium">{progress}%</span>
+                  </div>
+                  <Progress value={progress} className="h-2" />
+                </div>
+                
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Hours: {project.usedHours}h</span>
+                  {project.allocatedHours && (
+                    <span className="text-muted-foreground">/ {project.allocatedHours}h</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+
+        {/* New Project Card */}
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow border-dashed flex flex-col items-center justify-center min-h-[260px]"
+          onClick={() => setIsCreateDialogOpen(true)}
+        >
+          <CardContent className="flex flex-col items-center justify-center h-full py-10">
+            <div className="rounded-full bg-muted p-3 mb-3">
+              <Plus className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium">Create New Project</h3>
+            <p className="text-sm text-muted-foreground mt-2 text-center max-w-[180px]">
+              Start tracking time and tasks for a new project
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <CreateProjectDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
+    </div>
+  );
+};
+
+export default Projects;

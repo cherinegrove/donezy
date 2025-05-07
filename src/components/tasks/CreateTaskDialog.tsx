@@ -1,0 +1,401 @@
+
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useAppContext } from "@/contexts/AppContext";
+import { useState } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
+const taskSchema = z.object({
+  title: z.string().min(1, { message: "Title is required" }),
+  description: z.string(),
+  projectId: z.string().min(1, { message: "Project is required" }),
+  parentTaskId: z.string().optional(),
+  assigneeIds: z.array(z.string()),
+  status: z.string().min(1, { message: "Status is required" }),
+  priority: z.string().min(1, { message: "Priority is required" }),
+  dueDate: z.string().optional(),
+  customFields: z.record(z.string(), z.any()),
+});
+
+type TaskFormData = z.infer<typeof taskSchema>;
+
+interface CreateTaskDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  defaultProjectId?: string;
+}
+
+export function CreateTaskDialog({
+  open,
+  onOpenChange,
+  defaultProjectId,
+}: CreateTaskDialogProps) {
+  const { projects, users, tasks, customFields, addTask } = useAppContext();
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  
+  const form = useForm<TaskFormData>({
+    resolver: zodResolver(taskSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      projectId: defaultProjectId || "",
+      status: "todo",
+      priority: "medium",
+      assigneeIds: [],
+      customFields: {},
+    },
+  });
+  
+  const onSubmit = (data: TaskFormData) => {
+    addTask({
+      ...data,
+      subtasks: [],
+    });
+    
+    form.reset();
+    onOpenChange(false);
+  };
+  
+  // Get tasks from selected project for parent task selection
+  const projectTasks = form.watch("projectId") 
+    ? tasks.filter(task => task.projectId === form.watch("projectId"))
+    : [];
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Create New Task</DialogTitle>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Task title" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Task description" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="projectId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project</FormLabel>
+                    <FormControl>
+                      <Select 
+                        value={field.value} 
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a project" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {projects.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="parentTaskId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Parent Task (Optional)</FormLabel>
+                    <FormControl>
+                      <Select 
+                        value={field.value} 
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="No parent task" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No parent task</SelectItem>
+                          {projectTasks.map((task) => (
+                            <SelectItem key={task.id} value={task.id}>
+                              {task.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <FormControl>
+                      <Select 
+                        value={field.value} 
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="backlog">Backlog</SelectItem>
+                          <SelectItem value="todo">To Do</SelectItem>
+                          <SelectItem value="in-progress">In Progress</SelectItem>
+                          <SelectItem value="review">In Review</SelectItem>
+                          <SelectItem value="done">Done</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="priority"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Priority</FormLabel>
+                    <FormControl>
+                      <Select 
+                        value={field.value} 
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="dueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Due Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="assigneeIds"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assignees</FormLabel>
+                    <FormControl>
+                      <Select
+                        value=""
+                        onValueChange={(value) => {
+                          const newAssignees = [...field.value, value];
+                          field.onChange(newAssignees);
+                          setSelectedAssignees(newAssignees);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Add assignee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users
+                            .filter((user) => !field.value.includes(user.id))
+                            .map((user) => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {user.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    
+                    {field.value.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {field.value.map((userId) => {
+                          const user = users.find((u) => u.id === userId);
+                          return (
+                            <Button
+                              key={userId}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-7"
+                              onClick={() => {
+                                const newAssignees = field.value.filter((id) => id !== userId);
+                                field.onChange(newAssignees);
+                                setSelectedAssignees(newAssignees);
+                              }}
+                            >
+                              {user?.name} ✕
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {/* Custom Fields */}
+            {customFields.length > 0 && (
+              <div className="space-y-4">
+                <Label>Custom Fields</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {customFields.map((field) => (
+                    <div key={field.id} className="space-y-2">
+                      <Label htmlFor={field.id}>
+                        {field.name} {field.required && <span className="text-red-500">*</span>}
+                      </Label>
+                      
+                      {field.type === 'text' && (
+                        <Input 
+                          id={field.id}
+                          onChange={(e) => {
+                            const customFieldsValue = form.getValues("customFields");
+                            form.setValue("customFields", {
+                              ...customFieldsValue,
+                              [field.id]: e.target.value,
+                            });
+                          }}
+                        />
+                      )}
+                      
+                      {field.type === 'number' && (
+                        <Input 
+                          id={field.id} 
+                          type="number"
+                          onChange={(e) => {
+                            const customFieldsValue = form.getValues("customFields");
+                            form.setValue("customFields", {
+                              ...customFieldsValue,
+                              [field.id]: parseFloat(e.target.value) || 0,
+                            });
+                          }}
+                        />
+                      )}
+                      
+                      {field.type === 'date' && (
+                        <Input 
+                          id={field.id} 
+                          type="date"
+                          onChange={(e) => {
+                            const customFieldsValue = form.getValues("customFields");
+                            form.setValue("customFields", {
+                              ...customFieldsValue,
+                              [field.id]: e.target.value,
+                            });
+                          }}
+                        />
+                      )}
+                      
+                      {(field.type === 'select' || field.type === 'multiselect') && field.options && (
+                        <Select
+                          onValueChange={(value) => {
+                            const customFieldsValue = form.getValues("customFields");
+                            form.setValue("customFields", {
+                              ...customFieldsValue,
+                              [field.id]: value,
+                            });
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {field.options.map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {option}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Create Task</Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}

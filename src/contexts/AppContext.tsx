@@ -1,0 +1,449 @@
+
+import { createContext, useContext, useState, ReactNode } from "react";
+import {
+  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField
+} from "@/types";
+import {
+  mockUsers, mockTeams, mockClients, mockProjects,
+  mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockCustomFields
+} from "@/data/mockData";
+import { useToast } from "@/hooks/use-toast";
+import { v4 as uuidv4 } from "uuid";
+
+interface AppContextType {
+  // Data
+  users: User[];
+  teams: Team[];
+  clients: Client[];
+  projects: Project[];
+  tasks: Task[];
+  timeEntries: TimeEntry[];
+  messages: Message[];
+  purchases: Purchase[];
+  customFields: CustomField[];
+  
+  // Current user and active states
+  currentUser: User | null;
+  activeTimeEntry: TimeEntry | null;
+  
+  // CRUD operations for users
+  addUser: (user: Omit<User, "id">) => void;
+  updateUser: (id: string, updates: Partial<User>) => void;
+  deleteUser: (id: string) => void;
+  
+  // CRUD operations for teams
+  addTeam: (team: Omit<Team, "id">) => void;
+  updateTeam: (id: string, updates: Partial<Team>) => void;
+  deleteTeam: (id: string) => void;
+  
+  // CRUD operations for clients
+  addClient: (client: Omit<Client, "id">) => void;
+  updateClient: (id: string, updates: Partial<Client>) => void;
+  deleteClient: (id: string) => void;
+  
+  // CRUD operations for projects
+  addProject: (project: Omit<Project, "id">) => void;
+  updateProject: (id: string, updates: Partial<Project>) => void;
+  deleteProject: (id: string) => void;
+  
+  // CRUD operations for tasks
+  addTask: (task: Omit<Task, "id" | "createdAt" | "timeEntries" | "comments">) => void;
+  updateTask: (id: string, updates: Partial<Task>) => void;
+  deleteTask: (id: string) => void;
+  moveTask: (taskId: string, newStatus: Task["status"], newProjectId?: string) => void;
+  
+  // Time tracking operations
+  startTimeTracking: (taskId: string) => void;
+  stopTimeTracking: (notes?: string) => void;
+  addTimeEntry: (entry: Omit<TimeEntry, "id">) => void;
+  
+  // Message operations
+  sendMessage: (message: Omit<Message, "id" | "timestamp" | "read">) => void;
+  markMessageAsRead: (id: string) => void;
+  
+  // Purchase operations
+  addPurchase: (purchase: Omit<Purchase, "id">) => void;
+  
+  // Custom field operations
+  addCustomField: (field: Omit<CustomField, "id">) => void;
+  updateCustomField: (id: string, updates: Partial<CustomField>) => void;
+  deleteCustomField: (id: string) => void;
+  
+  // Filtering and retrieval
+  getTasksByProject: (projectId: string) => Task[];
+  getTasksByUser: (userId: string) => Task[];
+  getUnreadMessageCount: (userId: string) => number;
+  getUserById: (id: string) => User | undefined;
+  getProjectById: (id: string) => Project | undefined;
+  getClientById: (id: string) => Client | undefined;
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+export const AppProvider = ({ children }: { children: ReactNode }) => {
+  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [teams, setTeams] = useState<Team[]>(mockTeams);
+  const [clients, setClients] = useState<Client[]>(mockClients);
+  const [projects, setProjects] = useState<Project[]>(mockProjects);
+  const [tasks, setTasks] = useState<Task[]>(mockTasks);
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(mockTimeEntries);
+  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const [purchases, setPurchases] = useState<Purchase[]>(mockPurchases);
+  const [customFields, setCustomFields] = useState<CustomField[]>(mockCustomFields);
+  
+  // Current user (hardcoded for now, would come from auth in real app)
+  const [currentUser] = useState<User>(mockUsers[0]);
+  const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
+  
+  const { toast } = useToast();
+  
+  // CRUD operations for users
+  const addUser = (user: Omit<User, "id">) => {
+    const newUser = { ...user, id: `user-${uuidv4()}` };
+    setUsers((prev) => [...prev, newUser]);
+    toast({ title: "Success", description: "User has been added" });
+  };
+  
+  const updateUser = (id: string, updates: Partial<User>) => {
+    setUsers((prev) => prev.map(user => user.id === id ? { ...user, ...updates } : user));
+    toast({ title: "Success", description: "User has been updated" });
+  };
+  
+  const deleteUser = (id: string) => {
+    setUsers((prev) => prev.filter(user => user.id !== id));
+    toast({ title: "Success", description: "User has been deleted" });
+  };
+  
+  // CRUD operations for teams
+  const addTeam = (team: Omit<Team, "id">) => {
+    const newTeam = { ...team, id: `team-${uuidv4()}` };
+    setTeams((prev) => [...prev, newTeam]);
+    toast({ title: "Success", description: "Team has been created" });
+  };
+  
+  const updateTeam = (id: string, updates: Partial<Team>) => {
+    setTeams((prev) => prev.map(team => team.id === id ? { ...team, ...updates } : team));
+    toast({ title: "Success", description: "Team has been updated" });
+  };
+  
+  const deleteTeam = (id: string) => {
+    setTeams((prev) => prev.filter(team => team.id !== id));
+    toast({ title: "Success", description: "Team has been deleted" });
+  };
+  
+  // CRUD operations for clients
+  const addClient = (client: Omit<Client, "id">) => {
+    const newClient = { ...client, id: `client-${uuidv4()}` };
+    setClients((prev) => [...prev, newClient]);
+    toast({ title: "Success", description: "Client has been added" });
+  };
+  
+  const updateClient = (id: string, updates: Partial<Client>) => {
+    setClients((prev) => prev.map(client => client.id === id ? { ...client, ...updates } : client));
+    toast({ title: "Success", description: "Client has been updated" });
+  };
+  
+  const deleteClient = (id: string) => {
+    setClients((prev) => prev.filter(client => client.id !== id));
+    toast({ title: "Success", description: "Client has been deleted" });
+  };
+  
+  // CRUD operations for projects
+  const addProject = (project: Omit<Project, "id">) => {
+    const newProject = { ...project, id: `project-${uuidv4()}` };
+    setProjects((prev) => [...prev, newProject]);
+    toast({ title: "Success", description: "Project has been created" });
+  };
+  
+  const updateProject = (id: string, updates: Partial<Project>) => {
+    setProjects((prev) => prev.map(project => project.id === id ? { ...project, ...updates } : project));
+    toast({ title: "Success", description: "Project has been updated" });
+  };
+  
+  const deleteProject = (id: string) => {
+    setProjects((prev) => prev.filter(project => project.id !== id));
+    toast({ title: "Success", description: "Project has been deleted" });
+  };
+  
+  // CRUD operations for tasks
+  const addTask = (task: Omit<Task, "id" | "createdAt" | "timeEntries" | "comments">) => {
+    const newTask = {
+      ...task,
+      id: `task-${uuidv4()}`,
+      createdAt: new Date().toISOString(),
+      timeEntries: [],
+      comments: [],
+    };
+    setTasks((prev) => [...prev, newTask]);
+    
+    // Update project with new taskId
+    setProjects((prev) => prev.map(project => 
+      project.id === newTask.projectId 
+        ? { ...project, taskIds: [...project.taskIds, newTask.id] } 
+        : project
+    ));
+    
+    toast({ title: "Success", description: "Task has been created" });
+  };
+  
+  const updateTask = (id: string, updates: Partial<Task>) => {
+    setTasks((prev) => prev.map(task => task.id === id ? { ...task, ...updates } : task));
+    toast({ title: "Success", description: "Task has been updated" });
+  };
+  
+  const deleteTask = (id: string) => {
+    const task = tasks.find(task => task.id === id);
+    if (!task) return;
+    
+    setTasks((prev) => prev.filter(task => task.id !== id));
+    
+    // Update project by removing task
+    setProjects((prev) => prev.map(project => 
+      project.id === task.projectId
+        ? { ...project, taskIds: project.taskIds.filter(taskId => taskId !== id) }
+        : project
+    ));
+    
+    toast({ title: "Success", description: "Task has been deleted" });
+  };
+  
+  const moveTask = (taskId: string, newStatus: Task["status"], newProjectId?: string) => {
+    setTasks((prev) => prev.map(task => {
+      if (task.id !== taskId) return task;
+      
+      const updates: Partial<Task> = { status: newStatus };
+      if (newProjectId && newProjectId !== task.projectId) {
+        updates.projectId = newProjectId;
+      }
+      
+      return { ...task, ...updates };
+    }));
+    
+    toast({ title: "Task Moved", description: `Task moved to ${newStatus.replace(/-/g, ' ')}` });
+  };
+  
+  // Time tracking operations
+  const startTimeTracking = (taskId: string) => {
+    if (activeTimeEntry) {
+      stopTimeTracking("Automatically stopped by starting new timer");
+    }
+    
+    const newTimeEntry = {
+      id: `time-${uuidv4()}`,
+      taskId,
+      userId: currentUser.id,
+      startTime: new Date().toISOString(),
+      duration: 0,
+      billable: true,
+    };
+    
+    setActiveTimeEntry(newTimeEntry);
+    toast({ title: "Timer Started", description: "Time tracking has begun" });
+  };
+  
+  const stopTimeTracking = (notes?: string) => {
+    if (!activeTimeEntry) return;
+    
+    const endTime = new Date().toISOString();
+    const startTime = new Date(activeTimeEntry.startTime);
+    const durationMs = new Date().getTime() - startTime.getTime();
+    const durationMinutes = Math.round(durationMs / 60000);
+    
+    const completedTimeEntry: TimeEntry = {
+      ...activeTimeEntry,
+      endTime,
+      duration: durationMinutes,
+      notes: notes || activeTimeEntry.notes,
+    };
+    
+    setTimeEntries((prev) => [...prev, completedTimeEntry]);
+    
+    // Update task with the time entry
+    setTasks((prev) => prev.map(task => 
+      task.id === activeTimeEntry.taskId
+        ? { ...task, timeEntries: [...task.timeEntries, completedTimeEntry] }
+        : task
+    ));
+    
+    // Update project used hours
+    setProjects((prev) => {
+      const task = tasks.find(t => t.id === activeTimeEntry.taskId);
+      if (!task) return prev;
+      
+      return prev.map(project => 
+        project.id === task.projectId
+          ? { ...project, usedHours: project.usedHours + (durationMinutes / 60) }
+          : project
+      );
+    });
+    
+    setActiveTimeEntry(null);
+    toast({ title: "Timer Stopped", description: `${durationMinutes} minutes tracked` });
+  };
+  
+  const addTimeEntry = (entry: Omit<TimeEntry, "id">) => {
+    const newEntry = { ...entry, id: `time-${uuidv4()}` };
+    setTimeEntries((prev) => [...prev, newEntry]);
+    
+    // Update task with the time entry
+    setTasks((prev) => prev.map(task => 
+      task.id === entry.taskId
+        ? { ...task, timeEntries: [...task.timeEntries, newEntry] }
+        : task
+    ));
+    
+    toast({ title: "Time Entry Added", description: `${entry.duration} minutes logged` });
+  };
+  
+  // Message operations
+  const sendMessage = (message: Omit<Message, "id" | "timestamp" | "read">) => {
+    const newMessage = {
+      ...message,
+      id: `msg-${uuidv4()}`,
+      timestamp: new Date().toISOString(),
+      read: false,
+    };
+    
+    setMessages((prev) => [...prev, newMessage]);
+    toast({ title: "Message Sent", description: "Your message has been sent" });
+  };
+  
+  const markMessageAsRead = (id: string) => {
+    setMessages((prev) => prev.map(msg => 
+      msg.id === id ? { ...msg, read: true } : msg
+    ));
+  };
+  
+  // Purchase operations
+  const addPurchase = (purchase: Omit<Purchase, "id">) => {
+    const newPurchase = { ...purchase, id: `purchase-${uuidv4()}` };
+    setPurchases((prev) => [...prev, newPurchase]);
+    toast({ title: "Purchase Recorded", description: "Client purchase has been added" });
+  };
+  
+  // Custom field operations
+  const addCustomField = (field: Omit<CustomField, "id">) => {
+    const newField = { ...field, id: `field-${uuidv4()}` };
+    setCustomFields((prev) => [...prev, newField]);
+    toast({ title: "Custom Field Added", description: `Field "${field.name}" has been created` });
+  };
+  
+  const updateCustomField = (id: string, updates: Partial<CustomField>) => {
+    setCustomFields((prev) => prev.map(field => 
+      field.id === id ? { ...field, ...updates } : field
+    ));
+    toast({ title: "Custom Field Updated", description: "Changes have been saved" });
+  };
+  
+  const deleteCustomField = (id: string) => {
+    setCustomFields((prev) => prev.filter(field => field.id !== id));
+    toast({ title: "Custom Field Deleted", description: "Field has been removed" });
+  };
+  
+  // Filtering and retrieval
+  const getTasksByProject = (projectId: string) => {
+    return tasks.filter(task => task.projectId === projectId);
+  };
+  
+  const getTasksByUser = (userId: string) => {
+    return tasks.filter(task => task.assigneeIds.includes(userId));
+  };
+  
+  const getUnreadMessageCount = (userId: string) => {
+    return messages.filter(msg => 
+      msg.recipientIds.includes(userId) && !msg.read
+    ).length;
+  };
+  
+  const getUserById = (id: string) => {
+    return users.find(user => user.id === id);
+  };
+  
+  const getProjectById = (id: string) => {
+    return projects.find(project => project.id === id);
+  };
+  
+  const getClientById = (id: string) => {
+    return clients.find(client => client.id === id);
+  };
+  
+  return (
+    <AppContext.Provider value={{
+      // Data
+      users,
+      teams,
+      clients,
+      projects,
+      tasks,
+      timeEntries,
+      messages,
+      purchases,
+      customFields,
+      
+      // Current user and active states
+      currentUser,
+      activeTimeEntry,
+      
+      // CRUD operations for users
+      addUser,
+      updateUser,
+      deleteUser,
+      
+      // CRUD operations for teams
+      addTeam,
+      updateTeam,
+      deleteTeam,
+      
+      // CRUD operations for clients
+      addClient,
+      updateClient,
+      deleteClient,
+      
+      // CRUD operations for projects
+      addProject,
+      updateProject,
+      deleteProject,
+      
+      // CRUD operations for tasks
+      addTask,
+      updateTask,
+      deleteTask,
+      moveTask,
+      
+      // Time tracking operations
+      startTimeTracking,
+      stopTimeTracking,
+      addTimeEntry,
+      
+      // Message operations
+      sendMessage,
+      markMessageAsRead,
+      
+      // Purchase operations
+      addPurchase,
+      
+      // Custom field operations
+      addCustomField,
+      updateCustomField,
+      deleteCustomField,
+      
+      // Filtering and retrieval
+      getTasksByProject,
+      getTasksByUser,
+      getUnreadMessageCount,
+      getUserById,
+      getProjectById,
+      getClientById,
+    }}>
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+export const useAppContext = () => {
+  const context = useContext(AppContext);
+  if (context === undefined) {
+    throw new Error("useAppContext must be used within an AppProvider");
+  }
+  return context;
+};
