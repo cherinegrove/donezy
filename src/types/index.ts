@@ -114,17 +114,20 @@ export interface Comment {
   content: string;
   timestamp: string;
   attachments?: string[];
+  mentionedUserIds?: string[]; // Added to track mentioned users
 }
 
 export interface Message {
   id: string;
   senderId: string;
   recipientIds: string[];
-  subject: string;
   content: string;
   timestamp: string;
   read: boolean;
-  threadId?: string;
+  commentId: string; // Reference to the comment that created this message
+  taskId: string;    // Reference to related task
+  projectId?: string; // Reference to related project
+  clientId?: string;  // Reference to related client
 }
 
 export interface Purchase {

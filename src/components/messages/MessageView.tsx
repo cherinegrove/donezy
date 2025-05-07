@@ -26,9 +26,9 @@ interface MessageViewProps {
 export function MessageView({ message, onReply }: MessageViewProps) {
   const { 
     getUserById, 
-    users, 
     getProjectById, 
     getClientById, 
+    getTaskById,
     tasks, 
     addTask,
     currentUser
@@ -41,19 +41,12 @@ export function MessageView({ message, onReply }: MessageViewProps) {
   const [taskTitle, setTaskTitle] = useState("");
   
   const sender = getUserById(message.senderId);
+  const task = getTaskById(message.taskId);
   
-  const recipients = message.recipientIds.map(id => 
-    getUserById(id)?.name || "Unknown User"
-  ).join(", ");
-  
-  // Get related entities from message metadata (if available)
-  const relatedClientId = message.clientId;
-  const relatedProjectId = message.projectId;
-  const relatedTaskId = message.taskId;
-  
-  const client = relatedClientId ? getClientById(relatedClientId) : null;
-  const project = relatedProjectId ? getProjectById(relatedProjectId) : null;
-  const task = relatedTaskId ? tasks.find(t => t.id === relatedTaskId) : null;
+  // Get related entities from message metadata
+  const client = message.clientId ? getClientById(message.clientId) : null;
+  const project = message.projectId ? getProjectById(message.projectId) : 
+                  (task ? getProjectById(task.projectId) : null);
   const subtask = task?.subtasks && task.subtasks.length > 0 
     ? tasks.find(t => task.subtasks.includes(t.id)) 
     : null;
@@ -76,7 +69,7 @@ export function MessageView({ message, onReply }: MessageViewProps) {
   };
   
   const handleCreateTask = () => {
-    if (!taskTitle.trim() || !relatedProjectId) {
+    if (!taskTitle.trim() || !project?.id) {
       toast({
         title: "Cannot create task",
         description: "Task title and project are required",
@@ -87,12 +80,14 @@ export function MessageView({ message, onReply }: MessageViewProps) {
     
     addTask({
       title: taskTitle,
-      description: `Created from message: ${message.subject}`,
-      status: "to-do",
+      description: `Created from comment: ${message.content}`,
+      status: "todo",
       priority: "medium",
-      projectId: relatedProjectId,
+      projectId: project.id,
       assigneeIds: [currentUser?.id || ""],
       dueDate: null,
+      customFields: {},
+      subtasks: [],
       watcherIds: [currentUser?.id || ""],
     });
     
@@ -106,7 +101,7 @@ export function MessageView({ message, onReply }: MessageViewProps) {
   };
   
   const handleCreateSubtask = () => {
-    if (!taskTitle.trim() || !relatedTaskId || !relatedProjectId) {
+    if (!taskTitle.trim() || !message.taskId || !project?.id) {
       toast({
         title: "Cannot create subtask",
         description: "Task title and parent task are required",
@@ -117,13 +112,15 @@ export function MessageView({ message, onReply }: MessageViewProps) {
     
     addTask({
       title: taskTitle,
-      description: `Created from message: ${message.subject}`,
-      status: "to-do",
+      description: `Created from comment: ${message.content}`,
+      status: "todo",
       priority: "medium",
-      projectId: relatedProjectId,
-      parentTaskId: relatedTaskId,
+      projectId: project.id,
+      parentTaskId: message.taskId,
       assigneeIds: [currentUser?.id || ""],
       dueDate: null,
+      customFields: {},
+      subtasks: [],
       watcherIds: [currentUser?.id || ""],
     });
     
@@ -139,7 +136,9 @@ export function MessageView({ message, onReply }: MessageViewProps) {
   return (
     <div className="flex flex-col h-full border rounded-md">
       <div className="p-4 border-b">
-        <h1 className="text-xl font-semibold">{message.subject}</h1>
+        <h1 className="text-xl font-semibold">
+          {task ? `Comment on ${task.title}` : "Message"}
+        </h1>
         <div className="mt-3 flex justify-between items-start">
           <div className="flex gap-3">
             <Avatar className="h-10 w-10">
@@ -151,13 +150,11 @@ export function MessageView({ message, onReply }: MessageViewProps) {
             
             <div>
               <p className="font-medium">{sender?.name || 'Unknown User'}</p>
-              <p className="text-sm text-muted-foreground">To: {recipients}</p>
+              <p className="text-xs text-muted-foreground">
+                {format(new Date(message.timestamp), "MMM d, yyyy 'at' h:mm a")}
+              </p>
             </div>
           </div>
-          
-          <p className="text-sm text-muted-foreground">
-            {format(new Date(message.timestamp), "MMM d, yyyy 'at' h:mm a")}
-          </p>
         </div>
         
         {/* Related context information */}
@@ -200,7 +197,7 @@ export function MessageView({ message, onReply }: MessageViewProps) {
               </div>
               
               <div className="flex gap-2">
-                {relatedProjectId && (
+                {project && (
                   <Popover open={isAddingTask} onOpenChange={setIsAddingTask}>
                     <PopoverTrigger asChild>
                       <Button size="sm" variant="outline">
@@ -235,7 +232,7 @@ export function MessageView({ message, onReply }: MessageViewProps) {
                   </Popover>
                 )}
                 
-                {relatedTaskId && (
+                {task && (
                   <Popover open={isAddingSubtask} onOpenChange={setIsAddingSubtask}>
                     <PopoverTrigger asChild>
                       <Button size="sm" variant="outline">

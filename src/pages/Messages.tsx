@@ -1,19 +1,15 @@
 
 import { useAppContext } from "@/contexts/AppContext";
-import { Button } from "@/components/ui/button";
 import { MessageList } from "@/components/messages/MessageList";
 import { MessageView } from "@/components/messages/MessageView";
-import { ComposeMessageDialog } from "@/components/messages/ComposeMessageDialog";
 import { Message } from "@/types";
 import { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Messages = () => {
-  const { messages, currentUser, sendMessage, clients, projects, tasks, users } = useAppContext();
+  const { messages, currentUser, clients, projects, tasks, users } = useAppContext();
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
-  const [isComposeOpen, setIsComposeOpen] = useState(false);
   const { messageId } = useParams<{ messageId?: string }>();
   const navigate = useNavigate();
   
@@ -84,40 +80,26 @@ const Messages = () => {
   };
   
   const handleReply = () => {
-    if (!selectedMessage) return;
+    if (!selectedMessage || !currentUser) return;
     
-    // In a real app, this would add to a thread
-    // Here we just send a new message
-    sendMessage({
-      senderId: currentUser?.id || "",
-      recipientIds: [selectedMessage.senderId],
-      subject: `Re: ${selectedMessage.subject}`,
-      content: "This is a reply to your message.",
-      clientId: selectedMessage.clientId,
-      projectId: selectedMessage.projectId,
-      taskId: selectedMessage.taskId,
-    });
+    // In a real app, this would reply directly to the original comment
+    // Here we just acknowledge the action
+    console.log("Reply to comment on task:", selectedMessage.taskId);
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Messages</h1>
-          <p className="text-muted-foreground mt-1">
-            Communicate with your team and clients
-          </p>
-        </div>
-        <Button onClick={() => setIsComposeOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Message
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold">Messages</h1>
+        <p className="text-muted-foreground mt-1">
+          Task comments that mention you
+        </p>
       </div>
       
       {/* Horizontal filters */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="flex flex-wrap gap-4">
         <Select value={clientFilter} onValueChange={setClientFilter}>
-          <SelectTrigger>
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Client" />
           </SelectTrigger>
           <SelectContent>
@@ -131,7 +113,7 @@ const Messages = () => {
         </Select>
         
         <Select value={projectFilter} onValueChange={setProjectFilter}>
-          <SelectTrigger>
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Project" />
           </SelectTrigger>
           <SelectContent>
@@ -147,7 +129,7 @@ const Messages = () => {
         </Select>
         
         <Select value={taskFilter} onValueChange={setTaskFilter}>
-          <SelectTrigger>
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Task" />
           </SelectTrigger>
           <SelectContent>
@@ -163,7 +145,7 @@ const Messages = () => {
         </Select>
         
         <Select value={userFilter} onValueChange={setUserFilter}>
-          <SelectTrigger>
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="User" />
           </SelectTrigger>
           <SelectContent>
@@ -177,7 +159,7 @@ const Messages = () => {
         </Select>
         
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger>
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -202,23 +184,11 @@ const Messages = () => {
             <MessageView message={selectedMessage} onReply={handleReply} />
           ) : (
             <div className="flex flex-col items-center justify-center h-full min-h-[300px] border rounded-md">
-              <p className="text-muted-foreground">Select a message or start a new conversation</p>
-              <Button 
-                variant="outline" 
-                className="mt-4"
-                onClick={() => setIsComposeOpen(true)}
-              >
-                New Message
-              </Button>
+              <p className="text-muted-foreground">Select a message to view details</p>
             </div>
           )}
         </div>
       </div>
-      
-      <ComposeMessageDialog 
-        open={isComposeOpen}
-        onOpenChange={setIsComposeOpen}
-      />
     </div>
   );
 };

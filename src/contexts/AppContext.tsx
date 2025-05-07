@@ -1,95 +1,14 @@
-
 import { createContext, useContext, useState, ReactNode } from "react";
 import {
-  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField
+  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment
 } from "@/types";
+import { AppContextType } from "./AppContextType";
 import {
   mockUsers, mockTeams, mockClients, mockProjects,
   mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockCustomFields
 } from "@/data/mockData";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
-
-interface AppContextType {
-  // Data
-  users: User[];
-  teams: Team[];
-  clients: Client[];
-  projects: Project[];
-  tasks: Task[];
-  timeEntries: TimeEntry[];
-  messages: Message[];
-  purchases: Purchase[];
-  customFields: CustomField[];
-  
-  // Current user and active states
-  currentUser: User | null;
-  activeTimeEntry: TimeEntry | null;
-  
-  // Authentication
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  
-  // CRUD operations for users
-  addUser: (user: Omit<User, "id">) => void;
-  updateUser: (id: string, updates: Partial<User>) => void;
-  deleteUser: (id: string) => void;
-  inviteUser: (email: string, name: string, role: string, clientId?: string) => void;
-  
-  // CRUD operations for teams
-  addTeam: (team: Omit<Team, "id">) => void;
-  updateTeam: (id: string, updates: Partial<Team>) => void;
-  deleteTeam: (id: string) => void;
-  
-  // CRUD operations for clients
-  addClient: (client: Omit<Client, "id">) => void;
-  updateClient: (id: string, updates: Partial<Client>) => void;
-  deleteClient: (id: string) => void;
-  
-  // CRUD operations for projects
-  addProject: (project: Omit<Project, "id">) => void;
-  updateProject: (id: string, updates: Partial<Project>) => void;
-  deleteProject: (id: string) => void;
-  watchProject: (projectId: string, userId: string) => void;
-  unwatchProject: (projectId: string, userId: string) => void;
-  
-  // CRUD operations for tasks
-  addTask: (task: Omit<Task, "id" | "createdAt" | "timeEntries" | "comments">) => void;
-  updateTask: (id: string, updates: Partial<Task>) => void;
-  deleteTask: (id: string) => void;
-  moveTask: (taskId: string, newStatus: Task["status"], newProjectId?: string) => void;
-  watchTask: (taskId: string, userId: string) => void;
-  unwatchTask: (taskId: string, userId: string) => void;
-  
-  // Time tracking operations
-  startTimeTracking: (taskId: string) => void;
-  stopTimeTracking: (notes?: string) => void;
-  addTimeEntry: (entry: Omit<TimeEntry, "id">) => void;
-  
-  // Message operations
-  sendMessage: (message: Omit<Message, "id" | "timestamp" | "read">) => void;
-  markMessageAsRead: (id: string) => void;
-  
-  // Purchase operations
-  addPurchase: (purchase: Omit<Purchase, "id">) => void;
-  
-  // Custom field operations
-  addCustomField: (field: Omit<CustomField, "id">) => void;
-  updateCustomField: (id: string, updates: Partial<CustomField>) => void;
-  deleteCustomField: (id: string) => void;
-  
-  // Filtering and retrieval
-  getTasksByProject: (projectId: string) => Task[];
-  getTasksByUser: (userId: string) => Task[];
-  getUnreadMessageCount: (userId: string) => number;
-  getUserById: (id: string) => User | undefined;
-  getProjectById: (id: string) => Project | undefined;
-  getClientById: (id: string) => Client | undefined;
-  
-  // Manager operations
-  updateManagerNotificationPreferences: (userId: string, preferences: User['notificationPreferences']) => void;
-  getTasksDueWithinTimeframe: (timeframe: string) => Task[];
-}
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -433,6 +352,79 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     ));
   };
   
+  // Handle comment posting with @mentions
+  const addComment = (taskId: string, userId: string, content: string) => {
+    // Extract mentioned users with @username pattern
+    const mentionRegex = /@(\w+)/g;
+    const mentions = content.match(mentionRegex) || [];
+    
+    // Find user IDs from mentions
+    const mentionedUserIds = mentions
+      .map(mention => {
+        const username = mention.substring(1); // Remove the @ symbol
+        const user = users.find(u => 
+          u.name.toLowerCase().replace(/\s+/g, '') === username.toLowerCase()
+        );
+        return user?.id;
+      })
+      .filter(Boolean) as string[];
+    
+    // Create comment
+    const newComment: Comment = {
+      id: `comment-${uuidv4()}`,
+      taskId,
+      userId,
+      content,
+      timestamp: new Date().toISOString(),
+      mentionedUserIds
+    };
+    
+    // Find the task and update it with the new comment
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) {
+      toast({ 
+        title: "Error", 
+        description: "Task not found", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    // Update task with new comment
+    setTasks(prev => prev.map(t => 
+      t.id === taskId 
+        ? { ...t, comments: [...t.comments, newComment] } 
+        : t
+    ));
+    
+    // Create message notifications for mentioned users
+    if (mentionedUserIds.length > 0) {
+      const projectId = task.projectId;
+      const project = projects.find(p => p.id === projectId);
+      const clientId = project?.clientId;
+      
+      mentionedUserIds.forEach(recipientId => {
+        const messageNotification: Message = {
+          id: `msg-${uuidv4()}`,
+          senderId: userId,
+          recipientIds: [recipientId],
+          content: content,
+          timestamp: new Date().toISOString(),
+          read: false,
+          commentId: newComment.id,
+          taskId: taskId,
+          projectId: projectId,
+          clientId: clientId
+        };
+        
+        setMessages(prev => [...prev, messageNotification]);
+      });
+    }
+    
+    toast({ title: "Comment Added", description: "Your comment has been posted" });
+    return newComment;
+  };
+  
   // Purchase operations
   const addPurchase = (purchase: Omit<Purchase, "id">) => {
     const newPurchase = { ...purchase, id: `purchase-${uuidv4()}` };
@@ -539,6 +531,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return clients.find(client => client.id === id);
   };
   
+  const getTaskById = (id: string) => {
+    return tasks.find(task => task.id === id);
+  };
+
   return (
     <AppContext.Provider value={{
       // Data
@@ -599,6 +595,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       // Message operations
       sendMessage,
       markMessageAsRead,
+      addComment,
       
       // Purchase operations
       addPurchase,
@@ -619,6 +616,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       getUserById,
       getProjectById,
       getClientById,
+      getTaskById,
     }}>
       {children}
     </AppContext.Provider>

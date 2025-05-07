@@ -3,7 +3,6 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Message } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 
@@ -14,14 +13,13 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages, onSelect, selectedMessageId }: MessageListProps) {
-  const { getUserById, markMessageAsRead } = useAppContext();
+  const { getUserById, markMessageAsRead, getTaskById } = useAppContext();
   const [searchQuery, setSearchQuery] = useState("");
   
   // Filter messages based on search
   const filteredMessages = messages.filter(message => {
     // Text search filter
-    return message.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           message.content.toLowerCase().includes(searchQuery.toLowerCase());
+    return message.content.toLowerCase().includes(searchQuery.toLowerCase());
   });
   
   const handleSelectMessage = (message: Message) => {
@@ -45,6 +43,7 @@ export function MessageList({ messages, onSelect, selectedMessageId }: MessageLi
         {filteredMessages.length > 0 ? (
           filteredMessages.map((message) => {
             const sender = getUserById(message.senderId);
+            const task = getTaskById(message.taskId);
             
             return (
               <div 
@@ -76,7 +75,7 @@ export function MessageList({ messages, onSelect, selectedMessageId }: MessageLi
                       {!message.read && (
                         <span className="inline-block w-2 h-2 bg-primary rounded-full mr-1"></span>
                       )}
-                      {message.subject}
+                      {task ? `Task: ${task.title}` : "Unknown Task"}
                     </h3>
                     
                     <p className="text-xs text-muted-foreground truncate">
