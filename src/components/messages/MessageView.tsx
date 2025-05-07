@@ -6,6 +6,17 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Link } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Plus } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { toast } from "@/hooks/use-toast";
 
 interface MessageViewProps {
   message: Message;
@@ -13,15 +24,39 @@ interface MessageViewProps {
 }
 
 export function MessageView({ message, onReply }: MessageViewProps) {
-  const { getUserById, users } = useAppContext();
+  const { 
+    getUserById, 
+    users, 
+    getProjectById, 
+    getClientById, 
+    tasks, 
+    addTask,
+    currentUser
+  } = useAppContext();
+  
   const [replyContent, setReplyContent] = useState("");
   const [isReplying, setIsReplying] = useState(false);
+  const [isAddingTask, setIsAddingTask] = useState(false);
+  const [isAddingSubtask, setIsAddingSubtask] = useState(false);
+  const [taskTitle, setTaskTitle] = useState("");
   
   const sender = getUserById(message.senderId);
   
   const recipients = message.recipientIds.map(id => 
     getUserById(id)?.name || "Unknown User"
   ).join(", ");
+  
+  // Get related entities from message metadata (if available)
+  const relatedClientId = message.clientId;
+  const relatedProjectId = message.projectId;
+  const relatedTaskId = message.taskId;
+  
+  const client = relatedClientId ? getClientById(relatedClientId) : null;
+  const project = relatedProjectId ? getProjectById(relatedProjectId) : null;
+  const task = relatedTaskId ? tasks.find(t => t.id === relatedTaskId) : null;
+  const subtask = task?.subtasks && task.subtasks.length > 0 
+    ? tasks.find(t => task.subtasks.includes(t.id)) 
+    : null;
   
   const handleStartReply = () => {
     setIsReplying(true);
@@ -38,6 +73,67 @@ export function MessageView({ message, onReply }: MessageViewProps) {
       setIsReplying(false);
       setReplyContent("");
     }
+  };
+  
+  const handleCreateTask = () => {
+    if (!taskTitle.trim() || !relatedProjectId) {
+      toast({
+        title: "Cannot create task",
+        description: "Task title and project are required",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    addTask({
+      title: taskTitle,
+      description: `Created from message: ${message.subject}`,
+      status: "to-do",
+      priority: "medium",
+      projectId: relatedProjectId,
+      assigneeIds: [currentUser?.id || ""],
+      dueDate: null,
+      watcherIds: [currentUser?.id || ""],
+    });
+    
+    toast({ 
+      title: "Success", 
+      description: "Task has been created" 
+    });
+    
+    setTaskTitle("");
+    setIsAddingTask(false);
+  };
+  
+  const handleCreateSubtask = () => {
+    if (!taskTitle.trim() || !relatedTaskId || !relatedProjectId) {
+      toast({
+        title: "Cannot create subtask",
+        description: "Task title and parent task are required",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    addTask({
+      title: taskTitle,
+      description: `Created from message: ${message.subject}`,
+      status: "to-do",
+      priority: "medium",
+      projectId: relatedProjectId,
+      parentTaskId: relatedTaskId,
+      assigneeIds: [currentUser?.id || ""],
+      dueDate: null,
+      watcherIds: [currentUser?.id || ""],
+    });
+    
+    toast({ 
+      title: "Success", 
+      description: "Subtask has been created" 
+    });
+    
+    setTaskTitle("");
+    setIsAddingSubtask(false);
   };
   
   return (
@@ -63,6 +159,120 @@ export function MessageView({ message, onReply }: MessageViewProps) {
             {format(new Date(message.timestamp), "MMM d, yyyy 'at' h:mm a")}
           </p>
         </div>
+        
+        {/* Related context information */}
+        {(client || project || task) && (
+          <div className="mt-3 space-y-2">
+            <Separator />
+            <div className="flex flex-wrap gap-2 items-center">
+              <div className="flex-1 flex flex-wrap gap-2">
+                {client && (
+                  <Badge variant="outline" className="bg-blue-50">
+                    <Link to={`/clients/${client.id}`} className="hover:underline">
+                      Client: {client.name}
+                    </Link>
+                  </Badge>
+                )}
+                
+                {project && (
+                  <Badge variant="outline" className="bg-green-50">
+                    <Link to={`/projects/${project.id}`} className="hover:underline">
+                      Project: {project.name}
+                    </Link>
+                  </Badge>
+                )}
+                
+                {task && (
+                  <Badge variant="outline" className="bg-purple-50">
+                    <Link to={`/tasks?taskId=${task.id}`} className="hover:underline">
+                      Task: {task.title}
+                    </Link>
+                  </Badge>
+                )}
+                
+                {subtask && (
+                  <Badge variant="outline" className="bg-orange-50">
+                    <Link to={`/tasks?taskId=${subtask.id}`} className="hover:underline">
+                      Subtask: {subtask.title}
+                    </Link>
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="flex gap-2">
+                {relatedProjectId && (
+                  <Popover open={isAddingTask} onOpenChange={setIsAddingTask}>
+                    <PopoverTrigger asChild>
+                      <Button size="sm" variant="outline">
+                        <Plus className="h-4 w-4 mr-1" /> Task
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-4 w-72">
+                      <div className="space-y-3">
+                        <h4 className="font-medium">Create New Task</h4>
+                        <Input 
+                          placeholder="Task title" 
+                          value={taskTitle}
+                          onChange={(e) => setTaskTitle(e.target.value)}
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              setIsAddingTask(false);
+                              setTaskTitle("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button size="sm" onClick={handleCreateTask}>
+                            Create
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+                
+                {relatedTaskId && (
+                  <Popover open={isAddingSubtask} onOpenChange={setIsAddingSubtask}>
+                    <PopoverTrigger asChild>
+                      <Button size="sm" variant="outline">
+                        <Plus className="h-4 w-4 mr-1" /> Subtask
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-4 w-72">
+                      <div className="space-y-3">
+                        <h4 className="font-medium">Create Subtask</h4>
+                        <Input 
+                          placeholder="Subtask title" 
+                          value={taskTitle}
+                          onChange={(e) => setTaskTitle(e.target.value)}
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              setIsAddingSubtask(false);
+                              setTaskTitle("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button size="sm" onClick={handleCreateSubtask}>
+                            Create
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="p-4 flex-1 overflow-auto">

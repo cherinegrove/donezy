@@ -6,7 +6,6 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 
 interface MessageListProps {
   messages: Message[];
@@ -15,65 +14,14 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages, onSelect, selectedMessageId }: MessageListProps) {
-  const { getUserById, markMessageAsRead, users } = useAppContext();
+  const { getUserById, markMessageAsRead } = useAppContext();
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   
-  // Define filter options
-  const filterOptions: FilterOption[] = [
-    {
-      id: "senders",
-      name: "From",
-      options: users.map(user => ({
-        id: user.id,
-        label: user.name,
-      })),
-    },
-    {
-      id: "read",
-      name: "Status",
-      options: [
-        { id: "read", label: "Read" },
-        { id: "unread", label: "Unread" },
-      ],
-    },
-  ];
-
-  const handleFilterChange = (filters: Record<string, string[]>) => {
-    setActiveFilters(filters);
-  };
-  
-  // Filter messages based on search and active filters
+  // Filter messages based on search
   const filteredMessages = messages.filter(message => {
     // Text search filter
-    const matchesSearch = 
-      message.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      message.content.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (!matchesSearch) return false;
-    
-    // Apply other filters
-    for (const [filterId, values] of Object.entries(activeFilters)) {
-      if (values.length === 0) continue;
-
-      switch (filterId) {
-        case "senders":
-          if (!values.includes(message.senderId)) {
-            return false;
-          }
-          break;
-        case "read":
-          if (values.includes("read") && !message.read) {
-            return false;
-          }
-          if (values.includes("unread") && message.read) {
-            return false;
-          }
-          break;
-      }
-    }
-
-    return true;
+    return message.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           message.content.toLowerCase().includes(searchQuery.toLowerCase());
   });
   
   const handleSelectMessage = (message: Message) => {
@@ -87,11 +35,10 @@ export function MessageList({ messages, onSelect, selectedMessageId }: MessageLi
     <div className="flex flex-col h-full border rounded-md">
       <div className="p-3 border-b space-y-3">
         <Input 
-          placeholder="Search messages..." 
+          placeholder="Search in messages..." 
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
       </div>
       
       <div className="overflow-auto flex-1">

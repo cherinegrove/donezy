@@ -5,33 +5,78 @@ import { MessageList } from "@/components/messages/MessageList";
 import { MessageView } from "@/components/messages/MessageView";
 import { ComposeMessageDialog } from "@/components/messages/ComposeMessageDialog";
 import { Message } from "@/types";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Messages = () => {
-  const { messages, currentUser, sendMessage } = useAppContext();
+  const { messages, currentUser, sendMessage, clients, projects, tasks, users } = useAppContext();
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const { messageId } = useParams<{ messageId?: string }>();
   const navigate = useNavigate();
   
+  // Filters
+  const [clientFilter, setClientFilter] = useState<string>("");
+  const [projectFilter, setProjectFilter] = useState<string>("");
+  const [taskFilter, setTaskFilter] = useState<string>("");
+  const [userFilter, setUserFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  
   // Filter messages to show only those that involve the current user
   const userMessages = messages.filter(
-    (msg) => 
-      msg.senderId === currentUser?.id || 
-      msg.recipientIds.includes(currentUser?.id || "")
+    (msg) => {
+      // Base filter for current user's messages
+      const isUserMessage = msg.senderId === currentUser?.id || 
+        msg.recipientIds.includes(currentUser?.id || "");
+      
+      // Apply additional filters
+      let matchesFilters = true;
+      
+      if (clientFilter && msg.clientId !== clientFilter) {
+        matchesFilters = false;
+      }
+      
+      if (projectFilter && msg.projectId !== projectFilter) {
+        matchesFilters = false;
+      }
+      
+      if (taskFilter && msg.taskId !== taskFilter) {
+        matchesFilters = false;
+      }
+      
+      if (userFilter) {
+        // Filter by sender or recipient
+        if (userFilter !== msg.senderId && !msg.recipientIds.includes(userFilter)) {
+          matchesFilters = false;
+        }
+      }
+      
+      if (statusFilter) {
+        if (statusFilter === "read" && !msg.read) {
+          matchesFilters = false;
+        }
+        if (statusFilter === "unread" && msg.read) {
+          matchesFilters = false;
+        }
+      }
+      
+      return isUserMessage && matchesFilters;
+    }
   ).sort((a, b) => 
     new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
   
   // Handle message selection from URL
-  if (messageId && !selectedMessage) {
-    const msgFromUrl = messages.find(m => m.id === messageId);
-    if (msgFromUrl) {
-      setSelectedMessage(msgFromUrl);
+  useEffect(() => {
+    if (messageId) {
+      const msgFromUrl = messages.find(m => m.id === messageId);
+      if (msgFromUrl) {
+        setSelectedMessage(msgFromUrl);
+      }
     }
-  }
+  }, [messageId, messages]);
   
   const handleSelectMessage = (message: Message) => {
     setSelectedMessage(message);
@@ -48,6 +93,9 @@ const Messages = () => {
       recipientIds: [selectedMessage.senderId],
       subject: `Re: ${selectedMessage.subject}`,
       content: "This is a reply to your message.",
+      clientId: selectedMessage.clientId,
+      projectId: selectedMessage.projectId,
+      taskId: selectedMessage.taskId,
     });
   };
 
@@ -64,6 +112,80 @@ const Messages = () => {
           <Plus className="mr-2 h-4 w-4" />
           New Message
         </Button>
+      </div>
+      
+      {/* Horizontal filters */}
+      <div className="grid grid-cols-5 gap-4">
+        <Select value={clientFilter} onValueChange={setClientFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Client" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Clients</SelectItem>
+            {clients.map(client => (
+              <SelectItem key={client.id} value={client.id}>
+                {client.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+        <Select value={projectFilter} onValueChange={setProjectFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Project" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Projects</SelectItem>
+            {projects
+              .filter(project => !clientFilter || project.clientId === clientFilter)
+              .map(project => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+        
+        <Select value={taskFilter} onValueChange={setTaskFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Task" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Tasks</SelectItem>
+            {tasks
+              .filter(task => !projectFilter || task.projectId === projectFilter)
+              .map(task => (
+                <SelectItem key={task.id} value={task.id}>
+                  {task.title}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+        
+        <Select value={userFilter} onValueChange={setUserFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="User" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Users</SelectItem>
+            {users.map(user => (
+              <SelectItem key={user.id} value={user.id}>
+                {user.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Messages</SelectItem>
+            <SelectItem value="read">Read</SelectItem>
+            <SelectItem value="unread">Unread</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
