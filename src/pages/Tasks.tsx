@@ -1,23 +1,81 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppContext } from "@/contexts/AppContext";
 import { Task } from "@/types";
 import { Button } from "@/components/ui/button";
 import { CheckSquare, Filter, Plus, SlidersHorizontal } from "lucide-react";
-import TaskCard from "@/components/tasks/TaskCard";
+import { TaskCard } from "@/components/tasks/TaskCard";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
+import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 
 export default function Tasks() {
-  const { tasks, projects } = useAppContext();
+  const { tasks, projects, users, teams } = useAppContext();
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
 
-  // Filter tasks based on the active tab
+  // Define filter options
+  const filterOptions: FilterOption[] = [
+    {
+      id: "projects",
+      name: "Project",
+      options: projects.map(project => ({
+        id: project.id,
+        label: project.name,
+      })),
+    },
+    {
+      id: "assignees",
+      name: "Assignee",
+      options: users.map(user => ({
+        id: user.id,
+        label: user.name,
+      })),
+    },
+    {
+      id: "priority",
+      name: "Priority",
+      options: [
+        { id: "high", label: "High" },
+        { id: "medium", label: "Medium" },
+        { id: "low", label: "Low" },
+      ],
+    },
+  ];
+
+  // Filter tasks based on the active tab and filters
   const filteredTasks = tasks.filter(task => {
-    if (activeTab === "all") return true;
-    return task.status === activeTab;
+    // First filter by status tab
+    if (activeTab !== "all" && task.status !== activeTab) {
+      return false;
+    }
+
+    // Then apply other filters
+    for (const [filterId, values] of Object.entries(activeFilters)) {
+      if (values.length === 0) continue;
+
+      switch (filterId) {
+        case "projects":
+          if (!values.includes(task.projectId)) {
+            return false;
+          }
+          break;
+        case "assignees":
+          if (!task.assigneeIds || !task.assigneeIds.some(id => values.includes(id))) {
+            return false;
+          }
+          break;
+        case "priority":
+          if (!values.includes(task.priority)) {
+            return false;
+          }
+          break;
+      }
+    }
+
+    return true;
   });
 
   // Group tasks by project
@@ -30,6 +88,10 @@ export default function Tasks() {
     return acc;
   }, {});
 
+  const handleFilterChange = (filters: Record<string, string[]>) => {
+    setActiveFilters(filters);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -39,21 +101,13 @@ export default function Tasks() {
             Manage and track all your tasks across projects
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
-          <Button variant="outline" size="sm">
-            <SlidersHorizontal className="mr-2 h-4 w-4" />
-            Sort
-          </Button>
-          <Button onClick={() => setIsCreateTaskOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Task
-          </Button>
-        </div>
+        <Button onClick={() => setIsCreateTaskOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          New Task
+        </Button>
       </div>
+
+      <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
 
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
@@ -72,7 +126,9 @@ export default function Tasks() {
                   <CheckSquare className="h-10 w-10 text-muted-foreground/50" />
                   <p className="mt-2 text-lg font-medium">No tasks found</p>
                   <p className="text-muted-foreground text-sm">
-                    Create a new task to get started
+                    {Object.keys(activeFilters).length > 0
+                      ? "Try adjusting your filters"
+                      : "Create a new task to get started"}
                   </p>
                   <Button 
                     variant="default" 

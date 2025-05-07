@@ -1,15 +1,71 @@
 
+import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { FilterBar, FilterOption } from "@/components/common/FilterBar";
+import { UserInviteForm } from "@/components/settings/UserInviteForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const Team = () => {
   const { teams, users } = useAppContext();
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+
+  // Define filter options
+  const filterOptions: FilterOption[] = [
+    {
+      id: "teams",
+      name: "Team",
+      options: teams.map(team => ({
+        id: team.id,
+        label: team.name,
+      })),
+    },
+    {
+      id: "roles",
+      name: "Role",
+      options: [
+        { id: "admin", label: "Admin" },
+        { id: "manager", label: "Manager" },
+        { id: "developer", label: "Developer" },
+        { id: "client", label: "Client" },
+      ],
+    },
+  ];
 
   const getUsersInTeam = (teamId: string) => {
-    return users.filter(user => user.teamIds.includes(teamId));
+    const filteredUsers = users.filter(user => user.teamIds.includes(teamId));
+    
+    // Apply role filters if any
+    if (activeFilters.roles && activeFilters.roles.length > 0) {
+      return filteredUsers.filter(user => 
+        activeFilters.roles.includes(user.role)
+      );
+    }
+    
+    return filteredUsers;
   };
+
+  const handleFilterChange = (filters: Record<string, string[]>) => {
+    setActiveFilters(filters);
+  };
+
+  // Filter teams based on team filter
+  const filteredTeams = teams.filter(team => {
+    if (activeFilters.teams && activeFilters.teams.length > 0) {
+      return activeFilters.teams.includes(team.id);
+    }
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -21,13 +77,28 @@ const Team = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">Add Team Member</Button>
-          <Button>Create Team</Button>
+          <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>Add Team Member</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Invite New Team Member</DialogTitle>
+                <DialogDescription>
+                  Send an invitation email to a new team member
+                </DialogDescription>
+              </DialogHeader>
+              <UserInviteForm />
+            </DialogContent>
+          </Dialog>
+          <Button variant="outline">Create Team</Button>
         </div>
       </div>
 
+      <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
+
       <div className="space-y-6">
-        {teams.map((team) => {
+        {filteredTeams.map((team) => {
           const teamMembers = getUsersInTeam(team.id);
           
           return (
@@ -68,6 +139,12 @@ const Team = () => {
                           </div>
                         </div>
                       ))}
+
+                      {teamMembers.length === 0 && (
+                        <p className="text-center py-4 text-muted-foreground">
+                          No team members found with the selected filters
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -75,6 +152,14 @@ const Team = () => {
             </Card>
           );
         })}
+
+        {filteredTeams.length === 0 && (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-10">
+              <p className="text-muted-foreground">No teams found</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

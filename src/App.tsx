@@ -18,9 +18,10 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Tasks from "./pages/Tasks";
+import Login from "./pages/Login";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 
-// Protected route component to handle role-based access
+// Protected route component to handle role-based access and authentication
 const ProtectedRoute = ({ 
   element, 
   allowedRoles = ['admin', 'manager', 'developer', 'client']
@@ -30,10 +31,27 @@ const ProtectedRoute = ({
 }) => {
   const { currentUser } = useAppContext();
   
+  // Redirect to login if not authenticated
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+  
   // Check if user has permission
-  const hasPermission = currentUser && allowedRoles.includes(currentUser.role);
+  const hasPermission = allowedRoles.includes(currentUser.role);
   
   return hasPermission ? element : <Navigate to="/" replace />;
+};
+
+// Public route component to handle already authenticated users
+const PublicRoute = ({ element }: { element: React.ReactNode }) => {
+  const { currentUser } = useAppContext();
+  
+  // Redirect to dashboard if already authenticated
+  if (currentUser) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return element;
 };
 
 const queryClient = new QueryClient();
@@ -44,7 +62,11 @@ const AppRoutes = () => {
   
   return (
     <Routes>
-      <Route path="/" element={<AppLayout />}>
+      {/* Public routes */}
+      <Route path="/login" element={<PublicRoute element={<Login />} />} />
+      
+      {/* Protected routes */}
+      <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
         <Route index element={<Dashboard />} />
         
         <Route path="/projects" element={<Projects />} />

@@ -9,13 +9,50 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 
 const Reports = () => {
-  const { clients, projects, tasks, timeEntries, users } = useAppContext();
+  const { clients, projects, tasks, timeEntries, users, teams } = useAppContext();
   const [reportType, setReportType] = useState("time");
-  const [clientFilter, setClientFilter] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState("month");
   const { toast } = useToast();
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  
+  // Define filter options
+  const filterOptions: FilterOption[] = [
+    {
+      id: "clients",
+      name: "Client",
+      options: clients.map(client => ({
+        id: client.id,
+        label: client.name,
+      })),
+    },
+    {
+      id: "projects",
+      name: "Project",
+      options: projects.map(project => ({
+        id: project.id,
+        label: project.name,
+      })),
+    },
+    {
+      id: "teams",
+      name: "Team",
+      options: teams.map(team => ({
+        id: team.id,
+        label: team.name,
+      })),
+    },
+    {
+      id: "users",
+      name: "Team Member",
+      options: users.map(user => ({
+        id: user.id,
+        label: user.name,
+      })),
+    },
+  ];
   
   const generateReport = (type: string) => {
     toast({
@@ -23,6 +60,18 @@ const Reports = () => {
       description: `Your ${type} report is being generated.`
     });
   };
+
+  const handleFilterChange = (filters: Record<string, string[]>) => {
+    setActiveFilters(filters);
+  };
+  
+  // Filter clients based on selections
+  const filteredClients = clients.filter(client => {
+    if (activeFilters.clients && activeFilters.clients.length > 0) {
+      return activeFilters.clients.includes(client.id);
+    }
+    return true;
+  });
   
   return (
     <div className="space-y-6">
@@ -33,59 +82,47 @@ const Reports = () => {
         </p>
       </div>
       
-      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:space-y-0 md:space-x-4">
-        <div className="w-full md:w-60">
-          <Select onValueChange={setReportType} defaultValue={reportType}>
-            <SelectTrigger>
-              <SelectValue placeholder="Report Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="time">Time Reports</SelectItem>
-              <SelectItem value="progress">Project Progress</SelectItem>
-              <SelectItem value="financial">Financial Reports</SelectItem>
-              <SelectItem value="team">Team Performance</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="w-full md:w-60">
-          <Select onValueChange={value => setClientFilter(value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Clients" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Clients</SelectItem>
-              {clients.map(client => (
-                <SelectItem key={client.id} value={client.id}>
-                  {client.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="w-full md:w-60">
-          <Select onValueChange={setDateRange} defaultValue={dateRange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Date Range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="week">This Week</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="quarter">This Quarter</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
-              <SelectItem value="custom">Custom Range</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {dateRange === "custom" && (
-          <div className="flex items-center space-x-2">
-            <Input type="date" className="w-full md:w-40" />
-            <span>to</span>
-            <Input type="date" className="w-full md:w-40" />
+      <div className="space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="w-full md:w-60">
+            <Select onValueChange={setReportType} defaultValue={reportType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Report Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="time">Time Reports</SelectItem>
+                <SelectItem value="progress">Project Progress</SelectItem>
+                <SelectItem value="financial">Financial Reports</SelectItem>
+                <SelectItem value="team">Team Performance</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        )}
+          
+          <div className="w-full md:w-60">
+            <Select onValueChange={setDateRange} defaultValue={dateRange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Date Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="week">This Week</SelectItem>
+                <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="quarter">This Quarter</SelectItem>
+                <SelectItem value="year">This Year</SelectItem>
+                <SelectItem value="custom">Custom Range</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {dateRange === "custom" && (
+            <div className="flex items-center gap-2">
+              <Input type="date" className="w-full md:w-40" />
+              <span>to</span>
+              <Input type="date" className="w-full md:w-40" />
+            </div>
+          )}
+        </div>
+        
+        <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
       </div>
       
       <Tabs defaultValue="reports" className="w-full">
@@ -174,7 +211,7 @@ const Reports = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {clients.map(client => {
+                {filteredClients.map(client => {
                   const clientProjects = projects.filter(p => p.clientId === client.id);
                   const totalHours = clientProjects.reduce((sum, p) => sum + p.usedHours, 0);
                   const billableAmount = totalHours * (client.billableRate || 0);
@@ -207,7 +244,7 @@ const Reports = () => {
                   );
                 })}
                 
-                {clients.length === 0 && (
+                {filteredClients.length === 0 && (
                   <p className="text-center py-12 text-muted-foreground">
                     No clients available for billing reports
                   </p>

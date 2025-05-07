@@ -8,11 +8,43 @@ import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
+import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 
 const Projects = () => {
-  const { projects, tasks, clients } = useAppContext();
+  const { projects, tasks, clients, teams } = useAppContext();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const navigate = useNavigate();
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+
+  // Define filter options
+  const filterOptions: FilterOption[] = [
+    {
+      id: "clients",
+      name: "Client",
+      options: clients.map(client => ({
+        id: client.id,
+        label: client.name,
+      })),
+    },
+    {
+      id: "teams",
+      name: "Team",
+      options: teams.map(team => ({
+        id: team.id,
+        label: team.name,
+      })),
+    },
+    {
+      id: "status",
+      name: "Status",
+      options: [
+        { id: "planning", label: "Planning" },
+        { id: "in-progress", label: "In Progress" },
+        { id: "on-hold", label: "On Hold" },
+        { id: "completed", label: "Completed" },
+      ],
+    },
+  ];
 
   const getProjectProgress = (projectId: string) => {
     const projectTasks = tasks.filter(task => task.projectId === projectId);
@@ -26,6 +58,37 @@ const Projects = () => {
   const getClientName = (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
     return client?.name || "Unknown Client";
+  };
+
+  // Apply filters to projects
+  const filteredProjects = projects.filter(project => {
+    for (const [filterId, values] of Object.entries(activeFilters)) {
+      if (values.length === 0) continue;
+
+      switch (filterId) {
+        case "clients":
+          if (!values.includes(project.clientId)) {
+            return false;
+          }
+          break;
+        case "teams":
+          if (!project.teamIds || !project.teamIds.some(id => values.includes(id))) {
+            return false;
+          }
+          break;
+        case "status":
+          if (!values.includes(project.status)) {
+            return false;
+          }
+          break;
+      }
+    }
+
+    return true;
+  });
+
+  const handleFilterChange = (filters: Record<string, string[]>) => {
+    setActiveFilters(filters);
   };
 
   return (
@@ -43,8 +106,10 @@ const Projects = () => {
         </Button>
       </div>
 
+      <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project) => {
+        {filteredProjects.map((project) => {
           const progress = getProjectProgress(project.id);
           
           return (
