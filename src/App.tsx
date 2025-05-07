@@ -17,6 +17,7 @@ import Messages from "./pages/Messages";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Tasks from "./pages/Tasks";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 
 // Protected route component to handle role-based access
@@ -48,6 +49,8 @@ const AppRoutes = () => {
         
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:projectId" element={<ProjectDetails />} />
+        
+        <Route path="/tasks" element={<Tasks />} />
         
         {/* Client routes are restricted for client users */}
         <Route 

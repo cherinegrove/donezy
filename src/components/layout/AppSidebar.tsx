@@ -19,7 +19,8 @@ import {
   Users,
   Settings,
   FileText,
-  MessageSquare
+  MessageSquare,
+  CheckSquare
 } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 
@@ -44,6 +45,11 @@ export function AppSidebar() {
       name: "Projects",
       icon: Briefcase,
       path: "/projects",
+    },
+    {
+      name: "Tasks",
+      icon: CheckSquare,
+      path: "/tasks",
     },
     {
       name: "Clients",
