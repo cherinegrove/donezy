@@ -65,6 +65,12 @@ export function CreateProjectDialog({
       status: "todo",
       taskIds: [],
       usedHours: 0,
+      name: data.name,        // Explicitly set required properties
+      description: data.description,
+      clientId: data.clientId,
+      teamIds: data.teamIds,
+      startDate: data.startDate,
+      serviceType: data.serviceType,
     });
     
     form.reset();

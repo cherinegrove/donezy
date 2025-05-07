@@ -251,19 +251,23 @@ export const mockMessages: Message[] = [
     id: "msg-1",
     senderId: "user-1",
     recipientIds: ["user-2"],
-    subject: "Project Kickoff",
     content: "Let's schedule a kick-off meeting for the website project.",
     timestamp: "2025-05-03T09:15:00Z",
     read: true,
+    commentId: "comment-1",
+    taskId: "task-1",
+    projectId: "project-1"
   },
   {
     id: "msg-2",
     senderId: "user-2",
     recipientIds: ["user-1", "user-3"],
-    subject: "Design Review",
     content: "Can we review the design together tomorrow?",
     timestamp: "2025-05-07T14:30:00Z",
     read: false,
+    commentId: "comment-2",
+    taskId: "task-1",
+    projectId: "project-1"
   },
 ];
 

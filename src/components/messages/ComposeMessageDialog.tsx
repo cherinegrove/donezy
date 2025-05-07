@@ -7,7 +7,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -33,7 +32,6 @@ export function ComposeMessageDialog({
   const { users, currentUser, sendMessage } = useAppContext();
   
   const [recipients, setRecipients] = useState<string[]>([]);
-  const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
   
   const handleSend = () => {
@@ -41,15 +39,6 @@ export function ComposeMessageDialog({
       toast({
         title: "Error",
         description: "Please select at least one recipient",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!subject.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a subject",
         variant: "destructive",
       });
       return;
@@ -67,12 +56,12 @@ export function ComposeMessageDialog({
     sendMessage({
       senderId: currentUser?.id || "",
       recipientIds: recipients,
-      subject,
       content,
+      taskId: "", // Temporary placeholder for task ID
+      commentId: "" // Temporary placeholder for comment ID
     });
     
     setRecipients([]);
-    setSubject("");
     setContent("");
     onOpenChange(false);
   };
@@ -132,15 +121,6 @@ export function ComposeMessageDialog({
                 })}
               </div>
             )}
-          </div>
-          
-          <div>
-            <Label>Subject</Label>
-            <Input 
-              placeholder="Message subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-            />
           </div>
           
           <div>

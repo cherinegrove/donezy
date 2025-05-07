@@ -68,10 +68,16 @@ export function CreateTaskDialog({
   
   const onSubmit = (data: TaskFormData) => {
     addTask({
-      ...data,
-      subtasks: [],
+      title: data.title,
+      description: data.description,
+      projectId: data.projectId,
+      parentTaskId: data.parentTaskId,
+      assigneeIds: data.assigneeIds,
       status: data.status as TaskStatus,
       priority: data.priority as "low" | "medium" | "high",
+      dueDate: data.dueDate,
+      customFields: data.customFields || {},
+      subtasks: [],
     });
     
     form.reset();
