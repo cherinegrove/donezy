@@ -11,7 +11,7 @@ import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
 import Clients from "./pages/Clients";
 import ClientDetails from "./pages/ClientDetails";
-import Team from "./pages/Team";
+import Users from "./pages/Users";
 import TimeTracking from "./pages/TimeTracking";
 import Messages from "./pages/Messages";
 import Reports from "./pages/Reports";
@@ -87,12 +87,12 @@ const AppRoutes = () => {
         
         <Route path="/clients/:clientId" element={<ClientDetails />} />
         
-        {/* Team management restricted for client users */}
+        {/* User management restricted for client users */}
         <Route 
-          path="/team" 
+          path="/users" 
           element={
             <ProtectedRoute 
-              element={<Team />} 
+              element={<Users />} 
               allowedRoles={['admin', 'manager', 'developer']} 
             />
           } 

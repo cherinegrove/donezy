@@ -5,6 +5,8 @@ export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
 
 export type ServiceType = 'project' | 'bank-hours' | 'pay-as-you-go';
 
+export type NotificationTimeframe = 'same-day' | '1-day' | '3-days' | '1-week';
+
 export interface User {
   id: string;
   name: string;
@@ -12,6 +14,15 @@ export interface User {
   avatar: string;
   role: Role;
   teamIds: string[];
+  managerId?: string; // ID of the user's manager
+  clientId?: string; // If user is a client user, associated client ID
+  watchedTaskIds?: string[]; // Tasks that the user is watching
+  notificationPreferences?: {
+    taskDue?: NotificationTimeframe[];
+    taskStatusChange?: boolean;
+    newComments?: boolean;
+    timeTracking?: boolean;
+  };
 }
 
 export interface Team {
@@ -48,6 +59,7 @@ export interface Project {
   serviceType: ServiceType;
   allocatedHours?: number;
   usedHours: number;
+  watcherIds?: string[]; // Users watching this project
   // Customization options
   kanbanColors?: {
     backlog?: string;
@@ -81,6 +93,7 @@ export interface Task {
   subtasks: string[]; // Task IDs
   timeEntries: TimeEntry[];
   comments: Comment[];
+  watcherIds?: string[]; // Users watching this task
 }
 
 export interface TimeEntry {
@@ -124,4 +137,3 @@ export interface Purchase {
   projectId?: string;
   description: string;
 }
-

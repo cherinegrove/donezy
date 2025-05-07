@@ -26,10 +26,15 @@ interface AppContextType {
   currentUser: User | null;
   activeTimeEntry: TimeEntry | null;
   
+  // Authentication
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  
   // CRUD operations for users
   addUser: (user: Omit<User, "id">) => void;
   updateUser: (id: string, updates: Partial<User>) => void;
   deleteUser: (id: string) => void;
+  inviteUser: (email: string, name: string, role: string, clientId?: string) => void;
   
   // CRUD operations for teams
   addTeam: (team: Omit<Team, "id">) => void;
@@ -45,12 +50,16 @@ interface AppContextType {
   addProject: (project: Omit<Project, "id">) => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
+  watchProject: (projectId: string, userId: string) => void;
+  unwatchProject: (projectId: string, userId: string) => void;
   
   // CRUD operations for tasks
   addTask: (task: Omit<Task, "id" | "createdAt" | "timeEntries" | "comments">) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   moveTask: (taskId: string, newStatus: Task["status"], newProjectId?: string) => void;
+  watchTask: (taskId: string, userId: string) => void;
+  unwatchTask: (taskId: string, userId: string) => void;
   
   // Time tracking operations
   startTimeTracking: (taskId: string) => void;
@@ -76,6 +85,10 @@ interface AppContextType {
   getUserById: (id: string) => User | undefined;
   getProjectById: (id: string) => Project | undefined;
   getClientById: (id: string) => Client | undefined;
+  
+  // Manager operations
+  updateManagerNotificationPreferences: (userId: string, preferences: User['notificationPreferences']) => void;
+  getTasksDueWithinTimeframe: (timeframe: string) => Task[];
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -92,10 +105,34 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [customFields, setCustomFields] = useState<CustomField[]>(mockCustomFields);
   
   // Current user (hardcoded for now, would come from auth in real app)
-  const [currentUser] = useState<User>(mockUsers[0]);
+  const [currentUser, setCurrentUser] = useState<User | null>(mockUsers[0]);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
   
   const { toast } = useToast();
+  
+  // Authentication
+  const login = async (email: string, password: string) => {
+    // In a real app, this would make an API call to validate credentials
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    
+    if (user) {
+      setCurrentUser(user);
+      toast({ title: "Login successful", description: `Welcome back, ${user.name}!` });
+      return true;
+    } else {
+      toast({ 
+        title: "Login failed", 
+        description: "Invalid email or password", 
+        variant: "destructive" 
+      });
+      return false;
+    }
+  };
+  
+  const logout = () => {
+    setCurrentUser(null);
+    toast({ title: "Logged out", description: "You have been logged out successfully" });
+  };
   
   // CRUD operations for users
   const addUser = (user: Omit<User, "id">) => {
@@ -112,6 +149,28 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const deleteUser = (id: string) => {
     setUsers((prev) => prev.filter(user => user.id !== id));
     toast({ title: "Success", description: "User has been deleted" });
+  };
+  
+  const inviteUser = (email: string, name: string, role: string, clientId?: string) => {
+    // In a real app, this would send an email invitation
+    const newUser: Omit<User, "id"> = {
+      name,
+      email,
+      role: role as Role,
+      avatar: "",
+      teamIds: [],
+    };
+    
+    if (clientId && role === "client") {
+      newUser.clientId = clientId;
+    }
+    
+    addUser(newUser);
+    
+    toast({ 
+      title: "Invitation sent", 
+      description: `An invitation has been sent to ${email}` 
+    });
   };
   
   // CRUD operations for teams
@@ -163,6 +222,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const deleteProject = (id: string) => {
     setProjects((prev) => prev.filter(project => project.id !== id));
     toast({ title: "Success", description: "Project has been deleted" });
+  };
+  
+  const watchProject = (projectId: string, userId: string) => {
+    setProjects(prev => prev.map(project => {
+      if (project.id !== projectId) return project;
+      
+      const watcherIds = project.watcherIds || [];
+      if (watcherIds.includes(userId)) return project;
+      
+      return {
+        ...project,
+        watcherIds: [...watcherIds, userId]
+      };
+    }));
+    
+    toast({ title: "Watching Project", description: "You will be notified of changes to this project" });
+  };
+  
+  const unwatchProject = (projectId: string, userId: string) => {
+    setProjects(prev => prev.map(project => {
+      if (project.id !== projectId) return project;
+      
+      const watcherIds = project.watcherIds || [];
+      return {
+        ...project,
+        watcherIds: watcherIds.filter(id => id !== userId)
+      };
+    }));
+    
+    toast({ title: "Unwatched Project", description: "You will no longer be notified of changes to this project" });
   };
   
   // CRUD operations for tasks
@@ -222,6 +311,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: "Task Moved", description: `Task moved to ${newStatus.replace(/-/g, ' ')}` });
   };
   
+  const watchTask = (taskId: string, userId: string) => {
+    setTasks(prev => prev.map(task => {
+      if (task.id !== taskId) return task;
+      
+      const watcherIds = task.watcherIds || [];
+      if (watcherIds.includes(userId)) return task;
+      
+      return {
+        ...task,
+        watcherIds: [...watcherIds, userId]
+      };
+    }));
+    
+    toast({ title: "Watching Task", description: "You will be notified of changes to this task" });
+  };
+  
+  const unwatchTask = (taskId: string, userId: string) => {
+    setTasks(prev => prev.map(task => {
+      if (task.id !== taskId) return task;
+      
+      const watcherIds = task.watcherIds || [];
+      return {
+        ...task,
+        watcherIds: watcherIds.filter(id => id !== userId)
+      };
+    }));
+    
+    toast({ title: "Unwatched Task", description: "You will no longer be notified of changes to this task" });
+  };
+  
   // Time tracking operations
   const startTimeTracking = (taskId: string) => {
     if (activeTimeEntry) {
@@ -231,7 +350,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const newTimeEntry = {
       id: `time-${uuidv4()}`,
       taskId,
-      userId: currentUser.id,
+      userId: currentUser?.id || '',
       startTime: new Date().toISOString(),
       duration: 0,
       billable: true,
@@ -242,7 +361,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const stopTimeTracking = (notes?: string) => {
-    if (!activeTimeEntry) return;
+    if (!activeTimeEntry || !currentUser) return;
     
     const endTime = new Date().toISOString();
     const startTime = new Date(activeTimeEntry.startTime);
@@ -340,6 +459,59 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: "Custom Field Deleted", description: "Field has been removed" });
   };
   
+  // Manager notification preferences
+  const updateManagerNotificationPreferences = (userId: string, preferences: User['notificationPreferences']) => {
+    setUsers(prev => prev.map(user => 
+      user.id === userId
+        ? { ...user, notificationPreferences: preferences }
+        : user
+    ));
+    
+    toast({ title: "Preferences Updated", description: "Notification preferences have been saved" });
+  };
+  
+  // Get tasks due within a specific timeframe
+  const getTasksDueWithinTimeframe = (timeframe: string) => {
+    const now = new Date();
+    let endDate = new Date();
+    
+    switch (timeframe) {
+      case 'same-day':
+        // Tasks due today
+        return tasks.filter(task => {
+          if (!task.dueDate) return false;
+          const dueDate = new Date(task.dueDate);
+          return dueDate.toDateString() === now.toDateString();
+        });
+      case '1-day':
+        // Tasks due tomorrow
+        endDate.setDate(now.getDate() + 1);
+        return tasks.filter(task => {
+          if (!task.dueDate) return false;
+          const dueDate = new Date(task.dueDate);
+          return dueDate > now && dueDate <= endDate;
+        });
+      case '3-days':
+        // Tasks due in the next 3 days
+        endDate.setDate(now.getDate() + 3);
+        return tasks.filter(task => {
+          if (!task.dueDate) return false;
+          const dueDate = new Date(task.dueDate);
+          return dueDate > now && dueDate <= endDate;
+        });
+      case '1-week':
+        // Tasks due in the next week
+        endDate.setDate(now.getDate() + 7);
+        return tasks.filter(task => {
+          if (!task.dueDate) return false;
+          const dueDate = new Date(task.dueDate);
+          return dueDate > now && dueDate <= endDate;
+        });
+      default:
+        return [];
+    }
+  };
+  
   // Filtering and retrieval
   const getTasksByProject = (projectId: string) => {
     return tasks.filter(task => task.projectId === projectId);
@@ -384,10 +556,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       currentUser,
       activeTimeEntry,
       
+      // Authentication
+      login,
+      logout,
+      
       // CRUD operations for users
       addUser,
       updateUser,
       deleteUser,
+      inviteUser,
       
       // CRUD operations for teams
       addTeam,
@@ -403,12 +580,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       addProject,
       updateProject,
       deleteProject,
+      watchProject,
+      unwatchProject,
       
       // CRUD operations for tasks
       addTask,
       updateTask,
       deleteTask,
       moveTask,
+      watchTask,
+      unwatchTask,
       
       // Time tracking operations
       startTimeTracking,
@@ -426,6 +607,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       addCustomField,
       updateCustomField,
       deleteCustomField,
+      
+      // Manager operations
+      updateManagerNotificationPreferences,
+      getTasksDueWithinTimeframe,
       
       // Filtering and retrieval
       getTasksByProject,

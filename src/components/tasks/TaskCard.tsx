@@ -1,12 +1,11 @@
 
-import { Card, CardContent } from "@/components/ui/card";
 import { Task } from "@/types";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { useAppContext } from "@/contexts/AppContext";
-import { Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { Clock, CheckCircle } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TaskWatchButton } from "./TaskWatchButton";
 
 interface TaskCardProps {
   task: Task;
@@ -14,91 +13,90 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onClick }: TaskCardProps) {
-  const { getUserById, startTimeTracking } = useAppContext();
+  const { projects, users } = useAppContext();
   
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "low":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
-      case "high":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+  const project = projects.find(p => p.id === task.projectId);
+  const assignees = users.filter(user => task.assigneeIds.includes(user.id));
+  
+  const getBadgeColor = () => {
+    switch (task.priority) {
+      case 'high':
+        return "bg-destructive/10 text-destructive hover:bg-destructive/20";
+      case 'medium':
+        return "bg-warning/10 text-warning hover:bg-warning/20";
+      case 'low':
+        return "bg-primary/10 text-primary hover:bg-primary/20";
       default:
-        return "bg-gray-100";
+        return "";
     }
   };
-
-  const formattedDate = task.dueDate ? format(new Date(task.dueDate), "MMM d") : null;
-  const isPastDue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "done";
-
-  const handleStartTimer = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    startTimeTracking(task.id);
+  
+  const getStatusColor = () => {
+    switch (task.status) {
+      case 'done':
+        return "bg-green-100 text-green-800";
+      case 'in-progress':
+        return "bg-blue-100 text-blue-800";
+      case 'review':
+        return "bg-purple-100 text-purple-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
   };
-
+  
   return (
-    <Card 
-      className="transition-all duration-200 hover:shadow-md cursor-pointer" 
+    <div 
+      className="border rounded-md p-4 bg-card shadow-sm hover:shadow transition-all cursor-pointer relative group"
       onClick={onClick}
     >
-      <CardContent className="p-4">
-        <div className="space-y-3">
-          <div className="font-medium">{task.title}</div>
+      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <TaskWatchButton task={task} />
+      </div>
+      
+      <div className="space-y-3">
+        <div className="flex items-start justify-between">
+          <h3 className="font-medium text-base line-clamp-2 pr-6">{task.title}</h3>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={getBadgeColor()}>
+            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+          </Badge>
           
-          <div className="flex justify-between items-center text-sm">
-            <div className="flex space-x-1">
-              <span className={cn(
-                "px-2 py-0.5 rounded-full text-xs font-medium",
-                getPriorityColor(task.priority)
-              )}>
-                {task.priority}
-              </span>
-            </div>
-            {formattedDate && (
-              <div className={cn(
-                "text-xs", 
-                isPastDue ? "text-red-500 font-medium" : "text-muted-foreground"
-              )}>
-                {isPastDue ? "Overdue" : formattedDate}
+          <Badge variant="outline" className={getStatusColor()}>
+            {task.status.replace(/-/g, ' ')}
+          </Badge>
+          
+          {project && (
+            <Badge variant="secondary">
+              {project.name}
+            </Badge>
+          )}
+        </div>
+        
+        <div className="flex justify-between items-end">
+          <div className="flex -space-x-2">
+            {assignees.slice(0, 3).map(user => (
+              <Avatar key={user.id} className="h-6 w-6 border-2 border-background">
+                <AvatarImage src={user.avatar} />
+                <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+              </Avatar>
+            ))}
+            {assignees.length > 3 && (
+              <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs">
+                +{assignees.length - 3}
               </div>
             )}
           </div>
           
-          <div className="flex items-center justify-between">
-            <div className="flex -space-x-2">
-              {task.assigneeIds.slice(0, 3).map((userId) => {
-                const user = getUserById(userId);
-                return (
-                  <Avatar key={userId} className="h-6 w-6 border-2 border-background">
-                    <AvatarImage src={user?.avatar} />
-                    <AvatarFallback className="text-xs">
-                      {user?.name?.slice(0, 2) || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                );
-              })}
-              {task.assigneeIds.length > 3 && (
-                <Avatar className="h-6 w-6 border-2 border-background">
-                  <AvatarFallback className="text-xs bg-muted">
-                    +{task.assigneeIds.length - 3}
-                  </AvatarFallback>
-                </Avatar>
-              )}
+          {task.dueDate && (
+            <div className="flex items-center text-xs text-muted-foreground">
+              <Clock className="h-3 w-3 mr-1" />
+              {format(new Date(task.dueDate), "MMM d")}
             </div>
-            
-            <Button 
-              size="sm" 
-              variant="outline"
-              className="h-7 border-primary/20 bg-primary/10 hover:bg-primary/20"
-              onClick={handleStartTimer}
-            >
-              <Play className="mr-1 h-3 w-3" />
-              Track
-            </Button>
-          </div>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
