@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
@@ -97,6 +98,11 @@ export function RoleManagementTab() {
 
   const permissionOptions = ["none", "view", "edit"] as const;
   
+  // Function to handle permission change
+  const handlePermissionChange = (permission: keyof FormValues["permissions"], level: AccessLevel) => {
+    form.setValue(`permissions.${permission}`, level);
+  };
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -172,9 +178,7 @@ export function RoleManagementTab() {
                                   id={`${permission}-${level}`}
                                   className="h-5 w-5 cursor-pointer"
                                   checked={form.getValues().permissions[permission as keyof FormValues["permissions"]] === level}
-                                  onChange={() => {
-                                    form.setValue(`permissions.${permission as keyof FormValues["permissions"]}` as const, level);
-                                  }}
+                                  onChange={() => handlePermissionChange(permission as keyof FormValues["permissions"], level)}
                                 />
                               </div>
                             </TableCell>
