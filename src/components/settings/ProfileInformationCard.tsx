@@ -9,16 +9,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, User, UserRound, UsersRound, Smile, Meh, Heart, Star } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-// Predefined avatar options
+// Predefined avatar options with fun cartoon avatars
 const avatarOptions = [
-  { id: 'avatar1', url: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=250&h=250&auto=format', name: 'Doug Funnie' },
-  { id: 'avatar2', url: 'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=250&h=250&auto=format', name: 'Ren & Stimpy' },
-  { id: 'avatar3', url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=250&h=250&auto=format', name: 'Steve Urkel' },
-  { id: 'avatar4', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=250&h=250&auto=format', name: 'Clarissa' },
-  { id: 'avatar5', url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=250&h=250&auto=format', name: 'Rocko' },
-  { id: 'avatar6', url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=250&h=250&auto=format', name: 'CatDog' },
-  { id: 'avatar7', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=250&h=250&auto=format', name: 'Zack Morris' },
-  { id: 'avatar8', url: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=250&h=250&auto=format', name: 'Arnold' }
+  { id: 'avatar1', url: '/avatars/robot.png', name: 'Robot' },
+  { id: 'avatar2', url: '/avatars/ninja.png', name: 'Ninja' },
+  { id: 'avatar3', url: '/avatars/alien.png', name: 'Alien' },
+  { id: 'avatar4', url: '/avatars/astronaut.png', name: 'Astronaut' },
+  { id: 'avatar5', url: '/avatars/pirate.png', name: 'Pirate' },
+  { id: 'avatar6', url: '/avatars/viking.png', name: 'Viking' },
+  { id: 'avatar7', url: '/avatars/wizard.png', name: 'Wizard' },
+  { id: 'avatar8', url: '/avatars/superhero.png', name: 'Superhero' }
 ];
 
 export function ProfileInformationCard({ userId }: { userId: string }) {
@@ -141,11 +141,11 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
             </div>
             
             {showAvatarOptions && (
-              <div className="mt-4 w-full max-w-md">
+              <div className="mt-4 w-full">
                 <RadioGroup 
                   value={formData.avatar}
                   onValueChange={handleAvatarOptionSelect}
-                  className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4"
+                  className="grid grid-cols-2 gap-6 sm:grid-cols-4"
                 >
                   {avatarOptions.map((avatar) => (
                     <div 
@@ -154,17 +154,21 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
                     >
                       <label 
                         htmlFor={avatar.id}
-                        className="flex flex-col items-center cursor-pointer space-y-2"
+                        className="flex flex-col items-center cursor-pointer space-y-2 transition-all hover:scale-110"
                       >
-                        <Avatar className="h-16 w-16 transition-all hover:scale-110">
-                          <AvatarImage src={avatar.url} alt={avatar.name} />
+                        <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-transparent hover:border-primary">
+                          <AvatarImage 
+                            src={avatar.url} 
+                            alt={avatar.name} 
+                            className="object-cover"
+                          />
                           <AvatarFallback>
                             <UserRound className="h-8 w-8" />
                           </AvatarFallback>
-                        </Avatar>
+                        </div>
                         <div className="flex items-center space-x-1">
                           <RadioGroupItem id={avatar.id} value={avatar.url} className="sr-only" />
-                          <span className="text-xs">{avatar.name}</span>
+                          <span className="text-xs font-medium">{avatar.name}</span>
                         </div>
                       </label>
                     </div>
