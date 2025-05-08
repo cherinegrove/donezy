@@ -310,7 +310,7 @@ export function MessageView({ message, onReply }: MessageViewProps) {
           {/* Mention Dropdown */}
           {mentionOpen && filteredUsers.length > 0 && (
             <div 
-              className="absolute z-50 bg-popover border rounded-md shadow-md"
+              className="absolute z-50 bg-white dark:bg-gray-800 border rounded-md shadow-md"
               style={{
                 top: `${mentionPosition.top}px`,
                 left: `${mentionPosition.left}px`,
@@ -318,7 +318,7 @@ export function MessageView({ message, onReply }: MessageViewProps) {
               }}
             >
               <Command>
-                <CommandGroup>
+                <CommandGroup heading="Mentions">
                   {filteredUsers.map((user) => (
                     <CommandItem
                       key={user.id}
