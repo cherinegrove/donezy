@@ -923,4 +923,38 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       markMessageAsRead,
       addComment,
       
-      // Purchase
+      // Purchase operations
+      addPurchase,
+      
+      // Custom field operations
+      addCustomField,
+      updateCustomField,
+      deleteCustomField,
+      
+      // Manager notification preferences
+      updateManagerNotificationPreferences,
+      
+      // Tasks due within timeframe
+      getTasksDueWithinTimeframe,
+      
+      // Filtering and retrieval
+      getTasksByProject,
+      getTasksByUser,
+      getUnreadMessageCount,
+      getUserById,
+      getProjectById,
+      getClientById,
+      getTaskById,
+    }}>
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+export const useAppContext = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error("useAppContext must be used within an AppProvider");
+  }
+  return context;
+};
