@@ -7,6 +7,8 @@ import { UserInviteForm } from "@/components/settings/UserInviteForm";
 import { useAppContext } from "@/contexts/AppContext";
 import { UsersManagementTab } from "@/components/settings/UsersManagementTab";
 import { ManagerNotificationSettings } from "@/components/settings/ManagerNotificationSettings";
+import { ProfileInformationCard } from "@/components/settings/ProfileInformationCard";
+import { GeneralNotificationSettings } from "@/components/settings/GeneralNotificationSettings";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -31,40 +33,19 @@ const Settings = () => {
         
         {/* Profile Settings Tab */}
         <TabsContent value="profile" className="mt-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>
-                Update your profile information and contact details
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Profile form would go here */}
-              <p className="text-center py-12 text-muted-foreground">
-                Profile settings coming soon
-              </p>
-            </CardContent>
-          </Card>
+          {currentUser && (
+            <ProfileInformationCard userId={currentUser.id} />
+          )}
           
           {/* Notifications */}
           {currentUser?.role === 'manager' && (
             <ManagerNotificationSettings userId={currentUser.id} />
           )}
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Settings</CardTitle>
-              <CardDescription>
-                Configure how and when you receive notifications
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Notification settings would go here */}
-              <p className="text-center py-12 text-muted-foreground">
-                General notification settings coming soon
-              </p>
-            </CardContent>
-          </Card>
+          {/* General Notification Settings for all users */}
+          {currentUser && (
+            <GeneralNotificationSettings userId={currentUser.id} />
+          )}
         </TabsContent>
         
         {/* Account Settings Tab */}
