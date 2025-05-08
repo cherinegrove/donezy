@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,15 +10,16 @@ import { Upload, User, UserRound, UsersRound, Smile, Meh, Heart, Star } from "lu
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 // Predefined avatar options with fun cartoon avatars
+// Using placeholder URLs that should work in any project setup
 const avatarOptions = [
-  { id: 'avatar1', url: '/avatars/robot.png', name: 'Robot' },
-  { id: 'avatar2', url: '/avatars/ninja.png', name: 'Ninja' },
-  { id: 'avatar3', url: '/avatars/alien.png', name: 'Alien' },
-  { id: 'avatar4', url: '/avatars/astronaut.png', name: 'Astronaut' },
-  { id: 'avatar5', url: '/avatars/pirate.png', name: 'Pirate' },
-  { id: 'avatar6', url: '/avatars/viking.png', name: 'Viking' },
-  { id: 'avatar7', url: '/avatars/wizard.png', name: 'Wizard' },
-  { id: 'avatar8', url: '/avatars/superhero.png', name: 'Superhero' }
+  { id: 'avatar1', url: '/placeholder.svg?text=Robot', name: 'Robot' },
+  { id: 'avatar2', url: '/placeholder.svg?text=Ninja', name: 'Ninja' },
+  { id: 'avatar3', url: '/placeholder.svg?text=Alien', name: 'Alien' },
+  { id: 'avatar4', url: '/placeholder.svg?text=Astronaut', name: 'Astronaut' },
+  { id: 'avatar5', url: '/placeholder.svg?text=Pirate', name: 'Pirate' },
+  { id: 'avatar6', url: '/placeholder.svg?text=Viking', name: 'Viking' },
+  { id: 'avatar7', url: '/placeholder.svg?text=Wizard', name: 'Wizard' },
+  { id: 'avatar8', url: '/placeholder.svg?text=Superhero', name: 'Superhero' }
 ];
 
 export function ProfileInformationCard({ userId }: { userId: string }) {
@@ -80,6 +80,8 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
       ...prev,
       avatar: avatarUrl
     }));
+    // Add console logging to help debug
+    console.log("Selected avatar URL:", avatarUrl);
   };
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -110,8 +112,11 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex flex-col items-center space-y-4">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={previewImage || user.avatar} alt={user.name} />
-              <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+              {previewImage ? (
+                <AvatarImage src={previewImage} alt={user.name} />
+              ) : (
+                <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+              )}
             </Avatar>
             <div className="flex items-center gap-3">
               <input
