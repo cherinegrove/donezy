@@ -4,12 +4,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAppContext } from "@/contexts/AppContext";
 
 interface AddClientDialogProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+const currencyOptions = [
+  { value: "USD", label: "US Dollar (USD)" },
+  { value: "EUR", label: "Euro (EUR)" },
+  { value: "GBP", label: "British Pound (GBP)" },
+  { value: "AUD", label: "Australian Dollar (AUD)" },
+  { value: "ZAR", label: "South African Rand (ZAR)" }
+];
 
 export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
   const { addClient } = useAppContext();
@@ -95,13 +104,18 @@ export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
               
               <div className="space-y-2">
                 <Label htmlFor="currency">Currency *</Label>
-                <Input 
-                  id="currency" 
-                  value={currency} 
-                  onChange={(e) => setCurrency(e.target.value)} 
-                  placeholder="USD" 
-                  required
-                />
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger id="currency">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currencyOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             

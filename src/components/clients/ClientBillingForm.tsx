@@ -13,12 +13,13 @@ interface ClientBillingFormProps {
 }
 
 const currencyOptions = [
-  { label: "US Dollar", value: "USD", symbol: "$" },
-  { label: "Euro", value: "EUR", symbol: "€" },
-  { label: "British Pound", value: "GBP", symbol: "£" },
-  { label: "Canadian Dollar", value: "CAD", symbol: "C$" },
-  { label: "Australian Dollar", value: "AUD", symbol: "A$" },
-  { label: "Japanese Yen", value: "JPY", symbol: "¥" }
+  { value: "USD", label: "US Dollar", symbol: "$" },
+  { value: "EUR", label: "Euro", symbol: "€" },
+  { value: "GBP", label: "British Pound", symbol: "£" },
+  { value: "AUD", label: "Australian Dollar", symbol: "A$" },
+  { value: "ZAR", label: "South African Rand", symbol: "R" },
+  { value: "CAD", label: "Canadian Dollar", symbol: "C$" },
+  { value: "JPY", label: "Japanese Yen", symbol: "¥" }
 ];
 
 export const ClientBillingForm = ({ clientId }: ClientBillingFormProps) => {
