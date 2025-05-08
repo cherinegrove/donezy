@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Palette } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAppContext } from "@/contexts/AppContext";
 
 interface ColorOption {
   name: string;
@@ -64,9 +65,24 @@ const predefinedPalettes = [
   }
 ];
 
+interface CustomFieldForm {
+  name: string;
+  type: string;
+  options: string;
+  required: boolean;
+}
+
 export const KanbanCustomizationCard = () => {
   const [colors, setColors] = useState<ColorOption[]>(defaultColors);
   const { toast } = useToast();
+  const { customFields, addCustomField, deleteCustomField } = useAppContext();
+  
+  const [newField, setNewField] = useState<CustomFieldForm>({
+    name: "",
+    type: "text",
+    options: "",
+    required: false
+  });
   
   // Load saved kanban colors on mount
   useEffect(() => {
@@ -112,6 +128,56 @@ export const KanbanCustomizationCard = () => {
       title: "Changes Saved",
       description: "Your kanban color customizations have been saved"
     });
+  };
+  
+  const handleFieldChange = (key: keyof CustomFieldForm, value: string | boolean) => {
+    setNewField(prev => ({ ...prev, [key]: value }));
+  };
+  
+  const handleAddField = () => {
+    if (!newField.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Field name is required",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Parse options for select and multiselect types
+    const options = newField.type === 'select' || newField.type === 'multiselect' 
+      ? newField.options.split(',').map(opt => opt.trim()).filter(opt => opt)
+      : undefined;
+    
+    addCustomField({
+      name: newField.name,
+      type: newField.type as 'text' | 'number' | 'date' | 'select' | 'multiselect',
+      options,
+      required: newField.required
+    });
+    
+    // Reset form
+    setNewField({
+      name: "",
+      type: "text",
+      options: "",
+      required: false
+    });
+    
+    toast({
+      title: "Custom Field Added",
+      description: `The field "${newField.name}" has been added`
+    });
+  };
+  
+  const handleDeleteField = (id: string, name: string) => {
+    if (window.confirm(`Are you sure you want to delete the field "${name}"?`)) {
+      deleteCustomField(id);
+      toast({
+        title: "Field Deleted",
+        description: `The field "${name}" has been removed`
+      });
+    }
   };
   
   return (
@@ -165,7 +231,114 @@ export const KanbanCustomizationCard = () => {
           </div>
           
           <div className="pt-4 flex justify-end">
-            <Button onClick={saveChanges}>Save Changes</Button>
+            <Button onClick={saveChanges}>Save Colors</Button>
+          </div>
+          
+          {/* Custom Fields Section */}
+          <div className="border-t pt-6 mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-lg font-medium">Custom Fields</h3>
+                <p className="text-sm text-muted-foreground">
+                  Add custom fields to tasks in your kanban board
+                </p>
+              </div>
+            </div>
+            
+            {/* Existing Custom Fields */}
+            <div className="space-y-4 mb-6">
+              <h4 className="text-sm font-medium text-muted-foreground">Current Fields</h4>
+              {customFields.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3">
+                  {customFields.map(field => (
+                    <div key={field.id} className="flex justify-between items-center p-3 bg-muted/30 rounded-md">
+                      <div>
+                        <p className="font-medium">{field.name}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          Type: {field.type} {field.required && " (Required)"}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteField(field.id, field.name)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center py-3 text-muted-foreground">No custom fields created yet</p>
+              )}
+            </div>
+            
+            {/* Add New Custom Field */}
+            <div className="space-y-4 border p-4 rounded-md">
+              <h4 className="text-sm font-medium">Add New Field</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="field-name">Field Name</Label>
+                  <Input
+                    id="field-name"
+                    placeholder="e.g., Story Points"
+                    value={newField.name}
+                    onChange={(e) => handleFieldChange("name", e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="field-type">Field Type</Label>
+                  <Select
+                    value={newField.type}
+                    onValueChange={(value) => handleFieldChange("type", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="text">Text</SelectItem>
+                      <SelectItem value="number">Number</SelectItem>
+                      <SelectItem value="date">Date</SelectItem>
+                      <SelectItem value="select">Single Select</SelectItem>
+                      <SelectItem value="multiselect">Multi Select</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              {(newField.type === 'select' || newField.type === 'multiselect') && (
+                <div className="space-y-2">
+                  <Label htmlFor="field-options">Options (comma separated)</Label>
+                  <Input
+                    id="field-options"
+                    placeholder="Option 1, Option 2, Option 3"
+                    value={newField.options}
+                    onChange={(e) => handleFieldChange("options", e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Separate options with commas
+                  </p>
+                </div>
+              )}
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  id="field-required"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300"
+                  checked={newField.required}
+                  onChange={(e) => handleFieldChange("required", e.target.checked)}
+                />
+                <Label htmlFor="field-required">Required Field</Label>
+              </div>
+              
+              <Button onClick={handleAddField} className="w-full mt-2">
+                Add Field
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>
