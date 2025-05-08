@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { MentionDropdown } from "./MentionDropdown";
 import { getCaretCoordinates } from "@/utils/textUtils";
 
@@ -55,26 +55,40 @@ export function MessageReplyForm({
       if (atIndex !== -1 && (atIndex === 0 || /\s/.test(textBeforeCursor[atIndex - 1]))) {
         const query = textBeforeCursor.substring(atIndex + 1);
         
-        if (!query.includes(' ')) {
-          setMentionQuery(query);
-          setMentionOpen(true);
-          
-          // Calculate mention dropdown position based on textarea and cursor
-          if (textareaRef.current) {
-            const cursorCoords = getCaretCoordinates(textareaRef.current, atIndex);
-            setMentionPosition({
-              top: cursorCoords.top + 20,  // Add some offset below the @
-              left: cursorCoords.left
-            });
-          }
-          
-          return;
+        // Always show dropdown after typing @ (even with empty query)
+        // and limit results once the user types at least 1 character
+        setMentionQuery(query);
+        setMentionOpen(true);
+        
+        // Calculate mention dropdown position based on textarea and cursor
+        if (textareaRef.current) {
+          const cursorCoords = getCaretCoordinates(textareaRef.current, atIndex);
+          setMentionPosition({
+            top: cursorCoords.top + 20,  // Add some offset below the @
+            left: cursorCoords.left
+          });
         }
+        
+        return;
       }
     }
     
     setMentionOpen(false);
   };
+
+  // Listen for clicks outside to close the dropdown when clicking elsewhere
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (mentionOpen && textareaRef.current && !textareaRef.current.contains(e.target as Node)) {
+        setMentionOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [mentionOpen]);
 
   // Handle user selection from the mention dropdown
   const handleSelectUser = (user: User & { firstName?: string }) => {

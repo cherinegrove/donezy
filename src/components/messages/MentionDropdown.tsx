@@ -51,15 +51,15 @@ export function MentionDropdown({
     setDuplicateFirstNames(duplicates);
   }, [users]);
   
-  // Filter users with improved partial matching
+  // Filter users with improved partial matching - show all when query is empty
   useEffect(() => {
-    // When search query is empty or very short, show all users
-    if (!searchQuery || searchQuery.length < 1) {
-      setFilteredUsers(users);
+    if (!searchQuery) {
+      setFilteredUsers(users); // Show all users initially when @ is typed
       setSelectedIndex(0);
       return;
     }
     
+    // Only filter once the user has typed at least 1 character
     const query = searchQuery.toLowerCase();
     const filtered = users.filter(user => {
       // Get first name if it's not already provided
@@ -99,6 +99,11 @@ export function MentionDropdown({
             onSelectUser(filteredUsers[selectedIndex]);
           }
           break;
+        case 'Escape':
+          e.preventDefault();
+          // Close the dropdown
+          // This will be handled in the parent component
+          break;
       }
     };
     
@@ -132,7 +137,9 @@ export function MentionDropdown({
       style={{
         top: `${position.top}px`,
         left: `${position.left}px`,
-        minWidth: '200px'
+        minWidth: '200px',
+        maxHeight: '300px',
+        overflowY: 'auto'
       }}
     >
       <div className="rounded-md overflow-hidden">
