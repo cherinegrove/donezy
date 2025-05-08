@@ -1,3 +1,4 @@
+
 import {
   User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, ProjectTemplate, CustomRole
 } from "@/types";
@@ -83,7 +84,7 @@ export interface AppContextType {
   unwatchTask: (taskId: string, userId: string) => void;
   
   // Time tracking operations
-  startTimeTracking: (taskId: string) => void;
+  startTimeTracking: (taskId?: string, projectId?: string) => void;
   stopTimeTracking: (notes?: string) => void;
   addTimeEntry: (entry: Omit<TimeEntry, "id">) => void;
   

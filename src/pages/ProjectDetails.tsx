@@ -6,7 +6,7 @@ import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, User, Users, ArrowLeft, Save } from "lucide-react";
+import { Clock, User, Users, ArrowLeft, Save, Play, Pause } from "lucide-react";
 import { format } from "date-fns";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { useState } from "react";
@@ -16,7 +16,7 @@ import { ConvertToTemplateDialog } from "@/components/projects/ConvertToTemplate
 const ProjectDetails = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { getProjectById, tasks, getClientById, users, teams } = useAppContext();
+  const { getProjectById, tasks, getClientById, users, teams, activeTimeEntry, startTimeTracking, stopTimeTracking } = useAppContext();
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   
@@ -34,6 +34,20 @@ const ProjectDetails = () => {
   const projectTeamMembers = users.filter(user => 
     project?.teamIds.some(teamId => user.teamIds.includes(teamId))
   );
+
+  // Find if there's an active time entry for the current project (without a task)
+  const isTimerRunning = activeTimeEntry && 
+    projectTasks.some(task => task.id === activeTimeEntry.taskId) ||
+    (activeTimeEntry?.projectId === projectId && !activeTimeEntry.taskId);
+
+  const handleTimerToggle = () => {
+    if (isTimerRunning && activeTimeEntry) {
+      stopTimeTracking("Project time tracking stopped");
+    } else if (project) {
+      // Start timer directly for the project (without a task)
+      startTimeTracking(undefined, project.id);
+    }
+  };
   
   if (!project) {
     return (
@@ -59,6 +73,22 @@ const ProjectDetails = () => {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant={isTimerRunning ? "destructive" : "default"}
+            onClick={handleTimerToggle}
+          >
+            {isTimerRunning ? (
+              <>
+                <Pause className="h-4 w-4 mr-2" />
+                Stop Timer
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4 mr-2" />
+                Start Timer
+              </>
+            )}
+          </Button>
           <Button variant="outline" onClick={() => setIsTemplateDialogOpen(true)}>
             <Save className="h-4 w-4 mr-2" />
             Save as Template

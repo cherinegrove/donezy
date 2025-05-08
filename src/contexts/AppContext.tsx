@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode } from "react";
 import {
   User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role, ProjectTemplate, TemplateTask, CustomRole
@@ -546,14 +547,34 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
   
   // Time tracking operations
-  const startTimeTracking = (taskId: string) => {
+  const startTimeTracking = (taskId?: string, projectId?: string) => {
     if (activeTimeEntry) {
       stopTimeTracking("Automatically stopped by starting new timer");
+    }
+    
+    if (!taskId && !projectId) {
+      toast({ 
+        title: "Error", 
+        description: "Either a task or project is required for time tracking", 
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    let associatedProjectId = projectId;
+    
+    // If no project ID is provided but we have a task ID, get the project ID from the task
+    if (!associatedProjectId && taskId) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        associatedProjectId = task.projectId;
+      }
     }
     
     const newTimeEntry = {
       id: `time-${uuidv4()}`,
       taskId,
+      projectId: associatedProjectId,
       userId: currentUser?.id || '',
       startTime: new Date().toISOString(),
       duration: 0,
@@ -581,20 +602,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     setTimeEntries((prev) => [...prev, completedTimeEntry]);
     
-    // Update task with the time entry
-    setTasks((prev) => prev.map(task => 
-      task.id === activeTimeEntry.taskId
-        ? { ...task, timeEntries: [...task.timeEntries, completedTimeEntry] }
-        : task
-    ));
+    // If this time entry is associated with a task, update the task
+    if (activeTimeEntry.taskId) {
+      setTasks((prev) => prev.map(task => 
+        task.id === activeTimeEntry.taskId
+          ? { ...task, timeEntries: [...task.timeEntries, completedTimeEntry] }
+          : task
+      ));
+    }
     
     // Update project used hours
     setProjects((prev) => {
-      const task = tasks.find(t => t.id === activeTimeEntry.taskId);
-      if (!task) return prev;
+      const projectId = activeTimeEntry.projectId || 
+        (activeTimeEntry.taskId ? tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId : undefined);
+      
+      if (!projectId) return prev;
       
       return prev.map(project => 
-        project.id === task.projectId
+        project.id === projectId
           ? { ...project, usedHours: project.usedHours + (durationMinutes / 60) }
           : project
       );
