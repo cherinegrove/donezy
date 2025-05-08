@@ -26,7 +26,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { BarChart, XAxis, YAxis, Bar, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, XAxis, YAxis, Bar, ResponsiveContainer } from "recharts";
 import { Client, TimeEntry } from "@/types";
 
 // Helper function to calculate total hours from minutes
@@ -187,21 +187,27 @@ const Reports = () => {
               >
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
-                    data={clientHoursData} 
-                    layout="vertical" 
-                    margin={{ top: 10, right: 30, left: 100, bottom: 10 }}
+                    data={clientHoursData}
+                    margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
                   >
                     <XAxis 
-                      type="number" 
+                      dataKey="name"
+                      tick={{ fontSize: 12 }}
+                      interval={0}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis
                       tickFormatter={(value) => `${value}h`}
                     />
-                    <YAxis 
-                      dataKey="name" 
-                      type="category" 
-                      width={90} 
-                      tick={{ fontSize: 12 }} 
+                    <Bar 
+                      dataKey="hours" 
+                      name="Hours" 
+                      fill="var(--color-hours)"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={50}
                     />
-                    <Bar dataKey="hours" name="Hours" fill="var(--color-hours)" radius={[0, 4, 4, 0]} />
                     <ChartTooltip content={<ChartTooltipContent labelKey="name" />} />
                   </BarChart>
                 </ResponsiveContainer>
