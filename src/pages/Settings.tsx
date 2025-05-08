@@ -10,8 +10,9 @@ import { ProfileInformationCard } from "@/components/settings/ProfileInformation
 import { GeneralNotificationSettings } from "@/components/settings/GeneralNotificationSettings";
 import { ThemeSettings } from "@/components/settings/ThemeSettings";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Palette } from "lucide-react";
 import { EditTeamDialog } from "@/components/teams/EditTeamDialog";
+import { CompanyThemeSettings } from "@/components/settings/CompanyThemeSettings";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -72,7 +73,7 @@ const Settings = () => {
                     Manage teams and set member permissions
                   </CardDescription>
                 </div>
-                <Button onClick={() => setIsCreateTeamDialogOpen(true)} variant="outline">
+                <Button onClick={() => setIsCreateTeamDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Team
                 </Button>
@@ -84,6 +85,10 @@ const Settings = () => {
                 </p>
               </CardContent>
             </Card>
+          )}
+          
+          {isAdminOrManager && (
+            <CompanyThemeSettings />
           )}
           
           <KanbanCustomizationCard />

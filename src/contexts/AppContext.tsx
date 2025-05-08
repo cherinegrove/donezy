@@ -77,8 +77,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     role: string, 
     options?: {
       phone?: string;
-      employmentType?: string;
-      billingType?: string;
+      employmentType?: "full-time" | "part-time" | "contract";
+      billingType?: "hourly" | "monthly";
       billingRate?: number;
       currency?: string;
       teamIds?: string[];
@@ -120,9 +120,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     addUser(newUser);
     
-    toast({ 
-      title: "Invitation sent", 
-      description: `An invitation has been sent to ${email}` 
+    toast({
+      title: "User invited",
+      description: `Invitation sent to ${name}`,
     });
   };
   

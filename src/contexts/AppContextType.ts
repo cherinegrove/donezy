@@ -1,4 +1,3 @@
-
 import {
   User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, ProjectTemplate
 } from "@/types";
@@ -30,8 +29,8 @@ export interface AppContextType {
   deleteUser: (id: string) => void;
   inviteUser: (email: string, name: string, role: string, options?: {
     phone?: string;
-    employmentType?: string;
-    billingType?: string;
+    employmentType?: "full-time" | "part-time" | "contract";
+    billingType?: "hourly" | "monthly";
     billingRate?: number;
     currency?: string;
     teamIds?: string[];

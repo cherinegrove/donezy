@@ -228,6 +228,7 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
                 <SelectItem value="JPY">JPY (¥)</SelectItem>
                 <SelectItem value="AUD">AUD ($)</SelectItem>
                 <SelectItem value="CAD">CAD ($)</SelectItem>
+                <SelectItem value="ZAR">ZAR (R)</SelectItem>
               </SelectContent>
             </Select>
           </div>
