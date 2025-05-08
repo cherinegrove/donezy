@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import {
-  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role, ProjectTemplate, TemplateTask
+  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role, ProjectTemplate, TemplateTask, CustomRole
 } from "@/types";
 import { AppContextType } from "./AppContextType";
 import {
@@ -23,12 +23,51 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [purchases, setPurchases] = useState<Purchase[]>(mockPurchases);
   const [customFields, setCustomFields] = useState<CustomField[]>(mockCustomFields);
   const [projectTemplates, setProjectTemplates] = useState<ProjectTemplate[]>([]);
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   
   // Current user (hardcoded for now, would come from auth in real app)
   const [currentUser, setCurrentUser] = useState<User | null>(mockUsers[0]);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
   
   const { toast } = useToast();
+  
+  // Role management functions
+  const addCustomRole = (role: Omit<CustomRole, "id">) => {
+    const newRole = { ...role, id: `role-${uuidv4()}` };
+    setCustomRoles((prev) => [...prev, newRole]);
+    toast({ title: "Success", description: "Role has been created" });
+  };
+  
+  const updateCustomRole = (id: string, updates: Partial<CustomRole>) => {
+    setCustomRoles((prev) => prev.map(role => role.id === id ? { ...role, ...updates } : role));
+    toast({ title: "Success", description: "Role has been updated" });
+  };
+  
+  const deleteCustomRole = (id: string) => {
+    // Check if any users are using this role
+    const usersWithRole = users.filter(user => user.customRoleId === id);
+    
+    if (usersWithRole.length > 0) {
+      toast({ 
+        title: "Cannot Delete Role", 
+        description: `Role is assigned to ${usersWithRole.length} users`, 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    setCustomRoles((prev) => prev.filter(role => role.id !== id));
+    toast({ title: "Success", description: "Role has been deleted" });
+  };
+  
+  const assignRoleToUser = (userId: string, roleId: string) => {
+    setUsers(prev => prev.map(user => 
+      user.id === userId
+        ? { ...user, customRoleId: roleId }
+        : user
+    ));
+    toast({ title: "Success", description: "Role has been assigned to user" });
+  };
   
   // Authentication
   const login = async (email: string, password: string) => {
@@ -796,6 +835,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       purchases,
       customFields,
       projectTemplates,
+      customRoles,
       
       // Current user and active states
       currentUser,
@@ -804,6 +844,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       // Authentication
       login,
       logout,
+      
+      // Role management
+      addCustomRole,
+      updateCustomRole,
+      deleteCustomRole,
+      assignRoleToUser,
       
       // CRUD operations for users
       addUser,

@@ -10,9 +10,10 @@ import { ProfileInformationCard } from "@/components/settings/ProfileInformation
 import { GeneralNotificationSettings } from "@/components/settings/GeneralNotificationSettings";
 import { ThemeSettings } from "@/components/settings/ThemeSettings";
 import { Button } from "@/components/ui/button";
-import { Plus, Palette } from "lucide-react";
+import { Plus, Palette, Shield } from "lucide-react";
 import { EditTeamDialog } from "@/components/teams/EditTeamDialog";
 import { CompanyThemeSettings } from "@/components/settings/CompanyThemeSettings";
+import { RoleManagementTab } from "@/components/settings/RoleManagementTab";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -62,6 +63,25 @@ const Settings = () => {
         <TabsContent value="account" className="mt-6 space-y-6">
           {isAdminOrManager && (
             <UsersManagementTab />
+          )}
+
+          {isAdminOrManager && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <div>
+                    <CardTitle>Role Management</CardTitle>
+                    <CardDescription>
+                      Create and manage custom roles with specific permissions
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <RoleManagementTab />
+              </CardContent>
+            </Card>
           )}
 
           {!isClient && (

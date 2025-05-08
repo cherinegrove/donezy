@@ -1,5 +1,6 @@
+
 import {
-  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, ProjectTemplate
+  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, ProjectTemplate, CustomRole
 } from "@/types";
 
 export interface AppContextType {
@@ -14,6 +15,7 @@ export interface AppContextType {
   purchases: Purchase[];
   customFields: CustomField[];
   projectTemplates: ProjectTemplate[];
+  customRoles: CustomRole[];  // Added for roles management
   
   // Current user and active states
   currentUser: User | null;
@@ -22,6 +24,12 @@ export interface AppContextType {
   // Authentication
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  
+  // Role management operations
+  addCustomRole: (role: Omit<CustomRole, "id">) => void;
+  updateCustomRole: (id: string, updates: Partial<CustomRole>) => void;
+  deleteCustomRole: (id: string) => void;
+  assignRoleToUser: (userId: string, roleId: string) => void;
   
   // CRUD operations for users
   addUser: (user: Omit<User, "id">) => void;

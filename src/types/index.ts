@@ -1,4 +1,3 @@
-
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
@@ -10,6 +9,23 @@ export type NotificationTimeframe = 'same-day' | '1-day' | '3-days' | '1-week';
 export type EmploymentType = 'full-time' | 'contract' | 'part-time';
 
 export type BillingType = 'hourly' | 'monthly';
+
+export type AccessLevel = 'none' | 'view' | 'edit';
+
+export interface CustomRole {
+  id: string;
+  name: string;
+  description?: string;
+  permissions: {
+    accountSettings: AccessLevel;
+    reports: AccessLevel;
+    timeTracking: AccessLevel;
+    clients: AccessLevel;
+    projects: AccessLevel;
+    tasks: AccessLevel;
+    users: AccessLevel;
+  };
+}
 
 export interface User {
   id: string;
@@ -66,6 +82,7 @@ export interface User {
     canViewReports?: boolean;
     canManageUsers?: boolean;
   };
+  customRoleId?: string; // Added to link users to custom roles
 }
 
 export interface Team {
