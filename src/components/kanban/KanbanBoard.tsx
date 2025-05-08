@@ -2,7 +2,7 @@
 import { Task, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { EditTaskDialog } from "../tasks/EditTaskDialog";
 
 interface KanbanBoardProps {
@@ -13,6 +13,13 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   const { getTasksByProject, moveTask } = useAppContext();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [columnColors, setColumnColors] = useState<Record<TaskStatus, string>>({
+    backlog: "#F3F4F6",
+    todo: "#DBEAFE",
+    "in-progress": "#FEF3C7",
+    review: "#FCE7F3",
+    done: "#DCFCE7"
+  });
   
   const projectTasks = getTasksByProject(projectId);
   
@@ -23,6 +30,25 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     { id: "review", title: "Review" },
     { id: "done", title: "Done" },
   ];
+  
+  // Load column colors from localStorage
+  useEffect(() => {
+    const savedColors = localStorage.getItem('kanbanColors');
+    if (savedColors) {
+      try {
+        const parsedColors = JSON.parse(savedColors);
+        const colorMap: Record<TaskStatus, string> = {} as Record<TaskStatus, string>;
+        
+        parsedColors.forEach((color: { name: TaskStatus; value: string }) => {
+          colorMap[color.name] = color.value;
+        });
+        
+        setColumnColors(colorMap);
+      } catch (e) {
+        console.error('Error parsing kanban colors from localStorage', e);
+      }
+    }
+  }, []);
   
   // Prepare tasks by status
   const tasksByStatus = columns.reduce((acc, column) => {
@@ -63,10 +89,13 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
             onDragOver={handleDragOver}
             onDrop={() => handleDrop(column.id)}
           >
-            <div className="bg-muted/40 rounded-lg p-3 h-full">
+            <div 
+              className="rounded-lg p-3 h-full"
+              style={{ backgroundColor: columnColors[column.id] }}
+            >
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-medium text-sm">{column.title}</h3>
-                <span className="text-xs bg-muted px-2 py-1 rounded-full">
+                <span className="text-xs bg-background/40 px-2 py-1 rounded-full">
                   {tasksByStatus[column.id].length}
                 </span>
               </div>
@@ -86,7 +115,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                 ))}
                 
                 {tasksByStatus[column.id].length === 0 && (
-                  <div className="border-2 border-dashed border-muted rounded-md h-20 flex items-center justify-center">
+                  <div className="border-2 border-dashed border-muted rounded-md h-20 flex items-center justify-center bg-background/40">
                     <p className="text-sm text-muted-foreground">Drop tasks here</p>
                   </div>
                 )}

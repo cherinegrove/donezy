@@ -1,10 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { Palette } from "lucide-react";
 
 interface ColorOption {
   name: string;
@@ -67,6 +68,18 @@ export const KanbanCustomizationCard = () => {
   const [colors, setColors] = useState<ColorOption[]>(defaultColors);
   const { toast } = useToast();
   
+  // Load saved kanban colors on mount
+  useEffect(() => {
+    const savedColors = localStorage.getItem('kanbanColors');
+    if (savedColors) {
+      try {
+        setColors(JSON.parse(savedColors));
+      } catch (e) {
+        console.error('Error parsing kanban colors from localStorage', e);
+      }
+    }
+  }, []);
+  
   const handleColorChange = (name: string, value: string) => {
     setColors(prev => 
       prev.map(color => color.name === name ? { ...color, value } : color)
@@ -87,6 +100,14 @@ export const KanbanCustomizationCard = () => {
   };
   
   const saveChanges = () => {
+    // Save to localStorage
+    localStorage.setItem('kanbanColors', JSON.stringify(colors));
+    
+    // Apply CSS variables for the kanban colors
+    colors.forEach(color => {
+      document.documentElement.style.setProperty(`--kanban-${color.name}-color`, color.value);
+    });
+    
     toast({
       title: "Changes Saved",
       description: "Your kanban color customizations have been saved"
@@ -96,10 +117,15 @@ export const KanbanCustomizationCard = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Kanban Board Customization</CardTitle>
-        <CardDescription>
-          Customize the colors for each column in your kanban boards
-        </CardDescription>
+        <div className="flex items-center gap-2">
+          <Palette className="h-5 w-5 text-primary" />
+          <div>
+            <CardTitle className="text-lg">Kanban Board Customization</CardTitle>
+            <CardDescription>
+              Customize the colors for each column in your kanban boards
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">

@@ -35,12 +35,13 @@ export function AppSidebar() {
     // Apply theme to sidebar elements
     const sidebar = document.querySelector('[data-sidebar="sidebar"]');
     if (sidebar) {
-      sidebar.setAttribute('style', `background-color: ${colors.sidebarColor}; color: ${colors.sidebarTextColor}`);
+      // Apply color to the entire sidebar
+      sidebar.setAttribute('style', `background-color: ${colors.sidebarColor}`);
       
-      // Apply text color to all buttons inside sidebar
-      const sidebarButtons = sidebar.querySelectorAll('button, a');
-      sidebarButtons.forEach(button => {
-        button.setAttribute('style', `color: ${colors.sidebarTextColor}`);
+      // Apply text color to all text elements inside sidebar
+      const sidebarTextElements = sidebar.querySelectorAll('button, a, span, p, h1, h2, h3, h4, h5, h6, div');
+      sidebarTextElements.forEach(element => {
+        element.setAttribute('style', `color: ${colors.sidebarTextColor}`);
       });
     }
   }, [colors.sidebarColor, colors.sidebarTextColor]);
