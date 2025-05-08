@@ -12,9 +12,21 @@ const Clients = () => {
   const navigate = useNavigate();
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
   
+  // Force component to re-render when clients change
+  const [, setForceUpdate] = useState({});
+  
   const getProjectCount = (clientId: string) => {
     return projects.filter(project => project.clientId === clientId).length;
   };
+
+  // Handle client dialog close and force a re-render
+  const handleCloseClientDialog = () => {
+    setIsAddClientDialogOpen(false);
+    // Force a re-render when dialog closes
+    setForceUpdate({});
+  };
+
+  console.log("Current clients:", clients); // Add logging to debug client state
 
   return (
     <div className="space-y-6">
@@ -77,7 +89,7 @@ const Clients = () => {
       
       <AddClientDialog 
         isOpen={isAddClientDialogOpen} 
-        onClose={() => setIsAddClientDialogOpen(false)} 
+        onClose={handleCloseClientDialog}
       />
     </div>
   );
