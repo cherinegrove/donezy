@@ -6,17 +6,19 @@ import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, User, Users, ArrowLeft } from "lucide-react";
+import { Clock, User, Users, ArrowLeft, Save } from "lucide-react";
 import { format } from "date-fns";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ConvertToTemplateDialog } from "@/components/projects/ConvertToTemplateDialog";
 
 const ProjectDetails = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { getProjectById, tasks, getClientById, users, teams } = useAppContext();
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   
   const project = projectId ? getProjectById(projectId) : undefined;
   const client = project ? getClientById(project.clientId) : undefined;
@@ -56,7 +58,13 @@ const ProjectDetails = () => {
             <p className="text-muted-foreground">{project.description}</p>
           </div>
         </div>
-        <Button onClick={() => setIsCreateTaskOpen(true)}>New Task</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsTemplateDialogOpen(true)}>
+            <Save className="h-4 w-4 mr-2" />
+            Save as Template
+          </Button>
+          <Button onClick={() => setIsCreateTaskOpen(true)}>New Task</Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -230,6 +238,15 @@ const ProjectDetails = () => {
         onOpenChange={setIsCreateTaskOpen}
         defaultProjectId={projectId}
       />
+      
+      {project && (
+        <ConvertToTemplateDialog
+          projectId={project.id}
+          projectName={project.name}
+          open={isTemplateDialogOpen}
+          onOpenChange={setIsTemplateDialogOpen}
+        />
+      )}
     </div>
   );
 };

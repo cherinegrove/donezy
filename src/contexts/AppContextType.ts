@@ -46,6 +46,7 @@ export interface AppContextType {
   deleteProject: (id: string) => void;
   watchProject: (projectId: string, userId: string) => void;
   unwatchProject: (projectId: string, userId: string) => void;
+  convertProjectToTemplate: (projectId: string, templateName: string, templateDescription: string) => void;
   
   // Project template operations
   addProjectTemplate: (template: Omit<ProjectTemplate, "id" | "usageCount" | "createdAt">) => void;

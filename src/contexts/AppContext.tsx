@@ -174,6 +174,63 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: "Unwatched Project", description: "You will no longer be notified of changes to this project" });
   };
   
+  const convertProjectToTemplate = (projectId: string, templateName: string, templateDescription: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) {
+      toast({ 
+        title: "Error", 
+        description: "Project not found", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    // Get all tasks for this project
+    const projectTasks = tasks.filter(task => task.projectId === projectId);
+    
+    // Create template tasks from project tasks (excluding parent tasks)
+    const topLevelTasks = projectTasks.filter(task => !task.parentTaskId);
+    
+    const templateTasks: TemplateTask[] = topLevelTasks.map(task => {
+      // Find subtasks for this task
+      const subtasks = projectTasks.filter(t => t.parentTaskId === task.id);
+      
+      return {
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        estimatedHours: task.estimatedHours,
+        subtasks: subtasks.map(subtask => ({
+          title: subtask.title,
+          description: subtask.description,
+          estimatedHours: subtask.estimatedHours
+        })),
+      };
+    });
+    
+    // Create the new template
+    const newTemplate: ProjectTemplate = {
+      id: `template-${uuidv4()}`,
+      name: templateName || `${project.name} Template`,
+      description: templateDescription || `Template created from ${project.name}`,
+      serviceType: project.serviceType,
+      allocatedHours: project.allocatedHours,
+      tasks: templateTasks,
+      teamIds: project.teamIds,
+      usageCount: 0,
+      createdBy: currentUser?.id || 'unknown',
+      createdAt: new Date().toISOString()
+    };
+    
+    setProjectTemplates(prev => [...prev, newTemplate]);
+    
+    toast({ 
+      title: "Template Created", 
+      description: `Project template "${newTemplate.name}" has been created` 
+    });
+  };
+  
   // Project template operations
   const addProjectTemplate = (template: Omit<ProjectTemplate, "id" | "usageCount" | "createdAt">) => {
     const newTemplate = { 
@@ -735,6 +792,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       deleteProject,
       watchProject,
       unwatchProject,
+      convertProjectToTemplate,
       
       // Project template operations
       addProjectTemplate,
