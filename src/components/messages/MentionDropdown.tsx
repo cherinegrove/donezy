@@ -103,7 +103,39 @@ export function MentionDropdown({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, filteredUsers, selectedIndex, onSelectUser]);
   
-  if (!isOpen || filteredUsers.length === 0) return null;
+  if (!isOpen) return null;
+  
+  // Show a helpful message when there are no matches
+  if (filteredUsers.length === 0 && searchQuery.length > 0) {
+    return (
+      <div 
+        className="absolute z-50 bg-white dark:bg-gray-800 border rounded-md shadow-md p-2 text-sm"
+        style={{
+          top: `${position.top}px`,
+          left: `${position.left}px`,
+          minWidth: '200px'
+        }}
+      >
+        No users found matching "{searchQuery}"
+      </div>
+    );
+  }
+
+  // If it's empty and the user hasn't typed anything yet
+  if (filteredUsers.length === 0 && searchQuery.length === 0) {
+    return (
+      <div 
+        className="absolute z-50 bg-white dark:bg-gray-800 border rounded-md shadow-md p-2 text-sm"
+        style={{
+          top: `${position.top}px`,
+          left: `${position.left}px`,
+          minWidth: '200px'
+        }}
+      >
+        Start typing to search for users
+      </div>
+    );
+  }
 
   return (
     <div 
