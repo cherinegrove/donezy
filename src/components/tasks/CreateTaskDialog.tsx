@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -266,7 +267,7 @@ export function CreateTaskDialog({
                       </SelectTrigger>
                       <SelectContent>
                         {!isSubtask && (
-                          <SelectItem value="">No parent task</SelectItem>
+                          <SelectItem key="no-parent" value="none">No parent task</SelectItem>
                         )}
                         {projectTasks.map((task) => (
                           <SelectItem key={task.id} value={task.id}>
