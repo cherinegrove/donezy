@@ -4,6 +4,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,40 +25,64 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { TaskStatus } from "@/types";
 
-const taskSchema = z.object({
-  title: z.string().min(1, { message: "Title is required" }),
-  description: z.string(),
-  projectId: z.string().min(1, { message: "Project is required" }),
-  parentTaskId: z.string().optional(),
-  assigneeIds: z.array(z.string()),
-  status: z.string().min(1, { message: "Status is required" }),
-  priority: z.string().min(1, { message: "Priority is required" }),
-  dueDate: z.string().optional(),
-  customFields: z.record(z.string(), z.any()),
-});
+// Define schema for task form
+const createTaskSchema = (isSubtask: boolean) => {
+  const baseSchema = {
+    title: z.string().min(1, { message: "Title is required" }),
+    description: z.string(),
+    projectId: z.string().min(1, { message: "Project is required" }),
+    assigneeIds: z.array(z.string()),
+    status: z.string().min(1, { message: "Status is required" }),
+    priority: z.string().min(1, { message: "Priority is required" }),
+    dueDate: z.string().optional(),
+    customFields: z.record(z.string(), z.any()),
+  };
 
-type TaskFormData = z.infer<typeof taskSchema>;
+  // Make parentTaskId required for subtasks
+  if (isSubtask) {
+    return z.object({
+      ...baseSchema,
+      parentTaskId: z.string().min(1, { message: "Parent task is required for subtasks" }),
+    });
+  }
+  
+  // Make parentTaskId optional for regular tasks
+  return z.object({
+    ...baseSchema,
+    parentTaskId: z.string().optional(),
+  });
+};
+
+type TaskFormData = z.infer<ReturnType<typeof createTaskSchema>>;
 
 interface CreateTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultProjectId?: string;
+  isSubtask?: boolean;
+  defaultParentTaskId?: string;
 }
 
 export function CreateTaskDialog({
   open,
   onOpenChange,
   defaultProjectId,
+  isSubtask = false,
+  defaultParentTaskId,
 }: CreateTaskDialogProps) {
   const { projects, users, tasks, customFields, addTask } = useAppContext();
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   
+  // Use the appropriate schema based on whether we're creating a subtask
+  const schema = createTaskSchema(isSubtask);
+  
   const form = useForm<TaskFormData>({
-    resolver: zodResolver(taskSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       title: "",
       description: "",
       projectId: defaultProjectId || "",
+      parentTaskId: defaultParentTaskId || "",
       status: "todo",
       priority: "medium",
       assigneeIds: [],
@@ -92,7 +117,10 @@ export function CreateTaskDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Create New Task</DialogTitle>
+          <DialogTitle>{isSubtask ? "Create New Subtask" : "Create New Task"}</DialogTitle>
+          <DialogDescription>
+            {isSubtask ? "Create a subtask related to the parent task" : "Create a new task for your project"}
+          </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
@@ -159,17 +187,20 @@ export function CreateTaskDialog({
                 name="parentTaskId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Parent Task (Optional)</FormLabel>
+                    <FormLabel>{isSubtask ? "Parent Task" : "Parent Task (Optional)"}</FormLabel>
                     <FormControl>
                       <Select 
                         value={field.value || ""} 
                         onValueChange={field.onChange}
+                        disabled={isSubtask && !!defaultParentTaskId}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="No parent task" />
+                          <SelectValue placeholder={isSubtask ? "Select parent task" : "No parent task"} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="no-parent">No parent task</SelectItem>
+                          {!isSubtask && (
+                            <SelectItem value="no-parent">No parent task</SelectItem>
+                          )}
                           {projectTasks.map((task) => (
                             <SelectItem key={task.id} value={task.id}>
                               {task.title}
@@ -399,7 +430,7 @@ export function CreateTaskDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Create Task</Button>
+              <Button type="submit">{isSubtask ? "Create Subtask" : "Create Task"}</Button>
             </DialogFooter>
           </form>
         </Form>

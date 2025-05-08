@@ -21,10 +21,9 @@ export function MessageView({ message, onReply }: MessageViewProps) {
   const { getUserById, users, getProjectById, getClientById, tasks, addTask } = useAppContext();
   const [replyContent, setReplyContent] = useState("");
   const [isReplying, setIsReplying] = useState(false);
-  // New states for task creation
+  // Task creation states
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-  const [createTaskType, setCreateTaskType] = useState<"task" | "subtask">("task");
-  const [selectedTaskForSubtask, setSelectedTaskForSubtask] = useState<Task | null>(null);
+  const [isSubtask, setIsSubtask] = useState(false);
   
   const sender = getUserById(message.senderId);
   
@@ -75,8 +74,7 @@ export function MessageView({ message, onReply }: MessageViewProps) {
   const handleCreateSubtask = () => {
     if (!task) return;
     
-    setCreateTaskType("subtask");
-    setSelectedTaskForSubtask(task);
+    setIsSubtask(true);
     setIsCreateTaskOpen(true);
   };
   
@@ -84,8 +82,7 @@ export function MessageView({ message, onReply }: MessageViewProps) {
   const handleCreateTask = () => {
     if (!project) return;
     
-    setCreateTaskType("task");
-    setSelectedTaskForSubtask(null);
+    setIsSubtask(false);
     setIsCreateTaskOpen(true);
   };
   
@@ -203,7 +200,8 @@ export function MessageView({ message, onReply }: MessageViewProps) {
         open={isCreateTaskOpen}
         onOpenChange={setIsCreateTaskOpen}
         defaultProjectId={project?.id}
-        defaultParentTaskId={createTaskType === "subtask" ? task?.id : undefined}
+        isSubtask={isSubtask}
+        defaultParentTaskId={isSubtask && task ? task.id : undefined}
       />
     </div>
   );
