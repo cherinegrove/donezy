@@ -49,10 +49,20 @@ export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
   });
 
   const onSubmit = (data: ClientFormValues) => {
+    // Make sure all required fields from the Client type are provided
     addClient({
-      ...data,
+      name: data.name,
+      contactName: data.contactName,
+      email: data.email,
+      phone: data.phone,
+      address: data.address,
+      website: data.website,
+      billableRate: data.billableRate,
+      currency: data.currency,
+      status: data.status,
       projectIds: []
     });
+    
     form.reset();
     onClose();
   };
