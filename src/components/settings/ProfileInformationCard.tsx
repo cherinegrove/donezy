@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,10 +11,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 // Predefined avatar options
 const avatarOptions = [
-  { id: 'avatar1', url: 'https://source.unsplash.com/photo-1501286353178-1ec881214838/100x100', name: 'Monkey' },
-  { id: 'avatar2', url: 'https://source.unsplash.com/photo-1582562124811-c09040d0a901/100x100', name: 'Cat' },
-  { id: 'avatar3', url: 'https://source.unsplash.com/photo-1535268647677-300dbf3d78d1/100x100', name: 'Kitten' },
-  { id: 'avatar4', url: 'https://source.unsplash.com/photo-1441057206919-63d19fac2369/100x100', name: 'Penguin' }
+  { id: 'avatar1', url: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=250&h=250&auto=format', name: 'Doug Funnie' },
+  { id: 'avatar2', url: 'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=250&h=250&auto=format', name: 'Ren & Stimpy' },
+  { id: 'avatar3', url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=250&h=250&auto=format', name: 'Steve Urkel' },
+  { id: 'avatar4', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=250&h=250&auto=format', name: 'Clarissa' },
+  { id: 'avatar5', url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=250&h=250&auto=format', name: 'Rocko' },
+  { id: 'avatar6', url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=250&h=250&auto=format', name: 'CatDog' },
+  { id: 'avatar7', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=250&h=250&auto=format', name: 'Zack Morris' },
+  { id: 'avatar8', url: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=250&h=250&auto=format', name: 'Arnold' }
 ];
 
 export function ProfileInformationCard({ userId }: { userId: string }) {
@@ -110,6 +113,13 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
               <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="flex items-center gap-3">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                accept="image/*"
+                className="hidden"
+              />
               <Button 
                 type="button" 
                 variant="outline" 
@@ -135,7 +145,7 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
                 <RadioGroup 
                   value={formData.avatar}
                   onValueChange={handleAvatarOptionSelect}
-                  className="grid grid-cols-2 gap-4 md:grid-cols-4"
+                  className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4"
                 >
                   {avatarOptions.map((avatar) => (
                     <div 
