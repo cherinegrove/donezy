@@ -76,8 +76,7 @@ export default function Tasks() {
           break;
         case "owners":
           // Check if task has any of the selected owners
-          const taskOwner = task.ownerId;
-          if (!values.includes(taskOwner)) {
+          if (task.assigneeIds.length === 0 || !task.assigneeIds.some(id => values.includes(id))) {
             return false;
           }
           break;
@@ -85,9 +84,10 @@ export default function Tasks() {
     }
 
     // Filter by start date
-    if (startDate && task.startDate) {
-      const taskStartDate = new Date(task.startDate);
-      if (taskStartDate < startDate) {
+    if (startDate && task.dueDate) {
+      const taskDueDate = new Date(task.dueDate);
+      // Use startDate as the minimum due date
+      if (taskDueDate < startDate) {
         return false;
       }
     }

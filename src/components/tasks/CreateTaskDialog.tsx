@@ -18,18 +18,20 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppContext } from "@/contexts/AppContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { TaskStatus } from "@/types";
+import { toast } from "sonner";
 
 // Define schema for task form
 const createTaskSchema = (isSubtask: boolean) => {
   const baseSchema = {
     title: z.string().min(1, { message: "Title is required" }),
     description: z.string(),
+    clientId: z.string().min(1, { message: "Client is required" }),
     projectId: z.string().min(1, { message: "Project is required" }),
     assigneeIds: z.array(z.string()),
     status: z.string().min(1, { message: "Status is required" }),
@@ -70,8 +72,10 @@ export function CreateTaskDialog({
   isSubtask = false,
   defaultParentTaskId,
 }: CreateTaskDialogProps) {
-  const { projects, users, tasks, customFields, addTask } = useAppContext();
+  const { projects, users, tasks, customFields, addTask, clients } = useAppContext();
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [clientProjects, setClientProjects] = useState<typeof projects>([]);
   
   // Use the appropriate schema based on whether we're creating a subtask
   const schema = createTaskSchema(isSubtask);
@@ -81,6 +85,7 @@ export function CreateTaskDialog({
     defaultValues: {
       title: "",
       description: "",
+      clientId: "",
       projectId: defaultProjectId || "",
       parentTaskId: defaultParentTaskId || "",
       status: "todo",
@@ -89,6 +94,24 @@ export function CreateTaskDialog({
       customFields: {},
     },
   });
+  
+  // Filter projects by selected client
+  useEffect(() => {
+    const clientId = form.watch("clientId");
+    if (!clientId) {
+      setClientProjects([]);
+      return;
+    }
+    
+    const filteredProjects = projects.filter(project => project.clientId === clientId);
+    setClientProjects(filteredProjects);
+    
+    // Reset project selection when client changes
+    if (clientId !== selectedClientId) {
+      form.setValue("projectId", "");
+      setSelectedClientId(clientId);
+    }
+  }, [form.watch("clientId"), projects, selectedClientId]);
   
   const onSubmit = (data: TaskFormData) => {
     addTask({
@@ -104,6 +127,7 @@ export function CreateTaskDialog({
       subtasks: [],
     });
     
+    toast.success("Task created successfully");
     form.reset();
     onOpenChange(false);
   };
@@ -154,24 +178,25 @@ export function CreateTaskDialog({
             />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Client Selection - New Required Field */}
               <FormField
                 control={form.control}
-                name="projectId"
+                name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Project</FormLabel>
+                    <FormLabel>Client *</FormLabel>
                     <FormControl>
                       <Select 
                         value={field.value} 
                         onValueChange={field.onChange}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a project" />
+                          <SelectValue placeholder="Select a client" />
                         </SelectTrigger>
                         <SelectContent>
-                          {projects.map((project) => (
-                            <SelectItem key={project.id} value={project.id}>
-                              {project.name}
+                          {clients.map((client) => (
+                            <SelectItem key={client.id} value={client.id}>
+                              {client.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -184,26 +209,29 @@ export function CreateTaskDialog({
               
               <FormField
                 control={form.control}
-                name="parentTaskId"
+                name="projectId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{isSubtask ? "Parent Task" : "Parent Task (Optional)"}</FormLabel>
+                    <FormLabel>Project</FormLabel>
                     <FormControl>
                       <Select 
-                        value={field.value || ""} 
+                        value={field.value} 
                         onValueChange={field.onChange}
-                        disabled={isSubtask && !!defaultParentTaskId}
+                        disabled={clientProjects.length === 0}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={isSubtask ? "Select parent task" : "No parent task"} />
+                          <SelectValue placeholder={
+                            !form.watch("clientId") 
+                              ? "Select a client first" 
+                              : clientProjects.length === 0 
+                                ? "No projects for this client" 
+                                : "Select a project"
+                          } />
                         </SelectTrigger>
                         <SelectContent>
-                          {!isSubtask && (
-                            <SelectItem value="no-parent">No parent task</SelectItem>
-                          )}
-                          {projectTasks.map((task) => (
-                            <SelectItem key={task.id} value={task.id}>
-                              {task.title}
+                          {clientProjects.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -215,7 +243,46 @@ export function CreateTaskDialog({
               />
             </div>
             
+            <FormField
+              control={form.control}
+              name="parentTaskId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{isSubtask ? "Parent Task" : "Parent Task (Optional)"}</FormLabel>
+                  <FormControl>
+                    <Select 
+                      value={field.value || ""} 
+                      onValueChange={field.onChange}
+                      disabled={isSubtask && !!defaultParentTaskId || projectTasks.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={
+                          !form.watch("projectId") 
+                            ? "Select a project first" 
+                            : isSubtask 
+                              ? "Select parent task" 
+                              : "No parent task"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {!isSubtask && (
+                          <SelectItem value="">No parent task</SelectItem>
+                        )}
+                        {projectTasks.map((task) => (
+                          <SelectItem key={task.id} value={task.id}>
+                            {task.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Status and Priority fields - keep existing code */}
               <FormField
                 control={form.control}
                 name="status"
@@ -346,7 +413,7 @@ export function CreateTaskDialog({
               />
             </div>
             
-            {/* Custom Fields */}
+            {/* Custom Fields - keep existing code */}
             {customFields.length > 0 && (
               <div className="space-y-4">
                 <Label>Custom Fields</Label>
