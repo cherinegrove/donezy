@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
+import { v4 as uuidv4 } from "uuid";
 
 interface AddClientDialogProps {
   isOpen: boolean;
@@ -22,7 +23,7 @@ const currencyOptions = [
 ];
 
 export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
-  const { addClient } = useAppContext();
+  const { addClient, clients } = useAppContext();
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [website, setWebsite] = useState("");
@@ -35,7 +36,7 @@ export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Create new client object with required fields
+    // Create new client object with required fields and a generated ID
     const newClient = {
       name,
       website,
@@ -50,10 +51,14 @@ export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
     // Add client using context function
     addClient(newClient);
     
+    console.log("Client added:", newClient);
+    console.log("Current clients after add:", clients);
+    
     // Show success toast
     toast({
       title: "Client Added",
-      description: `${name} has been added successfully`
+      description: `${name} has been added successfully`,
+      variant: "default"
     });
     
     // Reset form and close dialog
@@ -72,7 +77,12 @@ export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        resetForm();
+        onClose();
+      }
+    }}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Add New Client</DialogTitle>
@@ -166,7 +176,10 @@ export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
           </div>
           
           <DialogFooter className="pt-4">
-            <Button variant="outline" type="button" onClick={onClose}>
+            <Button variant="outline" type="button" onClick={() => {
+              resetForm();
+              onClose();
+            }}>
               Cancel
             </Button>
             <Button type="submit">Create Client</Button>
