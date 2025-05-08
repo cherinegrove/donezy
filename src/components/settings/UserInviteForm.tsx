@@ -1,12 +1,16 @@
 
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TeamMemberInviteForm } from "./TeamMemberInviteForm";
 import { ClientUserInviteForm } from "./ClientUserInviteForm";
 
-export function UserInviteForm() {
-  const [activeTab, setActiveTab] = useState("team-member");
+export interface UserInviteFormProps {
+  defaultTab?: "team-member" | "client-user";
+  onSuccess?: () => void;
+}
+
+export function UserInviteForm({ defaultTab = "team-member", onSuccess }: UserInviteFormProps) {
+  const [activeTab, setActiveTab] = useState(defaultTab);
   
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -16,11 +20,11 @@ export function UserInviteForm() {
       </TabsList>
       
       <TabsContent value="team-member">
-        <TeamMemberInviteForm />
+        <TeamMemberInviteForm onSuccess={onSuccess} />
       </TabsContent>
       
       <TabsContent value="client-user">
-        <ClientUserInviteForm />
+        <ClientUserInviteForm onSuccess={onSuccess} />
       </TabsContent>
     </Tabs>
   );

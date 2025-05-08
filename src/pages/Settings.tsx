@@ -16,6 +16,7 @@ import { RoleManagementTab } from "@/components/settings/RoleManagementTab";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("profile");
+  const [activeAccountTab, setActiveAccountTab] = useState("setup");
   const [isCreateTeamDialogOpen, setIsCreateTeamDialogOpen] = useState(false);
   const { currentUser } = useAppContext();
   const isClient = currentUser?.role === 'client';
@@ -54,108 +55,115 @@ const Settings = () => {
         </TabsContent>
         
         {/* Account Settings Tab */}
-        <TabsContent value="account" className="mt-6 space-y-6">
-          {/* Account Setup Section */}
+        <TabsContent value="account" className="mt-6">
           {isAdminOrManager && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Account Setup</CardTitle>
-                <CardDescription>
-                  Configure key aspects of your organization's account
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Roles Management */}
+            <Tabs value={activeAccountTab} onValueChange={setActiveAccountTab}>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="setup">Account Setup</TabsTrigger>
+                <TabsTrigger value="team">Team Members</TabsTrigger>
+                <TabsTrigger value="client">Client Users</TabsTrigger>
+              </TabsList>
+              
+              {/* Account Setup Tab */}
+              <TabsContent value="setup" className="mt-6 space-y-6">
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-5 w-5 text-primary" />
-                      <div>
-                        <CardTitle className="text-lg">Role Management</CardTitle>
-                        <CardDescription>
-                          Create and manage custom roles with specific permissions
-                        </CardDescription>
-                      </div>
-                    </div>
+                  <CardHeader>
+                    <CardTitle>Account Setup</CardTitle>
+                    <CardDescription>
+                      Configure key aspects of your organization's account
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <RoleManagementTab />
+                  <CardContent className="space-y-6">
+                    {/* Roles Management */}
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-5 w-5 text-primary" />
+                          <div>
+                            <CardTitle className="text-lg">Role Management</CardTitle>
+                            <CardDescription>
+                              Create and manage custom roles with specific permissions
+                            </CardDescription>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <RoleManagementTab />
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Teams Management */}
+                    {!isClient && (
+                      <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Users className="h-5 w-5 text-primary" />
+                            <div>
+                              <CardTitle className="text-lg">Teams Management</CardTitle>
+                              <CardDescription>
+                                Manage teams and set member permissions
+                              </CardDescription>
+                            </div>
+                          </div>
+                          <Button onClick={() => setIsCreateTeamDialogOpen(true)}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create Team
+                          </Button>
+                        </CardHeader>
+                        <CardContent>
+                          {/* Team management would go here */}
+                          <p className="text-center py-12 text-muted-foreground">
+                            Create a team to organize your team members
+                          </p>
+                        </CardContent>
+                      </Card>
+                    )}
+                    
+                    {/* Company Theme Settings */}
+                    <CompanyThemeSettings />
+                    
+                    {/* Kanban Customization */}
+                    <KanbanCustomizationCard />
                   </CardContent>
                 </Card>
-                
-                {/* Teams Management */}
-                {!isClient && (
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-primary" />
-                        <div>
-                          <CardTitle className="text-lg">Teams Management</CardTitle>
-                          <CardDescription>
-                            Manage teams and set member permissions
-                          </CardDescription>
-                        </div>
-                      </div>
-                      <Button onClick={() => setIsCreateTeamDialogOpen(true)}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Team
-                      </Button>
-                    </CardHeader>
-                    <CardContent>
-                      {/* Team management would go here */}
-                      <p className="text-center py-12 text-muted-foreground">
-                        Create a team to organize your team members
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-                
-                {/* Company Theme Settings */}
-                <CompanyThemeSettings />
-                
-                {/* Kanban Customization */}
-                <KanbanCustomizationCard />
-              </CardContent>
-            </Card>
-          )}
-          
-          {/* Team Members Section */}
-          {isAdminOrManager && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <UserRound className="h-5 w-5 text-primary" />
-                  <CardTitle>Team Members</CardTitle>
-                </div>
-                <CardDescription>
-                  Manage all team members and their access permissions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <UsersManagementTab />
-              </CardContent>
-            </Card>
-          )}
-          
-          {/* Client Users Section */}
-          {isAdminOrManager && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-primary" />
-                  <CardTitle>Client Users</CardTitle>
-                </div>
-                <CardDescription>
-                  Manage client users and their access to projects
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* Client users management would go here */}
-                <p className="text-center py-12 text-muted-foreground">
-                  No client users created yet
-                </p>
-              </CardContent>
-            </Card>
+              </TabsContent>
+              
+              {/* Team Members Tab */}
+              <TabsContent value="team" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <UserRound className="h-5 w-5 text-primary" />
+                      <CardTitle>Team Members</CardTitle>
+                    </div>
+                    <CardDescription>
+                      Manage all team members and their access permissions
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <UsersManagementTab showClientSection={false} />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              {/* Client Users Tab */}
+              <TabsContent value="client" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-primary" />
+                      <CardTitle>Client Users</CardTitle>
+                    </div>
+                    <CardDescription>
+                      Manage client users and their access to projects
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <UsersManagementTab showTeamSection={false} defaultTab="client" />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           )}
         </TabsContent>
       </Tabs>

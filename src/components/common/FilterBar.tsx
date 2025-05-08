@@ -3,13 +3,6 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Filter, X } from "lucide-react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
