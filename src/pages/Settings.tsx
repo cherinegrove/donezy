@@ -3,12 +3,12 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { KanbanCustomizationCard } from "@/components/settings/KanbanCustomizationCard";
-import { UserInviteForm } from "@/components/settings/UserInviteForm";
 import { useAppContext } from "@/contexts/AppContext";
 import { UsersManagementTab } from "@/components/settings/UsersManagementTab";
 import { ManagerNotificationSettings } from "@/components/settings/ManagerNotificationSettings";
 import { ProfileInformationCard } from "@/components/settings/ProfileInformationCard";
 import { GeneralNotificationSettings } from "@/components/settings/GeneralNotificationSettings";
+import { ThemeSettings } from "@/components/settings/ThemeSettings";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("profile");
@@ -46,6 +46,11 @@ const Settings = () => {
           {currentUser && (
             <GeneralNotificationSettings userId={currentUser.id} />
           )}
+          
+          {/* Theme settings for individual user */}
+          {currentUser && (
+            <ThemeSettings userId={currentUser.id} />
+          )}
         </TabsContent>
         
         {/* Account Settings Tab */}
@@ -72,21 +77,6 @@ const Settings = () => {
           )}
           
           <KanbanCustomizationCard />
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Theme Settings</CardTitle>
-              <CardDescription>
-                Customize the appearance of your workspace
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Theme settings would go here */}
-              <p className="text-center py-12 text-muted-foreground">
-                Theme settings coming soon
-              </p>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

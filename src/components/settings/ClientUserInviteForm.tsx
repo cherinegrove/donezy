@@ -5,13 +5,17 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import { Check, AlertCircle } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { Project } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 
-export function ClientUserInviteForm() {
+interface ClientUserInviteFormProps {
+  onSuccess?: () => void;
+}
+
+export function ClientUserInviteForm({ onSuccess }: ClientUserInviteFormProps) {
   const { clients, projects, inviteUser } = useAppContext();
+  const { toast } = useToast();
   
   // Form state
   const [name, setName] = useState("");
@@ -50,11 +54,15 @@ export function ClientUserInviteForm() {
       // Call the inviteUser function with the role set to "client"
       inviteUser(email, name, "client", clientId);
       
-      // Show success state
+      // Show success state and toast notification
       setIsSuccess(true);
       setIsLoading(false);
+      toast({
+        title: "Success",
+        description: `Invitation sent to ${name}`,
+      });
       
-      // Reset form after 2 seconds
+      // Reset form after successful submission
       setTimeout(() => {
         setName("");
         setEmail("");
@@ -62,6 +70,9 @@ export function ClientUserInviteForm() {
         setClientId("");
         setSelectedProjects([]);
         setIsSuccess(false);
+        if (onSuccess) {
+          onSuccess();
+        }
       }, 2000);
     } catch (err) {
       setError((err as Error).message);
@@ -72,18 +83,18 @@ export function ClientUserInviteForm() {
   return (
     <form onSubmit={handleSubmit}>
       <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">Name <span className="text-red-500">*</span></Label>
+          <Input 
+            id="name" 
+            value={name} 
+            onChange={(e) => setName(e.target.value)} 
+            placeholder="Full name" 
+            required 
+          />
+        </div>
+        
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name <span className="text-red-500">*</span></Label>
-            <Input 
-              id="name" 
-              value={name} 
-              onChange={(e) => setName(e.target.value)} 
-              placeholder="Full name" 
-              required 
-            />
-          </div>
-          
           <div className="space-y-2">
             <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
             <Input 
@@ -95,16 +106,16 @@ export function ClientUserInviteForm() {
               required 
             />
           </div>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="job-title">Job Title</Label>
-          <Input 
-            id="job-title" 
-            value={jobTitle} 
-            onChange={(e) => setJobTitle(e.target.value)} 
-            placeholder="Job title" 
-          />
+          
+          <div className="space-y-2">
+            <Label htmlFor="job-title">Job Title</Label>
+            <Input 
+              id="job-title" 
+              value={jobTitle} 
+              onChange={(e) => setJobTitle(e.target.value)} 
+              placeholder="Job title" 
+            />
+          </div>
         </div>
         
         <div className="space-y-2">

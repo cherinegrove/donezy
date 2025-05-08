@@ -5,22 +5,24 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import { Check, AlertCircle } from "lucide-react";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { EmploymentType, BillingType } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 
-export function TeamMemberInviteForm() {
+interface TeamMemberInviteFormProps {
+  onSuccess?: () => void;
+}
+
+export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
   const { teams, inviteUser } = useAppContext();
+  const { toast } = useToast();
   
   // Form state
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [role, setRole] = useState("developer");
-  const [employmentType, setEmploymentType] = useState<string>("full-time");
-  const [billingType, setBillingType] = useState<string>("hourly");
-  const [billingRate, setBillingRate] = useState("");
-  const [currency, setCurrency] = useState("USD");
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   
   // Form submission states
@@ -41,28 +43,35 @@ export function TeamMemberInviteForm() {
     
     try {
       // Validation
-      if (!name || !email || !role) {
+      if (!firstName || !lastName || !email || !role) {
         throw new Error("Please fill out all required fields");
       }
       
-      // Call the inviteUser function with the correct parameters
-      inviteUser(email, name, role);
+      const fullName = `${firstName} ${lastName}`;
       
-      // Show success state
+      // Call the inviteUser function with the specified role
+      inviteUser(email, fullName, role);
+      
+      // Show success state and toast notification
       setIsSuccess(true);
       setIsLoading(false);
+      toast({
+        title: "Success",
+        description: `Invitation sent to ${fullName}`,
+      });
       
-      // Reset form after 2 seconds
+      // Reset form after successful submission
       setTimeout(() => {
-        setName("");
+        setFirstName("");
+        setLastName("");
         setEmail("");
+        setPhone("");
         setRole("developer");
-        setEmploymentType("full-time");
-        setBillingType("hourly");
-        setBillingRate("");
-        setCurrency("USD");
         setSelectedTeams([]);
         setIsSuccess(false);
+        if (onSuccess) {
+          onSuccess();
+        }
       }, 2000);
     } catch (err) {
       setError((err as Error).message);
@@ -75,16 +84,29 @@ export function TeamMemberInviteForm() {
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Name <span className="text-red-500">*</span></Label>
+            <Label htmlFor="first-name">First Name <span className="text-red-500">*</span></Label>
             <Input 
-              id="name" 
-              value={name} 
-              onChange={(e) => setName(e.target.value)} 
-              placeholder="Full name" 
+              id="first-name" 
+              value={firstName} 
+              onChange={(e) => setFirstName(e.target.value)} 
+              placeholder="First name" 
               required 
             />
           </div>
           
+          <div className="space-y-2">
+            <Label htmlFor="last-name">Last Name <span className="text-red-500">*</span></Label>
+            <Input 
+              id="last-name" 
+              value={lastName} 
+              onChange={(e) => setLastName(e.target.value)} 
+              placeholder="Last name" 
+              required 
+            />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
             <Input 
@@ -96,86 +118,43 @@ export function TeamMemberInviteForm() {
               required 
             />
           </div>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="role">Role <span className="text-red-500">*</span></Label>
-          <Select value={role} onValueChange={setRole}>
-            <SelectTrigger id="role">
-              <SelectValue placeholder="Select role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="manager">Manager</SelectItem>
-              <SelectItem value="developer">Developer</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="employment-type">Employment Type</Label>
-          <Select value={employmentType} onValueChange={setEmploymentType}>
-            <SelectTrigger id="employment-type">
-              <SelectValue placeholder="Select employment type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="full-time">Full Time</SelectItem>
-              <SelectItem value="part-time">Part Time</SelectItem>
-              <SelectItem value="contract">Contract</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="billing-type">Billing Type</Label>
-          <Select value={billingType} onValueChange={setBillingType}>
-            <SelectTrigger id="billing-type">
-              <SelectValue placeholder="Select billing type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="hourly">Hourly</SelectItem>
-              <SelectItem value="monthly">Monthly</SelectItem>
-            </SelectContent>
-          </Select>
+          
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number</Label>
+            <Input 
+              id="phone" 
+              type="tel" 
+              value={phone} 
+              onChange={(e) => setPhone(e.target.value)} 
+              placeholder="Phone number" 
+            />
+          </div>
         </div>
         
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="billing-rate">Billing Rate</Label>
-            <Input 
-              id="billing-rate" 
-              type="number" 
-              value={billingRate} 
-              onChange={(e) => setBillingRate(e.target.value)} 
-              placeholder="Rate" 
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="currency">Currency</Label>
-            <Select value={currency} onValueChange={setCurrency}>
-              <SelectTrigger id="currency">
-                <SelectValue placeholder="Select currency" />
+            <Label htmlFor="role">Role <span className="text-red-500">*</span></Label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger id="role">
+                <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="USD">USD</SelectItem>
-                <SelectItem value="EUR">EUR</SelectItem>
-                <SelectItem value="GBP">GBP</SelectItem>
-                <SelectItem value="CAD">CAD</SelectItem>
-                <SelectItem value="AUD">AUD</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="developer">Developer</SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </div>
-        
-        <div className="space-y-2">
-          <Label>Team Assignment</Label>
-          <MultiSelect
-            options={teamOptions}
-            selectedValues={selectedTeams}
-            onValueChange={setSelectedTeams}
-            placeholder="Select teams"
-          />
+          
+          <div className="space-y-2">
+            <Label htmlFor="teams">Teams</Label>
+            <MultiSelect
+              options={teamOptions}
+              selectedValues={selectedTeams}
+              onValueChange={setSelectedTeams}
+              placeholder="Select teams"
+            />
+          </div>
         </div>
         
         {error && (

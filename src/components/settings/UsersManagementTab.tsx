@@ -9,18 +9,20 @@ import { EditUserDialog } from "@/components/users/EditUserDialog";
 import { User } from "@/types";
 import { Building, Pencil, Plus, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserInviteForm } from "@/components/settings/UserInviteForm";
+import { TeamMemberInviteForm } from "@/components/settings/TeamMemberInviteForm";
+import { ClientUserInviteForm } from "@/components/settings/ClientUserInviteForm";
 
 export function UsersManagementTab() {
   const { teams, users, clients } = useAppContext();
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
-  const [activeTab, setActiveTab] = useState("internal");
+  const [activeTab, setActiveTab] = useState("team");
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
-  const [isInviteFormOpen, setIsInviteFormOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
+  const [showTeamForm, setShowTeamForm] = useState(false);
+  const [showClientForm, setShowClientForm] = useState(false);
 
   // Define filter options - create separate arrays for different tabs
-  const internalFilterOptions: FilterOption[] = [
+  const teamFilterOptions: FilterOption[] = [
     {
       id: "teams",
       name: "Team",
@@ -65,7 +67,7 @@ export function UsersManagementTab() {
   };
 
   // Filter users based on their type (internal or client)
-  const internalUsers = users.filter(user => user.role !== "client");
+  const teamUsers = users.filter(user => user.role !== "client");
   const clientUsers = users.filter(user => user.role === "client");
 
   // Apply client filter for client users
@@ -77,11 +79,6 @@ export function UsersManagementTab() {
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setActiveFilters(filters);
-  };
-
-  const handleCreateUser = (isClientUser: boolean = false) => {
-    setSelectedUser(undefined);
-    setIsInviteFormOpen(true);
   };
 
   const handleEditUser = (user: User) => {
@@ -106,22 +103,37 @@ export function UsersManagementTab() {
             Manage team members and client users
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => handleCreateUser(activeTab === "client")}>
-            <Plus className="h-4 w-4 mr-2" />
-            {activeTab === "client" ? "Add Client User" : "Add Team Member"}
-          </Button>
-        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="internal">Internal Team Members</TabsTrigger>
+          <TabsTrigger value="team">Team Members</TabsTrigger>
           <TabsTrigger value="client">Client Users</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="internal" className="space-y-6">
-          <FilterBar filters={internalFilterOptions} onFilterChange={handleFilterChange} />
+        <TabsContent value="team" className="space-y-6">
+          <div className="flex justify-end">
+            <Button onClick={() => setShowTeamForm(!showTeamForm)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Team Member
+            </Button>
+          </div>
+          
+          {showTeamForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Add Team Member</CardTitle>
+                <CardDescription>
+                  Invite a new team member to join your organization
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TeamMemberInviteForm onSuccess={() => setShowTeamForm(false)} />
+              </CardContent>
+            </Card>
+          )}
+          
+          <FilterBar filters={teamFilterOptions} onFilterChange={handleFilterChange} />
 
           <div className="space-y-6">
             {filteredTeams.map((team) => {
@@ -156,6 +168,9 @@ export function UsersManagementTab() {
                                 <div>
                                   <p className="font-medium">{member.name}</p>
                                   <p className="text-sm text-muted-foreground">{member.email}</p>
+                                  {member.phone && (
+                                    <p className="text-xs text-muted-foreground">{member.phone}</p>
+                                  )}
                                   {member.employmentType && (
                                     <p className="text-xs text-muted-foreground mt-1">
                                       {member.employmentType} • 
@@ -207,6 +222,27 @@ export function UsersManagementTab() {
         </TabsContent>
 
         <TabsContent value="client" className="space-y-6">
+          <div className="flex justify-end">
+            <Button onClick={() => setShowClientForm(!showClientForm)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Client User
+            </Button>
+          </div>
+          
+          {showClientForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Add Client User</CardTitle>
+                <CardDescription>
+                  Invite a new client user to your platform
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ClientUserInviteForm onSuccess={() => setShowClientForm(false)} />
+              </CardContent>
+            </Card>
+          )}
+          
           <FilterBar filters={clientFilterOptions} onFilterChange={handleFilterChange} />
 
           <Card>
@@ -262,13 +298,6 @@ export function UsersManagementTab() {
                     <p className="text-muted-foreground">
                       No client users found with the selected filters
                     </p>
-                    <Button 
-                      variant="outline" 
-                      className="mt-4" 
-                      onClick={() => handleCreateUser(true)}
-                    >
-                      Add Client User
-                    </Button>
                   </div>
                 )}
               </div>
@@ -282,22 +311,6 @@ export function UsersManagementTab() {
         isOpen={isEditUserDialogOpen}
         onClose={() => setIsEditUserDialogOpen(false)}
       />
-
-      {isInviteFormOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Invite User</h2>
-            <UserInviteForm />
-            <Button 
-              variant="outline" 
-              className="mt-4 w-full" 
-              onClick={() => setIsInviteFormOpen(false)}
-            >
-              Close
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

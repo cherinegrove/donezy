@@ -16,31 +16,11 @@ export function UserInviteForm() {
       </TabsList>
       
       <TabsContent value="team-member">
-        <Card>
-          <CardHeader>
-            <CardTitle>Invite Team Member</CardTitle>
-            <CardDescription>
-              Invite a new member to join your team with specific role and billing settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <TeamMemberInviteForm />
-          </CardContent>
-        </Card>
+        <TeamMemberInviteForm />
       </TabsContent>
       
       <TabsContent value="client-user">
-        <Card>
-          <CardHeader>
-            <CardTitle>Invite Client User</CardTitle>
-            <CardDescription>
-              Invite a client user with access to specific projects
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ClientUserInviteForm />
-          </CardContent>
-        </Card>
+        <ClientUserInviteForm />
       </TabsContent>
     </Tabs>
   );
