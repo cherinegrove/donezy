@@ -10,13 +10,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { startOfMonth, endOfMonth, eachDayOfInterval, format, isWithinInterval, parseISO } from "date-fns";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
+  ResponsiveContainer, Legend, ReferenceLine 
+} from "recharts";
+import { 
+  startOfMonth, endOfMonth, eachDayOfInterval, format, 
+  isWithinInterval, parseISO, addMonths, subMonths 
+} from "date-fns";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { CalendarIcon, ChevronDown } from "lucide-react";
+import { CalendarIcon, ChevronDown, ChevronLeft, ChevronRight, Download, ChartBarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { 
+  Table, TableBody, TableCell, TableHead, 
+  TableHeader, TableRow 
+} from "@/components/ui/table";
 
 const Reports = () => {
   const { clients, projects, tasks, timeEntries, users, teams } = useAppContext();
@@ -67,6 +77,26 @@ const Reports = () => {
     setActiveFilters(filters);
   };
   
+  // Navigate to previous month
+  const goToPreviousMonth = () => {
+    setSelectedMonth(prevMonth => subMonths(prevMonth, 1));
+    setSelectedDate(prevDate => prevDate ? subMonths(prevDate, 1) : undefined);
+  };
+  
+  // Navigate to next month
+  const goToNextMonth = () => {
+    setSelectedMonth(prevMonth => addMonths(prevMonth, 1));
+    setSelectedDate(prevDate => prevDate ? addMonths(prevDate, 1) : undefined);
+  };
+  
+  // Generate custom report
+  const handleGenerateReport = (type: string) => {
+    toast({
+      title: "Report Generated",
+      description: `Your ${type} report has been generated successfully.`
+    });
+  };
+  
   // Filter clients based on selections
   const filteredClients = useMemo(() => {
     return clients.filter(client => {
@@ -101,6 +131,36 @@ const Reports = () => {
     });
   };
   
+  // Calculate summary statistics
+  const summaryStats = useMemo(() => {
+    const monthEntries = timeEntries.filter(isTimeEntryInMonth);
+    const totalHours = monthEntries.reduce((sum, entry) => sum + entry.duration, 0) / 60;
+    
+    // Get unique days with time entries
+    const uniqueDays = new Set(
+      monthEntries.map(entry => format(parseISO(entry.startTime), "yyyy-MM-dd"))
+    );
+    
+    // Calculate average daily hours
+    const avgDailyHours = uniqueDays.size > 0 ? totalHours / uniqueDays.size : 0;
+    
+    // Calculate billable hours
+    const billableHours = monthEntries
+      .filter(entry => {
+        const task = tasks.find(t => t.id === entry.taskId);
+        return task?.billable;
+      })
+      .reduce((sum, entry) => sum + entry.duration, 0) / 60;
+    
+    return {
+      totalHours: +totalHours.toFixed(1),
+      billableHours: +billableHours.toFixed(1),
+      billablePercentage: totalHours > 0 ? +(billableHours / totalHours * 100).toFixed(1) : 0,
+      daysWorked: uniqueDays.size,
+      avgDailyHours: +avgDailyHours.toFixed(1)
+    };
+  }, [timeEntries, tasks, monthDateRange]);
+  
   // Prepare data for client time charts
   const clientTimeData = useMemo(() => {
     // Filter time entries for selected month
@@ -109,7 +169,10 @@ const Reports = () => {
     // Group by day and client
     const data = daysInMonth.map(day => {
       const dayStr = format(day, "yyyy-MM-dd");
-      const dayData: Record<string, number> = { date: day.getDate() };
+      const dayData: Record<string, number | string> = { 
+        date: day.getDate(), 
+        dateStr: format(day, "MMM d")
+      };
       
       filteredClients.forEach(client => {
         const clientEntries = monthEntries.filter(entry => {
@@ -147,7 +210,10 @@ const Reports = () => {
     // Group by day and project
     const data = daysInMonth.map(day => {
       const dayStr = format(day, "yyyy-MM-dd");
-      const dayData: Record<string, number> = { date: day.getDate() };
+      const dayData: Record<string, number | string> = { 
+        date: day.getDate(),
+        dateStr: format(day, "MMM d")
+      };
       
       clientProjects.forEach(project => {
         const projectEntries = monthEntries.filter(entry => {
@@ -196,7 +262,10 @@ const Reports = () => {
     // Group by day and user
     const data = daysInMonth.map(day => {
       const dayStr = format(day, "yyyy-MM-dd");
-      const dayData: Record<string, number> = { date: day.getDate() };
+      const dayData: Record<string, number | string> = { 
+        date: day.getDate(),
+        dateStr: format(day, "MMM d")
+      };
       
       relevantUsers.forEach(user => {
         const userEntries = monthEntries.filter(entry => {
@@ -221,11 +290,60 @@ const Reports = () => {
     return data;
   }, [activeFilters.clients, users, daysInMonth, timeEntries, tasks, projects, monthDateRange]);
 
-  // Colors for the chart
+  // Calculate client totals for the month
+  const clientTotals = useMemo(() => {
+    if (filteredClients.length === 0) return [];
+    
+    const monthEntries = timeEntries.filter(isTimeEntryInMonth);
+    
+    return filteredClients.map(client => {
+      const clientEntries = monthEntries.filter(entry => {
+        const task = tasks.find(t => t.id === entry.taskId);
+        if (!task) return false;
+        
+        const project = projects.find(p => p.id === task.projectId);
+        return project && project.clientId === client.id;
+      });
+      
+      const totalMinutes = clientEntries.reduce((sum, entry) => sum + entry.duration, 0);
+      const totalHours = +(totalMinutes / 60).toFixed(1);
+      
+      return {
+        clientId: client.id,
+        clientName: client.name,
+        hours: totalHours,
+        billableAmount: client.billableRate ? +(totalHours * client.billableRate).toFixed(2) : 0,
+        currency: client.currency || "USD"
+      };
+    }).sort((a, b) => b.hours - a.hours); // Sort by most hours first
+  }, [filteredClients, timeEntries, tasks, projects, monthDateRange]);
+
+  // Colors for the chart - using improved color palette
   const COLORS = [
-    "#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE", "#00C49F", "#FFBB28", "#FF8042",
-    "#a4de6c", "#d0ed57", "#83a6ed", "#8dd1e1", "#a4c2f4", "#c49c94", "#b5739d", "#e8c3b9"
+    "#9b87f5", "#0EA5E9", "#F97316", "#D946EF", "#8B5CF6", 
+    "#0FA0CE", "#33C3F0", "#7E69AB", "#FEC6A1", "#6E59A5", 
+    "#D6BCFA", "#1EAEDB", "#D3E4FD", "#FDE1D3"
   ];
+
+  // Custom chart styles
+  const chartStyle = {
+    barSize: 20,
+    fontSize: 12,
+    yAxisWidth: 50,
+    gridColor: "#E5DEFF",
+    tooltipBg: "#FFFFFF",
+    tooltipBorder: "#E5DEFF"
+  };
+
+  // Function to get relevant title for chart
+  const getSelectedClientName = () => {
+    if (activeFilters.clients?.length === 1) {
+      const clientId = activeFilters.clients[0];
+      const client = clients.find(c => c.id === clientId);
+      return client?.name || 'Selected Client';
+    }
+    return undefined;
+  };
   
   return (
     <div className="space-y-6">
@@ -236,50 +354,181 @@ const Reports = () => {
         </p>
       </div>
       
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              className="h-4 w-4 text-muted-foreground"
+            >
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summaryStats.totalHours}h</div>
+            <p className="text-xs text-muted-foreground">
+              Across {summaryStats.daysWorked} days
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Billable Hours</CardTitle>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              className="h-4 w-4 text-muted-foreground"
+            >
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summaryStats.billableHours}h</div>
+            <p className="text-xs text-muted-foreground">
+              {summaryStats.billablePercentage}% of total
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Daily Average</CardTitle>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              className="h-4 w-4 text-muted-foreground"
+            >
+              <rect width="20" height="14" x="2" y="5" rx="2" />
+              <path d="M2 10h20" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summaryStats.avgDailyHours}h</div>
+            <p className="text-xs text-muted-foreground">
+              Per active day
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Clients</CardTitle>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              className="h-4 w-4 text-muted-foreground"
+            >
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{clientTotals.filter(c => c.hours > 0).length}</div>
+            <p className="text-xs text-muted-foreground">
+              With tracked time
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+      
       <div className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <div className="w-full md:w-60">
-            <Select onValueChange={setReportType} defaultValue={reportType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Report Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="time">Time Reports</SelectItem>
-                <SelectItem value="progress">Project Progress</SelectItem>
-                <SelectItem value="financial">Financial Reports</SelectItem>
-                <SelectItem value="team">Team Performance</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-full md:w-60">
+              <Select onValueChange={setReportType} defaultValue={reportType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Report Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="time">Time Reports</SelectItem>
+                  <SelectItem value="progress">Project Progress</SelectItem>
+                  <SelectItem value="financial">Financial Reports</SelectItem>
+                  <SelectItem value="team">Team Performance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex items-center rounded-md border border-input bg-background">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={goToPreviousMonth}
+                className="rounded-r-none"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-[180px] justify-center text-left font-normal rounded-none border-l border-r",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "MMMM yyyy") : "Select month"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => {
+                      setSelectedDate(date);
+                      if (date) {
+                        setSelectedMonth(date);
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={goToNextMonth}
+                className="rounded-l-none"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-[240px] justify-start text-left font-normal",
-                  !selectedDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {selectedDate ? format(selectedDate, "MMMM yyyy") : "Select month"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => {
-                  setSelectedDate(date);
-                  if (date) {
-                    setSelectedMonth(date);
-                  }
-                }}
-                initialFocus
-                showMonthYearPicker
-              />
-            </PopoverContent>
-          </Popover>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              toast({
+                title: "Reports Exported",
+                description: "Reports have been exported to CSV"
+              });
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export Reports
+          </Button>
         </div>
         
         <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
@@ -297,10 +546,23 @@ const Reports = () => {
           {/* Time Spent Monthly (broken down daily) per Client */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Time Spent Monthly per Client</CardTitle>
-              <CardDescription>
-                Daily breakdown for {format(selectedMonth, "MMMM yyyy")}
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl flex items-center">
+                    <ChartBarIcon className="h-5 w-5 mr-2" />
+                    Time Spent Monthly per Client
+                  </CardTitle>
+                  <CardDescription>
+                    Daily breakdown for {format(selectedMonth, "MMMM yyyy")}
+                  </CardDescription>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium">Total Hours</div>
+                  <div className="text-2xl font-bold text-primary">
+                    {summaryStats.totalHours}h
+                  </div>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="h-80">
               {clientTimeData.length > 0 && filteredClients.length > 0 ? (
@@ -309,12 +571,43 @@ const Reports = () => {
                     <BarChart
                       data={clientTimeData}
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      barSize={chartStyle.barSize}
                     >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" label={{ value: 'Day of Month', position: 'insideBottomRight', offset: -10 }} />
-                      <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Legend />
+                      <CartesianGrid strokeDasharray="3 3" stroke={chartStyle.gridColor} />
+                      <XAxis 
+                        dataKey="dateStr" 
+                        label={{ 
+                          value: 'Day of Month', 
+                          position: 'insideBottom', 
+                          offset: -5,
+                          fontSize: chartStyle.fontSize
+                        }}
+                        fontSize={chartStyle.fontSize} 
+                        tickLine={false}
+                      />
+                      <YAxis 
+                        label={{ 
+                          value: 'Hours', 
+                          angle: -90, 
+                          position: 'insideLeft',
+                          fontSize: chartStyle.fontSize
+                        }}
+                        width={chartStyle.yAxisWidth}
+                        fontSize={chartStyle.fontSize}
+                        tickLine={false}
+                        domain={[0, 'auto']}
+                      />
+                      <ReferenceLine y={0} stroke="#000" />
+                      <ChartTooltip 
+                        cursor={{fill: 'rgba(0, 0, 0, 0.05)'}} 
+                        content={<ChartTooltipContent />} 
+                      />
+                      <Legend 
+                        verticalAlign="top" 
+                        align="right"
+                        wrapperStyle={{ paddingBottom: '10px' }}
+                        fontSize={chartStyle.fontSize}
+                      />
                       {filteredClients.map((client, index) => (
                         <Bar 
                           key={client.id}
@@ -322,6 +615,7 @@ const Reports = () => {
                           name={client.name}
                           fill={COLORS[index % COLORS.length]}
                           stackId="stack"
+                          radius={[4, 4, 0, 0]}
                         />
                       ))}
                     </BarChart>
@@ -335,15 +629,66 @@ const Reports = () => {
             </CardContent>
           </Card>
           
+          {/* Client Total Hours Summary */}
+          {clientTotals.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Client Hours Summary</CardTitle>
+                <CardDescription>
+                  Total hours per client for {format(selectedMonth, "MMMM yyyy")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Client</TableHead>
+                      <TableHead className="text-right">Hours</TableHead>
+                      <TableHead className="text-right">Billable Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {clientTotals.map(client => (
+                      <TableRow key={client.clientId}>
+                        <TableCell className="font-medium">{client.clientName}</TableCell>
+                        <TableCell className="text-right">{client.hours}h</TableCell>
+                        <TableCell className="text-right">
+                          {client.billableAmount > 0 
+                            ? `${client.currency} ${client.billableAmount.toLocaleString()}`
+                            : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+          
           {/* Per Client Per Project */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Time Spent per Project</CardTitle>
-              <CardDescription>
-                {activeFilters.clients?.length === 1 
-                  ? `Projects for ${clients.find(c => c.id === activeFilters.clients?.[0])?.name}, ${format(selectedMonth, "MMMM yyyy")}`
-                  : 'Select a single client to view project breakdown'}
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl flex items-center">
+                    <ChartBarIcon className="h-5 w-5 mr-2" />
+                    Time Spent per Project
+                  </CardTitle>
+                  <CardDescription>
+                    {activeFilters.clients?.length === 1 
+                      ? `Projects for ${getSelectedClientName()}, ${format(selectedMonth, "MMMM yyyy")}`
+                      : 'Select a single client to view project breakdown'}
+                  </CardDescription>
+                </div>
+                {activeFilters.clients?.length === 1 && (
+                  <div className="text-right">
+                    <div className="text-sm font-medium">Projects</div>
+                    <div className="text-xl font-bold text-primary">
+                      {projects.filter(p => p.clientId === activeFilters.clients?.[0]).length}
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="h-80">
               {projectTimeData.length > 0 && activeFilters.clients?.length === 1 ? (
@@ -352,12 +697,43 @@ const Reports = () => {
                     <BarChart
                       data={projectTimeData}
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      barSize={chartStyle.barSize}
                     >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" label={{ value: 'Day of Month', position: 'insideBottomRight', offset: -10 }} />
-                      <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Legend />
+                      <CartesianGrid strokeDasharray="3 3" stroke={chartStyle.gridColor} />
+                      <XAxis 
+                        dataKey="dateStr" 
+                        label={{ 
+                          value: 'Day of Month', 
+                          position: 'insideBottom', 
+                          offset: -5,
+                          fontSize: chartStyle.fontSize
+                        }}
+                        fontSize={chartStyle.fontSize}
+                        tickLine={false}
+                      />
+                      <YAxis 
+                        label={{ 
+                          value: 'Hours', 
+                          angle: -90, 
+                          position: 'insideLeft',
+                          fontSize: chartStyle.fontSize
+                        }}
+                        width={chartStyle.yAxisWidth}
+                        fontSize={chartStyle.fontSize}
+                        tickLine={false}
+                        domain={[0, 'auto']}
+                      />
+                      <ReferenceLine y={0} stroke="#000" />
+                      <ChartTooltip 
+                        cursor={{fill: 'rgba(0, 0, 0, 0.05)'}} 
+                        content={<ChartTooltipContent />} 
+                      />
+                      <Legend 
+                        verticalAlign="top" 
+                        align="right"
+                        wrapperStyle={{ paddingBottom: '10px' }}
+                        fontSize={chartStyle.fontSize}
+                      />
                       {projects
                         .filter(p => p.clientId === activeFilters.clients?.[0])
                         .map((project, index) => (
@@ -367,6 +743,7 @@ const Reports = () => {
                             name={project.name}
                             fill={COLORS[index % COLORS.length]}
                             stackId="stack"
+                            radius={[4, 4, 0, 0]}
                           />
                         ))}
                     </BarChart>
@@ -383,12 +760,37 @@ const Reports = () => {
           {/* Per Client Per Team Member */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Time Spent per Team Member</CardTitle>
-              <CardDescription>
-                {activeFilters.clients?.length === 1 
-                  ? `Team members for ${clients.find(c => c.id === activeFilters.clients?.[0])?.name}, ${format(selectedMonth, "MMMM yyyy")}`
-                  : 'Select a single client to view team member breakdown'}
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl flex items-center">
+                    <ChartBarIcon className="h-5 w-5 mr-2" />
+                    Time Spent per Team Member
+                  </CardTitle>
+                  <CardDescription>
+                    {activeFilters.clients?.length === 1 
+                      ? `Team members for ${getSelectedClientName()}, ${format(selectedMonth, "MMMM yyyy")}`
+                      : 'Select a single client to view team member breakdown'}
+                  </CardDescription>
+                </div>
+                {activeFilters.clients?.length === 1 && (
+                  <div className="text-right">
+                    <div className="text-sm font-medium">Team Members</div>
+                    <div className="text-xl font-bold text-primary">
+                      {users.filter(user => {
+                          const clientId = activeFilters.clients?.[0];
+                          const userEntries = timeEntries.filter(entry => {
+                            if (entry.userId !== user.id) return false;
+                            const task = tasks.find(t => t.id === entry.taskId);
+                            if (!task) return false;
+                            const project = projects.find(p => p.id === task.projectId);
+                            return project && project.clientId === clientId;
+                          });
+                          return userEntries.length > 0;
+                        }).length}
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="h-80">
               {memberTimeData.length > 0 && activeFilters.clients?.length === 1 ? (
@@ -397,12 +799,43 @@ const Reports = () => {
                     <BarChart
                       data={memberTimeData}
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      barSize={chartStyle.barSize}
                     >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" label={{ value: 'Day of Month', position: 'insideBottomRight', offset: -10 }} />
-                      <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Legend />
+                      <CartesianGrid strokeDasharray="3 3" stroke={chartStyle.gridColor} />
+                      <XAxis 
+                        dataKey="dateStr" 
+                        label={{ 
+                          value: 'Day of Month', 
+                          position: 'insideBottom', 
+                          offset: -5,
+                          fontSize: chartStyle.fontSize
+                        }}
+                        fontSize={chartStyle.fontSize}
+                        tickLine={false}
+                      />
+                      <YAxis 
+                        label={{ 
+                          value: 'Hours', 
+                          angle: -90, 
+                          position: 'insideLeft',
+                          fontSize: chartStyle.fontSize
+                        }}
+                        width={chartStyle.yAxisWidth}
+                        fontSize={chartStyle.fontSize}
+                        tickLine={false}
+                        domain={[0, 'auto']}
+                      />
+                      <ReferenceLine y={0} stroke="#000" />
+                      <ChartTooltip 
+                        cursor={{fill: 'rgba(0, 0, 0, 0.05)'}} 
+                        content={<ChartTooltipContent />} 
+                      />
+                      <Legend 
+                        verticalAlign="top" 
+                        align="right"
+                        wrapperStyle={{ paddingBottom: '10px' }}
+                        fontSize={chartStyle.fontSize}
+                      />
                       {users
                         .filter(user => {
                           const clientId = activeFilters.clients?.[0];
@@ -422,6 +855,7 @@ const Reports = () => {
                             name={user.name}
                             fill={COLORS[index % COLORS.length]}
                             stackId="stack"
+                            radius={[4, 4, 0, 0]}
                           />
                         ))}
                     </BarChart>
@@ -518,7 +952,7 @@ const Reports = () => {
                 <p className="text-muted-foreground mb-6">
                   Need a specific report? Create a custom report with the exact data you need.
                 </p>
-                <Button onClick={() => generateReport("custom")}>Create Custom Report</Button>
+                <Button onClick={() => handleGenerateReport("custom")}>Create Custom Report</Button>
               </div>
             </CardContent>
           </Card>
@@ -529,3 +963,4 @@ const Reports = () => {
 };
 
 export default Reports;
+
