@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 
 export interface ClientUserInviteFormProps {
@@ -19,6 +20,7 @@ export function ClientUserInviteForm({ onSuccess }: ClientUserInviteFormProps) {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [selectedClient, setSelectedClient] = useState("");
+  const [clientRole, setClientRole] = useState<"admin" | "team">("team");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,9 +37,10 @@ export function ClientUserInviteForm({ onSuccess }: ClientUserInviteFormProps) {
       
       const fullName = `${firstName} ${lastName}`;
       
-      // Updated to pass options object instead of direct clientId
+      // Updated to pass options object with clientRole
       inviteUser(email, fullName, "client", {
-        clientId: selectedClient
+        clientId: selectedClient,
+        clientRole: clientRole
       });
       
       setIsSuccess(true);
@@ -53,6 +56,7 @@ export function ClientUserInviteForm({ onSuccess }: ClientUserInviteFormProps) {
         setLastName("");
         setEmail("");
         setSelectedClient("");
+        setClientRole("team");
         setIsSuccess(false);
         if (onSuccess) {
           onSuccess();
@@ -115,6 +119,34 @@ export function ClientUserInviteForm({ onSuccess }: ClientUserInviteFormProps) {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Client User Role</Label>
+        <RadioGroup 
+          value={clientRole} 
+          onValueChange={(value) => setClientRole(value as "admin" | "team")} 
+          className="flex flex-col space-y-1"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="admin" id="admin-role" />
+            <Label htmlFor="admin-role" className="cursor-pointer">
+              <div className="font-medium">Client Admin</div>
+              <p className="text-sm text-muted-foreground">
+                Can view projects, tasks, and reports including time spent and costs
+              </p>
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="team" id="team-role" />
+            <Label htmlFor="team-role" className="cursor-pointer">
+              <div className="font-medium">Client Team Member</div>
+              <p className="text-sm text-muted-foreground">
+                Limited access - can only view projects and tasks
+              </p>
+            </Label>
+          </div>
+        </RadioGroup>
       </div>
 
       {error && (

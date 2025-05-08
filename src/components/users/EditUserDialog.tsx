@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAppContext } from "@/contexts/AppContext";
-import { User, EmploymentType, BillingType, Role } from "@/types";
+import { User, EmploymentType, BillingType, Role, ClientRole } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -38,6 +38,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 
 interface EditUserDialogProps {
@@ -56,6 +57,7 @@ const formSchema = z.object({
   billingRate: z.number().optional(),
   currency: z.string().optional(),
   clientId: z.string().optional(),
+  clientRole: z.enum(["admin", "team"]).optional(),
   permissions: z.object({
     canViewClients: z.boolean().default(false),
     canEditClients: z.boolean().default(false),
@@ -88,6 +90,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
       billingRate: user?.billingRate || 0,
       currency: user?.currency || "USD",
       clientId: user?.clientId || undefined,
+      clientRole: user?.clientRole || "team",
       permissions: user?.permissions || {
         canViewClients: false,
         canEditClients: false,
@@ -103,6 +106,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   
   const watchRole = form.watch('role');
   const watchBillingType = form.watch('billingType');
+  const watchClientRole = form.watch('clientRole');
   
   // Update form values when user changes
   useEffect(() => {
@@ -117,6 +121,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
         billingRate: user.billingRate || 0,
         currency: user.currency || "USD",
         clientId: user.clientId,
+        clientRole: user.clientRole || "team",
         permissions: user.permissions || {
           canViewClients: false,
           canEditClients: false,
@@ -138,6 +143,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
         billingType: "hourly",
         billingRate: 0,
         currency: "USD",
+        clientRole: "team",
         permissions: {
           canViewClients: false,
           canEditClients: false,
@@ -153,18 +159,32 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   }, [user, form]);
   
   const onSubmit = (values: FormValues) => {
-    // For client users, make sure they have the correct permissions
+    // For client users, set permissions based on their client role
     if (values.role === "client") {
-      values.permissions = {
-        canViewClients: false,
-        canEditClients: false,
-        canViewProjects: true,
-        canEditProjects: false,
-        canViewTasks: true,
-        canEditTasks: true,
-        canViewReports: false,
-        canManageUsers: false,
-      };
+      if (values.clientRole === "admin") {
+        values.permissions = {
+          canViewClients: false,
+          canEditClients: false,
+          canViewProjects: true,
+          canEditProjects: false,
+          canViewTasks: true,
+          canEditTasks: true,
+          canViewReports: true, // Admin can view reports
+          canManageUsers: false,
+        };
+      } else {
+        // Team client user
+        values.permissions = {
+          canViewClients: false,
+          canEditClients: false,
+          canViewProjects: true,
+          canEditProjects: false,
+          canViewTasks: true,
+          canEditTasks: true,
+          canViewReports: false, // Team member cannot view reports
+          canManageUsers: false,
+        };
+      }
     }
     
     // For admin users, make sure they have all permissions
@@ -188,7 +208,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
       addUser({
         ...values,
         avatar: "",
-        name: values.name, // Explicitly include required fields
+        name: values.name,
         email: values.email,
         role: values.role,
         teamIds: values.teamIds || [],
@@ -288,33 +308,72 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                 />
                 
                 {watchRole === "client" && (
-                  <FormField
-                    control={form.control}
-                    name="clientId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Associated Client</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                        >
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="clientId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Associated Client</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a client" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {clients.map(client => (
+                                <SelectItem key={client.id} value={client.id}>
+                                  {client.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="clientRole"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <FormLabel>Client User Role</FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a client" />
-                            </SelectTrigger>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="flex flex-col space-y-1"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="admin" id="client-admin" />
+                                <Label htmlFor="client-admin" className="cursor-pointer">
+                                  <div className="font-medium">Client Admin</div>
+                                  <p className="text-sm text-muted-foreground">
+                                    Can view projects, tasks, and reports including time spent and costs
+                                  </p>
+                                </Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="team" id="client-team" />
+                                <Label htmlFor="client-team" className="cursor-pointer">
+                                  <div className="font-medium">Client Team Member</div>
+                                  <p className="text-sm text-muted-foreground">
+                                    Limited access - can only view projects and tasks
+                                  </p>
+                                </Label>
+                              </div>
+                            </RadioGroup>
                           </FormControl>
-                          <SelectContent>
-                            {clients.map(client => (
-                              <SelectItem key={client.id} value={client.id}>
-                                {client.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
                 )}
                 
                 {watchRole !== "client" && (
@@ -458,12 +517,18 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
               </TabsContent>
               
               <TabsContent value="permissions" className="space-y-4">
-                {(watchRole === "admin" || watchRole === "client") ? (
+                {watchRole === "admin" ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">
-                      {watchRole === "admin" 
-                        ? "Admin users have full access to all features."
-                        : "Client users have limited permissions set automatically."}
+                      Admin users have full access to all features.
+                    </p>
+                  </div>
+                ) : watchRole === "client" ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">
+                      {watchClientRole === "admin" 
+                        ? "Client Admin users can view projects, tasks, and reports including time spent and costs."
+                        : "Client Team users have limited access - can only view projects and tasks."}
                     </p>
                   </div>
                 ) : (

@@ -1,4 +1,3 @@
-
 import {
   User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, ProjectTemplate, CustomRole
 } from "@/types";
@@ -43,6 +42,7 @@ export interface AppContextType {
     currency?: string;
     teamIds?: string[];
     clientId?: string;
+    clientRole?: "admin" | "team";  // Added clientRole option
   }) => void;
   
   // CRUD operations for teams

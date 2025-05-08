@@ -12,6 +12,8 @@ export type BillingType = 'hourly' | 'monthly';
 
 export type AccessLevel = 'none' | 'view' | 'edit';
 
+export type ClientRole = 'admin' | 'team';  // Added ClientRole type
+
 export interface CustomRole {
   id: string;
   name: string;
@@ -34,22 +36,23 @@ export interface User {
   avatar: string;
   role: Role;
   teamIds: string[];
-  phone?: string; // Added phone field
+  phone?: string;
   employmentType?: EmploymentType;
   billingType?: BillingType;
   billingRate?: number;
   currency?: string;
-  managerId?: string; // ID of the user's manager
-  clientId?: string; // If user is a client user, associated client ID
-  jobTitle?: string; // Job title for client users
-  projectAccess?: string[]; // Projects the client user can access
-  watchedTaskIds?: string[]; // Tasks that the user is watching
+  managerId?: string;
+  clientId?: string;
+  clientRole?: ClientRole;  // Added client role field
+  jobTitle?: string;
+  projectAccess?: string[];
+  watchedTaskIds?: string[];
   notificationPreferences?: {
     taskDue?: NotificationTimeframe[];
     taskStatusChange?: boolean;
     newComments?: boolean;
     timeTracking?: boolean;
-    notificationSettings?: { // Added notificationSettings structure
+    notificationSettings?: {
       clients: {
         new: boolean;
         updated: boolean;
@@ -82,7 +85,7 @@ export interface User {
     canViewReports?: boolean;
     canManageUsers?: boolean;
   };
-  customRoleId?: string; // Added to link users to custom roles
+  customRoleId?: string;
 }
 
 export interface Team {
