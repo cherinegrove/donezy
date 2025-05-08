@@ -24,6 +24,10 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState("developer");
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
+  const [employmentType, setEmploymentType] = useState("full-time");
+  const [billingType, setBillingType] = useState("hourly");
+  const [billingRate, setBillingRate] = useState("");
+  const [currency, setCurrency] = useState("USD");
   
   // Form submission states
   const [isLoading, setIsLoading] = useState(false);
@@ -49,8 +53,15 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
       
       const fullName = `${firstName} ${lastName}`;
       
-      // Call the inviteUser function with the specified role
-      inviteUser(email, fullName, role);
+      // Call the inviteUser function with the specified role and additional information
+      inviteUser(email, fullName, role, {
+        phone,
+        employmentType,
+        billingType,
+        billingRate: billingRate ? parseFloat(billingRate) : undefined,
+        currency,
+        teamIds: selectedTeams
+      });
       
       // Show success state and toast notification
       setIsSuccess(true);
@@ -68,6 +79,10 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
         setPhone("");
         setRole("developer");
         setSelectedTeams([]);
+        setEmploymentType("full-time");
+        setBillingType("hourly");
+        setBillingRate("");
+        setCurrency("USD");
         setIsSuccess(false);
         if (onSuccess) {
           onSuccess();
@@ -154,6 +169,67 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
               onValueChange={setSelectedTeams}
               placeholder="Select teams"
             />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="employment-type">Employment Type</Label>
+            <Select value={employmentType} onValueChange={setEmploymentType}>
+              <SelectTrigger id="employment-type">
+                <SelectValue placeholder="Select employment type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="full-time">Full Time</SelectItem>
+                <SelectItem value="part-time">Part Time</SelectItem>
+                <SelectItem value="contract">Contract</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="billing-type">Billing Type</Label>
+            <Select value={billingType} onValueChange={setBillingType}>
+              <SelectTrigger id="billing-type">
+                <SelectValue placeholder="Select billing type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hourly">Hourly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="billing-rate">
+              {billingType === "hourly" ? "Hourly Rate" : "Monthly Rate"}
+            </Label>
+            <Input 
+              id="billing-rate"
+              type="number"
+              value={billingRate}
+              onChange={(e) => setBillingRate(e.target.value)}
+              placeholder="Enter rate"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="currency">Currency</Label>
+            <Select value={currency} onValueChange={setCurrency}>
+              <SelectTrigger id="currency">
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USD">USD ($)</SelectItem>
+                <SelectItem value="EUR">EUR (€)</SelectItem>
+                <SelectItem value="GBP">GBP (£)</SelectItem>
+                <SelectItem value="JPY">JPY (¥)</SelectItem>
+                <SelectItem value="AUD">AUD ($)</SelectItem>
+                <SelectItem value="CAD">CAD ($)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         
