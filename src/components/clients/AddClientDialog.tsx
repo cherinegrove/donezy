@@ -1,186 +1,236 @@
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { useForm } from "react-hook-form";
 import { useAppContext } from "@/contexts/AppContext";
-import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
+const clientSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  contactName: z.string().min(2, { message: "Contact name must be at least 2 characters" }),
+  email: z.string().email({ message: "Invalid email address" }),
+  phone: z.string().min(5, { message: "Phone number is required" }),
+  address: z.string().optional(),
+  website: z.string().optional(),
+  billableRate: z.number().positive({ message: "Rate must be positive" }),
+  currency: z.string().min(1, { message: "Currency is required" }),
+  status: z.enum(['active', 'inactive']).default('active')
+});
+
+type ClientFormValues = z.infer<typeof clientSchema>;
 
 interface AddClientDialogProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const currencyOptions = [
-  { value: "USD", label: "US Dollar (USD)" },
-  { value: "EUR", label: "Euro (EUR)" },
-  { value: "GBP", label: "British Pound (GBP)" },
-  { value: "AUD", label: "Australian Dollar (AUD)" },
-  { value: "ZAR", label: "South African Rand (ZAR)" }
-];
-
 export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
   const { addClient } = useAppContext();
-  const { toast } = useToast();
-  const [name, setName] = useState("");
-  const [website, setWebsite] = useState("");
-  const [contactName, setContactName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [billableRate, setBillableRate] = useState<number>(100);
-  const [currency, setCurrency] = useState("USD");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Create new client object with required fields
-    const newClient = {
-      name,
-      website,
-      contactName,
-      email,
-      phone,
-      billableRate,
-      currency,
+  const form = useForm<ClientFormValues>({
+    resolver: zodResolver(clientSchema),
+    defaultValues: {
+      name: "",
+      contactName: "",
+      email: "",
+      phone: "",
+      address: "",
+      website: "",
+      billableRate: 100,
+      currency: "USD",
+      status: "active"
+    }
+  });
+
+  const onSubmit = (data: ClientFormValues) => {
+    addClient({
+      ...data,
       projectIds: []
-    };
-    
-    // Add client using context function
-    addClient(newClient);
-    
-    // Show success toast
-    toast({
-      title: "Client Added",
-      description: `${name} has been added successfully`,
-      variant: "default"
     });
-    
-    // Reset form and close dialog
-    resetForm();
+    form.reset();
     onClose();
   };
 
-  const resetForm = () => {
-    setName("");
-    setWebsite("");
-    setContactName("");
-    setEmail("");
-    setPhone("");
-    setBillableRate(100);
-    setCurrency("USD");
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) {
-        resetForm();
-        onClose();
-      }
-    }}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>Add New Client</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Client Name *</Label>
-              <Input 
-                id="name" 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
-                placeholder="Acme Inc." 
-                required
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Client Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter client name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="contactName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Person</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter contact name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="client@company.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl>
+                      <Input placeholder="+1 (555) 123-4567" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="website">Client Website *</Label>
-              <Input 
-                id="website" 
-                value={website} 
-                onChange={(e) => setWebsite(e.target.value)} 
-                placeholder="https://www.acmeinc.com" 
-                required
+            <FormField
+              control={form.control}
+              name="website"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Website (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://company.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="123 Main St, City, State" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="billableRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Billing Rate</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        {...field}
+                        onChange={e => field.onChange(Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="currency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Currency</FormLabel>
+                    <FormControl>
+                      <Input placeholder="USD" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Status</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex space-x-4"
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="active" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Active
+                        </FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="inactive" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Inactive
+                        </FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="billableRate">Billable Rate *</Label>
-                <Input 
-                  id="billableRate" 
-                  type="number" 
-                  value={billableRate} 
-                  onChange={(e) => setBillableRate(Number(e.target.value))} 
-                  min="0"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="currency">Currency *</Label>
-                <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger id="currency">
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currencyOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit">Add Client</Button>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="contactName">Contact Name</Label>
-              <Input 
-                id="contactName" 
-                value={contactName} 
-                onChange={(e) => setContactName(e.target.value)} 
-                placeholder="John Doe"
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                  placeholder="john.doe@acmeinc.com"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input 
-                  id="phone" 
-                  value={phone} 
-                  onChange={(e) => setPhone(e.target.value)} 
-                  placeholder="+1 (555) 123-4567"
-                />
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter className="pt-4">
-            <Button variant="outline" type="button" onClick={() => {
-              resetForm();
-              onClose();
-            }}>
-              Cancel
-            </Button>
-            <Button type="submit">Create Client</Button>
-          </DialogFooter>
-        </form>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

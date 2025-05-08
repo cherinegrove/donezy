@@ -1,4 +1,3 @@
-
 import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField } from "@/types";
 
 export const mockUsers: User[] = [
@@ -40,26 +39,38 @@ export const mockTeams: Team[] = [
 
 export const mockClients: Client[] = [
   {
-    id: "client-1",
-    name: "Acme Corporation",
-    contactName: "John Doe",
-    email: "john@acme.com",
-    phone: "123-456-7890",
-    address: "123 Business Ave, Suite 100",
-    projectIds: ["project-1"],
-    billableRate: 125,
-    currency: "USD",
+    id: 'client-1',
+    name: 'Acme Corporation',
+    contactName: 'John Smith',
+    email: 'john@acme.com',
+    phone: '555-1234',
+    projectIds: ['project-1', 'project-2'],
+    billableRate: 150,
+    currency: 'USD',
+    status: 'active'
   },
   {
-    id: "client-2",
-    name: "TechStart Inc",
-    contactName: "Jane Smith",
-    email: "jane@techstart.com",
-    phone: "987-654-3210",
-    projectIds: ["project-2"],
-    billableRate: 150,
-    currency: "EUR",
+    id: 'client-2',
+    name: 'Globex Industries',
+    contactName: 'Jane Doe',
+    email: 'jane@globex.com',
+    phone: '555-5678',
+    projectIds: ['project-3'],
+    billableRate: 175,
+    currency: 'USD',
+    status: 'active'
   },
+  {
+    id: 'client-3',
+    name: 'Initech Solutions',
+    contactName: 'Michael Bolton',
+    email: 'michael@initech.com',
+    phone: '555-9012',
+    projectIds: ['project-4'],
+    billableRate: 125,
+    currency: 'USD',
+    status: 'inactive'
+  }
 ];
 
 export const mockProjects: Project[] = [
@@ -91,6 +102,34 @@ export const mockProjects: Project[] = [
     allocatedHours: 200,
     usedHours: 0,
   },
+  {
+    id: "project-3",
+    name: "Initech Project",
+    description: "Project for Initech Solutions",
+    clientId: "client-3",
+    teamIds: ["team-1"],
+    taskIds: ["task-6"],
+    startDate: "2025-06-01",
+    dueDate: "2025-07-31",
+    status: "in-progress",
+    serviceType: "project",
+    allocatedHours: 150,
+    usedHours: 60,
+  },
+  {
+    id: "project-4",
+    name: "Globex Project",
+    description: "Project for Globex Industries",
+    clientId: "client-2",
+    teamIds: ["team-1"],
+    taskIds: ["task-7"],
+    startDate: "2025-07-01",
+    dueDate: "2025-08-31",
+    status: "todo",
+    serviceType: "project",
+    allocatedHours: 200,
+    usedHours: 0,
+  }
 ];
 
 export const mockCustomFields: CustomField[] = [
@@ -224,6 +263,42 @@ export const mockTasks: Task[] = [
     timeEntries: [],
     comments: [],
   },
+  {
+    id: "task-6",
+    title: "Initech Project Task",
+    description: "Task for Initech Project",
+    projectId: "project-3",
+    assigneeIds: ["user-1"],
+    status: "in-progress",
+    priority: "high",
+    dueDate: "2025-06-15",
+    createdAt: "2025-06-01",
+    customFields: {
+      "field-1": "Web",
+      "field-2": 10,
+    },
+    subtasks: [],
+    timeEntries: [],
+    comments: [],
+  },
+  {
+    id: "task-7",
+    title: "Globex Project Task",
+    description: "Task for Globex Project",
+    projectId: "project-4",
+    assigneeIds: ["user-2"],
+    status: "todo",
+    priority: "medium",
+    dueDate: "2025-07-15",
+    createdAt: "2025-07-01",
+    customFields: {
+      "field-1": "iOS",
+      "field-2": 5,
+    },
+    subtasks: [],
+    timeEntries: [],
+    comments: [],
+  },
 ];
 
 export const mockTimeEntries: TimeEntry[] = [
@@ -299,4 +374,24 @@ export const mockPurchases: Purchase[] = [
     projectId: "project-2",
     description: "Mobile app development hours bank",
   },
+  {
+    id: "purchase-3",
+    clientId: "client-3",
+    serviceType: "project",
+    hours: 150,
+    amount: 15000,
+    date: "2025-06-01",
+    projectId: "project-3",
+    description: "Initech project hours",
+  },
+  {
+    id: "purchase-4",
+    clientId: "client-2",
+    serviceType: "project",
+    hours: 200,
+    amount: 20000,
+    date: "2025-07-01",
+    projectId: "project-4",
+    description: "Globex project hours",
+  }
 ];

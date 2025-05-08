@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import {
   User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role, ProjectTemplate, TemplateTask, CustomRole
@@ -142,7 +141,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   
   // CRUD operations for clients
   const addClient = (client: Omit<Client, "id">) => {
-    const newClient = { ...client, id: `client-${uuidv4()}` };
+    const newClient = { 
+      ...client, 
+      id: `client-${uuidv4()}`,
+      status: client.status || 'active' // Default to active if not provided
+    };
     
     setClients(prevClients => {
       const updatedClients = [...prevClients, newClient];

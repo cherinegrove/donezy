@@ -3,18 +3,27 @@ import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { Plus, Check, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AddClientDialog } from "@/components/clients/AddClientDialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 const Clients = () => {
   const { clients, projects } = useAppContext();
   const navigate = useNavigate();
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   
   const getProjectCount = (clientId: string) => {
     return projects.filter(project => project.clientId === clientId).length;
   };
+
+  // Filter clients based on status
+  const filteredClients = clients.filter(client => {
+    if (statusFilter === 'all') return true;
+    return client.status === statusFilter;
+  });
 
   return (
     <div className="space-y-6">
@@ -31,15 +40,39 @@ const Clients = () => {
         </Button>
       </div>
 
+      <div className="flex items-center justify-between">
+        <Tabs 
+          defaultValue="all" 
+          className="w-[300px]"
+          value={statusFilter}
+          onValueChange={(value) => setStatusFilter(value as 'all' | 'active' | 'inactive')}
+        >
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="inactive">Inactive</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {clients.map((client) => (
+        {filteredClients.map((client) => (
           <Card 
             key={client.id} 
             className="cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => navigate(`/clients/${client.id}`)}
           >
             <CardHeader>
-              <CardTitle>{client.name}</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>{client.name}</CardTitle>
+                <Badge variant={client.status === 'active' ? 'default' : 'secondary'}>
+                  {client.status === 'active' ? (
+                    <><Check className="h-3 w-3 mr-1" /> Active</>
+                  ) : (
+                    <><X className="h-3 w-3 mr-1" /> Inactive</>
+                  )}
+                </Badge>
+              </div>
               <CardDescription>{client.contactName}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">

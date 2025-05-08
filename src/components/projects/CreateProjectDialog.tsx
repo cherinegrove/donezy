@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -46,6 +45,9 @@ export function CreateProjectDialog({
   onOpenChange,
 }: CreateProjectDialogProps) {
   const { clients, teams, addProject } = useAppContext();
+  
+  // Filter to only active clients
+  const activeClients = clients.filter(client => client.status === 'active');
   
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -126,21 +128,28 @@ export function CreateProjectDialog({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Client</FormLabel>
+                    <FormLabel>Client <span className="text-destructive">*</span></FormLabel>
                     <FormControl>
                       <Select
                         value={field.value}
                         onValueChange={field.onChange}
+                        required
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select client" />
                         </SelectTrigger>
                         <SelectContent>
-                          {clients.map((client) => (
-                            <SelectItem key={client.id} value={client.id}>
-                              {client.name}
+                          {activeClients.length > 0 ? (
+                            activeClients.map((client) => (
+                              <SelectItem key={client.id} value={client.id}>
+                                {client.name}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="no-clients" disabled>
+                              No active clients available
                             </SelectItem>
-                          ))}
+                          )}
                         </SelectContent>
                       </Select>
                     </FormControl>
