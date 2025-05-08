@@ -185,21 +185,26 @@ const Reports = () => {
                   },
                 }}
               >
-                <BarChart data={clientHoursData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45} 
-                    textAnchor="end" 
-                    height={80} 
-                    tick={{fontSize: 12}} 
-                  />
-                  <YAxis 
-                    tick={{fontSize: 12}}
-                    tickFormatter={(value) => `${value}h`} 
-                  />
-                  <Bar dataKey="hours" name="Hours" fill="var(--color-hours)" radius={[4, 4, 0, 0]} />
-                  <ChartTooltip content={<ChartTooltipContent labelKey="name" />} />
-                </BarChart>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={clientHoursData} 
+                    layout="vertical" 
+                    margin={{ top: 10, right: 30, left: 100, bottom: 10 }}
+                  >
+                    <XAxis 
+                      type="number" 
+                      tickFormatter={(value) => `${value}h`}
+                    />
+                    <YAxis 
+                      dataKey="name" 
+                      type="category" 
+                      width={90} 
+                      tick={{ fontSize: 12 }} 
+                    />
+                    <Bar dataKey="hours" name="Hours" fill="var(--color-hours)" radius={[0, 4, 4, 0]} />
+                    <ChartTooltip content={<ChartTooltipContent labelKey="name" />} />
+                  </BarChart>
+                </ResponsiveContainer>
               </ChartContainer>
             </div>
           ) : (
