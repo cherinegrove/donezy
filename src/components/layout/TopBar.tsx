@@ -16,7 +16,7 @@ import { useAppContext } from "@/contexts/AppContext";
 export function TopBar() {
   const navigate = useNavigate();
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-  const { messages, currentUser } = useAppContext();
+  const { messages, currentUser, customRoles } = useAppContext();
   
   // Get unread messages for the current user
   const unreadMessages = messages.filter(
@@ -27,19 +27,40 @@ export function TopBar() {
   const sortedUnreadMessages = [...unreadMessages].sort((a, b) => 
     new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
+  
+  // Check if the user has edit permission for tasks
+  const hasTaskEditPermission = () => {
+    if (!currentUser) return false;
+    
+    // Admin always has permission
+    if (currentUser.role === 'admin') return true;
+    
+    // Check custom role permissions
+    if (currentUser.customRoleId) {
+      const userRole = customRoles.find(role => role.id === currentUser.customRoleId);
+      if (userRole && userRole.permissions.tasks === 'edit') {
+        return true;
+      }
+    }
+    
+    // Default permissions based on built-in roles
+    return currentUser.role === 'manager' || currentUser.role === 'developer';
+  };
 
   return (
     <header className="border-b bg-background">
       <div className="flex h-16 items-center px-4 md:px-6">
         <SidebarTrigger />
         <div className="ml-auto flex items-center space-x-4">
-          <Button
-            onClick={() => setIsCreateTaskOpen(true)}
-            className="hidden md:flex"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New Task
-          </Button>
+          {hasTaskEditPermission() && (
+            <Button
+              onClick={() => setIsCreateTaskOpen(true)}
+              className="hidden md:flex"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New Task
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -77,14 +98,16 @@ export function TopBar() {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button
-            size="icon"
-            variant="outline"
-            className="rounded-full md:hidden"
-            onClick={() => setIsCreateTaskOpen(true)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+          {hasTaskEditPermission() && (
+            <Button
+              size="icon"
+              variant="outline"
+              className="rounded-full md:hidden"
+              onClick={() => setIsCreateTaskOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
       <CreateTaskDialog

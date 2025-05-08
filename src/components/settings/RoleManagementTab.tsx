@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
@@ -164,7 +163,7 @@ export function RoleManagementTab() {
                                   className="h-4 w-4 cursor-pointer"
                                   checked={form.getValues().permissions[permission as keyof FormValues["permissions"]] === level}
                                   onChange={() => {
-                                    form.setValue(`permissions.${permission}`, level as AccessLevel);
+                                    form.setValue(`permissions.${permission as keyof FormValues["permissions"]}` as const, level);
                                   }}
                                 />
                               </div>
