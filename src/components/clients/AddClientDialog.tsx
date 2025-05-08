@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAppContext } from "@/contexts/AppContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface AddClientDialogProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ const currencyOptions = [
 
 export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
   const { addClient } = useAppContext();
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [website, setWebsite] = useState("");
   const [contactName, setContactName] = useState("");
@@ -33,7 +35,8 @@ export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    addClient({
+    // Create new client object with required fields
+    const newClient = {
       name,
       website,
       contactName,
@@ -42,6 +45,15 @@ export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
       billableRate,
       currency,
       projectIds: []
+    };
+    
+    // Add client using context function
+    addClient(newClient);
+    
+    // Show success toast
+    toast({
+      title: "Client Added",
+      description: `${name} has been added successfully`
     });
     
     // Reset form and close dialog
