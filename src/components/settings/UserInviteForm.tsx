@@ -10,10 +10,15 @@ export interface UserInviteFormProps {
 }
 
 export function UserInviteForm({ defaultTab = "team-member", onSuccess }: UserInviteFormProps) {
-  const [activeTab, setActiveTab] = useState(defaultTab);
+  const [activeTab, setActiveTab] = useState<"team-member" | "client-user">(defaultTab);
+  
+  // Create a type-safe setter function
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as "team-member" | "client-user");
+  };
   
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       <TabsList className="grid grid-cols-2 mb-6">
         <TabsTrigger value="team-member">Team Member</TabsTrigger>
         <TabsTrigger value="client-user">Client User</TabsTrigger>
