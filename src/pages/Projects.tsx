@@ -9,10 +9,18 @@ import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CreateTemplateDialog } from "@/components/projects/CreateTemplateDialog";
+import { UseTemplateDialog } from "@/components/projects/UseTemplateDialog";
+import { TemplatesList } from "@/components/projects/TemplatesList";
 
 const Projects = () => {
   const { projects, tasks, clients, teams } = useAppContext();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreateTemplateDialogOpen, setIsCreateTemplateDialogOpen] = useState(false);
+  const [isUseTemplateDialogOpen, setIsUseTemplateDialogOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
+  const [activeTab, setActiveTab] = useState("projects");
   const navigate = useNavigate();
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
 
@@ -91,98 +99,138 @@ const Projects = () => {
     setActiveFilters(filters);
   };
 
+  const handleUseTemplate = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    setIsUseTemplateDialogOpen(true);
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Projects</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage and track your team's projects
-          </p>
+      <Tabs defaultValue="projects" value={activeTab} onValueChange={setActiveTab}>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Projects</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage and track your team's projects
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <TabsList>
+              <TabsTrigger value="projects">Projects</TabsTrigger>
+              <TabsTrigger value="templates">Templates</TabsTrigger>
+            </TabsList>
+            {activeTab === "projects" ? (
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Project
+              </Button>
+            ) : (
+              <Button onClick={() => setIsCreateTemplateDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Template
+              </Button>
+            )}
+          </div>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Project
-        </Button>
-      </div>
 
-      <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
+        <TabsContent value="projects" className="mt-6">
+          <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredProjects.map((project) => {
-          const progress = getProjectProgress(project.id);
-          
-          return (
-            <Card 
-              key={project.id} 
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => navigate(`/projects/${project.id}`)}
-            >
-              <CardHeader>
-                <CardTitle>{project.name}</CardTitle>
-                <CardDescription>{project.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span>Client</span>
-                    <span className="font-medium">{getClientName(project.clientId)}</span>
-                  </div>
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span>Status</span>
-                    <span className="capitalize font-medium">{project.status.replace("-", " ")}</span>
-                  </div>
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span>Start Date</span>
-                    <span>{format(new Date(project.startDate), "MMM d, yyyy")}</span>
-                  </div>
-                  {project.dueDate && (
-                    <div className="flex justify-between mb-1 text-sm">
-                      <span>Due Date</span>
-                      <span>{format(new Date(project.dueDate), "MMM d, yyyy")}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            {filteredProjects.map((project) => {
+              const progress = getProjectProgress(project.id);
+              
+              return (
+                <Card 
+                  key={project.id} 
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => navigate(`/projects/${project.id}`)}
+                >
+                  <CardHeader>
+                    <CardTitle>{project.name}</CardTitle>
+                    <CardDescription>{project.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <div className="flex justify-between mb-1 text-sm">
+                        <span>Client</span>
+                        <span className="font-medium">{getClientName(project.clientId)}</span>
+                      </div>
+                      <div className="flex justify-between mb-1 text-sm">
+                        <span>Status</span>
+                        <span className="capitalize font-medium">{project.status.replace("-", " ")}</span>
+                      </div>
+                      <div className="flex justify-between mb-1 text-sm">
+                        <span>Start Date</span>
+                        <span>{format(new Date(project.startDate), "MMM d, yyyy")}</span>
+                      </div>
+                      {project.dueDate && (
+                        <div className="flex justify-between mb-1 text-sm">
+                          <span>Due Date</span>
+                          <span>{format(new Date(project.dueDate), "MMM d, yyyy")}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+                    
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm">Progress</span>
+                        <span className="text-sm font-medium">{progress}%</span>
+                      </div>
+                      <Progress value={progress} className="h-2" />
+                    </div>
+                    
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Hours: {project.usedHours}h</span>
+                      {project.allocatedHours && (
+                        <span className="text-muted-foreground">/ {project.allocatedHours}h</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            {/* New Project Card */}
+            <Card
+              className="cursor-pointer hover:shadow-md transition-shadow border-dashed flex flex-col items-center justify-center min-h-[260px]"
+              onClick={() => setIsCreateDialogOpen(true)}
+            >
+              <CardContent className="flex flex-col items-center justify-center h-full py-10">
+                <div className="rounded-full bg-muted p-3 mb-3">
+                  <Plus className="h-6 w-6 text-muted-foreground" />
                 </div>
-                
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm">Progress</span>
-                    <span className="text-sm font-medium">{progress}%</span>
-                  </div>
-                  <Progress value={progress} className="h-2" />
-                </div>
-                
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Hours: {project.usedHours}h</span>
-                  {project.allocatedHours && (
-                    <span className="text-muted-foreground">/ {project.allocatedHours}h</span>
-                  )}
-                </div>
+                <h3 className="text-lg font-medium">Create New Project</h3>
+                <p className="text-sm text-muted-foreground mt-2 text-center max-w-[180px]">
+                  Start tracking time and tasks for a new project
+                </p>
               </CardContent>
             </Card>
-          );
-        })}
+          </div>
+        </TabsContent>
 
-        {/* New Project Card */}
-        <Card
-          className="cursor-pointer hover:shadow-md transition-shadow border-dashed flex flex-col items-center justify-center min-h-[260px]"
-          onClick={() => setIsCreateDialogOpen(true)}
-        >
-          <CardContent className="flex flex-col items-center justify-center h-full py-10">
-            <div className="rounded-full bg-muted p-3 mb-3">
-              <Plus className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-medium">Create New Project</h3>
-            <p className="text-sm text-muted-foreground mt-2 text-center max-w-[180px]">
-              Start tracking time and tasks for a new project
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="templates" className="mt-6">
+          <TemplatesList 
+            onCreateTemplate={() => setIsCreateTemplateDialogOpen(true)}
+            onUseTemplate={handleUseTemplate}
+          />
+        </TabsContent>
+      </Tabs>
 
       <CreateProjectDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
+      />
+
+      <CreateTemplateDialog
+        open={isCreateTemplateDialogOpen}
+        onOpenChange={setIsCreateTemplateDialogOpen}
+      />
+
+      <UseTemplateDialog
+        open={isUseTemplateDialogOpen}
+        onOpenChange={setIsUseTemplateDialogOpen}
+        templateId={selectedTemplateId}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 
 import {
-  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField
+  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, ProjectTemplate
 } from "@/types";
 
 export interface AppContextType {
@@ -14,6 +14,7 @@ export interface AppContextType {
   messages: Message[];
   purchases: Purchase[];
   customFields: CustomField[];
+  projectTemplates: ProjectTemplate[];
   
   // Current user and active states
   currentUser: User | null;
@@ -45,6 +46,17 @@ export interface AppContextType {
   deleteProject: (id: string) => void;
   watchProject: (projectId: string, userId: string) => void;
   unwatchProject: (projectId: string, userId: string) => void;
+  
+  // Project template operations
+  addProjectTemplate: (template: Omit<ProjectTemplate, "id" | "usageCount" | "createdAt">) => void;
+  updateProjectTemplate: (id: string, updates: Partial<ProjectTemplate>) => void;
+  deleteProjectTemplate: (id: string) => void;
+  createProjectFromTemplate: (templateId: string, projectData: {
+    name: string;
+    clientId: string;
+    startDate: string;
+    dueDate?: string;
+  }) => void;
   
   // CRUD operations for tasks
   addTask: (task: Omit<Task, "id" | "createdAt" | "timeEntries" | "comments">) => void;

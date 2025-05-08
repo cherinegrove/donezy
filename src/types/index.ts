@@ -1,3 +1,4 @@
+
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
@@ -87,6 +88,36 @@ export interface Project {
     review?: string;
     done?: string;
   };
+}
+
+export interface ProjectTemplate {
+  id: string;
+  name: string;
+  description: string;
+  serviceType: ServiceType;
+  defaultDuration?: number; // In days
+  allocatedHours?: number;
+  tasks: TemplateTask[];
+  teamIds?: string[];
+  usageCount: number;
+  createdBy: string; // User ID
+  createdAt: string;
+}
+
+export interface TemplateTask {
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: 'low' | 'medium' | 'high';
+  estimatedHours?: number;
+  subtasks: TemplateSubtask[];
+  dependency?: string; // ID of the task this task depends on
+}
+
+export interface TemplateSubtask {
+  title: string;
+  description: string;
+  estimatedHours?: number;
 }
 
 export interface CustomField {

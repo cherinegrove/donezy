@@ -1,7 +1,6 @@
-
 import { createContext, useContext, useState, ReactNode } from "react";
 import {
-  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role
+  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role, ProjectTemplate, TemplateTask
 } from "@/types";
 import { AppContextType } from "./AppContextType";
 import {
@@ -23,6 +22,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [purchases, setPurchases] = useState<Purchase[]>(mockPurchases);
   const [customFields, setCustomFields] = useState<CustomField[]>(mockCustomFields);
+  const [projectTemplates, setProjectTemplates] = useState<ProjectTemplate[]>([]);
   
   // Current user (hardcoded for now, would come from auth in real app)
   const [currentUser, setCurrentUser] = useState<User | null>(mockUsers[0]);
@@ -172,6 +172,161 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }));
     
     toast({ title: "Unwatched Project", description: "You will no longer be notified of changes to this project" });
+  };
+  
+  // Project template operations
+  const addProjectTemplate = (template: Omit<ProjectTemplate, "id" | "usageCount" | "createdAt">) => {
+    const newTemplate = { 
+      ...template, 
+      id: `template-${uuidv4()}`,
+      usageCount: 0,
+      createdAt: new Date().toISOString()
+    };
+    setProjectTemplates((prev) => [...prev, newTemplate]);
+    toast({ title: "Success", description: "Project template has been created" });
+  };
+  
+  const updateProjectTemplate = (id: string, updates: Partial<ProjectTemplate>) => {
+    setProjectTemplates((prev) => 
+      prev.map(template => template.id === id ? { ...template, ...updates } : template)
+    );
+    toast({ title: "Success", description: "Project template has been updated" });
+  };
+  
+  const deleteProjectTemplate = (id: string) => {
+    setProjectTemplates((prev) => prev.filter(template => template.id !== id));
+    toast({ title: "Success", description: "Project template has been deleted" });
+  };
+  
+  const createProjectFromTemplate = (templateId: string, projectData: {
+    name: string;
+    clientId: string;
+    startDate: string;
+    dueDate?: string;
+  }) => {
+    const template = projectTemplates.find(t => t.id === templateId);
+    if (!template) {
+      toast({ 
+        title: "Error", 
+        description: "Template not found", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    // Create the project
+    const newProject: Omit<Project, "id"> = {
+      name: projectData.name,
+      description: template.description,
+      clientId: projectData.clientId,
+      teamIds: template.teamIds || [],
+      taskIds: [],
+      startDate: projectData.startDate,
+      dueDate: projectData.dueDate,
+      status: "todo",
+      serviceType: template.serviceType,
+      allocatedHours: template.allocatedHours,
+      usedHours: 0
+    };
+    
+    const projectId = `project-${uuidv4()}`;
+    setProjects((prev) => [...prev, { ...newProject, id: projectId }]);
+    
+    // Create tasks from template
+    const taskIds: string[] = [];
+    const tasksToCreate: Omit<Task, "id" | "createdAt" | "timeEntries" | "comments">[] = [];
+    
+    // First create top-level tasks
+    const taskIdMap = new Map<number, string>();
+    
+    template.tasks.forEach((templateTask, index) => {
+      const taskId = `task-${uuidv4()}`;
+      taskIdMap.set(index, taskId);
+      taskIds.push(taskId);
+      
+      tasksToCreate.push({
+        title: templateTask.title,
+        description: templateTask.description,
+        projectId: projectId,
+        assigneeIds: [],
+        status: templateTask.status,
+        priority: templateTask.priority,
+        customFields: {},
+        subtasks: []
+      });
+    });
+    
+    // Add all tasks
+    const newTasks: Task[] = tasksToCreate.map((taskData, index) => ({
+      ...taskData,
+      id: taskIdMap.get(index) || `task-${uuidv4()}`,
+      createdAt: new Date().toISOString(),
+      timeEntries: [],
+      comments: []
+    }));
+    
+    // Create subtasks and establish dependencies
+    template.tasks.forEach((templateTask, index) => {
+      const parentTaskId = taskIdMap.get(index);
+      if (!parentTaskId) return;
+      
+      const parentTask = newTasks.find(t => t.id === parentTaskId);
+      if (!parentTask) return;
+      
+      // Create subtasks
+      const subtaskIds: string[] = [];
+      templateTask.subtasks.forEach(subtask => {
+        const subtaskId = `task-${uuidv4()}`;
+        subtaskIds.push(subtaskId);
+        
+        const newSubtask: Task = {
+          id: subtaskId,
+          title: subtask.title,
+          description: subtask.description,
+          projectId: projectId,
+          parentTaskId: parentTaskId,
+          assigneeIds: [],
+          status: "todo",
+          priority: "medium",
+          createdAt: new Date().toISOString(),
+          customFields: {},
+          subtasks: [],
+          timeEntries: [],
+          comments: []
+        };
+        
+        newTasks.push(newSubtask);
+      });
+      
+      // Update parent task with subtask IDs
+      parentTask.subtasks = subtaskIds;
+    });
+    
+    // Add all tasks to the state
+    setTasks(prev => [...prev, ...newTasks]);
+    
+    // Update the project with task IDs
+    setProjects(prev => 
+      prev.map(p => 
+        p.id === projectId 
+          ? { ...p, taskIds }
+          : p
+      )
+    );
+    
+    // Update template usage count
+    setProjectTemplates(prev => 
+      prev.map(t => 
+        t.id === templateId 
+          ? { ...t, usageCount: t.usageCount + 1 }
+          : t
+      )
+    );
+    
+    toast({ 
+      title: "Project Created", 
+      description: `Project "${projectData.name}" has been created from template` 
+    });
   };
   
   // CRUD operations for tasks
@@ -548,6 +703,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       messages,
       purchases,
       customFields,
+      projectTemplates,
       
       // Current user and active states
       currentUser,
@@ -579,6 +735,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       deleteProject,
       watchProject,
       unwatchProject,
+      
+      // Project template operations
+      addProjectTemplate,
+      updateProjectTemplate,
+      deleteProjectTemplate,
+      createProjectFromTemplate,
       
       // CRUD operations for tasks
       addTask,
