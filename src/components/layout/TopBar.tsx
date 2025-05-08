@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Bell, Plus } from "lucide-react";
+import { Bell, Plus, Play, Pause } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CreateTaskDialog } from "../tasks/CreateTaskDialog";
 import { useState } from "react";
@@ -16,7 +16,7 @@ import { useAppContext } from "@/contexts/AppContext";
 export function TopBar() {
   const navigate = useNavigate();
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-  const { messages, currentUser, customRoles } = useAppContext();
+  const { messages, currentUser, customRoles, activeTimeEntry, startTimeTracking, stopTimeTracking } = useAppContext();
   
   // Get unread messages for the current user
   const unreadMessages = messages.filter(
@@ -47,6 +47,19 @@ export function TopBar() {
     return currentUser.role === 'manager' || currentUser.role === 'developer';
   };
 
+  // Check if timer is currently running
+  const isTimerRunning = !!activeTimeEntry;
+
+  // Handle timer toggle
+  const handleTimerToggle = () => {
+    if (isTimerRunning) {
+      stopTimeTracking("Time tracking stopped from header");
+    } else {
+      // Start timer without specifying task or project - this will be handled in the AppContext
+      startTimeTracking(undefined, undefined);
+    }
+  };
+
   return (
     <header className="border-b bg-background">
       <div className="flex h-16 items-center px-4 md:px-6">
@@ -61,6 +74,23 @@ export function TopBar() {
               New Task
             </Button>
           )}
+          <Button
+            onClick={handleTimerToggle}
+            variant={isTimerRunning ? "destructive" : "default"}
+            className="hidden md:flex"
+          >
+            {isTimerRunning ? (
+              <>
+                <Pause className="mr-2 h-4 w-4" />
+                Stop Timer
+              </>
+            ) : (
+              <>
+                <Play className="mr-2 h-4 w-4" />
+                Start Timer
+              </>
+            )}
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -98,6 +128,27 @@ export function TopBar() {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+          <div className="flex md:hidden">
+            {isTimerRunning ? (
+              <Button
+                size="icon"
+                variant="destructive"
+                className="rounded-full"
+                onClick={handleTimerToggle}
+              >
+                <Pause className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                size="icon"
+                variant="outline"
+                className="rounded-full"
+                onClick={handleTimerToggle}
+              >
+                <Play className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
           {hasTaskEditPermission() && (
             <Button
               size="icon"
