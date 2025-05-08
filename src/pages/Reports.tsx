@@ -188,25 +188,26 @@ const Reports = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
                     data={clientHoursData}
-                    margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
+                    margin={{ top: 10, right: 20, left: 20, bottom: 50 }}
                   >
                     <XAxis 
                       dataKey="name"
+                      angle={0}
+                      textAnchor="middle"
                       tick={{ fontSize: 12 }}
+                      height={50}
                       interval={0}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
                     />
                     <YAxis
                       tickFormatter={(value) => `${value}h`}
+                      label={{ value: "Hours", angle: -90, position: 'insideLeft', dy: 50 }}
                     />
                     <Bar 
                       dataKey="hours" 
                       name="Hours" 
-                      fill="var(--color-hours)"
+                      fill="#3b82f6" 
                       radius={[4, 4, 0, 0]}
-                      maxBarSize={50}
+                      maxBarSize={60}
                     />
                     <ChartTooltip content={<ChartTooltipContent labelKey="name" />} />
                   </BarChart>
