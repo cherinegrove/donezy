@@ -23,6 +23,8 @@ export interface User {
   currency?: string;
   managerId?: string; // ID of the user's manager
   clientId?: string; // If user is a client user, associated client ID
+  jobTitle?: string; // Job title for client users
+  projectAccess?: string[]; // Projects the client user can access
   watchedTaskIds?: string[]; // Tasks that the user is watching
   notificationPreferences?: {
     taskDue?: NotificationTimeframe[];

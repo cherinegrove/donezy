@@ -188,6 +188,10 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
       addUser({
         ...values,
         avatar: "",
+        name: values.name, // Explicitly include required fields
+        email: values.email,
+        role: values.role,
+        teamIds: values.teamIds || [],
       });
       toast({ title: "Success", description: "User created successfully" });
     }
