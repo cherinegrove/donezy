@@ -10,16 +10,16 @@ import { Upload, User, UserRound, UsersRound, Smile, Meh, Heart, Star } from "lu
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 // Predefined avatar options with fun cartoon avatars
-// Using placeholder URLs that should work in any project setup
+// Using CDN-hosted cartoon avatars that are publicly accessible
 const avatarOptions = [
-  { id: 'avatar1', url: '/placeholder.svg?text=Robot', name: 'Robot' },
-  { id: 'avatar2', url: '/placeholder.svg?text=Ninja', name: 'Ninja' },
-  { id: 'avatar3', url: '/placeholder.svg?text=Alien', name: 'Alien' },
-  { id: 'avatar4', url: '/placeholder.svg?text=Astronaut', name: 'Astronaut' },
-  { id: 'avatar5', url: '/placeholder.svg?text=Pirate', name: 'Pirate' },
-  { id: 'avatar6', url: '/placeholder.svg?text=Viking', name: 'Viking' },
-  { id: 'avatar7', url: '/placeholder.svg?text=Wizard', name: 'Wizard' },
-  { id: 'avatar8', url: '/placeholder.svg?text=Superhero', name: 'Superhero' }
+  { id: 'avatar1', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Felix', name: 'Robot' },
+  { id: 'avatar2', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Ninja', name: 'Ninja' },
+  { id: 'avatar3', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Alien', name: 'Alien' },
+  { id: 'avatar4', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Astronaut', name: 'Astronaut' },
+  { id: 'avatar5', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Pirate', name: 'Pirate' },
+  { id: 'avatar6', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Viking', name: 'Viking' },
+  { id: 'avatar7', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Wizard', name: 'Wizard' },
+  { id: 'avatar8', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Superhero', name: 'Superhero' }
 ];
 
 export function ProfileInformationCard({ userId }: { userId: string }) {
