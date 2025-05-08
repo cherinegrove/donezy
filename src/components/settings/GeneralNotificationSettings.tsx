@@ -4,8 +4,15 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
 
 interface NotificationSettingsProps {
   userId: string;
@@ -17,31 +24,52 @@ export function GeneralNotificationSettings({ userId }: NotificationSettingsProp
   
   const user = getUserById(userId);
   
-  // Default notification preferences if user doesn't have any set
+  // Default notification preferences
   const defaultPreferences = {
-    newClients: true,
-    newTasks: true,
-    subTasks: true,
-    taskChanges: true,
-    mentions: true
+    clients: {
+      new: true,
+      updated: true
+    },
+    projects: {
+      new: true,
+      updated: true
+    },
+    tasks: {
+      new: true,
+      updated: true
+    },
+    subtasks: {
+      new: true,
+      updated: false
+    },
+    mentions: {
+      new: true,
+      updated: false
+    }
   };
   
-  const [settings, setSettings] = useState(user?.generalNotificationPreferences || defaultPreferences);
+  const [settings, setSettings] = useState(user?.notificationPreferences?.notification || defaultPreferences);
   
   if (!user) {
     return null;
   }
   
-  const handleToggleSetting = (key: keyof typeof settings) => {
+  const handleToggleSetting = (category: string, action: 'new' | 'updated') => {
     setSettings(prev => ({
       ...prev,
-      [key]: !prev[key]
+      [category]: {
+        ...prev[category as keyof typeof prev],
+        [action]: !prev[category as keyof typeof prev][action]
+      }
     }));
   };
   
   const handleSave = () => {
     updateUser(userId, {
-      generalNotificationPreferences: settings
+      notificationPreferences: {
+        ...user.notificationPreferences,
+        notification: settings
+      }
     });
     
     toast({
@@ -53,70 +81,100 @@ export function GeneralNotificationSettings({ userId }: NotificationSettingsProp
   return (
     <Card>
       <CardHeader>
-        <CardTitle>General Notification Settings</CardTitle>
+        <CardTitle>Notification Settings</CardTitle>
         <CardDescription>
           Configure when and how you receive notifications
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="new-clients"
-              checked={settings.newClients}
-              onCheckedChange={() => handleToggleSetting('newClients')}
-            />
-            <Label htmlFor="new-clients" className="cursor-pointer">
-              New clients assigned to me
-            </Label>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="new-tasks"
-              checked={settings.newTasks}
-              onCheckedChange={() => handleToggleSetting('newTasks')}
-            />
-            <Label htmlFor="new-tasks" className="cursor-pointer">
-              New tasks assigned to me
-            </Label>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="sub-tasks"
-              checked={settings.subTasks}
-              onCheckedChange={() => handleToggleSetting('subTasks')}
-            />
-            <Label htmlFor="sub-tasks" className="cursor-pointer">
-              New subtasks created
-            </Label>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="task-changes"
-              checked={settings.taskChanges}
-              onCheckedChange={() => handleToggleSetting('taskChanges')}
-            />
-            <Label htmlFor="task-changes" className="cursor-pointer">
-              Changes to tasks I'm assigned to
-            </Label>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="mentions"
-              checked={settings.mentions}
-              onCheckedChange={() => handleToggleSetting('mentions')}
-            />
-            <Label htmlFor="mentions" className="cursor-pointer">
-              @mentions in comments and messages
-            </Label>
-          </div>
-        </div>
+      <CardContent className="space-y-6">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Category</TableHead>
+              <TableHead>New</TableHead>
+              <TableHead>Updated</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>Clients</TableCell>
+              <TableCell>
+                <Checkbox 
+                  checked={settings.clients.new} 
+                  onCheckedChange={() => handleToggleSetting('clients', 'new')}
+                />
+              </TableCell>
+              <TableCell>
+                <Checkbox 
+                  checked={settings.clients.updated} 
+                  onCheckedChange={() => handleToggleSetting('clients', 'updated')}
+                />
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Projects</TableCell>
+              <TableCell>
+                <Checkbox 
+                  checked={settings.projects.new} 
+                  onCheckedChange={() => handleToggleSetting('projects', 'new')}
+                />
+              </TableCell>
+              <TableCell>
+                <Checkbox 
+                  checked={settings.projects.updated} 
+                  onCheckedChange={() => handleToggleSetting('projects', 'updated')}
+                />
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Tasks</TableCell>
+              <TableCell>
+                <Checkbox 
+                  checked={settings.tasks.new} 
+                  onCheckedChange={() => handleToggleSetting('tasks', 'new')}
+                />
+              </TableCell>
+              <TableCell>
+                <Checkbox 
+                  checked={settings.tasks.updated} 
+                  onCheckedChange={() => handleToggleSetting('tasks', 'updated')}
+                />
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Subtasks</TableCell>
+              <TableCell>
+                <Checkbox 
+                  checked={settings.subtasks.new} 
+                  onCheckedChange={() => handleToggleSetting('subtasks', 'new')}
+                />
+              </TableCell>
+              <TableCell>
+                <Checkbox 
+                  checked={settings.subtasks.updated} 
+                  onCheckedChange={() => handleToggleSetting('subtasks', 'updated')}
+                />
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>Mentions</TableCell>
+              <TableCell>
+                <Checkbox 
+                  checked={settings.mentions.new} 
+                  onCheckedChange={() => handleToggleSetting('mentions', 'new')}
+                />
+              </TableCell>
+              <TableCell>
+                <Checkbox 
+                  checked={settings.mentions.updated} 
+                  onCheckedChange={() => handleToggleSetting('mentions', 'updated')}
+                />
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
         
-        <div className="pt-4">
+        <div>
           <Button onClick={handleSave}>Save Preferences</Button>
         </div>
       </CardContent>

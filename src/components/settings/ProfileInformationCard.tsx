@@ -1,13 +1,12 @@
 
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { User } from "@/components/ui/user";
 
 export function ProfileInformationCard({ userId }: { userId: string }) {
   const { getUserById, updateUser } = useAppContext();
@@ -19,7 +18,7 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
     firstName: user?.name.split(' ')[0] || '',
     lastName: user?.name.split(' ').slice(1).join(' ') || '',
     email: user?.email || '',
-    phone: user?.phone || '',
+    phone: '',
     avatar: user?.avatar || ''
   });
 
@@ -39,7 +38,6 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
     updateUser(userId, {
       name: `${formData.firstName} ${formData.lastName}`.trim(),
       email: formData.email,
-      phone: formData.phone,
       avatar: formData.avatar
     });
     
