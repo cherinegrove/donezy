@@ -2,8 +2,8 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { format, startOfMonth, endOfMonth, differenceInDays } from "date-fns";
-import { Play, Clock, Calendar } from "lucide-react";
+import { format, startOfMonth, endOfMonth, differenceInDays, isWithinInterval, parseISO } from "date-fns";
+import { Play, Clock, Calendar, ChevronDown, ChevronRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
@@ -23,10 +23,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 const TimeTracking = () => {
-  const { timeEntries, users, tasks, projects, clients, startTimeTracking } = useAppContext();
-  const [activeTab, setActiveTab] = useState("recent");
+  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry } = useAppContext();
+  const [activeTab, setActiveTab] = useState("active");
   
   // Filter state
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
@@ -34,6 +56,15 @@ const TimeTracking = () => {
     format(new Date(), "yyyy-MM")
   );
   
+  // Date range filter for timesheet
+  const [dateRange, setDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: undefined,
+    to: undefined
+  });
+
   // Create filter options
   const filterOptions: FilterOption[] = [
     {
@@ -62,7 +93,7 @@ const TimeTracking = () => {
     }
   ];
   
-  // Filter time entries based on selected filters
+  // Filter time entries based on selected filters and date range
   const filteredTimeEntries = timeEntries.filter(entry => {
     const task = tasks.find(t => t.id === entry.taskId);
     if (!task) return false;
@@ -85,6 +116,19 @@ const TimeTracking = () => {
       return false;
     }
     
+    // Check date range
+    if (dateRange.from || dateRange.to) {
+      const entryDate = new Date(entry.startTime);
+      
+      if (dateRange.from && dateRange.to) {
+        return isWithinInterval(entryDate, { start: dateRange.from, end: dateRange.to });
+      } else if (dateRange.from) {
+        return entryDate >= dateRange.from;
+      } else if (dateRange.to) {
+        return entryDate <= dateRange.to;
+      }
+    }
+    
     return true;
   });
   
@@ -101,33 +145,60 @@ const TimeTracking = () => {
     return acc;
   }, {} as Record<string, typeof filteredTimeEntries>);
   
+  // Get active timers (tasks that have active time entries)
+  const getActiveTimers = () => {
+    if (!activeTimeEntry) return [];
+    
+    const activeTasks = tasks.filter(task => task.id === activeTimeEntry.taskId);
+    
+    return activeTasks.map(task => {
+      const project = projects.find(p => p.id === task.projectId);
+      const client = project ? clients.find(c => c.id === project.clientId) : undefined;
+      const user = users.find(u => u.id === activeTimeEntry.userId);
+      
+      return {
+        task,
+        project,
+        client,
+        user,
+        timeEntry: activeTimeEntry
+      };
+    });
+  };
+  
+  // Get recently active tasks (tasks with time entries in the last week)
+  const getRecentlyActiveTasks = () => {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    
+    const recentEntries = timeEntries
+      .filter(entry => new Date(entry.startTime) > weekAgo)
+      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+      
+    const recentTaskIds = [...new Set(recentEntries.map(e => e.taskId))];
+    
+    return recentTaskIds.slice(0, 5).map(taskId => {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return null;
+      
+      const project = projects.find(p => p.id === task.projectId);
+      const client = project ? clients.find(c => c.id === project.clientId) : undefined;
+      
+      return { task, project, client };
+    }).filter(Boolean);
+  };
+  
   // Get total duration for a given day
   const getTotalDuration = (entries: typeof timeEntries) => {
     return entries.reduce((total, entry) => total + entry.duration, 0);
   };
   
-  // Get recent tasks
-  const recentTasks = tasks
-    .filter(task => task.status !== "done")
-    .sort((a, b) => {
-      // Sort by most recent time entry
-      const aLatest = a.timeEntries.length > 0 
-        ? Math.max(...a.timeEntries.map(e => new Date(e.startTime).getTime()))
-        : 0;
-      const bLatest = b.timeEntries.length > 0 
-        ? Math.max(...b.timeEntries.map(e => new Date(e.startTime).getTime()))
-        : 0;
-      
-      if (aLatest === bLatest) {
-        // If no time entries or same time, sort by created date
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }
-      return bLatest - aLatest;
-    })
-    .slice(0, 5);
+  // Active timers and recent tasks for the Active tab
+  const activeTimers = getActiveTimers();
+  const recentlyActiveTasks = getRecentlyActiveTasks();
     
-  // Generate monthly report data
-  const getMonthlyData = () => {
+  // Generate monthly report data grouped by client
+  const getMonthlyDataByClient = () => {
     const [year, month] = selectedMonth.split('-').map(Number);
     const startDate = startOfMonth(new Date(year, month - 1));
     const endDate = endOfMonth(new Date(year, month - 1));
@@ -138,42 +209,74 @@ const TimeTracking = () => {
       return entryDate >= startDate && entryDate <= endDate;
     });
     
-    // Group entries by user
-    const entriesByUser: Record<string, { 
-      user: typeof users[0], 
+    // Group entries by client first
+    const entriesByClient: Record<string, { 
+      client: typeof clients[0],
       totalMinutes: number,
-      projectMinutes: Record<string, number>
+      projectDetails: Record<string, {
+        project: typeof projects[0],
+        totalMinutes: number,
+        taskDetails: Record<string, {
+          task: typeof tasks[0],
+          totalMinutes: number,
+          entries: typeof timeEntries
+        }>
+      }>
     }> = {};
     
+    // Process all entries
     monthEntries.forEach(entry => {
-      const user = users.find(u => u.id === entry.userId);
-      if (!user) return;
-      
       const task = tasks.find(t => t.id === entry.taskId);
       if (!task) return;
       
-      const projectId = task.projectId;
+      const project = projects.find(p => p.id === task.projectId);
+      if (!project) return;
       
-      if (!entriesByUser[user.id]) {
-        entriesByUser[user.id] = { 
-          user, 
+      const client = clients.find(c => c.id === project.clientId);
+      if (!client) return;
+      
+      // Initialize client entry if needed
+      if (!entriesByClient[client.id]) {
+        entriesByClient[client.id] = { 
+          client, 
           totalMinutes: 0,
-          projectMinutes: {}
+          projectDetails: {}
         };
       }
       
-      entriesByUser[user.id].totalMinutes += entry.duration;
+      // Add to client total
+      entriesByClient[client.id].totalMinutes += entry.duration;
       
-      if (!entriesByUser[user.id].projectMinutes[projectId]) {
-        entriesByUser[user.id].projectMinutes[projectId] = 0;
+      // Initialize project entry if needed
+      if (!entriesByClient[client.id].projectDetails[project.id]) {
+        entriesByClient[client.id].projectDetails[project.id] = {
+          project,
+          totalMinutes: 0,
+          taskDetails: {}
+        };
       }
-      entriesByUser[user.id].projectMinutes[projectId] += entry.duration;
+      
+      // Add to project total
+      entriesByClient[client.id].projectDetails[project.id].totalMinutes += entry.duration;
+      
+      // Initialize task entry if needed
+      if (!entriesByClient[client.id].projectDetails[project.id].taskDetails[task.id]) {
+        entriesByClient[client.id].projectDetails[project.id].taskDetails[task.id] = {
+          task,
+          totalMinutes: 0,
+          entries: []
+        };
+      }
+      
+      // Add to task total and entries
+      entriesByClient[client.id].projectDetails[project.id].taskDetails[task.id].totalMinutes += entry.duration;
+      entriesByClient[client.id].projectDetails[project.id].taskDetails[task.id].entries.push(entry);
     });
     
-    return Object.values(entriesByUser).sort((a, b) => b.totalMinutes - a.totalMinutes);
+    return Object.values(entriesByClient).sort((a, b) => b.totalMinutes - a.totalMinutes);
   };
   
-  const monthlyData = getMonthlyData();
+  const monthlyDataByClient = getMonthlyDataByClient();
   
   // Get available months for the selector
   const getAvailableMonths = () => {
@@ -204,50 +307,76 @@ const TimeTracking = () => {
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="recent">Recent Tasks</TabsTrigger>
+          <TabsTrigger value="active">Active Timers</TabsTrigger>
           <TabsTrigger value="timesheet">Timesheet</TabsTrigger>
           <TabsTrigger value="reports">Monthly Summary</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="recent" className="space-y-6">
+        <TabsContent value="active" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle>Recent Tasks</CardTitle>
+                <CardTitle>Active Timers</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {recentTasks.length > 0 ? (
-                    recentTasks.map(task => {
-                      const project = projects.find(p => p.id === task.projectId);
-                      
-                      return (
-                        <div 
-                          key={task.id} 
-                          className="flex justify-between items-center p-3 bg-muted/20 rounded-md"
-                        >
-                          <div>
-                            <h3 className="font-medium">{task.title}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {project?.name}
-                            </p>
-                          </div>
-                          <Button 
-                            variant="outline"
-                            onClick={() => startTimeTracking(task.id)}
-                            className="border-primary/20 bg-primary/10 hover:bg-primary/20"
-                          >
-                            <Play className="h-3 w-3 mr-1" />
-                            Track
-                          </Button>
+                  {activeTimers.length > 0 ? (
+                    activeTimers.map(({ task, project, client, timeEntry }) => (
+                      <div 
+                        key={timeEntry.id} 
+                        className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md"
+                      >
+                        <div>
+                          <h3 className="font-medium">{task.title}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {project?.name} • {client?.name}
+                          </p>
                         </div>
-                      );
-                    })
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm font-medium">
+                            Started: {format(new Date(timeEntry.startTime), "HH:mm")}
+                          </span>
+                        </div>
+                      </div>
+                    ))
                   ) : (
                     <p className="text-center py-6 text-muted-foreground">
-                      No recent tasks found
+                      No active timers
                     </p>
                   )}
+                  
+                  <div className="mt-6 border-t pt-4">
+                    <h3 className="text-sm font-medium mb-3">Recently Active Tasks</h3>
+                    {recentlyActiveTasks.length > 0 ? (
+                      <div className="space-y-2">
+                        {recentlyActiveTasks.map(item => item && (
+                          <div 
+                            key={item.task.id} 
+                            className="flex justify-between items-center p-3 bg-muted/20 rounded-md"
+                          >
+                            <div>
+                              <h3 className="font-medium">{item.task.title}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {item.project?.name}
+                              </p>
+                            </div>
+                            <Button 
+                              variant="outline"
+                              onClick={() => startTimeTracking(item.task.id)}
+                              className="border-primary/20 bg-primary/10 hover:bg-primary/20"
+                            >
+                              <Play className="h-3 w-3 mr-1" />
+                              Track
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center py-4 text-muted-foreground text-sm">
+                        No recently active tasks
+                      </p>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -282,10 +411,50 @@ const TimeTracking = () => {
         </TabsContent>
         
         <TabsContent value="timesheet" className="space-y-6">
-          <FilterBar 
-            filters={filterOptions} 
-            onFilterChange={setSelectedFilters} 
-          />
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between">
+              <FilterBar 
+                filters={filterOptions} 
+                onFilterChange={setSelectedFilters} 
+              />
+              
+              <div className="flex-shrink-0">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {dateRange.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "LLL dd, y")} -{" "}
+                            {format(dateRange.to, "LLL dd, y")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "LLL dd, y")
+                        )
+                      ) : (
+                        "Select date range"
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="center">
+                    <CalendarComponent
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange.from}
+                      selected={{
+                        from: dateRange.from,
+                        to: dateRange.to,
+                      }}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </div>
           
           {dates.length > 0 ? (
             dates.map(date => (
@@ -362,7 +531,7 @@ const TimeTracking = () => {
         <TabsContent value="reports" className="space-y-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Monthly Time Summary</CardTitle>
+              <CardTitle>Monthly Time Summary by Client</CardTitle>
               <Select
                 value={selectedMonth}
                 onValueChange={setSelectedMonth}
@@ -380,58 +549,56 @@ const TimeTracking = () => {
               </Select>
             </CardHeader>
             <CardContent>
-              {monthlyData.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Projects</TableHead>
-                      <TableHead className="text-right">Total Hours</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {monthlyData.map(({ user, totalMinutes, projectMinutes }) => {
-                      // Get project details
-                      const userProjects = Object.entries(projectMinutes).map(([projectId, minutes]) => {
-                        const project = projects.find(p => p.id === projectId);
-                        return {
-                          name: project?.name || "Unknown",
-                          minutes
-                        };
-                      }).sort((a, b) => b.minutes - a.minutes);
-
-                      return (
-                        <TableRow key={user.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={user.avatar} />
-                                <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">{user.name}</p>
-                                <p className="text-xs text-muted-foreground">{user.role}</p>
+              {monthlyDataByClient.length > 0 ? (
+                <div className="space-y-4">
+                  {monthlyDataByClient.map(clientData => (
+                    <Accordion 
+                      type="single" 
+                      collapsible 
+                      className="border rounded-lg p-2 bg-muted/10"
+                      key={clientData.client.id}
+                    >
+                      <AccordionItem value={clientData.client.id} className="border-none">
+                        <AccordionTrigger className="py-3 px-2 hover:no-underline">
+                          <div className="flex items-center justify-between w-full pr-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-primary font-medium">
+                                {clientData.client.name.charAt(0)}
                               </div>
+                              <div className="font-medium">{clientData.client.name}</div>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col gap-1">
-                              {userProjects.map((project, i) => (
-                                <div key={i} className="flex justify-between text-sm">
-                                  <span>{project.name}</span>
-                                  <span className="text-muted-foreground">{formatDuration(project.minutes)}</span>
+                            <div className="font-mono font-medium">{formatDuration(clientData.totalMinutes)}</div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-2 pl-10">
+                            {Object.values(clientData.projectDetails).map(projectData => (
+                              <Collapsible key={projectData.project.id} className="border-l-2 pl-4 py-1">
+                                <div className="flex items-center justify-between">
+                                  <CollapsibleTrigger className="flex items-center gap-1 hover:underline">
+                                    <ChevronRight className="h-4 w-4" />
+                                    <span>{projectData.project.name}</span>
+                                  </CollapsibleTrigger>
+                                  <span className="font-mono text-sm">{formatDuration(projectData.totalMinutes)}</span>
                                 </div>
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            {formatDuration(totalMinutes)}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                                <CollapsibleContent>
+                                  <div className="mt-2 pl-6 space-y-1">
+                                    {Object.values(projectData.taskDetails).map(taskData => (
+                                      <div key={taskData.task.id} className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">{taskData.task.title}</span>
+                                        <span className="font-mono">{formatDuration(taskData.totalMinutes)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  ))}
+                </div>
               ) : (
                 <div className="py-8 text-center text-muted-foreground">
                   No time entries for this month
