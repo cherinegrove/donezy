@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Link } from "react-router-dom";
 import { PlusIcon } from "lucide-react";
+import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 
 interface MessageViewProps {
   message: Message;
@@ -20,6 +21,10 @@ export function MessageView({ message, onReply }: MessageViewProps) {
   const { getUserById, users, getProjectById, getClientById, tasks, addTask } = useAppContext();
   const [replyContent, setReplyContent] = useState("");
   const [isReplying, setIsReplying] = useState(false);
+  // New states for task creation
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [createTaskType, setCreateTaskType] = useState<"task" | "subtask">("task");
+  const [selectedTaskForSubtask, setSelectedTaskForSubtask] = useState<Task | null>(null);
   
   const sender = getUserById(message.senderId);
   
@@ -66,37 +71,22 @@ export function MessageView({ message, onReply }: MessageViewProps) {
     }).filter(id => id !== "");
   };
 
-  // Create a subtask from this message
+  // Open task creation dialog for creating a subtask
   const handleCreateSubtask = () => {
     if (!task) return;
     
-    addTask({
-      title: `Subtask from message: ${message.content.slice(0, 30)}...`,
-      description: message.content,
-      projectId: task.projectId,
-      parentTaskId: task.id,
-      assigneeIds: [],
-      status: "todo",
-      priority: "medium",
-      customFields: {},
-      subtasks: []
-    });
+    setCreateTaskType("subtask");
+    setSelectedTaskForSubtask(task);
+    setIsCreateTaskOpen(true);
   };
   
-  // Create a new task in the same project
+  // Open task creation dialog for creating a new task
   const handleCreateTask = () => {
     if (!project) return;
     
-    addTask({
-      title: `Task from message: ${message.content.slice(0, 30)}...`,
-      description: message.content,
-      projectId: project.id,
-      assigneeIds: [],
-      status: "todo",
-      priority: "medium",
-      customFields: {},
-      subtasks: []
-    });
+    setCreateTaskType("task");
+    setSelectedTaskForSubtask(null);
+    setIsCreateTaskOpen(true);
   };
   
   return (
@@ -207,6 +197,14 @@ export function MessageView({ message, onReply }: MessageViewProps) {
           </Button>
         </div>
       )}
+      
+      {/* Create Task Dialog */}
+      <CreateTaskDialog
+        open={isCreateTaskOpen}
+        onOpenChange={setIsCreateTaskOpen}
+        defaultProjectId={project?.id}
+        defaultParentTaskId={createTaskType === "subtask" ? task?.id : undefined}
+      />
     </div>
   );
 }
