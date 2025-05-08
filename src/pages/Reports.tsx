@@ -13,9 +13,30 @@ import { CalendarIcon, Download } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import { BarChart, XAxis, YAxis, Bar, Tooltip, ResponsiveContainer } from "recharts";
+import { Client, TimeEntry } from "@/types";
+
+// Helper function to calculate total hours from minutes
+const minutesToHours = (minutes: number) => {
+  return +(minutes / 60).toFixed(1);
+};
 
 const Reports = () => {
   const { toast } = useToast();
+  const { timeEntries, clients } = useAppContext();
   const [reportType, setReportType] = useState("time");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
@@ -47,6 +68,35 @@ const Reports = () => {
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setActiveFilters(filters);
   };
+
+  // Process data for the client hours report
+  const getClientHoursData = () => {
+    // Group time entries by client
+    const hoursByClient = timeEntries.reduce((acc: Record<string, number>, entry: TimeEntry) => {
+      if (!entry.clientId) return acc;
+      
+      if (!acc[entry.clientId]) {
+        acc[entry.clientId] = 0;
+      }
+      
+      // Add duration in minutes
+      acc[entry.clientId] += entry.duration;
+      
+      return acc;
+    }, {});
+    
+    // Convert to chart data format
+    return clients.map((client: Client) => {
+      const totalMinutes = hoursByClient[client.id] || 0;
+      return {
+        name: client.name,
+        hours: minutesToHours(totalMinutes),
+        clientId: client.id,
+      };
+    }).sort((a, b) => b.hours - a.hours); // Sort by highest hours first
+  };
+
+  const clientHoursData = getClientHoursData();
   
   return (
     <div className="space-y-6">
@@ -116,15 +166,67 @@ const Reports = () => {
       
       <Card>
         <CardHeader>
-          <CardTitle>Time Reports</CardTitle>
+          <CardTitle>Hours by Client</CardTitle>
           <CardDescription>
-            View your time tracking data by client, project, or team member
+            Total hours tracked per client across all projects
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex items-center justify-center h-80">
-          <p className="text-muted-foreground">
-            Select filters above to view reports
-          </p>
+        <CardContent>
+          {clientHoursData.length > 0 ? (
+            <div className="w-full h-80">
+              <ChartContainer
+                config={{
+                  hours: {
+                    theme: {
+                      light: "#2563eb",
+                      dark: "#3b82f6",
+                    },
+                    label: "Hours",
+                  },
+                }}
+              >
+                <BarChart data={clientHoursData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45} 
+                    textAnchor="end" 
+                    height={80} 
+                    tick={{fontSize: 12}} 
+                  />
+                  <YAxis 
+                    tick={{fontSize: 12}}
+                    tickFormatter={(value) => `${value}h`} 
+                  />
+                  <Bar dataKey="hours" name="Hours" fill="var(--color-hours)" radius={[4, 4, 0, 0]} />
+                  <ChartTooltip content={<ChartTooltipContent labelKey="name" />} />
+                </BarChart>
+              </ChartContainer>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-60">
+              <p className="text-muted-foreground">No data available</p>
+            </div>
+          )}
+          
+          {/* Add a table below the chart for detailed information */}
+          <div className="mt-6">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead className="text-right">Hours</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {clientHoursData.map((client) => (
+                  <TableRow key={client.clientId}>
+                    <TableCell>{client.name}</TableCell>
+                    <TableCell className="text-right font-medium">{client.hours}h</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
