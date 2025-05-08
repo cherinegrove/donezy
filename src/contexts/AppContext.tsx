@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import {
   User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role, ProjectTemplate, TemplateTask, CustomRole
@@ -11,8 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
 
 const STORAGE_KEY = "lovable-app-state";
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const saveStateToStorage = (key: string, data: any) => {
   try {
@@ -98,6 +97,44 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const newRole = { ...role, id: `role-${uuidv4()}` };
     setCustomRoles((prev) => [...prev, newRole]);
     toast({ title: "Success", description: "Role has been created" });
+  };
+  
+  // Add the missing role management functions
+  const updateCustomRole = (id: string, updates: Partial<CustomRole>) => {
+    setCustomRoles((prev) => prev.map(role => role.id === id ? { ...role, ...updates } : role));
+    toast({ title: "Success", description: "Role has been updated" });
+  };
+  
+  const deleteCustomRole = (id: string) => {
+    setCustomRoles((prev) => prev.filter(role => role.id !== id));
+    toast({ title: "Success", description: "Role has been deleted" });
+  };
+  
+  const assignRoleToUser = (userId: string, roleId: string) => {
+    const role = customRoles.find(r => r.id === roleId);
+    if (!role) {
+      toast({ 
+        title: "Error", 
+        description: "Role not found", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    setUsers(prev => prev.map(user => {
+      if (user.id === userId) {
+        return {
+          ...user,
+          customRoleId: roleId
+        };
+      }
+      return user;
+    }));
+    
+    toast({ 
+      title: "Role Assigned", 
+      description: `${role.name} role has been assigned successfully` 
+    });
   };
   
   // CRUD operations for clients
