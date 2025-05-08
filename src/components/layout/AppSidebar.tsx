@@ -23,21 +23,27 @@ import {
 } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export function AppSidebar() {
   const location = useLocation();
   const isMobile = useIsMobile();
   const { currentUser, getUnreadMessageCount, customRoles } = useAppContext();
   const { colors } = useTheme();
-  const [sidebarStyle, setSidebarStyle] = useState<React.CSSProperties>({});
   
   useEffect(() => {
-    // Update sidebar style when theme changes
-    setSidebarStyle({
-      backgroundColor: colors.sidebarColor
-    });
-  }, [colors.sidebarColor]);
+    // Apply theme to sidebar elements
+    const sidebar = document.querySelector('[data-sidebar="sidebar"]');
+    if (sidebar) {
+      sidebar.setAttribute('style', `background-color: ${colors.sidebarColor}; color: ${colors.sidebarTextColor}`);
+      
+      // Apply text color to all buttons inside sidebar
+      const sidebarButtons = sidebar.querySelectorAll('button, a');
+      sidebarButtons.forEach(button => {
+        button.setAttribute('style', `color: ${colors.sidebarTextColor}`);
+      });
+    }
+  }, [colors.sidebarColor, colors.sidebarTextColor]);
   
   const unreadMessages = currentUser ? getUnreadMessageCount(currentUser.id) : 0;
   
@@ -132,10 +138,8 @@ export function AppSidebar() {
         </a>
       </SidebarHeader>
       <SidebarContent>
-        {/* Apply the dynamic style to the nav element */}
         <nav 
           className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center"
-          style={sidebarStyle}
         >
           {accessibleItems.map((item) => (
             <Button

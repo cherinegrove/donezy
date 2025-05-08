@@ -14,34 +14,46 @@ export function CompanyThemeSettings() {
   
   // Preview colors
   const [buttonColorPreview, setButtonColorPreview] = useState(colors.buttonColor);
+  const [buttonTextColorPreview, setButtonTextColorPreview] = useState(colors.buttonTextColor);
   const [sidebarColorPreview, setSidebarColorPreview] = useState(colors.sidebarColor);
+  const [sidebarTextColorPreview, setSidebarTextColorPreview] = useState(colors.sidebarTextColor);
   
   useEffect(() => {
     // Update preview state when theme context changes
     setButtonColorPreview(colors.buttonColor);
+    setButtonTextColorPreview(colors.buttonTextColor);
     setSidebarColorPreview(colors.sidebarColor);
+    setSidebarTextColorPreview(colors.sidebarTextColor);
   }, [colors]);
   
   const handleButtonColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setButtonColorPreview(e.target.value);
   };
   
+  const handleButtonTextColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setButtonTextColorPreview(e.target.value);
+  };
+  
   const handleSidebarColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSidebarColorPreview(e.target.value);
+  };
+  
+  const handleSidebarTextColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSidebarTextColorPreview(e.target.value);
   };
   
   const handleSave = () => {
     updateColors({
       buttonColor: buttonColorPreview,
-      sidebarColor: sidebarColorPreview
+      buttonTextColor: buttonTextColorPreview,
+      sidebarColor: sidebarColorPreview,
+      sidebarTextColor: sidebarTextColorPreview
     });
     
     toast({
       title: "Theme updated",
       description: "Your company theme settings have been saved and applied.",
     });
-    
-    console.log("Theme settings updated:", { buttonColor: buttonColorPreview, sidebarColor: sidebarColorPreview });
   };
   
   return (
@@ -58,8 +70,9 @@ export function CompanyThemeSettings() {
       <CardContent className="space-y-6">
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Button Background Color */}
             <div className="space-y-3">
-              <Label htmlFor="button-color">Button Color (HEX)</Label>
+              <Label htmlFor="button-color">Button Background Color</Label>
               <div className="flex gap-3">
                 <Input 
                   id="button-color"
@@ -76,19 +89,32 @@ export function CompanyThemeSettings() {
                   className="flex-1"
                 />
               </div>
-              <div className="flex items-center mt-2">
-                <span className="text-sm text-muted-foreground mr-2">Preview:</span>
-                <Button
-                  style={{ backgroundColor: buttonColorPreview }}
-                  className="h-8 px-4 py-0"
-                >
-                  Button
-                </Button>
+            </div>
+            
+            {/* Button Text Color */}
+            <div className="space-y-3">
+              <Label htmlFor="button-text-color">Button Text Color</Label>
+              <div className="flex gap-3">
+                <Input 
+                  id="button-text-color"
+                  type="color" 
+                  value={buttonTextColorPreview}
+                  onChange={handleButtonTextColorChange}
+                  className="w-16 h-10 p-1"
+                />
+                <Input 
+                  type="text"
+                  value={buttonTextColorPreview}
+                  onChange={e => setButtonTextColorPreview(e.target.value)}
+                  placeholder="#FFFFFF"
+                  className="flex-1"
+                />
               </div>
             </div>
             
+            {/* Sidebar Background Color */}
             <div className="space-y-3">
-              <Label htmlFor="sidebar-color">Sidebar Color (HEX)</Label>
+              <Label htmlFor="sidebar-color">Sidebar Background Color</Label>
               <div className="flex gap-3">
                 <Input
                   id="sidebar-color" 
@@ -105,14 +131,53 @@ export function CompanyThemeSettings() {
                   className="flex-1"
                 />
               </div>
-              <div className="flex items-center mt-2">
-                <span className="text-sm text-muted-foreground mr-2">Preview:</span>
-                <div
-                  className="h-10 w-24 rounded-md flex items-center justify-center text-white text-xs"
-                  style={{ backgroundColor: sidebarColorPreview }}
+            </div>
+            
+            {/* Sidebar Text Color */}
+            <div className="space-y-3">
+              <Label htmlFor="sidebar-text-color">Sidebar Text Color</Label>
+              <div className="flex gap-3">
+                <Input
+                  id="sidebar-text-color" 
+                  type="color" 
+                  value={sidebarTextColorPreview}
+                  onChange={handleSidebarTextColorChange}
+                  className="w-16 h-10 p-1"
+                />
+                <Input 
+                  type="text"
+                  value={sidebarTextColorPreview}
+                  onChange={e => setSidebarTextColorPreview(e.target.value)}
+                  placeholder="#FFFFFF"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* Preview Section */}
+          <div className="mt-6 border rounded-md p-4">
+            <h3 className="text-sm font-medium mb-3">Preview</h3>
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+              <div>
+                <Button
+                  style={{ 
+                    backgroundColor: buttonColorPreview,
+                    color: buttonTextColorPreview
+                  }}
                 >
-                  Sidebar
-                </div>
+                  Button Preview
+                </Button>
+              </div>
+              
+              <div
+                className="h-16 w-full sm:w-48 rounded-md flex items-center justify-center text-center p-2"
+                style={{ 
+                  backgroundColor: sidebarColorPreview,
+                  color: sidebarTextColorPreview
+                }}
+              >
+                Sidebar Preview
               </div>
             </div>
           </div>

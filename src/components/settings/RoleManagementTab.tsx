@@ -32,25 +32,28 @@ type FormValues = {
   };
 }
 
+// Default form values for a new role
+const defaultFormValues: FormValues = {
+  name: "",
+  description: "",
+  permissions: {
+    accountSettings: "none",
+    reports: "none",
+    timeTracking: "none",
+    clients: "none",
+    projects: "none",
+    tasks: "none",
+    users: "none"
+  }
+};
+
 export function RoleManagementTab() {
   const { customRoles, addCustomRole, updateCustomRole, deleteCustomRole } = useAppContext();
   const [isEditing, setIsEditing] = useState(false);
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
-    defaultValues: {
-      name: "",
-      description: "",
-      permissions: {
-        accountSettings: "none",
-        reports: "none",
-        timeTracking: "none",
-        clients: "none",
-        projects: "none",
-        tasks: "none",
-        users: "none"
-      }
-    }
+    defaultValues: defaultFormValues
   });
 
   const handleEditRole = (role: CustomRole) => {
@@ -64,9 +67,16 @@ export function RoleManagementTab() {
   };
 
   const handleCancelEdit = () => {
-    form.reset();
+    form.reset(defaultFormValues);
     setEditingRoleId(null);
     setIsEditing(false);
+  };
+
+  const handleCreateNewRole = () => {
+    // Reset the form with default values when creating a new role
+    form.reset(defaultFormValues);
+    setEditingRoleId(null);
+    setIsEditing(true);
   };
 
   const onSubmit = (data: FormValues) => {
@@ -76,7 +86,7 @@ export function RoleManagementTab() {
       addCustomRole(data);
     }
     
-    form.reset();
+    form.reset(defaultFormValues);
     setEditingRoleId(null);
     setIsEditing(false);
   };
@@ -97,7 +107,7 @@ export function RoleManagementTab() {
           </p>
         </div>
         {!isEditing && (
-          <Button onClick={() => setIsEditing(true)}>
+          <Button onClick={handleCreateNewRole}>
             Create New Role
           </Button>
         )}
@@ -160,7 +170,7 @@ export function RoleManagementTab() {
                                 <input
                                   type="radio"
                                   id={`${permission}-${level}`}
-                                  className="h-4 w-4 cursor-pointer"
+                                  className="h-5 w-5 cursor-pointer"
                                   checked={form.getValues().permissions[permission as keyof FormValues["permissions"]] === level}
                                   onChange={() => {
                                     form.setValue(`permissions.${permission as keyof FormValues["permissions"]}` as const, level);

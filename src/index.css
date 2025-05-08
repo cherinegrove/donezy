@@ -53,7 +53,9 @@
     
     /* Custom theme variables with default values */
     --button-primary-color: #000000;
+    --button-text-color: #FFFFFF;
     --sidebar-background-color: #1A1F2C;
+    --sidebar-text-color: #FFFFFF;
   }
 
   .dark {
