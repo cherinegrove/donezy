@@ -19,19 +19,17 @@ const Settings = () => {
       <div>
         <h1 className="text-3xl font-bold">Settings</h1>
         <p className="text-muted-foreground mt-1">
-          Manage your account and application preferences
+          Manage your profile and account preferences
         </p>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-1 md:grid-cols-5">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          {isAdminOrManager && <TabsTrigger value="users">Users</TabsTrigger>}
-          {!isClient && <TabsTrigger value="teams">Teams & Permissions</TabsTrigger>}
-          <TabsTrigger value="appearance">Appearance</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-1 md:grid-cols-2">
+          <TabsTrigger value="profile">Profile Settings</TabsTrigger>
+          <TabsTrigger value="account">Account Settings</TabsTrigger>
         </TabsList>
         
+        {/* Profile Settings Tab */}
         <TabsContent value="profile" className="mt-6 space-y-6">
           <Card>
             <CardHeader>
@@ -47,9 +45,8 @@ const Settings = () => {
               </p>
             </CardContent>
           </Card>
-        </TabsContent>
-        
-        <TabsContent value="notifications" className="mt-6 space-y-6">
+          
+          {/* Notifications */}
           {currentUser?.role === 'manager' && (
             <ManagerNotificationSettings userId={currentUser.id} />
           )}
@@ -69,31 +66,30 @@ const Settings = () => {
             </CardContent>
           </Card>
         </TabsContent>
-
-        {isAdminOrManager && (
-          <TabsContent value="users" className="mt-6 space-y-6">
+        
+        {/* Account Settings Tab */}
+        <TabsContent value="account" className="mt-6 space-y-6">
+          {isAdminOrManager && (
             <UsersManagementTab />
-          </TabsContent>
-        )}
-        
-        <TabsContent value="teams" className="mt-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Teams Management</CardTitle>
-              <CardDescription>
-                Manage teams and set member permissions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Team management would go here */}
-              <p className="text-center py-12 text-muted-foreground">
-                Team management settings coming soon
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="appearance" className="mt-6 space-y-6">
+          )}
+
+          {!isClient && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Teams Management</CardTitle>
+                <CardDescription>
+                  Manage teams and set member permissions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Team management would go here */}
+                <p className="text-center py-12 text-muted-foreground">
+                  Team management settings coming soon
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          
           <KanbanCustomizationCard />
           
           <Card>
