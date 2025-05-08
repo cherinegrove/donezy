@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -163,14 +162,14 @@ export function CreateTaskDialog({
                     <FormLabel>Parent Task (Optional)</FormLabel>
                     <FormControl>
                       <Select 
-                        value={field.value} 
+                        value={field.value || ""} 
                         onValueChange={field.onChange}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="No parent task" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No parent task</SelectItem>
+                          <SelectItem value="no-parent">No parent task</SelectItem>
                           {projectTasks.map((task) => (
                             <SelectItem key={task.id} value={task.id}>
                               {task.title}

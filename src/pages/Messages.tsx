@@ -103,7 +103,7 @@ const Messages = () => {
             <SelectValue placeholder="Client" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Clients</SelectItem>
+            <SelectItem value="all-clients">All Clients</SelectItem>
             {clients.map(client => (
               <SelectItem key={client.id} value={client.id}>
                 {client.name}
@@ -117,7 +117,7 @@ const Messages = () => {
             <SelectValue placeholder="Project" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Projects</SelectItem>
+            <SelectItem value="all-projects">All Projects</SelectItem>
             {projects
               .filter(project => !clientFilter || project.clientId === clientFilter)
               .map(project => (
@@ -133,7 +133,7 @@ const Messages = () => {
             <SelectValue placeholder="Task" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Tasks</SelectItem>
+            <SelectItem value="all-tasks">All Tasks</SelectItem>
             {tasks
               .filter(task => !projectFilter || task.projectId === projectFilter)
               .map(task => (
@@ -149,7 +149,7 @@ const Messages = () => {
             <SelectValue placeholder="User" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Users</SelectItem>
+            <SelectItem value="all-users">All Users</SelectItem>
             {users.map(user => (
               <SelectItem key={user.id} value={user.id}>
                 {user.name}
@@ -163,7 +163,7 @@ const Messages = () => {
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Messages</SelectItem>
+            <SelectItem value="all-messages">All Messages</SelectItem>
             <SelectItem value="read">Read</SelectItem>
             <SelectItem value="unread">Unread</SelectItem>
           </SelectContent>
