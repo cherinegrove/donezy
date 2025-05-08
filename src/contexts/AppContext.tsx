@@ -13,6 +13,9 @@ import { v4 as uuidv4 } from "uuid";
 
 const STORAGE_KEY = "lovable-app-state";
 
+// Create the context with the proper type
+const AppContext = createContext<AppContextType>({} as AppContextType);
+
 const saveStateToStorage = (key: string, data: any) => {
   try {
     const serializedData = JSON.stringify(data);
