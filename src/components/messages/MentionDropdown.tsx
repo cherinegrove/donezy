@@ -51,14 +51,22 @@ export function MentionDropdown({
     setDuplicateFirstNames(duplicates);
   }, [users]);
   
-  // Filter users based on search query against first names
+  // Filter users with improved partial matching
   useEffect(() => {
     if (searchQuery) {
+      const query = searchQuery.toLowerCase();
       const filtered = users.filter(user => {
         // Get first name if it's not already provided
-        const firstName = user.firstName || getFirstName(user.name);
-        return firstName.toLowerCase().includes(searchQuery.toLowerCase());
+        const firstName = (user.firstName || getFirstName(user.name)).toLowerCase();
+        const fullName = user.name.toLowerCase();
+        const email = user.email?.toLowerCase() || '';
+        
+        // Check for matches in first name, full name, or email
+        return firstName.includes(query) || 
+               fullName.includes(query) || 
+               email.includes(query);
       });
+      
       setFilteredUsers(filtered);
       setSelectedIndex(0); // Reset selection when filter changes
     } else {
@@ -134,6 +142,9 @@ export function MentionDropdown({
                     <span>{firstName}</span>
                     {showFullName && (
                       <span className="text-xs text-muted-foreground">{user.name}</span>
+                    )}
+                    {!showFullName && user.email && (
+                      <span className="text-xs text-muted-foreground">{user.email}</span>
                     )}
                   </div>
                 </div>

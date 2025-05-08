@@ -117,7 +117,7 @@ export function MessageReplyForm({
     <div className="p-4 border-t space-y-3 relative">
       <Textarea
         ref={textareaRef}
-        placeholder="Type your reply... Use @firstname to mention users"
+        placeholder="Type your reply... Use @ to mention users (matches name, email)"
         value={replyContent}
         onChange={handleTextareaChange}
         rows={4}
