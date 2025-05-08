@@ -1,20 +1,26 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Palette } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export function CompanyThemeSettings() {
   const { toast } = useToast();
-  const [buttonColor, setButtonColor] = useState("#000000");
-  const [sidebarColor, setSidebarColor] = useState("#1A1F2C");
+  const { colors, updateColors } = useTheme();
   
   // Preview colors
-  const [buttonColorPreview, setButtonColorPreview] = useState("#000000");
-  const [sidebarColorPreview, setSidebarColorPreview] = useState("#1A1F2C");
+  const [buttonColorPreview, setButtonColorPreview] = useState(colors.buttonColor);
+  const [sidebarColorPreview, setSidebarColorPreview] = useState(colors.sidebarColor);
+  
+  useEffect(() => {
+    // Update preview state when theme context changes
+    setButtonColorPreview(colors.buttonColor);
+    setSidebarColorPreview(colors.sidebarColor);
+  }, [colors]);
   
   const handleButtonColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setButtonColorPreview(e.target.value);
@@ -25,18 +31,16 @@ export function CompanyThemeSettings() {
   };
   
   const handleSave = () => {
-    // In a real application, you would save these values to your database
-    // and update your theme context or CSS variables
-    setButtonColor(buttonColorPreview);
-    setSidebarColor(sidebarColorPreview);
+    updateColors({
+      buttonColor: buttonColorPreview,
+      sidebarColor: sidebarColorPreview
+    });
     
     toast({
       title: "Theme updated",
-      description: "Your company theme settings have been saved.",
+      description: "Your company theme settings have been saved and applied.",
     });
     
-    // Here you would trigger a theme update in your application
-    // For now we're just logging the values
     console.log("Theme settings updated:", { buttonColor: buttonColorPreview, sidebarColor: sidebarColorPreview });
   };
   

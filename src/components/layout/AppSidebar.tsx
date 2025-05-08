@@ -22,11 +22,22 @@ import {
   CheckSquare
 } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useEffect, useState } from "react";
 
 export function AppSidebar() {
   const location = useLocation();
   const isMobile = useIsMobile();
   const { currentUser, getUnreadMessageCount, customRoles } = useAppContext();
+  const { colors } = useTheme();
+  const [sidebarStyle, setSidebarStyle] = useState<React.CSSProperties>({});
+  
+  useEffect(() => {
+    // Update sidebar style when theme changes
+    setSidebarStyle({
+      backgroundColor: colors.sidebarColor
+    });
+  }, [colors.sidebarColor]);
   
   const unreadMessages = currentUser ? getUnreadMessageCount(currentUser.id) : 0;
   
@@ -121,7 +132,11 @@ export function AppSidebar() {
         </a>
       </SidebarHeader>
       <SidebarContent>
-        <nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center">
+        {/* Apply the dynamic style to the nav element */}
+        <nav 
+          className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center"
+          style={sidebarStyle}
+        >
           {accessibleItems.map((item) => (
             <Button
               key={item.path}
