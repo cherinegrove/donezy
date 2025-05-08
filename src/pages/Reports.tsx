@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { format } from "date-fns";
-import { CalendarIcon, Download } from "lucide-react";
+import { CalendarIcon, Download, ChevronRight, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -21,13 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { BarChart, XAxis, YAxis, Bar, ResponsiveContainer } from "recharts";
-import { Client, TimeEntry } from "@/types";
+import { Client, TimeEntry, Project } from "@/types";
 
 // Helper function to calculate total hours from minutes
 const minutesToHours = (minutes: number) => {
@@ -36,10 +30,11 @@ const minutesToHours = (minutes: number) => {
 
 const Reports = () => {
   const { toast } = useToast();
-  const { timeEntries, clients } = useAppContext();
+  const { timeEntries, clients, projects } = useAppContext();
   const [reportType, setReportType] = useState("time");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});
   
   // Define filter options
   const filterOptions: FilterOption[] = [
@@ -96,8 +91,45 @@ const Reports = () => {
     }).sort((a, b) => b.hours - a.hours); // Sort by highest hours first
   };
 
+  // Get project hours by client
+  const getProjectHoursByClient = (clientId: string) => {
+    // Get projects for this client
+    const clientProjects = projects.filter((project) => project.clientId === clientId);
+    
+    // Group time entries by project
+    const hoursByProject = timeEntries.reduce((acc: Record<string, number>, entry: TimeEntry) => {
+      if (!entry.projectId) return acc;
+      
+      if (!acc[entry.projectId]) {
+        acc[entry.projectId] = 0;
+      }
+      
+      // Add duration in minutes
+      acc[entry.projectId] += entry.duration;
+      
+      return acc;
+    }, {});
+    
+    // Return projects with their hours
+    return clientProjects.map((project: Project) => {
+      const totalMinutes = hoursByProject[project.id] || 0;
+      return {
+        name: project.name,
+        hours: minutesToHours(totalMinutes),
+        projectId: project.id,
+      };
+    }).sort((a, b) => b.hours - a.hours); // Sort by highest hours first
+  };
+
   const clientHoursData = getClientHoursData();
   
+  const toggleClientExpand = (clientId: string) => {
+    setExpandedClients(prev => ({
+      ...prev,
+      [clientId]: !prev[clientId]
+    }));
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -168,77 +200,60 @@ const Reports = () => {
         <CardHeader>
           <CardTitle>Hours by Client</CardTitle>
           <CardDescription>
-            Total hours tracked per client across all projects
+            Click on a client to see projects breakdown
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {clientHoursData.length > 0 ? (
-            <div className="w-full h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart 
-                  data={clientHoursData}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
-                >
-                  <XAxis 
-                    type="number"
-                    tickFormatter={(value) => `${value}h`}
-                    domain={[0, 'dataMax']}
-                  />
-                  <YAxis
-                    dataKey="name"
-                    type="category"
-                    width={90}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <Bar 
-                    dataKey="hours" 
-                    name="Hours" 
-                    fill="#3b82f6" 
-                    radius={[0, 4, 4, 0]}
-                  />
-                  <ChartTooltip 
-                    formatter={(value) => [`${value} hours`, 'Total']}
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="bg-background border border-border p-2 rounded-md shadow-md">
-                            <p className="font-medium">{payload[0].payload.name}</p>
-                            <p className="text-sm">{`${payload[0].value} hours`}</p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-60">
-              <p className="text-muted-foreground">No data available</p>
-            </div>
-          )}
-          
-          {/* Add a table below the chart for detailed information */}
-          <div className="mt-6">
-            <Table>
-              <TableHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]"></TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead className="text-right">Hours</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {clientHoursData.length > 0 ? (
+                clientHoursData.map((client) => (
+                  <>
+                    <TableRow 
+                      key={client.clientId}
+                      className="cursor-pointer hover:bg-muted/80"
+                      onClick={() => toggleClientExpand(client.clientId)}
+                    >
+                      <TableCell className="p-2 pl-4">
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                          {expandedClients[client.clientId] ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TableCell>
+                      <TableCell className="font-medium">{client.name}</TableCell>
+                      <TableCell className="text-right font-medium">{client.hours}h</TableCell>
+                    </TableRow>
+                    
+                    {expandedClients[client.clientId] && (
+                      getProjectHoursByClient(client.clientId).map((project) => (
+                        <TableRow key={`${client.clientId}-${project.projectId}`} className="bg-muted/40">
+                          <TableCell></TableCell>
+                          <TableCell className="pl-10">{project.name}</TableCell>
+                          <TableCell className="text-right">{project.hours}h</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </>
+                ))
+              ) : (
                 <TableRow>
-                  <TableHead>Client</TableHead>
-                  <TableHead className="text-right">Hours</TableHead>
+                  <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                    No data available
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {clientHoursData.map((client) => (
-                  <TableRow key={client.clientId}>
-                    <TableCell>{client.name}</TableCell>
-                    <TableCell className="text-right font-medium">{client.hours}h</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
