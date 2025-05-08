@@ -50,7 +50,7 @@ export function MessageReplyForm({
       if (atIndex !== -1 && (atIndex === 0 || /\s/.test(textBeforeCursor[atIndex - 1]))) {
         const query = textBeforeCursor.substring(atIndex + 1);
         
-        if (query.length > 0 && !query.includes(' ')) {
+        if (!query.includes(' ')) {
           setMentionQuery(query);
           setMentionOpen(true);
           
@@ -105,11 +105,6 @@ export function MessageReplyForm({
     setMentionOpen(false);
   };
 
-  // Filter users based on mention query
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(mentionQuery.toLowerCase())
-  );
-
   return (
     <div className="p-4 border-t space-y-3 relative">
       <Textarea
@@ -121,10 +116,11 @@ export function MessageReplyForm({
       />
       
       <MentionDropdown 
-        users={filteredUsers}
+        users={users}
         isOpen={mentionOpen}
         position={mentionPosition}
         onSelectUser={handleSelectUser}
+        searchQuery={mentionQuery}
       />
       
       <div className="flex justify-end gap-2">

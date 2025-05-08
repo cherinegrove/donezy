@@ -200,11 +200,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         description: task.description,
         status: task.status,
         priority: task.priority,
-        estimatedHours: task.estimatedHours,
+        estimatedHours: task.customFields?.estimatedHours as number | undefined,
         subtasks: subtasks.map(subtask => ({
           title: subtask.title,
           description: subtask.description,
-          estimatedHours: subtask.estimatedHours
+          estimatedHours: subtask.customFields?.estimatedHours as number | undefined
         })),
       };
     });

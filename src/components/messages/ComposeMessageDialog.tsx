@@ -17,10 +17,11 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppContext } from "@/contexts/AppContext";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { Command, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MentionDropdown } from "./MentionDropdown";
+import { getCaretCoordinates } from "@/utils/textUtils";
 
 interface ComposeMessageDialogProps {
   open: boolean;
@@ -102,7 +103,7 @@ export function ComposeMessageDialog({
       if (atIndex !== -1 && (atIndex === 0 || /\s/.test(textBeforeCursor[atIndex - 1]))) {
         const query = textBeforeCursor.substring(atIndex + 1);
         
-        if (query.length > 0 && !query.includes(' ')) {
+        if (!query.includes(' ')) {
           setMentionQuery(query);
           setMentionOpen(true);
           
@@ -121,46 +122,6 @@ export function ComposeMessageDialog({
     }
     
     setMentionOpen(false);
-  };
-  
-  // Get caret (cursor) coordinates in the textarea
-  const getCaretCoordinates = (element: HTMLTextAreaElement, position: number) => {
-    // Create a mirror div with same styling as textarea
-    const mirror = document.createElement('div');
-    const style = window.getComputedStyle(element);
-    
-    // Copy styles from textarea to mirror div
-    mirror.style.width = element.offsetWidth + 'px';
-    mirror.style.padding = style.padding;
-    mirror.style.border = style.border;
-    mirror.style.fontFamily = style.fontFamily;
-    mirror.style.fontSize = style.fontSize;
-    mirror.style.lineHeight = style.lineHeight;
-    mirror.style.whiteSpace = 'pre-wrap';
-    mirror.style.wordWrap = 'break-word';
-    mirror.style.position = 'absolute';
-    mirror.style.top = '-9999px';
-    
-    document.body.appendChild(mirror);
-    
-    // Add text content up to the caret position
-    const textBeforeCaret = element.value.substring(0, position);
-    mirror.textContent = textBeforeCaret;
-    
-    // Add a span at the end to mark the position
-    const caretSpan = document.createElement('span');
-    caretSpan.textContent = '|';
-    mirror.appendChild(caretSpan);
-    
-    const caretRect = caretSpan.getBoundingClientRect();
-    const textareaRect = element.getBoundingClientRect();
-    
-    document.body.removeChild(mirror);
-    
-    return {
-      top: caretRect.top - textareaRect.top + element.scrollTop,
-      left: caretRect.left - textareaRect.left + element.scrollLeft
-    };
   };
   
   // Handle user selection from the mention dropdown
@@ -202,11 +163,7 @@ export function ComposeMessageDialog({
     setMentionOpen(false);
   };
   
-  // Filter users based on mention query (excluding current user)
-  const filteredUsers = users
-    .filter(user => user.id !== currentUser?.id)
-    .filter(user => user.name.toLowerCase().includes(mentionQuery.toLowerCase()));
-  
+  // Filter users (excluding current user)
   const otherUsers = users.filter(user => user.id !== currentUser?.id);
 
   return (
@@ -265,39 +222,13 @@ export function ComposeMessageDialog({
             />
             
             {/* Mention Dropdown */}
-            {mentionOpen && filteredUsers.length > 0 && (
-              <div 
-                className="absolute z-50 bg-white dark:bg-gray-800 border rounded-md shadow-md"
-                style={{
-                  top: `${mentionPosition.top}px`,
-                  left: `${mentionPosition.left}px`,
-                  minWidth: '200px'
-                }}
-              >
-                <div className="rounded-md border shadow-md overflow-hidden">
-                  <div className="p-1 bg-popover text-popover-foreground">
-                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                      Mentions
-                    </div>
-                    <div className="overflow-hidden">
-                      {filteredUsers.map((user) => (
-                        <div
-                          key={user.id}
-                          onClick={() => handleSelectUser(user)}
-                          className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50"
-                        >
-                          <Avatar className="h-6 w-6 mr-2">
-                            <AvatarImage src={user.avatar} />
-                            <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
-                          </Avatar>
-                          <span>{user.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            <MentionDropdown
+              users={otherUsers}
+              isOpen={mentionOpen}
+              position={mentionPosition}
+              onSelectUser={handleSelectUser}
+              searchQuery={mentionQuery}
+            />
           </div>
         </div>
         
