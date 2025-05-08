@@ -174,45 +174,45 @@ const Reports = () => {
         <CardContent>
           {clientHoursData.length > 0 ? (
             <div className="w-full h-80">
-              <ChartContainer
-                config={{
-                  hours: {
-                    theme: {
-                      light: "#2563eb",
-                      dark: "#3b82f6",
-                    },
-                    label: "Hours",
-                  },
-                }}
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={clientHoursData}
-                    margin={{ top: 10, right: 20, left: 20, bottom: 50 }}
-                  >
-                    <XAxis 
-                      dataKey="name"
-                      angle={0}
-                      textAnchor="middle"
-                      tick={{ fontSize: 12 }}
-                      height={50}
-                      interval={0}
-                    />
-                    <YAxis
-                      tickFormatter={(value) => `${value}h`}
-                      label={{ value: "Hours", angle: -90, position: 'insideLeft', dy: 50 }}
-                    />
-                    <Bar 
-                      dataKey="hours" 
-                      name="Hours" 
-                      fill="#3b82f6" 
-                      radius={[4, 4, 0, 0]}
-                      maxBarSize={60}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent labelKey="name" />} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart 
+                  data={clientHoursData}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                >
+                  <XAxis 
+                    type="number"
+                    tickFormatter={(value) => `${value}h`}
+                    domain={[0, 'dataMax']}
+                  />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    width={90}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Bar 
+                    dataKey="hours" 
+                    name="Hours" 
+                    fill="#3b82f6" 
+                    radius={[0, 4, 4, 0]}
+                  />
+                  <ChartTooltip 
+                    formatter={(value) => [`${value} hours`, 'Total']}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-background border border-border p-2 rounded-md shadow-md">
+                            <p className="font-medium">{payload[0].payload.name}</p>
+                            <p className="text-sm">{`${payload[0].value} hours`}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           ) : (
             <div className="flex items-center justify-center h-60">
