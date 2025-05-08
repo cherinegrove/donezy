@@ -546,34 +546,52 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
   
   // Time tracking operations
-  const startTimeTracking = (taskId?: string, projectId?: string) => {
+  const startTimeTracking = (taskId?: string, projectId?: string, clientId?: string) => {
     if (activeTimeEntry) {
       stopTimeTracking("Automatically stopped by starting new timer");
     }
     
-    if (!taskId && !projectId) {
-      toast({ 
-        title: "Error", 
-        description: "Either a task or project is required for time tracking", 
-        variant: "destructive"
-      });
-      return;
-    }
-    
+    // Extract client ID if we have a project ID but no client ID
+    let associatedClientId = clientId;
     let associatedProjectId = projectId;
     
-    // If no project ID is provided but we have a task ID, get the project ID from the task
+    if (!associatedClientId && projectId) {
+      const project = projects.find(p => p.id === projectId);
+      if (project) {
+        associatedClientId = project.clientId;
+      }
+    }
+    
+    // Extract project ID if we have a task ID but no project ID
     if (!associatedProjectId && taskId) {
       const task = tasks.find(t => t.id === taskId);
       if (task) {
         associatedProjectId = task.projectId;
+        
+        // Also get the client ID if we don't have it yet
+        if (!associatedClientId) {
+          const taskProject = projects.find(p => p.id === task.projectId);
+          if (taskProject) {
+            associatedClientId = taskProject.clientId;
+          }
+        }
       }
+    }
+    
+    if (!associatedClientId) {
+      toast({ 
+        title: "Error", 
+        description: "A client is required for time tracking", 
+        variant: "destructive"
+      });
+      return;
     }
     
     const newTimeEntry = {
       id: `time-${uuidv4()}`,
       taskId,
       projectId: associatedProjectId,
+      clientId: associatedClientId,
       userId: currentUser?.id || '',
       startTime: new Date().toISOString(),
       duration: 0,

@@ -84,7 +84,7 @@ export interface AppContextType {
   unwatchTask: (taskId: string, userId: string) => void;
   
   // Time tracking operations
-  startTimeTracking: (taskId?: string, projectId?: string) => void;
+  startTimeTracking: (taskId?: string, projectId?: string, clientId?: string) => void;
   stopTimeTracking: (notes?: string) => void;
   addTimeEntry: (entry: Omit<TimeEntry, "id">) => void;
   

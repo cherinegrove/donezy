@@ -68,12 +68,13 @@ export function StartTimerDialog({
     : [];
   
   const handleStartTimer = () => {
-    startTimeTracking(selectedTaskId || undefined, selectedProjectId);
+    startTimeTracking(selectedTaskId || undefined, selectedProjectId || undefined);
     onStartTimer();
     onOpenChange(false);
   };
   
-  const canStartTimer = !!selectedProjectId;
+  // Only require client selection to enable the Start Timer button
+  const canStartTimer = !!selectedClientId;
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -102,14 +103,14 @@ export function StartTimerDialog({
           </div>
           
           <div className="grid gap-2">
-            <Label htmlFor="project">Project (Required)</Label>
+            <Label htmlFor="project">Project (Optional)</Label>
             <Select
               value={selectedProjectId}
               onValueChange={setSelectedProjectId}
               disabled={!selectedClientId}
             >
               <SelectTrigger id="project">
-                <SelectValue placeholder="Select project" />
+                <SelectValue placeholder="Select project (optional)" />
               </SelectTrigger>
               <SelectContent>
                 {clientProjects.map((project) => (
