@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -274,7 +273,7 @@ export function ComposeMessageDialog({
                   minWidth: '200px'
                 }}
               >
-                <Command>
+                <Command className="rounded-md border shadow-md">
                   <CommandGroup heading="Mentions">
                     {filteredUsers.map((user) => (
                       <CommandItem
