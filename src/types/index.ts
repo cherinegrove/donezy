@@ -18,6 +18,7 @@ export interface User {
   avatar: string;
   role: Role;
   teamIds: string[];
+  phone?: string; // Added phone field
   employmentType?: EmploymentType;
   billingType?: BillingType;
   billingRate?: number;
@@ -32,6 +33,28 @@ export interface User {
     taskStatusChange?: boolean;
     newComments?: boolean;
     timeTracking?: boolean;
+    notificationSettings?: { // Added notificationSettings structure
+      clients: {
+        new: boolean;
+        updated: boolean;
+      };
+      projects: {
+        new: boolean;
+        updated: boolean;
+      };
+      tasks: {
+        new: boolean;
+        updated: boolean;
+      };
+      subtasks: {
+        new: boolean;
+        updated: boolean;
+      };
+      mentions: {
+        new: boolean;
+        updated: boolean;
+      };
+    };
   };
   permissions?: {
     canViewClients?: boolean;
