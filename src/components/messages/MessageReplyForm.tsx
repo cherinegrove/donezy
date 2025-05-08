@@ -77,7 +77,7 @@ export function MessageReplyForm({
   };
 
   // Handle user selection from the mention dropdown
-  const handleSelectUser = (user: User) => {
+  const handleSelectUser = (user: User & { firstName?: string }) => {
     if (!textareaRef.current) return;
     
     const text = replyContent;
@@ -89,7 +89,7 @@ export function MessageReplyForm({
     
     if (atIndex !== -1) {
       // Get the first name to use in the mention
-      const firstName = getFirstName(user.name);
+      const firstName = user.firstName || getFirstName(user.name);
       
       // Replace the @query with @firstname
       const newText = 

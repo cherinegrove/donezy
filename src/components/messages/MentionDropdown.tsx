@@ -1,3 +1,4 @@
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useEffect } from "react";
 
@@ -6,6 +7,7 @@ interface User {
   name: string;
   avatar?: string;
   firstName?: string; // Added firstName as an optional property
+  email?: string;     // Added email as an optional property for disambiguation
 }
 
 interface MentionDropdownProps {
@@ -25,11 +27,29 @@ export function MentionDropdown({
 }: MentionDropdownProps) {
   const [filteredUsers, setFilteredUsers] = useState<User[]>(users);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [duplicateFirstNames, setDuplicateFirstNames] = useState<Set<string>>(new Set());
   
   // Helper function to get first name
   const getFirstName = (fullName: string): string => {
     return fullName.split(' ')[0];
   };
+  
+  // Identify duplicate first names
+  useEffect(() => {
+    const firstNameCounts: Record<string, number> = {};
+    const duplicates = new Set<string>();
+    
+    users.forEach(user => {
+      const firstName = user.firstName || getFirstName(user.name);
+      firstNameCounts[firstName.toLowerCase()] = (firstNameCounts[firstName.toLowerCase()] || 0) + 1;
+      
+      if (firstNameCounts[firstName.toLowerCase()] > 1) {
+        duplicates.add(firstName.toLowerCase());
+      }
+    });
+    
+    setDuplicateFirstNames(duplicates);
+  }, [users]);
   
   // Filter users based on search query against first names
   useEffect(() => {
@@ -94,6 +114,10 @@ export function MentionDropdown({
           <div className="overflow-hidden max-h-[200px] overflow-y-auto">
             {filteredUsers.map((user, index) => {
               const firstName = user.firstName || getFirstName(user.name);
+              const firstNameLower = firstName.toLowerCase();
+              // Show disambiguation info for names that appear more than once
+              const showFullName = duplicateFirstNames.has(firstNameLower);
+              
               return (
                 <div
                   key={user.id}
@@ -106,7 +130,12 @@ export function MentionDropdown({
                     <AvatarImage src={user.avatar} />
                     <AvatarFallback>{firstName.slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <span>{firstName}</span>
+                  <div className="flex flex-col">
+                    <span>{firstName}</span>
+                    {showFullName && (
+                      <span className="text-xs text-muted-foreground">{user.name}</span>
+                    )}
+                  </div>
                 </div>
               );
             })}
