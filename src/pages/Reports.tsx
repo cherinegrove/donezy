@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -144,12 +143,9 @@ const Reports = () => {
     // Calculate average daily hours
     const avgDailyHours = uniqueDays.size > 0 ? totalHours / uniqueDays.size : 0;
     
-    // Calculate billable hours
+    // Calculate billable hours - Fixed: Remove task.billable check since it doesn't exist
     const billableHours = monthEntries
-      .filter(entry => {
-        const task = tasks.find(t => t.id === entry.taskId);
-        return task?.billable;
-      })
+      .filter(entry => entry.billable) // Use the billable property from the timeEntry instead
       .reduce((sum, entry) => sum + entry.duration, 0) / 60;
     
     return {
@@ -159,7 +155,7 @@ const Reports = () => {
       daysWorked: uniqueDays.size,
       avgDailyHours: +avgDailyHours.toFixed(1)
     };
-  }, [timeEntries, tasks, monthDateRange]);
+  }, [timeEntries, monthDateRange]);
   
   // Prepare data for client time charts
   const clientTimeData = useMemo(() => {
@@ -438,9 +434,9 @@ const Reports = () => {
               strokeWidth="2"
               className="h-4 w-4 text-muted-foreground"
             >
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 1 0 7H6" />
               <circle cx="9" cy="7" r="4" />
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+              <path d="M22 21v-2a4 4 0 0 1 0 7.75" />
             </svg>
           </CardHeader>
           <CardContent>
@@ -963,4 +959,3 @@ const Reports = () => {
 };
 
 export default Reports;
-
