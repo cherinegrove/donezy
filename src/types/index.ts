@@ -1,4 +1,3 @@
-
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
@@ -7,6 +6,10 @@ export type ServiceType = 'project' | 'bank-hours' | 'pay-as-you-go';
 
 export type NotificationTimeframe = 'same-day' | '1-day' | '3-days' | '1-week';
 
+export type EmploymentType = 'full-time' | 'contract' | 'part-time';
+
+export type BillingType = 'hourly' | 'monthly';
+
 export interface User {
   id: string;
   name: string;
@@ -14,6 +17,10 @@ export interface User {
   avatar: string;
   role: Role;
   teamIds: string[];
+  employmentType?: EmploymentType;
+  billingType?: BillingType;
+  billingRate?: number;
+  currency?: string;
   managerId?: string; // ID of the user's manager
   clientId?: string; // If user is a client user, associated client ID
   watchedTaskIds?: string[]; // Tasks that the user is watching
@@ -22,6 +29,16 @@ export interface User {
     taskStatusChange?: boolean;
     newComments?: boolean;
     timeTracking?: boolean;
+  };
+  permissions?: {
+    canViewClients?: boolean;
+    canEditClients?: boolean;
+    canViewProjects?: boolean;
+    canEditProjects?: boolean;
+    canViewTasks?: boolean;
+    canEditTasks?: boolean;
+    canViewReports?: boolean;
+    canManageUsers?: boolean;
   };
 }
 

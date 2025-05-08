@@ -5,22 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
-import { UserInviteForm } from "@/components/settings/UserInviteForm";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EditUserDialog } from "@/components/users/EditUserDialog";
+import { User } from "@/types";
+import { Building, Pencil, Plus, Users as UsersIcon } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 const Users = () => {
   const { teams, users, clients } = useAppContext();
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("internal");
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
 
   // Define filter options - create separate arrays for different tabs
   const internalFilterOptions: FilterOption[] = [
@@ -44,13 +44,6 @@ const Users = () => {
   ];
   
   const clientFilterOptions: FilterOption[] = [
-    {
-      id: "roles",
-      name: "Role",
-      options: [
-        { id: "client", label: "Client" },
-      ],
-    },
     {
       id: "clients",
       name: "Client",
@@ -81,13 +74,22 @@ const Users = () => {
   // Apply client filter for client users
   const filteredClientUsers = activeFilters.clients && activeFilters.clients.length > 0
     ? clientUsers.filter(user => {
-        const client = clients.find(c => c.userId === user.id);
-        return client && activeFilters.clients.includes(client.id);
+        return user.clientId && activeFilters.clients.includes(user.clientId);
       })
     : clientUsers;
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setActiveFilters(filters);
+  };
+
+  const handleCreateUser = (isClientUser: boolean = false) => {
+    setSelectedUser(undefined);
+    setIsEditUserDialogOpen(true);
+  };
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setIsEditUserDialogOpen(true);
   };
 
   // Filter teams based on team filter
@@ -108,21 +110,10 @@ const Users = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>Invite User</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Invite New User</DialogTitle>
-                <DialogDescription>
-                  Send an invitation email to a new team member or client user
-                </DialogDescription>
-              </DialogHeader>
-              <UserInviteForm />
-            </DialogContent>
-          </Dialog>
-          <Button variant="outline">Create Team</Button>
+          <Button onClick={() => handleCreateUser(activeTab === "client")}>
+            <Plus className="h-4 w-4 mr-2" />
+            {activeTab === "client" ? "Add Client User" : "Add User"}
+          </Button>
         </div>
       </div>
 
@@ -162,18 +153,34 @@ const Users = () => {
                                 <Avatar>
                                   <AvatarImage src={member.avatar} />
                                   <AvatarFallback>
-                                    {member.name.slice(0, 2)}
+                                    {member.name.slice(0, 2).toUpperCase()}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
                                   <p className="font-medium">{member.name}</p>
                                   <p className="text-sm text-muted-foreground">{member.email}</p>
+                                  {member.employmentType && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {member.employmentType} • 
+                                      {member.billingType === "hourly" 
+                                        ? ` ${member.billingRate || 0} ${member.currency || "USD"}/hr` 
+                                        : ` ${member.billingRate || 0} ${member.currency || "USD"}/month`}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
-                              <div>
+                              <div className="flex items-center gap-2">
                                 <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full capitalize">
                                   {member.role}
                                 </span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleEditUser(member)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
                               </div>
                             </div>
                           ))}
@@ -194,6 +201,7 @@ const Users = () => {
             {filteredTeams.length === 0 && (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-10">
+                  <UsersIcon className="h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">No teams found</p>
                 </CardContent>
               </Card>
@@ -211,7 +219,7 @@ const Users = () => {
             <CardContent>
               <div className="space-y-2">
                 {filteredClientUsers.map(user => {
-                  const client = clients.find(c => c.userId === user.id);
+                  const client = clients.find(c => c.id === user.clientId);
                   return (
                     <div 
                       key={user.id} 
@@ -221,7 +229,7 @@ const Users = () => {
                         <Avatar>
                           <AvatarImage src={user.avatar} />
                           <AvatarFallback>
-                            {user.name.slice(0, 2)}
+                            {user.name.slice(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div>
@@ -234,25 +242,49 @@ const Users = () => {
                           )}
                         </div>
                       </div>
-                      <div>
+                      <div className="flex items-center gap-2">
                         <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                           Client
                         </span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Edit</span>
+                        </Button>
                       </div>
                     </div>
                   );
                 })}
 
                 {filteredClientUsers.length === 0 && (
-                  <p className="text-center py-4 text-muted-foreground">
-                    No client users found with the selected filters
-                  </p>
+                  <div className="text-center py-10">
+                    <Building className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">
+                      No client users found with the selected filters
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4" 
+                      onClick={() => handleCreateUser(true)}
+                    >
+                      Add Client User
+                    </Button>
+                  </div>
                 )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+      
+      <EditUserDialog
+        user={selectedUser}
+        isOpen={isEditUserDialogOpen}
+        onClose={() => setIsEditUserDialogOpen(false)}
+      />
     </div>
   );
 };
