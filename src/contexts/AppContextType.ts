@@ -28,7 +28,15 @@ export interface AppContextType {
   addUser: (user: Omit<User, "id">) => void;
   updateUser: (id: string, updates: Partial<User>) => void;
   deleteUser: (id: string) => void;
-  inviteUser: (email: string, name: string, role: string, clientId?: string) => void;
+  inviteUser: (email: string, name: string, role: string, options?: {
+    phone?: string;
+    employmentType?: string;
+    billingType?: string;
+    billingRate?: number;
+    currency?: string;
+    teamIds?: string[];
+    clientId?: string;
+  }) => void;
   
   // CRUD operations for teams
   addTeam: (team: Omit<Team, "id">) => void;

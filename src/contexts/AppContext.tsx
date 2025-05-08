@@ -71,18 +71,51 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: "Success", description: "User has been deleted" });
   };
   
-  const inviteUser = (email: string, name: string, role: string, clientId?: string) => {
+  const inviteUser = (
+    email: string, 
+    name: string, 
+    role: string, 
+    options?: {
+      phone?: string;
+      employmentType?: string;
+      billingType?: string;
+      billingRate?: number;
+      currency?: string;
+      teamIds?: string[];
+      clientId?: string;
+    }
+  ) => {
     // In a real app, this would send an email invitation
     const newUser: Omit<User, "id"> = {
       name,
       email,
       role: role as Role,
       avatar: "",
-      teamIds: [],
+      teamIds: options?.teamIds || [],
     };
     
-    if (clientId && role === "client") {
-      newUser.clientId = clientId;
+    if (options?.phone) {
+      newUser.phone = options.phone;
+    }
+    
+    if (options?.employmentType) {
+      newUser.employmentType = options.employmentType;
+    }
+    
+    if (options?.billingType) {
+      newUser.billingType = options.billingType;
+    }
+    
+    if (options?.billingRate !== undefined) {
+      newUser.billingRate = options.billingRate;
+    }
+    
+    if (options?.currency) {
+      newUser.currency = options.currency;
+    }
+    
+    if (options?.clientId && role === "client") {
+      newUser.clientId = options.clientId;
     }
     
     addUser(newUser);
