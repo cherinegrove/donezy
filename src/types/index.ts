@@ -1,3 +1,4 @@
+
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
@@ -191,7 +192,8 @@ export interface Task {
 
 export interface TimeEntry {
   id: string;
-  taskId: string;
+  taskId?: string;  // Made taskId optional
+  projectId?: string; // Added projectId as optional
   userId: string;
   startTime: string;
   endTime?: string;

@@ -12,10 +12,12 @@ import { useNavigate } from "react-router-dom";
 import { CreateTaskDialog } from "../tasks/CreateTaskDialog";
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
+import { StartTimerDialog } from "../time/StartTimerDialog";
 
 export function TopBar() {
   const navigate = useNavigate();
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [isStartTimerOpen, setIsStartTimerOpen] = useState(false);
   const { messages, currentUser, customRoles, activeTimeEntry, startTimeTracking, stopTimeTracking } = useAppContext();
   
   // Get unread messages for the current user
@@ -55,8 +57,8 @@ export function TopBar() {
     if (isTimerRunning) {
       stopTimeTracking("Time tracking stopped from header");
     } else {
-      // Start timer without specifying task or project - this will be handled in the AppContext
-      startTimeTracking(undefined, undefined);
+      // Open the start timer dialog
+      setIsStartTimerOpen(true);
     }
   };
 
@@ -164,6 +166,11 @@ export function TopBar() {
       <CreateTaskDialog
         open={isCreateTaskOpen}
         onOpenChange={setIsCreateTaskOpen}
+      />
+      <StartTimerDialog 
+        open={isStartTimerOpen}
+        onOpenChange={setIsStartTimerOpen}
+        onStartTimer={() => {}}
       />
     </header>
   );

@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode } from "react";
 import {
   User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role, ProjectTemplate, TemplateTask, CustomRole
@@ -924,36 +923,4 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       markMessageAsRead,
       addComment,
       
-      // Purchase operations
-      addPurchase,
-      
-      // Custom field operations
-      addCustomField,
-      updateCustomField,
-      deleteCustomField,
-      
-      // Manager operations
-      updateManagerNotificationPreferences,
-      getTasksDueWithinTimeframe,
-      
-      // Filtering and retrieval
-      getTasksByProject,
-      getTasksByUser,
-      getUnreadMessageCount,
-      getUserById,
-      getProjectById,
-      getClientById,
-      getTaskById,
-    }}>
-      {children}
-    </AppContext.Provider>
-  );
-};
-
-export const useAppContext = () => {
-  const context = useContext(AppContext);
-  if (context === undefined) {
-    throw new Error("useAppContext must be used within an AppProvider");
-  }
-  return context;
-};
+      // Purchase

@@ -1,4 +1,3 @@
-
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -439,16 +438,18 @@ const TimeTracking = () => {
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="center">
                     <CalendarComponent
-                      initialFocus
                       mode="range"
-                      defaultMonth={dateRange.from}
-                      selected={{
-                        from: dateRange.from,
-                        to: dateRange.to,
+                      selected={dateRange}
+                      onSelect={(range) => {
+                        if (range?.from) {
+                          setDateRange({
+                            from: range.from,
+                            to: range.to || range.from
+                          });
+                        }
                       }}
-                      onSelect={setDateRange}
                       numberOfMonths={2}
-                      className={cn("p-3 pointer-events-auto")}
+                      className="rounded-md border"
                     />
                   </PopoverContent>
                 </Popover>
