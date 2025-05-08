@@ -1,0 +1,152 @@
+
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAppContext } from "@/contexts/AppContext";
+
+interface AddClientDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
+  const { addClient } = useAppContext();
+  const [name, setName] = useState("");
+  const [website, setWebsite] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [billableRate, setBillableRate] = useState<number>(100);
+  const [currency, setCurrency] = useState("USD");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    addClient({
+      name,
+      website,
+      contactName,
+      email,
+      phone,
+      billableRate,
+      currency,
+      projectIds: []
+    });
+    
+    // Reset form and close dialog
+    resetForm();
+    onClose();
+  };
+
+  const resetForm = () => {
+    setName("");
+    setWebsite("");
+    setContactName("");
+    setEmail("");
+    setPhone("");
+    setBillableRate(100);
+    setCurrency("USD");
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Add New Client</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Client Name *</Label>
+              <Input 
+                id="name" 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                placeholder="Acme Inc." 
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="website">Client Website *</Label>
+              <Input 
+                id="website" 
+                value={website} 
+                onChange={(e) => setWebsite(e.target.value)} 
+                placeholder="https://www.acmeinc.com" 
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="billableRate">Billable Rate *</Label>
+                <Input 
+                  id="billableRate" 
+                  type="number" 
+                  value={billableRate} 
+                  onChange={(e) => setBillableRate(Number(e.target.value))} 
+                  min="0"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="currency">Currency *</Label>
+                <Input 
+                  id="currency" 
+                  value={currency} 
+                  onChange={(e) => setCurrency(e.target.value)} 
+                  placeholder="USD" 
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="contactName">Contact Name</Label>
+              <Input 
+                id="contactName" 
+                value={contactName} 
+                onChange={(e) => setContactName(e.target.value)} 
+                placeholder="John Doe"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  placeholder="john.doe@acmeinc.com"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input 
+                  id="phone" 
+                  value={phone} 
+                  onChange={(e) => setPhone(e.target.value)} 
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="pt-4">
+            <Button variant="outline" type="button" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">Create Client</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

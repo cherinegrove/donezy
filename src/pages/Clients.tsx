@@ -1,13 +1,16 @@
 
+import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { AddClientDialog } from "@/components/clients/AddClientDialog";
 
 const Clients = () => {
   const { clients, projects } = useAppContext();
   const navigate = useNavigate();
+  const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
   
   const getProjectCount = (clientId: string) => {
     return projects.filter(project => project.clientId === clientId).length;
@@ -22,7 +25,7 @@ const Clients = () => {
             Manage your client relationships
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setIsAddClientDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Client
         </Button>
@@ -58,6 +61,7 @@ const Clients = () => {
         
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow border-dashed flex flex-col items-center justify-center min-h-[200px]"
+          onClick={() => setIsAddClientDialogOpen(true)}
         >
           <CardContent className="flex flex-col items-center justify-center h-full py-10">
             <div className="rounded-full bg-muted p-3 mb-3">
@@ -70,6 +74,11 @@ const Clients = () => {
           </CardContent>
         </Card>
       </div>
+      
+      <AddClientDialog 
+        isOpen={isAddClientDialogOpen} 
+        onClose={() => setIsAddClientDialogOpen(false)} 
+      />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
@@ -103,6 +104,7 @@ export interface Client {
   email: string;
   phone: string;
   address?: string;
+  website?: string; // Added website field
   projectIds: string[];
   userId?: string; // If client has user access
   billableRate: number; // Hourly rate for billing
