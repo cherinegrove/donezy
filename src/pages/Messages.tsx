@@ -21,11 +21,11 @@ const Messages = () => {
   const navigate = useNavigate();
   
   // Filters
-  const [clientFilter, setClientFilter] = useState<string>("");
-  const [projectFilter, setProjectFilter] = useState<string>("");
-  const [taskFilter, setTaskFilter] = useState<string>("");
-  const [userFilter, setUserFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [clientFilter, setClientFilter] = useState<string>("all");
+  const [projectFilter, setProjectFilter] = useState<string>("all");
+  const [taskFilter, setTaskFilter] = useState<string>("all");
+  const [userFilter, setUserFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   
   // Get all tasks that have comments
   const tasksWithComments = tasks.filter(task => task.comments && task.comments.length > 0);
@@ -40,26 +40,26 @@ const Messages = () => {
       // Apply additional filters
       let matchesFilters = true;
       
-      if (clientFilter && msg.clientId !== clientFilter) {
+      if (clientFilter && clientFilter !== "all" && msg.clientId !== clientFilter) {
         matchesFilters = false;
       }
       
-      if (projectFilter && msg.projectId !== projectFilter) {
+      if (projectFilter && projectFilter !== "all" && msg.projectId !== projectFilter) {
         matchesFilters = false;
       }
       
-      if (taskFilter && msg.taskId !== taskFilter) {
+      if (taskFilter && taskFilter !== "all" && msg.taskId !== taskFilter) {
         matchesFilters = false;
       }
       
-      if (userFilter) {
+      if (userFilter && userFilter !== "all") {
         // Filter by sender or recipient
         if (userFilter !== msg.senderId && !msg.recipientIds.includes(userFilter)) {
           matchesFilters = false;
         }
       }
       
-      if (statusFilter) {
+      if (statusFilter && statusFilter !== "all") {
         if (statusFilter === "read" && !msg.read) {
           matchesFilters = false;
         }
@@ -128,7 +128,7 @@ const Messages = () => {
             <SelectValue placeholder="All Clients" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Clients</SelectItem>
+            <SelectItem value="all">All Clients</SelectItem>
             {clients.map(client => (
               <SelectItem key={client.id} value={client.id}>
                 {client.name}
@@ -142,9 +142,9 @@ const Messages = () => {
             <SelectValue placeholder="All Projects" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Projects</SelectItem>
+            <SelectItem value="all">All Projects</SelectItem>
             {projects
-              .filter(project => !clientFilter || project.clientId === clientFilter)
+              .filter(project => clientFilter === "all" || project.clientId === clientFilter)
               .map(project => (
                 <SelectItem key={project.id} value={project.id}>
                   {project.name}
@@ -158,12 +158,12 @@ const Messages = () => {
             <SelectValue placeholder="All Tasks" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Tasks</SelectItem>
+            <SelectItem value="all">All Tasks</SelectItem>
             {tasksWithComments
               .filter(task => {
                 const project = projects.find(p => p.id === task.projectId);
-                return (!projectFilter || task.projectId === projectFilter) &&
-                       (!clientFilter || (project && project.clientId === clientFilter));
+                return (projectFilter === "all" || task.projectId === projectFilter) &&
+                       (clientFilter === "all" || (project && project.clientId === clientFilter));
               })
               .map(task => (
                 <SelectItem key={task.id} value={task.id}>
@@ -178,7 +178,7 @@ const Messages = () => {
             <SelectValue placeholder="All Users" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Users</SelectItem>
+            <SelectItem value="all">All Users</SelectItem>
             {users.map(user => (
               <SelectItem key={user.id} value={user.id}>
                 {user.name}
@@ -192,7 +192,7 @@ const Messages = () => {
             <SelectValue placeholder="All Messages" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Messages</SelectItem>
+            <SelectItem value="all">All Messages</SelectItem>
             <SelectItem value="read">Read</SelectItem>
             <SelectItem value="unread">Unread</SelectItem>
           </SelectContent>
