@@ -1,222 +1,154 @@
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/contexts/AppContext";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-
-const clientUserInviteSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  name: z.string().min(1, { message: "Please enter a name" }),
-  jobTitle: z.string().optional(),
-  clientId: z.string({ required_error: "Please select a client" }),
-  projectAccess: z.array(z.string()).default([]),
-});
-
-type ClientUserInviteValues = z.infer<typeof clientUserInviteSchema>;
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Check, AlertCircle } from "lucide-react";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { Project } from "@/types";
 
 export function ClientUserInviteForm() {
-  const { toast } = useToast();
-  const { inviteUser, clients, projects } = useAppContext();
+  const { clients, projects, inviteUser } = useAppContext();
+  
+  // Form state
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [clientId, setClientId] = useState("");
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  
+  // Form submission states
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  const form = useForm<ClientUserInviteValues>({
-    resolver: zodResolver(clientUserInviteSchema),
-    defaultValues: {
-      email: "",
-      name: "",
-      jobTitle: "",
-      clientId: "",
-      projectAccess: [],
-    },
-  });
+  // Get client's projects based on selected client
+  const clientProjects = projects.filter(project => 
+    project.clientId === clientId
+  );
   
-  const watchClientId = form.watch("clientId");
+  // Format projects for multiselect
+  const projectOptions = clientProjects.map(project => ({
+    value: project.id,
+    label: project.name
+  }));
   
-  // Get projects for selected client
-  const clientProjects = projects.filter(project => project.clientId === watchClientId);
-  
-  const onSubmit = (data: ClientUserInviteValues) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
+    setError(null);
     
-    // Call the inviteUser function with client user specific data
-    inviteUser({
-      email: data.email, 
-      name: data.name, 
-      role: "client",
-      clientId: data.clientId,
-      jobTitle: data.jobTitle,
-      projectAccess: data.projectAccess,
-      // Set default permissions for client users
-      permissions: {
-        canViewClients: false,
-        canEditClients: false,
-        canViewProjects: true,
-        canEditProjects: false,
-        canViewTasks: true,
-        canEditTasks: true,
-        canViewReports: false,
-        canManageUsers: false,
+    try {
+      // Validation
+      if (!name || !email || !clientId) {
+        throw new Error("Please fill out all required fields");
       }
-    });
-    
-    // Reset the form
-    form.reset();
-    setIsLoading(false);
-    toast({
-      title: "Client user invited",
-      description: `Invitation email sent to ${data.email}`,
-    });
-  };
-
-  const handleProjectChange = (projectId: string, checked: boolean) => {
-    const currentProjects = form.getValues('projectAccess') || [];
-    let newProjects: string[];
-    
-    if (checked) {
-      newProjects = [...currentProjects, projectId];
-    } else {
-      newProjects = currentProjects.filter(id => id !== projectId);
+      
+      // Call the inviteUser function with the role set to "client"
+      inviteUser(email, name, "client", clientId);
+      
+      // Show success state
+      setIsSuccess(true);
+      setIsLoading(false);
+      
+      // Reset form after 2 seconds
+      setTimeout(() => {
+        setName("");
+        setEmail("");
+        setJobTitle("");
+        setClientId("");
+        setSelectedProjects([]);
+        setIsSuccess(false);
+      }, 2000);
+    } catch (err) {
+      setError((err as Error).message);
+      setIsLoading(false);
     }
-    
-    form.setValue('projectAccess', newProjects, { shouldValidate: true });
   };
   
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="clientuser@example.com" {...field} />
-              </FormControl>
-              <FormDescription>
-                We'll send an invitation email to this address
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Jane Smith" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="jobTitle"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Job Title</FormLabel>
-              <FormControl>
-                <Input placeholder="Project Manager" {...field} />
-              </FormControl>
-              <FormDescription>
-                Job title at the client company
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="clientId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Client</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a client" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {clients.map(client => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                The client this user belongs to
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        {watchClientId && clientProjects.length > 0 && (
+    <form onSubmit={handleSubmit}>
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <FormLabel>Project Access</FormLabel>
-            <div className="grid grid-cols-1 gap-2 mt-2 border rounded-md p-4">
-              {clientProjects.map((project) => (
-                <div key={project.id} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id={`project-${project.id}`}
-                    className="rounded border-gray-300"
-                    checked={form.getValues('projectAccess')?.includes(project.id)}
-                    onChange={(e) => 
-                      handleProjectChange(project.id, e.target.checked)
-                    }
-                  />
-                  <label
-                    htmlFor={`project-${project.id}`}
-                    className="text-sm font-medium leading-none"
-                  >
-                    {project.name}
-                  </label>
-                </div>
+            <Label htmlFor="name">Name <span className="text-red-500">*</span></Label>
+            <Input 
+              id="name" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="Full name" 
+              required 
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
+            <Input 
+              id="email" 
+              type="email" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              placeholder="Email address" 
+              required 
+            />
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="job-title">Job Title</Label>
+          <Input 
+            id="job-title" 
+            value={jobTitle} 
+            onChange={(e) => setJobTitle(e.target.value)} 
+            placeholder="Job title" 
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="client">Client <span className="text-red-500">*</span></Label>
+          <Select value={clientId} onValueChange={setClientId}>
+            <SelectTrigger id="client">
+              <SelectValue placeholder="Select client" />
+            </SelectTrigger>
+            <SelectContent>
+              {clients.map(client => (
+                <SelectItem key={client.id} value={client.id}>
+                  {client.name}
+                </SelectItem>
               ))}
-            </div>
-            <FormDescription>
-              Select which projects this client user can access
-            </FormDescription>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Project Access</Label>
+          <MultiSelect
+            disabled={!clientId}
+            options={projectOptions}
+            selectedValues={selectedProjects}
+            onValueChange={setSelectedProjects}
+            placeholder={clientId ? "Select projects" : "Select a client first"}
+          />
+        </div>
+        
+        {error && (
+          <div className="bg-red-50 p-3 rounded-md flex items-center gap-2 text-red-700">
+            <AlertCircle className="h-4 w-4" />
+            <p className="text-sm">{error}</p>
           </div>
         )}
         
-        <Button type="submit" disabled={isLoading || !watchClientId}>
-          {isLoading ? "Sending invitation..." : "Send invitation"}
+        <Button type="submit" className="w-full" disabled={isLoading || isSuccess}>
+          {isLoading ? "Sending Invitation..." : isSuccess ? (
+            <span className="flex items-center gap-1">
+              <Check className="h-4 w-4" /> Invitation Sent
+            </span>
+          ) : "Send Invitation"}
         </Button>
-      </form>
-    </Form>
+      </div>
+    </form>
   );
 }

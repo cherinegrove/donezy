@@ -1,289 +1,198 @@
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/contexts/AppContext";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-
-const teamMemberInviteSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  name: z.string().min(1, { message: "Please enter a name" }),
-  role: z.enum(["admin", "manager", "developer"]),
-  employmentType: z.enum(["full-time", "contract", "part-time"]),
-  billingType: z.enum(["hourly", "monthly"]),
-  billingRate: z.string().refine(val => !isNaN(parseFloat(val)), {
-    message: "Please enter a valid rate",
-  }),
-  currency: z.string().default("USD"),
-  teamIds: z.array(z.string()).default([]),
-});
-
-type TeamMemberInviteValues = z.infer<typeof teamMemberInviteSchema>;
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Check, AlertCircle } from "lucide-react";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { EmploymentType, BillingType } from "@/types";
 
 export function TeamMemberInviteForm() {
-  const { toast } = useToast();
-  const { inviteUser, teams } = useAppContext();
+  const { teams, inviteUser } = useAppContext();
+  
+  // Form state
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("developer");
+  const [employmentType, setEmploymentType] = useState<string>("full-time");
+  const [billingType, setBillingType] = useState<string>("hourly");
+  const [billingRate, setBillingRate] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
+  
+  // Form submission states
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  const form = useForm<TeamMemberInviteValues>({
-    resolver: zodResolver(teamMemberInviteSchema),
-    defaultValues: {
-      email: "",
-      name: "",
-      role: "developer",
-      employmentType: "full-time",
-      billingType: "hourly",
-      billingRate: "0",
-      currency: "USD",
-      teamIds: [],
-    },
-  });
+  // Format teams for multiselect
+  const teamOptions = teams.map(team => ({
+    value: team.id,
+    label: team.name
+  }));
   
-  const watchBillingType = form.watch("billingType");
-  
-  const onSubmit = (data: TeamMemberInviteValues) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
+    setError(null);
     
-    // Call the inviteUser function with team member specific data
-    inviteUser({
-      email: data.email, 
-      name: data.name, 
-      role: data.role,
-      employmentType: data.employmentType,
-      billingType: data.billingType,
-      billingRate: parseFloat(data.billingRate),
-      currency: data.currency,
-      teamIds: data.teamIds,
-    });
-    
-    // Reset the form
-    form.reset();
-    setIsLoading(false);
-    toast({
-      title: "Invitation sent",
-      description: `Invitation email sent to ${data.email}`,
-    });
-  };
-
-  const handleTeamChange = (teamId: string, checked: boolean) => {
-    const currentTeams = form.getValues('teamIds') || [];
-    let newTeams: string[];
-    
-    if (checked) {
-      newTeams = [...currentTeams, teamId];
-    } else {
-      newTeams = currentTeams.filter(id => id !== teamId);
+    try {
+      // Validation
+      if (!name || !email || !role) {
+        throw new Error("Please fill out all required fields");
+      }
+      
+      // Call the inviteUser function with the correct parameters
+      inviteUser(email, name, role);
+      
+      // Show success state
+      setIsSuccess(true);
+      setIsLoading(false);
+      
+      // Reset form after 2 seconds
+      setTimeout(() => {
+        setName("");
+        setEmail("");
+        setRole("developer");
+        setEmploymentType("full-time");
+        setBillingType("hourly");
+        setBillingRate("");
+        setCurrency("USD");
+        setSelectedTeams([]);
+        setIsSuccess(false);
+      }, 2000);
+    } catch (err) {
+      setError((err as Error).message);
+      setIsLoading(false);
     }
-    
-    form.setValue('teamIds', newTeams, { shouldValidate: true });
   };
   
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="user@example.com" {...field} />
-              </FormControl>
-              <FormDescription>
-                We'll send an invitation email to this address
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder="John Doe" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="role"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Role</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="developer">Developer</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                This determines what the user will be able to access
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="employmentType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Employment Type</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select employment type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="full-time">Full-time</SelectItem>
-                  <SelectItem value="contract">Contract</SelectItem>
-                  <SelectItem value="part-time">Part-time</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="billingType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Billing Type</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select billing type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="hourly">Hourly Rate</SelectItem>
-                  <SelectItem value="monthly">Monthly Rate</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="billingRate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                {watchBillingType === "hourly" ? "Hourly Rate" : "Monthly Rate"}
-              </FormLabel>
-              <FormControl>
-                <Input placeholder="0" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="currency"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Currency</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="USD">USD ($)</SelectItem>
-                  <SelectItem value="EUR">EUR (€)</SelectItem>
-                  <SelectItem value="GBP">GBP (£)</SelectItem>
-                  <SelectItem value="JPY">JPY (¥)</SelectItem>
-                  <SelectItem value="AUD">AUD ($)</SelectItem>
-                  <SelectItem value="CAD">CAD ($)</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div>
-          <FormLabel>Assign to Teams</FormLabel>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            {teams.map((team) => (
-              <div key={team.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`team-${team.id}`}
-                  checked={form.getValues('teamIds')?.includes(team.id)}
-                  onCheckedChange={(checked) => 
-                    handleTeamChange(team.id, checked === true)
-                  }
-                />
-                <label
-                  htmlFor={`team-${team.id}`}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  {team.name}
-                </label>
-              </div>
-            ))}
+    <form onSubmit={handleSubmit}>
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Name <span className="text-red-500">*</span></Label>
+            <Input 
+              id="name" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="Full name" 
+              required 
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
+            <Input 
+              id="email" 
+              type="email" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              placeholder="Email address" 
+              required 
+            />
           </div>
         </div>
         
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Sending invitation..." : "Send invitation"}
+        <div className="space-y-2">
+          <Label htmlFor="role">Role <span className="text-red-500">*</span></Label>
+          <Select value={role} onValueChange={setRole}>
+            <SelectTrigger id="role">
+              <SelectValue placeholder="Select role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="manager">Manager</SelectItem>
+              <SelectItem value="developer">Developer</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="employment-type">Employment Type</Label>
+          <Select value={employmentType} onValueChange={setEmploymentType}>
+            <SelectTrigger id="employment-type">
+              <SelectValue placeholder="Select employment type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="full-time">Full Time</SelectItem>
+              <SelectItem value="part-time">Part Time</SelectItem>
+              <SelectItem value="contract">Contract</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="billing-type">Billing Type</Label>
+          <Select value={billingType} onValueChange={setBillingType}>
+            <SelectTrigger id="billing-type">
+              <SelectValue placeholder="Select billing type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="hourly">Hourly</SelectItem>
+              <SelectItem value="monthly">Monthly</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="billing-rate">Billing Rate</Label>
+            <Input 
+              id="billing-rate" 
+              type="number" 
+              value={billingRate} 
+              onChange={(e) => setBillingRate(e.target.value)} 
+              placeholder="Rate" 
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="currency">Currency</Label>
+            <Select value={currency} onValueChange={setCurrency}>
+              <SelectTrigger id="currency">
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USD">USD</SelectItem>
+                <SelectItem value="EUR">EUR</SelectItem>
+                <SelectItem value="GBP">GBP</SelectItem>
+                <SelectItem value="CAD">CAD</SelectItem>
+                <SelectItem value="AUD">AUD</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Team Assignment</Label>
+          <MultiSelect
+            options={teamOptions}
+            selectedValues={selectedTeams}
+            onValueChange={setSelectedTeams}
+            placeholder="Select teams"
+          />
+        </div>
+        
+        {error && (
+          <div className="bg-red-50 p-3 rounded-md flex items-center gap-2 text-red-700">
+            <AlertCircle className="h-4 w-4" />
+            <p className="text-sm">{error}</p>
+          </div>
+        )}
+        
+        <Button type="submit" className="w-full" disabled={isLoading || isSuccess}>
+          {isLoading ? "Sending Invitation..." : isSuccess ? (
+            <span className="flex items-center gap-1">
+              <Check className="h-4 w-4" /> Invitation Sent
+            </span>
+          ) : "Send Invitation"}
         </Button>
-      </form>
-    </Form>
+      </div>
+    </form>
   );
 }

@@ -1,3 +1,4 @@
+
 import { useAppContext } from "@/contexts/AppContext";
 import { Message, Task } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,7 +18,7 @@ interface MessageViewProps {
 }
 
 export function MessageView({ message, onReply }: MessageViewProps) {
-  const { getUserById, users, getProjectById, getClientById, tasks, addTask, currentUser } = useAppContext();
+  const { getUserById, users, getProjectById, getClientById, tasks, addComment, currentUser } = useAppContext();
   const [replyContent, setReplyContent] = useState("");
   const [isReplying, setIsReplying] = useState(false);
   // Task creation states
@@ -57,29 +58,13 @@ export function MessageView({ message, onReply }: MessageViewProps) {
   
   const handleSendReply = () => {
     if (replyContent.trim() && task) {
-      const mentionedUsers = parseUserMentions(replyContent);
-      
       // Add comment to the task
-      addComment(task.id, sender?.id || "", replyContent, mentionedUsers);
+      addComment(task.id, currentUser?.id || "", replyContent);
       
       setIsReplying(false);
       setReplyContent("");
       onReply();
     }
-  };
-  
-  // Parse @mentions from text
-  const parseUserMentions = (text: string): string[] => {
-    const mentionRegex = /@(\w+)/g;
-    const matches = [...text.matchAll(mentionRegex)];
-    
-    return matches.map(match => {
-      const username = match[1].toLowerCase();
-      const user = users.find(u => 
-        u.name.toLowerCase().replace(/\s+/g, '') === username
-      );
-      return user?.id || "";
-    }).filter(id => id !== "");
   };
 
   // Open task creation dialog for creating a subtask
@@ -217,10 +202,4 @@ export function MessageView({ message, onReply }: MessageViewProps) {
       />
     </div>
   );
-}
-
-// Helper function for adding comments that wasn't exported
-function addComment(taskId: string, userId: string, content: string, mentionedUserIds: string[]) {
-  // This is a placeholder - the actual implementation uses the context
-  console.log("Adding comment", { taskId, userId, content, mentionedUserIds });
 }

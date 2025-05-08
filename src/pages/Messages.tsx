@@ -5,10 +5,17 @@ import { MessageView } from "@/components/messages/MessageView";
 import { Message } from "@/types";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 const Messages = () => {
-  const { messages, currentUser, clients, projects, tasks, users } = useAppContext();
+  const { messages, currentUser, clients, projects, tasks, users, getTaskById } = useAppContext();
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const { messageId } = useParams<{ messageId?: string }>();
   const navigate = useNavigate();
@@ -19,6 +26,9 @@ const Messages = () => {
   const [taskFilter, setTaskFilter] = useState<string>("");
   const [userFilter, setUserFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
+  
+  // Get all tasks that have comments
+  const tasksWithComments = tasks.filter(task => task.comments && task.comments.length > 0);
   
   // Filter messages to show only those that involve the current user
   const userMessages = messages.filter(
@@ -58,7 +68,12 @@ const Messages = () => {
         }
       }
       
-      return isUserMessage && matchesFilters;
+      // Only show messages that are related to task comments (mentions)
+      // In a real application, we would have a better way to identify messages
+      // that are task comment mentions vs other types of messages
+      const isCommentMention = msg.commentId !== undefined;
+      
+      return isUserMessage && matchesFilters && isCommentMention;
     }
   ).sort((a, b) => 
     new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -83,27 +98,37 @@ const Messages = () => {
     if (!selectedMessage || !currentUser) return;
     
     // In a real app, this would reply directly to the original comment
-    // Here we just acknowledge the action
     console.log("Reply to comment on task:", selectedMessage.taskId);
   };
 
+  // Get the count of unread messages
+  const unreadCount = userMessages.filter(msg => !msg.read).length;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Messages</h1>
-        <p className="text-muted-foreground mt-1">
-          Task comments that mention you
-        </p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-bold">Messages</h1>
+          <p className="text-muted-foreground mt-1">
+            Task comments that mention you
+          </p>
+        </div>
+        
+        {unreadCount > 0 && (
+          <Badge variant="secondary" className="text-base py-1 px-3">
+            {unreadCount} unread
+          </Badge>
+        )}
       </div>
       
       {/* Horizontal filters */}
       <div className="flex flex-wrap gap-4">
         <Select value={clientFilter} onValueChange={setClientFilter}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Client" />
+            <SelectValue placeholder="All Clients" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all-clients">All Clients</SelectItem>
+            <SelectItem value="">All Clients</SelectItem>
             {clients.map(client => (
               <SelectItem key={client.id} value={client.id}>
                 {client.name}
@@ -114,10 +139,10 @@ const Messages = () => {
         
         <Select value={projectFilter} onValueChange={setProjectFilter}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Project" />
+            <SelectValue placeholder="All Projects" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all-projects">All Projects</SelectItem>
+            <SelectItem value="">All Projects</SelectItem>
             {projects
               .filter(project => !clientFilter || project.clientId === clientFilter)
               .map(project => (
@@ -130,12 +155,16 @@ const Messages = () => {
         
         <Select value={taskFilter} onValueChange={setTaskFilter}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Task" />
+            <SelectValue placeholder="All Tasks" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all-tasks">All Tasks</SelectItem>
-            {tasks
-              .filter(task => !projectFilter || task.projectId === projectFilter)
+            <SelectItem value="">All Tasks</SelectItem>
+            {tasksWithComments
+              .filter(task => {
+                const project = projects.find(p => p.id === task.projectId);
+                return (!projectFilter || task.projectId === projectFilter) &&
+                       (!clientFilter || (project && project.clientId === clientFilter));
+              })
               .map(task => (
                 <SelectItem key={task.id} value={task.id}>
                   {task.title}
@@ -146,10 +175,10 @@ const Messages = () => {
         
         <Select value={userFilter} onValueChange={setUserFilter}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="User" />
+            <SelectValue placeholder="All Users" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all-users">All Users</SelectItem>
+            <SelectItem value="">All Users</SelectItem>
             {users.map(user => (
               <SelectItem key={user.id} value={user.id}>
                 {user.name}
@@ -160,35 +189,42 @@ const Messages = () => {
         
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder="All Messages" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all-messages">All Messages</SelectItem>
+            <SelectItem value="">All Messages</SelectItem>
             <SelectItem value="read">Read</SelectItem>
             <SelectItem value="unread">Unread</SelectItem>
           </SelectContent>
         </Select>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1">
-          <MessageList 
-            messages={userMessages}
-            onSelect={handleSelectMessage}
-            selectedMessageId={selectedMessage?.id}
-          />
+      {userMessages.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-1">
+            <MessageList 
+              messages={userMessages}
+              onSelect={handleSelectMessage}
+              selectedMessageId={selectedMessage?.id}
+            />
+          </div>
+          
+          <div className="md:col-span-2">
+            {selectedMessage ? (
+              <MessageView message={selectedMessage} onReply={handleReply} />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full min-h-[300px] border rounded-md">
+                <p className="text-muted-foreground">Select a message to view details</p>
+              </div>
+            )}
+          </div>
         </div>
-        
-        <div className="md:col-span-2">
-          {selectedMessage ? (
-            <MessageView message={selectedMessage} onReply={handleReply} />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full min-h-[300px] border rounded-md">
-              <p className="text-muted-foreground">Select a message to view details</p>
-            </div>
-          )}
+      ) : (
+        <div className="flex flex-col items-center justify-center min-h-[400px] border rounded-md">
+          <p className="text-lg text-muted-foreground">No messages found</p>
+          <p className="text-sm text-muted-foreground mt-1">When someone mentions you in a task comment, it will appear here</p>
         </div>
-      </div>
+      )}
     </div>
   );
 };
