@@ -18,7 +18,7 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
     firstName: user?.name.split(' ')[0] || '',
     lastName: user?.name.split(' ').slice(1).join(' ') || '',
     email: user?.email || '',
-    phone: '',
+    phone: user?.phone || '',
     avatar: user?.avatar || ''
   });
 
@@ -38,7 +38,8 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
     updateUser(userId, {
       name: `${formData.firstName} ${formData.lastName}`.trim(),
       email: formData.email,
-      avatar: formData.avatar
+      avatar: formData.avatar,
+      phone: formData.phone
     });
     
     toast({
@@ -115,7 +116,7 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
                 id="phone"
                 name="phone"
                 type="tel"
-                value={formData.phone || ""}
+                value={formData.phone}
                 onChange={handleInputChange}
                 placeholder="+1 (555) 123-4567"
               />

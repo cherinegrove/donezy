@@ -36,7 +36,7 @@ export function GeneralNotificationSettings({ userId }: NotificationSettingsProp
     },
     tasks: {
       new: true,
-      updated: true
+      updated: false
     },
     subtasks: {
       new: true,
@@ -48,7 +48,9 @@ export function GeneralNotificationSettings({ userId }: NotificationSettingsProp
     }
   };
   
-  const [settings, setSettings] = useState(user?.notificationPreferences?.notification || defaultPreferences);
+  const [settings, setSettings] = useState(
+    user?.notificationPreferences?.notificationSettings || defaultPreferences
+  );
   
   if (!user) {
     return null;
@@ -68,7 +70,7 @@ export function GeneralNotificationSettings({ userId }: NotificationSettingsProp
     updateUser(userId, {
       notificationPreferences: {
         ...user.notificationPreferences,
-        notification: settings
+        notificationSettings: settings
       }
     });
     

@@ -23,6 +23,11 @@ export function TopBar() {
     msg => msg.recipientIds.includes(currentUser?.id || "") && !msg.read
   );
 
+  // Sort notifications by timestamp (newest first)
+  const sortedUnreadMessages = [...unreadMessages].sort((a, b) => 
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+
   return (
     <header className="border-b bg-background">
       <div className="flex h-16 items-center px-4 md:px-6">
@@ -43,26 +48,31 @@ export function TopBar() {
                 className="relative"
               >
                 <Bell className="h-5 w-5" />
-                {unreadMessages.length > 0 && (
+                {sortedUnreadMessages.length > 0 && (
                   <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500" />
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {unreadMessages.length === 0 ? (
+            <DropdownMenuContent align="end" className="w-80">
+              {sortedUnreadMessages.length === 0 ? (
                 <DropdownMenuItem>
                   <span>No new notifications</span>
                 </DropdownMenuItem>
               ) : (
-                unreadMessages.slice(0, 5).map((msg) => (
+                sortedUnreadMessages.slice(0, 5).map((msg) => (
                   <DropdownMenuItem key={msg.id} onClick={() => navigate(`/messages/${msg.id}`)}>
-                    <span className="font-medium">{msg.content.slice(0, 30)}...</span>
+                    <div className="flex flex-col w-full">
+                      <span className="font-medium">{msg.content.slice(0, 30)}{msg.content.length > 30 ? '...' : ''}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(msg.timestamp).toLocaleString()}
+                      </span>
+                    </div>
                   </DropdownMenuItem>
                 ))
               )}
-              {unreadMessages.length > 5 && (
+              {sortedUnreadMessages.length > 5 && (
                 <DropdownMenuItem onClick={() => navigate("/messages")}>
-                  <span className="text-primary">View all messages</span>
+                  <span className="text-primary">View all notifications ({sortedUnreadMessages.length})</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
