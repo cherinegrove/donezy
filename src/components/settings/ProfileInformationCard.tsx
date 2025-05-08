@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -157,14 +158,16 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
                         className="flex flex-col items-center cursor-pointer space-y-2 transition-all hover:scale-110"
                       >
                         <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-transparent hover:border-primary">
-                          <AvatarImage 
-                            src={avatar.url} 
-                            alt={avatar.name} 
-                            className="object-cover"
-                          />
-                          <AvatarFallback>
-                            <UserRound className="h-8 w-8" />
-                          </AvatarFallback>
+                          <Avatar className="h-16 w-16">
+                            <AvatarImage 
+                              src={avatar.url} 
+                              alt={avatar.name} 
+                              className="object-cover"
+                            />
+                            <AvatarFallback>
+                              <UserRound className="h-8 w-8" />
+                            </AvatarFallback>
+                          </Avatar>
                         </div>
                         <div className="flex items-center space-x-1">
                           <RadioGroupItem id={avatar.id} value={avatar.url} className="sr-only" />
