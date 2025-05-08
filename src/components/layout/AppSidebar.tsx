@@ -16,7 +16,6 @@ import {
   Briefcase,
   BarChart,
   Building,
-  Users,
   Settings,
   FileText,
   MessageSquare,
@@ -60,11 +59,6 @@ export function AppSidebar() {
       name: "Time Tracking",
       icon: Clock,
       path: "/time",
-    },
-    {
-      name: "Users",
-      icon: Users,
-      path: "/users",
     },
     {
       name: "Reports",

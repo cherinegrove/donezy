@@ -3,12 +3,16 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { KanbanCustomizationCard } from "@/components/settings/KanbanCustomizationCard";
+import { UserInviteForm } from "@/components/settings/UserInviteForm";
 import { useAppContext } from "@/contexts/AppContext";
+import { UsersManagementTab } from "@/components/settings/UsersManagementTab";
+import { ManagerNotificationSettings } from "@/components/settings/ManagerNotificationSettings";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const { currentUser } = useAppContext();
   const isClient = currentUser?.role === 'client';
+  const isAdminOrManager = currentUser?.role === 'admin' || currentUser?.role === 'manager';
   
   return (
     <div className="space-y-6">
@@ -20,9 +24,10 @@ const Settings = () => {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-1 md:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-1 md:grid-cols-5">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          {isAdminOrManager && <TabsTrigger value="users">Users</TabsTrigger>}
           {!isClient && <TabsTrigger value="teams">Teams & Permissions</TabsTrigger>}
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
@@ -45,6 +50,10 @@ const Settings = () => {
         </TabsContent>
         
         <TabsContent value="notifications" className="mt-6 space-y-6">
+          {currentUser?.role === 'manager' && (
+            <ManagerNotificationSettings userId={currentUser.id} />
+          )}
+          
           <Card>
             <CardHeader>
               <CardTitle>Notification Settings</CardTitle>
@@ -55,11 +64,17 @@ const Settings = () => {
             <CardContent>
               {/* Notification settings would go here */}
               <p className="text-center py-12 text-muted-foreground">
-                Notification settings coming soon
+                General notification settings coming soon
               </p>
             </CardContent>
           </Card>
         </TabsContent>
+
+        {isAdminOrManager && (
+          <TabsContent value="users" className="mt-6 space-y-6">
+            <UsersManagementTab />
+          </TabsContent>
+        )}
         
         <TabsContent value="teams" className="mt-6 space-y-6">
           <Card>
