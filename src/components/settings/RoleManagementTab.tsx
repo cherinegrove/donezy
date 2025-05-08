@@ -162,7 +162,7 @@ export function RoleManagementTab() {
                                   type="radio"
                                   id={`${permission}-${level}`}
                                   className="h-4 w-4 cursor-pointer"
-                                  checked={form.getValues().permissions[permission as keyof typeof form.getValues().permissions] === level}
+                                  checked={form.getValues().permissions[permission as keyof FormValues["permissions"]] === level}
                                   onChange={() => {
                                     form.setValue(`permissions.${permission}`, level as AccessLevel);
                                   }}
