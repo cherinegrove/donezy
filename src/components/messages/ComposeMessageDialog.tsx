@@ -17,8 +17,10 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppContext } from "@/contexts/AppContext";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
+import { Command, CommandGroup, CommandItem } from "@/components/ui/command";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ComposeMessageDialogProps {
   open: boolean;
@@ -33,6 +35,13 @@ export function ComposeMessageDialog({
   
   const [recipients, setRecipients] = useState<string[]>([]);
   const [content, setContent] = useState("");
+  
+  // Mention states
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const handleSend = () => {
     if (recipients.length === 0) {
@@ -75,6 +84,128 @@ export function ComposeMessageDialog({
   const handleRemoveRecipient = (userId: string) => {
     setRecipients(recipients.filter(id => id !== userId));
   };
+  
+  // Handle textarea content change to detect @ mentions
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const text = e.target.value;
+    setContent(text);
+    
+    // Get cursor position
+    const cursorPos = e.target.selectionStart || 0;
+    setCursorPosition(cursorPos);
+    
+    // Check for @ mentions
+    if (cursorPos > 0) {
+      const textBeforeCursor = text.substring(0, cursorPos);
+      const atIndex = textBeforeCursor.lastIndexOf('@');
+      
+      if (atIndex !== -1 && (atIndex === 0 || /\s/.test(textBeforeCursor[atIndex - 1]))) {
+        const query = textBeforeCursor.substring(atIndex + 1);
+        
+        if (query.length > 0 && !query.includes(' ')) {
+          setMentionQuery(query);
+          setMentionOpen(true);
+          
+          // Calculate mention dropdown position based on textarea and cursor
+          if (textareaRef.current) {
+            const cursorCoords = getCaretCoordinates(textareaRef.current, atIndex);
+            setMentionPosition({
+              top: cursorCoords.top + 20,  // Add some offset below the @
+              left: cursorCoords.left
+            });
+          }
+          
+          return;
+        }
+      }
+    }
+    
+    setMentionOpen(false);
+  };
+  
+  // Get caret (cursor) coordinates in the textarea
+  const getCaretCoordinates = (element: HTMLTextAreaElement, position: number) => {
+    // Create a mirror div with same styling as textarea
+    const mirror = document.createElement('div');
+    const style = window.getComputedStyle(element);
+    
+    // Copy styles from textarea to mirror div
+    mirror.style.width = element.offsetWidth + 'px';
+    mirror.style.padding = style.padding;
+    mirror.style.border = style.border;
+    mirror.style.fontFamily = style.fontFamily;
+    mirror.style.fontSize = style.fontSize;
+    mirror.style.lineHeight = style.lineHeight;
+    mirror.style.whiteSpace = 'pre-wrap';
+    mirror.style.wordWrap = 'break-word';
+    mirror.style.position = 'absolute';
+    mirror.style.top = '-9999px';
+    
+    document.body.appendChild(mirror);
+    
+    // Add text content up to the caret position
+    const textBeforeCaret = element.value.substring(0, position);
+    mirror.textContent = textBeforeCaret;
+    
+    // Add a span at the end to mark the position
+    const caretSpan = document.createElement('span');
+    caretSpan.textContent = '|';
+    mirror.appendChild(caretSpan);
+    
+    const caretRect = caretSpan.getBoundingClientRect();
+    const textareaRect = element.getBoundingClientRect();
+    
+    document.body.removeChild(mirror);
+    
+    return {
+      top: caretRect.top - textareaRect.top + element.scrollTop,
+      left: caretRect.left - textareaRect.left + element.scrollLeft
+    };
+  };
+  
+  // Handle user selection from the mention dropdown
+  const handleSelectUser = (user: { id: string; name: string }) => {
+    if (!textareaRef.current) return;
+    
+    const text = content;
+    const beforeCursor = text.substring(0, cursorPosition);
+    const afterCursor = text.substring(cursorPosition);
+    
+    // Find the position of the @ symbol before cursor
+    const atIndex = beforeCursor.lastIndexOf('@');
+    
+    if (atIndex !== -1) {
+      // Replace the @query with @username
+      const newText = 
+        beforeCursor.substring(0, atIndex) + 
+        `@${user.name} ` + 
+        afterCursor;
+      
+      setContent(newText);
+      
+      // Add the mentioned user to recipients if they're not already added
+      if (!recipients.includes(user.id)) {
+        setRecipients([...recipients, user.id]);
+      }
+      
+      // Focus back on textarea and set cursor after the inserted mention
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          const newCursorPos = atIndex + user.name.length + 2; // +2 for @ and space
+          textareaRef.current.selectionStart = newCursorPos;
+          textareaRef.current.selectionEnd = newCursorPos;
+        }
+      }, 0);
+    }
+    
+    setMentionOpen(false);
+  };
+  
+  // Filter users based on mention query (excluding current user)
+  const filteredUsers = users
+    .filter(user => user.id !== currentUser?.id)
+    .filter(user => user.name.toLowerCase().includes(mentionQuery.toLowerCase()));
   
   const otherUsers = users.filter(user => user.id !== currentUser?.id);
 
@@ -123,14 +254,45 @@ export function ComposeMessageDialog({
             )}
           </div>
           
-          <div>
+          <div className="relative">
             <Label>Message</Label>
             <Textarea 
-              placeholder="Write your message here..."
+              ref={textareaRef}
+              placeholder="Write your message here... Use @username to mention users"
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={handleTextareaChange}
               rows={5}
             />
+            
+            {/* Mention Dropdown */}
+            {mentionOpen && filteredUsers.length > 0 && (
+              <div 
+                className="absolute z-50 bg-popover border rounded-md shadow-md"
+                style={{
+                  top: `${mentionPosition.top}px`,
+                  left: `${mentionPosition.left}px`,
+                  minWidth: '200px'
+                }}
+              >
+                <Command>
+                  <CommandGroup>
+                    {filteredUsers.map((user) => (
+                      <CommandItem
+                        key={user.id}
+                        onSelect={() => handleSelectUser(user)}
+                        className="flex items-center gap-2 p-2 cursor-pointer"
+                      >
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={user.avatar} />
+                          <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                        </Avatar>
+                        <span>{user.name}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </div>
+            )}
           </div>
         </div>
         
