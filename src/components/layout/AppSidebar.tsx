@@ -81,6 +81,8 @@ export function AppSidebar() {
     return false;
   };
   
+  // Reordered navigation items according to the requested order:
+  // Dashboard, Messages, Tasks, Projects, Time Tracking, Clients, Reports
   const navItems = [
     {
       name: "Dashboard",
@@ -89,10 +91,11 @@ export function AppSidebar() {
       feature: "accountSettings" // Dashboard is part of account settings
     },
     {
-      name: "Projects",
-      icon: Briefcase,
-      path: "/projects",
-      feature: "projects"
+      name: "Messages",
+      icon: MessageSquare,
+      path: "/messages",
+      feature: "accountSettings", // Messages is part of general account settings
+      badge: unreadMessages > 0 ? unreadMessages : undefined,
     },
     {
       name: "Tasks",
@@ -101,10 +104,10 @@ export function AppSidebar() {
       feature: "tasks"
     },
     {
-      name: "Clients",
-      icon: Building,
-      path: "/clients",
-      feature: "clients"
+      name: "Projects",
+      icon: Briefcase,
+      path: "/projects",
+      feature: "projects"
     },
     {
       name: "Time Tracking",
@@ -113,17 +116,16 @@ export function AppSidebar() {
       feature: "timeTracking"
     },
     {
+      name: "Clients",
+      icon: Building,
+      path: "/clients",
+      feature: "clients"
+    },
+    {
       name: "Reports",
       icon: BarChart,
       path: "/reports",
       feature: "reports"
-    },
-    {
-      name: "Messages",
-      icon: MessageSquare,
-      path: "/messages",
-      feature: "accountSettings", // Messages is part of general account settings
-      badge: unreadMessages > 0 ? unreadMessages : undefined,
     }
   ];
 
