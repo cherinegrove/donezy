@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { Upload } from "lucide-react";
 
 export function ProfileInformationCard({ userId }: { userId: string }) {
   const { getUserById, updateUser } = useAppContext();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const user = getUserById(userId);
   
@@ -22,6 +24,8 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
     avatar: user?.avatar || ''
   });
 
+  const [previewImage, setPreviewImage] = useState<string | null>(user?.avatar || null);
+
   if (!user) return null;
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,6 +34,29 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Create a URL for the uploaded file to show preview
+    const imageUrl = URL.createObjectURL(file);
+    setPreviewImage(imageUrl);
+    
+    // Convert image to base64 for storage
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({
+        ...prev,
+        avatar: reader.result as string
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  const handleSelectImage = () => {
+    fileInputRef.current?.click();
   };
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -60,18 +87,26 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex flex-col items-center space-y-4">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={formData.avatar || user.avatar} alt={user.name} />
+              <AvatarImage src={previewImage || user.avatar} alt={user.name} />
               <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
-            <div className="w-full max-w-xs">
-              <Label htmlFor="avatar" className="mb-2 block">Profile Image URL</Label>
-              <Input
-                id="avatar"
-                name="avatar"
-                value={formData.avatar}
-                onChange={handleInputChange}
-                placeholder="https://example.com/avatar.jpg"
+            <div className="flex items-center">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                accept="image/*"
+                className="hidden"
               />
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleSelectImage}
+                className="flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                Upload Profile Picture
+              </Button>
             </div>
           </div>
           
