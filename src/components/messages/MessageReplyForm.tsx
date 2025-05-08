@@ -57,21 +57,15 @@ export function MessageReplyForm({
         
         if (!query.includes(' ')) {
           setMentionQuery(query);
+          setMentionOpen(true);
           
-          // Show dropdown after 3+ characters or immediately if empty (showing all options)
-          if (query.length >= 3 || query.length === 0) {
-            setMentionOpen(true);
-            
-            // Calculate mention dropdown position based on textarea and cursor
-            if (textareaRef.current) {
-              const cursorCoords = getCaretCoordinates(textareaRef.current, atIndex);
-              setMentionPosition({
-                top: cursorCoords.top + 20,  // Add some offset below the @
-                left: cursorCoords.left
-              });
-            }
-          } else {
-            setMentionOpen(false);
+          // Calculate mention dropdown position based on textarea and cursor
+          if (textareaRef.current) {
+            const cursorCoords = getCaretCoordinates(textareaRef.current, atIndex);
+            setMentionPosition({
+              top: cursorCoords.top + 20,  // Add some offset below the @
+              left: cursorCoords.left
+            });
           }
           
           return;
@@ -123,7 +117,7 @@ export function MessageReplyForm({
     <div className="p-4 border-t space-y-3 relative">
       <Textarea
         ref={textareaRef}
-        placeholder="Type your reply... Use @ to mention users (type 3+ characters to search)"
+        placeholder="Type your reply... Use @ to mention someone"
         value={replyContent}
         onChange={handleTextareaChange}
         rows={4}

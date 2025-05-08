@@ -53,25 +53,28 @@ export function MentionDropdown({
   
   // Filter users with improved partial matching
   useEffect(() => {
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const filtered = users.filter(user => {
-        // Get first name if it's not already provided
-        const firstName = (user.firstName || getFirstName(user.name)).toLowerCase();
-        const fullName = user.name.toLowerCase();
-        const email = user.email?.toLowerCase() || '';
-        
-        // Check for matches in first name, full name, or email
-        return firstName.includes(query) || 
-               fullName.includes(query) || 
-               email.includes(query);
-      });
-      
-      setFilteredUsers(filtered);
-      setSelectedIndex(0); // Reset selection when filter changes
-    } else {
+    // When search query is empty or very short, show all users
+    if (!searchQuery || searchQuery.length < 1) {
       setFilteredUsers(users);
+      setSelectedIndex(0);
+      return;
     }
+    
+    const query = searchQuery.toLowerCase();
+    const filtered = users.filter(user => {
+      // Get first name if it's not already provided
+      const firstName = (user.firstName || getFirstName(user.name)).toLowerCase();
+      const fullName = user.name.toLowerCase();
+      const email = user.email?.toLowerCase() || '';
+      
+      // Check for matches in first name, full name, or email
+      return firstName.includes(query) || 
+             fullName.includes(query) || 
+             email.includes(query);
+    });
+    
+    setFilteredUsers(filtered);
+    setSelectedIndex(0); // Reset selection when filter changes
   }, [users, searchQuery]);
   
   // Handle keyboard navigation
@@ -106,7 +109,7 @@ export function MentionDropdown({
   if (!isOpen) return null;
   
   // Show a helpful message when there are no matches
-  if (filteredUsers.length === 0 && searchQuery.length > 0) {
+  if (filteredUsers.length === 0) {
     return (
       <div 
         className="absolute z-50 bg-white dark:bg-gray-800 border rounded-md shadow-md p-2 text-sm"
@@ -116,23 +119,9 @@ export function MentionDropdown({
           minWidth: '200px'
         }}
       >
-        No users found matching "{searchQuery}"
-      </div>
-    );
-  }
-
-  // If it's empty and the user hasn't typed anything yet
-  if (filteredUsers.length === 0 && searchQuery.length === 0) {
-    return (
-      <div 
-        className="absolute z-50 bg-white dark:bg-gray-800 border rounded-md shadow-md p-2 text-sm"
-        style={{
-          top: `${position.top}px`,
-          left: `${position.left}px`,
-          minWidth: '200px'
-        }}
-      >
-        Start typing to search for users
+        {searchQuery ? 
+          `No users found matching "${searchQuery}"` :
+          "Type to search for users"}
       </div>
     );
   }
@@ -146,10 +135,10 @@ export function MentionDropdown({
         minWidth: '200px'
       }}
     >
-      <div className="rounded-md border shadow-md overflow-hidden">
+      <div className="rounded-md overflow-hidden">
         <div className="p-1 bg-popover text-popover-foreground">
           <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-            {searchQuery ? `Matching "${searchQuery}"` : "Mentions"}
+            {searchQuery ? `Matching "${searchQuery}"` : "Select a user"}
           </div>
           <div className="overflow-hidden max-h-[200px] overflow-y-auto">
             {filteredUsers.map((user, index) => {
