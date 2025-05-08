@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,26 +12,9 @@ const Clients = () => {
   const navigate = useNavigate();
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
   
-  // Force component to re-render when clients change
-  const [forceRender, setForceRender] = useState(0);
-  
-  // Force re-render when the component mounts and when clients change
-  useEffect(() => {
-    console.log("Clients component - clients updated:", clients);
-    setForceRender(prev => prev + 1);
-  }, [clients]); 
-  
   const getProjectCount = (clientId: string) => {
     return projects.filter(project => project.clientId === clientId).length;
   };
-
-  // Handle client dialog close and force a re-render
-  const handleCloseClientDialog = () => {
-    setIsAddClientDialogOpen(false);
-    setForceRender(prev => prev + 1);
-  };
-
-  console.log("Current clients render:", clients, "Force render count:", forceRender); 
 
   return (
     <div className="space-y-6">
@@ -94,7 +77,7 @@ const Clients = () => {
       
       <AddClientDialog 
         isOpen={isAddClientDialogOpen} 
-        onClose={handleCloseClientDialog}
+        onClose={() => setIsAddClientDialogOpen(false)}
       />
     </div>
   );

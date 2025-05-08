@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import {
   User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role, ProjectTemplate, TemplateTask, CustomRole
 } from "@/types";
@@ -10,26 +10,88 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
 
+const STORAGE_KEY = "lovable-app-state";
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const saveStateToStorage = (key: string, data: any) => {
+  try {
+    const serializedData = JSON.stringify(data);
+    localStorage.setItem(key, serializedData);
+  } catch (error) {
+    console.error("Failed to save state to local storage:", error);
+  }
+};
+
+const loadStateFromStorage = (key: string) => {
+  try {
+    const serializedData = localStorage.getItem(key);
+    if (serializedData === null) return null;
+    return JSON.parse(serializedData);
+  } catch (error) {
+    console.error("Failed to load state from local storage:", error);
+    return null;
+  }
+};
+
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [users, setUsers] = useState<User[]>(mockUsers);
-  const [teams, setTeams] = useState<Team[]>(mockTeams);
-  const [clients, setClients] = useState<Client[]>(mockClients);
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
-  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(mockTimeEntries);
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
-  const [purchases, setPurchases] = useState<Purchase[]>(mockPurchases);
-  const [customFields, setCustomFields] = useState<CustomField[]>(mockCustomFields);
-  const [projectTemplates, setProjectTemplates] = useState<ProjectTemplate[]>([]);
-  const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
+  // Try to load state from localStorage first, fall back to mock data if not available
+  const initialState = loadStateFromStorage(STORAGE_KEY) || {
+    users: mockUsers,
+    teams: mockTeams,
+    clients: mockClients,
+    projects: mockProjects,
+    tasks: mockTasks,
+    timeEntries: mockTimeEntries,
+    messages: mockMessages,
+    purchases: mockPurchases,
+    customFields: mockCustomFields,
+    projectTemplates: [],
+    customRoles: [],
+  };
+
+  const [users, setUsers] = useState<User[]>(initialState.users || mockUsers);
+  const [teams, setTeams] = useState<Team[]>(initialState.teams || mockTeams);
+  const [clients, setClients] = useState<Client[]>(initialState.clients || mockClients);
+  const [projects, setProjects] = useState<Project[]>(initialState.projects || mockProjects);
+  const [tasks, setTasks] = useState<Task[]>(initialState.tasks || mockTasks);
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(initialState.timeEntries || mockTimeEntries);
+  const [messages, setMessages] = useState<Message[]>(initialState.messages || mockMessages);
+  const [purchases, setPurchases] = useState<Purchase[]>(initialState.purchases || mockPurchases);
+  const [customFields, setCustomFields] = useState<CustomField[]>(initialState.customFields || mockCustomFields);
+  const [projectTemplates, setProjectTemplates] = useState<ProjectTemplate[]>(initialState.projectTemplates || []);
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>(initialState.customRoles || []);
   
   // Current user (hardcoded for now, would come from auth in real app)
-  const [currentUser, setCurrentUser] = useState<User | null>(mockUsers[0]);
-  const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(initialState.currentUser || mockUsers[0]);
+  const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(initialState.activeTimeEntry || null);
   
   const { toast } = useToast();
+  
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    const state = {
+      users,
+      teams,
+      clients,
+      projects,
+      tasks,
+      timeEntries,
+      messages,
+      purchases,
+      customFields,
+      projectTemplates,
+      customRoles,
+      currentUser,
+      activeTimeEntry,
+    };
+    
+    saveStateToStorage(STORAGE_KEY, state);
+  }, [
+    users, teams, clients, projects, tasks, timeEntries, 
+    messages, purchases, customFields, projectTemplates, 
+    customRoles, currentUser, activeTimeEntry
+  ]);
   
   // Role management functions
   const addCustomRole = (role: Omit<CustomRole, "id">) => {
@@ -38,35 +100,26 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: "Success", description: "Role has been created" });
   };
   
-  const updateCustomRole = (id: string, updates: Partial<CustomRole>) => {
-    setCustomRoles((prev) => prev.map(role => role.id === id ? { ...role, ...updates } : role));
-    toast({ title: "Success", description: "Role has been updated" });
+  // CRUD operations for clients
+  const addClient = (client: Omit<Client, "id">) => {
+    const newClient = { ...client, id: `client-${uuidv4()}` };
+    
+    setClients(prevClients => {
+      const updatedClients = [...prevClients, newClient];
+      return updatedClients;
+    });
+    
+    toast({ title: "Success", description: "Client has been added" });
   };
   
-  const deleteCustomRole = (id: string) => {
-    // Check if any users are using this role
-    const usersWithRole = users.filter(user => user.customRoleId === id);
-    
-    if (usersWithRole.length > 0) {
-      toast({ 
-        title: "Cannot Delete Role", 
-        description: `Role is assigned to ${usersWithRole.length} users`, 
-        variant: "destructive" 
-      });
-      return;
-    }
-    
-    setCustomRoles((prev) => prev.filter(role => role.id !== id));
-    toast({ title: "Success", description: "Role has been deleted" });
+  const updateClient = (id: string, updates: Partial<Client>) => {
+    setClients((prev) => prev.map(client => client.id === id ? { ...client, ...updates } : client));
+    toast({ title: "Success", description: "Client has been updated" });
   };
   
-  const assignRoleToUser = (userId: string, roleId: string) => {
-    setUsers(prev => prev.map(user => 
-      user.id === userId
-        ? { ...user, customRoleId: roleId }
-        : user
-    ));
-    toast({ title: "Success", description: "Role has been assigned to user" });
+  const deleteClient = (id: string) => {
+    setClients((prev) => prev.filter(client => client.id !== id));
+    toast({ title: "Success", description: "Client has been deleted" });
   };
   
   // Authentication
@@ -180,23 +233,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const deleteTeam = (id: string) => {
     setTeams((prev) => prev.filter(team => team.id !== id));
     toast({ title: "Success", description: "Team has been deleted" });
-  };
-  
-  // CRUD operations for clients
-  const addClient = (client: Omit<Client, "id">) => {
-    const newClient = { ...client, id: `client-${uuidv4()}` };
-    setClients((prev) => [...prev, newClient]);
-    toast({ title: "Success", description: "Client has been added" });
-  };
-  
-  const updateClient = (id: string, updates: Partial<Client>) => {
-    setClients((prev) => prev.map(client => client.id === id ? { ...client, ...updates } : client));
-    toast({ title: "Success", description: "Client has been updated" });
-  };
-  
-  const deleteClient = (id: string) => {
-    setClients((prev) => prev.filter(client => client.id !== id));
-    toast({ title: "Success", description: "Client has been deleted" });
   };
   
   // CRUD operations for projects
