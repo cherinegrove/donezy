@@ -32,6 +32,11 @@ export function MessageReplyForm({
   const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
   const [cursorPosition, setCursorPosition] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Helper function to get first name
+  const getFirstName = (fullName: string): string => {
+    return fullName.split(' ')[0];
+  };
 
   // Handle textarea content change to detect @ mentions
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -83,10 +88,13 @@ export function MessageReplyForm({
     const atIndex = beforeCursor.lastIndexOf('@');
     
     if (atIndex !== -1) {
-      // Replace the @query with @username
+      // Get the first name to use in the mention
+      const firstName = getFirstName(user.name);
+      
+      // Replace the @query with @firstname
       const newText = 
         beforeCursor.substring(0, atIndex) + 
-        `@${user.name} ` + 
+        `@${firstName} ` + 
         afterCursor;
       
       setReplyContent(newText);
@@ -95,7 +103,7 @@ export function MessageReplyForm({
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus();
-          const newCursorPos = atIndex + user.name.length + 2; // +2 for @ and space
+          const newCursorPos = atIndex + firstName.length + 2; // +2 for @ and space
           textareaRef.current.selectionStart = newCursorPos;
           textareaRef.current.selectionEnd = newCursorPos;
         }
@@ -109,7 +117,7 @@ export function MessageReplyForm({
     <div className="p-4 border-t space-y-3 relative">
       <Textarea
         ref={textareaRef}
-        placeholder="Type your reply... Use @username to mention users"
+        placeholder="Type your reply... Use @firstname to mention users"
         value={replyContent}
         onChange={handleTextareaChange}
         rows={4}

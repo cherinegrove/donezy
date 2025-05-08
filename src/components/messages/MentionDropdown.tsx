@@ -1,4 +1,3 @@
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useEffect } from "react";
 
@@ -6,6 +5,7 @@ interface User {
   id: string;
   name: string;
   avatar?: string;
+  firstName?: string; // Added firstName as an optional property
 }
 
 interface MentionDropdownProps {
@@ -26,12 +26,19 @@ export function MentionDropdown({
   const [filteredUsers, setFilteredUsers] = useState<User[]>(users);
   const [selectedIndex, setSelectedIndex] = useState(0);
   
-  // Filter users based on search query
+  // Helper function to get first name
+  const getFirstName = (fullName: string): string => {
+    return fullName.split(' ')[0];
+  };
+  
+  // Filter users based on search query against first names
   useEffect(() => {
     if (searchQuery) {
-      const filtered = users.filter(user => 
-        user.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      const filtered = users.filter(user => {
+        // Get first name if it's not already provided
+        const firstName = user.firstName || getFirstName(user.name);
+        return firstName.toLowerCase().includes(searchQuery.toLowerCase());
+      });
       setFilteredUsers(filtered);
       setSelectedIndex(0); // Reset selection when filter changes
     } else {
@@ -39,7 +46,7 @@ export function MentionDropdown({
     }
   }, [users, searchQuery]);
   
-  // Handle keyboard navigation (for future enhancement)
+  // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
@@ -85,21 +92,24 @@ export function MentionDropdown({
             {searchQuery ? `Matching "${searchQuery}"` : "Mentions"}
           </div>
           <div className="overflow-hidden max-h-[200px] overflow-y-auto">
-            {filteredUsers.map((user, index) => (
-              <div
-                key={user.id}
-                onClick={() => onSelectUser(user)}
-                className={`relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${
-                  index === selectedIndex ? 'bg-accent text-accent-foreground' : ''
-                }`}
-              >
-                <Avatar className="h-6 w-6 mr-2">
-                  <AvatarImage src={user.avatar} />
-                  <AvatarFallback>{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <span>{user.name}</span>
-              </div>
-            ))}
+            {filteredUsers.map((user, index) => {
+              const firstName = user.firstName || getFirstName(user.name);
+              return (
+                <div
+                  key={user.id}
+                  onClick={() => onSelectUser({...user, firstName})}
+                  className={`relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground ${
+                    index === selectedIndex ? 'bg-accent text-accent-foreground' : ''
+                  }`}
+                >
+                  <Avatar className="h-6 w-6 mr-2">
+                    <AvatarImage src={user.avatar} />
+                    <AvatarFallback>{firstName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <span>{firstName}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

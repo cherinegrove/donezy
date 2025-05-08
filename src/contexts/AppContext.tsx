@@ -567,17 +567,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   
   // Handle comment posting with @mentions
   const addComment = (taskId: string, userId: string, content: string) => {
-    // Extract mentioned users with @username pattern
+    // Extract mentioned users with @firstname pattern
     const mentionRegex = /@(\w+)/g;
     const mentions = content.match(mentionRegex) || [];
     
-    // Find user IDs from mentions
+    // Find user IDs from mentions (matching first names)
     const mentionedUserIds = mentions
       .map(mention => {
-        const username = mention.substring(1); // Remove the @ symbol
-        const user = users.find(u => 
-          u.name.toLowerCase().replace(/\s+/g, '') === username.toLowerCase()
-        );
+        const mentionName = mention.substring(1); // Remove the @ symbol
+        // Find user by first name (first part of full name)
+        const user = users.find(u => {
+          const firstName = u.name.split(' ')[0];
+          return firstName.toLowerCase() === mentionName.toLowerCase();
+        });
         return user?.id;
       })
       .filter(Boolean) as string[];
