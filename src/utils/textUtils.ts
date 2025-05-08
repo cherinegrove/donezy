@@ -1,6 +1,6 @@
 
 /**
- * Gets the cursor coordinates in a textarea element
+ * Gets the caret (cursor) coordinates in a text element
  */
 export const getCaretCoordinates = (element: HTMLTextAreaElement, position: number) => {
   // Create a mirror div with same styling as textarea
