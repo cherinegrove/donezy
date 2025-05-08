@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -273,23 +274,28 @@ export function ComposeMessageDialog({
                   minWidth: '200px'
                 }}
               >
-                <Command className="rounded-md border shadow-md">
-                  <CommandGroup heading="Mentions">
-                    {filteredUsers.map((user) => (
-                      <CommandItem
-                        key={user.id}
-                        onSelect={() => handleSelectUser(user)}
-                        className="flex items-center gap-2 p-2 cursor-pointer"
-                      >
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={user.avatar} />
-                          <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
-                        </Avatar>
-                        <span>{user.name}</span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </Command>
+                <div className="rounded-md border shadow-md overflow-hidden">
+                  <div className="p-1 bg-popover text-popover-foreground">
+                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                      Mentions
+                    </div>
+                    <div className="overflow-hidden">
+                      {filteredUsers.map((user) => (
+                        <div
+                          key={user.id}
+                          onClick={() => handleSelectUser(user)}
+                          className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50"
+                        >
+                          <Avatar className="h-6 w-6 mr-2">
+                            <AvatarImage src={user.avatar} />
+                            <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                          </Avatar>
+                          <span>{user.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
