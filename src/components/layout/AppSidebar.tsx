@@ -62,9 +62,9 @@ export function AppSidebar() {
       path: "/time",
     },
     {
-      name: "Team",
+      name: "Users",
       icon: Users,
-      path: "/team",
+      path: "/users",
     },
     {
       name: "Reports",

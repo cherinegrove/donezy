@@ -1,4 +1,3 @@
-
 import { useAppContext } from "@/contexts/AppContext";
 import { Message, Task } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,7 +17,7 @@ interface MessageViewProps {
 }
 
 export function MessageView({ message, onReply }: MessageViewProps) {
-  const { getUserById, users, getProjectById, getClientById, tasks, addTask } = useAppContext();
+  const { getUserById, users, getProjectById, getClientById, tasks, addTask, currentUser } = useAppContext();
   const [replyContent, setReplyContent] = useState("");
   const [isReplying, setIsReplying] = useState(false);
   // Task creation states
@@ -33,6 +32,19 @@ export function MessageView({ message, onReply }: MessageViewProps) {
                  (task ? getProjectById(task.projectId) : null);
   const client = message.clientId ? getClientById(message.clientId) : 
                (project ? getClientById(project.clientId) : null);
+  
+  // Check if current user is a client user and has access to this message
+  const isClientUser = currentUser?.role === 'client';
+  const userHasAccess = !isClientUser || (client && currentUser?.clientId === client.id);
+  
+  // If the user doesn't have access to this message, don't show it
+  if (isClientUser && !userHasAccess) {
+    return (
+      <div className="flex flex-col h-full border rounded-md p-8 items-center justify-center">
+        <p className="text-lg text-muted-foreground">You don't have access to view this message.</p>
+      </div>
+    );
+  }
   
   const handleStartReply = () => {
     setIsReplying(true);
