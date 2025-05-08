@@ -1,11 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import {
-  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role, ProjectTemplate, TemplateTask, CustomRole
+  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role, ProjectTemplate, TemplateTask, CustomRole, ClientFile
 } from "@/types";
 import { AppContextType } from "./AppContextType";
 import {
   mockUsers, mockTeams, mockClients, mockProjects,
-  mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockCustomFields
+  mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockCustomFields, mockComments, mockProjectTemplates, mockCustomRoles
 } from "@/data/mockData";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
@@ -942,6 +942,40 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const getTaskById = (id: string) => {
     return tasks.find(task => task.id === id);
   };
+  
+  // Mock client files state
+  const [clientFiles, setClientFiles] = useState<ClientFile[]>([]);
+
+  // Client file management functions
+  const getClientFiles = (clientId: string) => {
+    return clientFiles.filter(file => file.clientId === clientId);
+  };
+
+  const uploadClientFile = async (clientId: string, file: File): Promise<ClientFile> => {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const newFile: ClientFile = {
+      id: uuidv4(),
+      clientId,
+      name: file.name,
+      path: URL.createObjectURL(file), // In a real app, this would be a server path
+      type: file.type,
+      sizeKb: Math.round(file.size / 1024),
+      uploadedAt: new Date().toISOString(),
+      uploadedBy: currentUser?.id || "",
+    };
+    
+    setClientFiles(prev => [...prev, newFile]);
+    return newFile;
+  };
+
+  const deleteClientFile = async (clientId: string, fileId: string): Promise<void> => {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    setClientFiles(prev => prev.filter(file => file.id !== fileId));
+  };
 
   return (
     <AppContext.Provider value={{
@@ -1042,6 +1076,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       getProjectById,
       getClientById,
       getTaskById,
+      
+      // Client file management
+      getClientFiles,
+      uploadClientFile,
+      deleteClientFile,
     }}>
       {children}
     </AppContext.Provider>

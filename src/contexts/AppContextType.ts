@@ -1,6 +1,5 @@
-
 import {
-  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, ProjectTemplate, CustomRole
+  User, Team, Client, Project, Task, TimeEntry, Comment, Message, Purchase, CustomField, ProjectTemplate, CustomRole, ClientFile
 } from "@/types";
 
 export interface AppContextType {
@@ -113,4 +112,9 @@ export interface AppContextType {
   getProjectById: (id: string) => Project | undefined;
   getClientById: (id: string) => Client | undefined;
   getTaskById: (id: string) => Task | undefined;
+  
+  // Client file management
+  getClientFiles: (clientId: string) => ClientFile[];
+  uploadClientFile: (clientId: string, file: File) => Promise<ClientFile>;
+  deleteClientFile: (clientId: string, fileId: string) => Promise<void>;
 }

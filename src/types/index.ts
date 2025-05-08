@@ -96,6 +96,17 @@ export interface Team {
   projectIds: string[];
 }
 
+export interface ClientFile {
+  id: string;
+  clientId: string;
+  name: string;
+  path: string;
+  type: string;
+  sizeKb: number;
+  uploadedAt: string;
+  uploadedBy: string;
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -109,6 +120,7 @@ export interface Client {
   billableRate: number;
   currency: string;
   status: 'active' | 'inactive';
+  files?: ClientFile[];
 }
 
 export interface Project {

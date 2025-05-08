@@ -1,4 +1,3 @@
-
 import { useAppContext } from "@/contexts/AppContext";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClientBillingForm } from "@/components/clients/ClientBillingForm";
 import { ClientDashboard } from "@/components/clients/ClientDashboard";
+import { ClientFileUpload } from "@/components/clients/ClientFileUpload";
 
 const ClientDetails = () => {
   const { clientId } = useParams<{ clientId: string }>();
@@ -54,6 +54,7 @@ const ClientDetails = () => {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="projects">Projects</TabsTrigger>
+            <TabsTrigger value="files">Files</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
           </TabsList>
           
@@ -184,6 +185,10 @@ const ClientDetails = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+          
+          <TabsContent value="files" className="mt-4">
+            <ClientFileUpload clientId={clientId} />
           </TabsContent>
           
           <TabsContent value="billing" className="mt-4">
