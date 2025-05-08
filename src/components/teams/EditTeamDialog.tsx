@@ -78,6 +78,7 @@ export function EditTeamDialog({ team, isOpen, onClose }: EditTeamDialogProps) {
       });
       toast({ title: "Success", description: "Team created successfully" });
     }
+    form.reset();
     onClose();
   };
 
