@@ -1,11 +1,12 @@
-
 import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Clock, CheckCircle } from "lucide-react";
+import { Clock, Play } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TaskWatchButton } from "./TaskWatchButton";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TaskCardProps {
   task: Task;
@@ -13,7 +14,7 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onClick }: TaskCardProps) {
-  const { projects, users } = useAppContext();
+  const { projects, users, startTimeTracking } = useAppContext();
   
   const project = projects.find(p => p.id === task.projectId);
   const assignees = users.filter(user => task.assigneeIds.includes(user.id));
@@ -44,13 +45,32 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
     }
   };
   
+  const handleStartTimer = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent the card click event
+    startTimeTracking(task.id);
+  };
+  
   return (
     <div 
       className="border rounded-md p-4 bg-card shadow-sm hover:shadow transition-all cursor-pointer relative group"
       onClick={onClick}
     >
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <TaskWatchButton task={task} />
+      <div className="absolute top-2 right-2 flex gap-1">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleStartTimer}
+                className="h-7 w-7 text-green-500 hover:text-green-600 hover:bg-green-100"
+              >
+                <Play className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Start timer for this task</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
       
       <div className="space-y-3">

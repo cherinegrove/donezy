@@ -1,3 +1,4 @@
+
 import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField } from "@/types";
 
 export const mockUsers: User[] = [
@@ -128,6 +129,8 @@ export const mockTasks: Task[] = [
       {
         id: "time-1",
         taskId: "task-1",
+        projectId: "project-1",
+        clientId: "client-1", // Added clientId
         userId: "user-2",
         startTime: "2025-05-10T09:00:00Z",
         endTime: "2025-05-10T12:30:00Z",
@@ -227,6 +230,8 @@ export const mockTimeEntries: TimeEntry[] = [
   {
     id: "time-1",
     taskId: "task-1",
+    projectId: "project-1",
+    clientId: "client-1", // Added clientId
     userId: "user-2",
     startTime: "2025-05-10T09:00:00Z",
     endTime: "2025-05-10T12:30:00Z",
@@ -237,6 +242,8 @@ export const mockTimeEntries: TimeEntry[] = [
   {
     id: "time-2",
     taskId: "task-1",
+    projectId: "project-1",
+    clientId: "client-1", // Added clientId
     userId: "user-2",
     startTime: "2025-05-11T10:00:00Z",
     endTime: "2025-05-11T14:00:00Z",
