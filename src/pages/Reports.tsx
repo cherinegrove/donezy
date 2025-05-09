@@ -30,7 +30,7 @@ const minutesToHours = (minutes: number) => {
 
 const Reports = () => {
   const { toast } = useToast();
-  const { timeEntries, clients, projects } = useAppContext();
+  const { timeEntries, clients, projects, users } = useAppContext();
   const [reportType, setReportType] = useState("time");
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
@@ -41,6 +41,7 @@ const Reports = () => {
   });
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});
+  const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({});
   
   // Define filter options
   const filterOptions: FilterOption[] = [
@@ -159,12 +160,80 @@ const Reports = () => {
     }).sort((a, b) => b.hours - a.hours); // Sort by highest hours first
   };
 
+  // Process data for the team member hours report
+  const getUserHoursData = () => {
+    const filteredEntries = getFilteredTimeEntries();
+    
+    // Group time entries by user
+    const hoursByUser = filteredEntries.reduce((acc: Record<string, number>, entry: TimeEntry) => {
+      if (!entry.userId) return acc;
+      
+      if (!acc[entry.userId]) {
+        acc[entry.userId] = 0;
+      }
+      
+      // Add duration in minutes
+      acc[entry.userId] += entry.duration;
+      
+      return acc;
+    }, {});
+    
+    // Convert to data format
+    return users.map((user) => {
+      const totalMinutes = hoursByUser[user.id] || 0;
+      return {
+        name: user.name,
+        hours: minutesToHours(totalMinutes),
+        userId: user.id,
+      };
+    }).sort((a, b) => b.hours - a.hours); // Sort by highest hours first
+  };
+
+  // Get client hours by user
+  const getClientHoursByUser = (userId: string) => {
+    const filteredEntries = getFilteredTimeEntries().filter(entry => entry.userId === userId);
+    
+    // Group time entries by client
+    const hoursByClient = filteredEntries.reduce((acc: Record<string, number>, entry: TimeEntry) => {
+      if (!entry.clientId) return acc;
+      
+      if (!acc[entry.clientId]) {
+        acc[entry.clientId] = 0;
+      }
+      
+      // Add duration in minutes
+      acc[entry.clientId] += entry.duration;
+      
+      return acc;
+    }, {});
+    
+    // Return clients with their hours
+    return clients.map((client) => {
+      const totalMinutes = hoursByClient[client.id] || 0;
+      if (totalMinutes === 0) return null; // Skip clients with no hours
+      
+      return {
+        name: client.name,
+        hours: minutesToHours(totalMinutes),
+        clientId: client.id,
+      };
+    }).filter(Boolean).sort((a, b) => b!.hours - a!.hours); // Sort by highest hours first
+  };
+
   const clientHoursData = getClientHoursData();
+  const userHoursData = getUserHoursData();
   
   const toggleClientExpand = (clientId: string) => {
     setExpandedClients(prev => ({
       ...prev,
       [clientId]: !prev[clientId]
+    }));
+  };
+
+  const toggleUserExpand = (userId: string) => {
+    setExpandedUsers(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
     }));
   };
 
@@ -300,6 +369,67 @@ const Reports = () => {
                           <TableCell></TableCell>
                           <TableCell className="pl-10">{project.name}</TableCell>
                           <TableCell className="text-right">{project.hours}h</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                    No data available for the selected date range
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Hours by Team Member</CardTitle>
+          <CardDescription>
+            Click on a team member to see client breakdown
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]"></TableHead>
+                <TableHead>Team Member</TableHead>
+                <TableHead className="text-right">Hours</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {userHoursData.length > 0 ? (
+                userHoursData.map((user) => (
+                  <>
+                    <TableRow 
+                      key={user.userId}
+                      className="cursor-pointer hover:bg-muted/80"
+                      onClick={() => toggleUserExpand(user.userId)}
+                    >
+                      <TableCell className="p-2 pl-4">
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                          {expandedUsers[user.userId] ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TableCell>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell className="text-right font-medium">{user.hours}h</TableCell>
+                    </TableRow>
+                    
+                    {expandedUsers[user.userId] && (
+                      getClientHoursByUser(user.userId).map((client) => client && (
+                        <TableRow key={`${user.userId}-${client.clientId}`} className="bg-muted/40">
+                          <TableCell></TableCell>
+                          <TableCell className="pl-10">{client.name}</TableCell>
+                          <TableCell className="text-right">{client.hours}h</TableCell>
                         </TableRow>
                       ))
                     )}
