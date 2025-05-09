@@ -8,7 +8,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
-import { format, isWithinInterval, parseISO } from "date-fns";
+import { format, isWithinInterval, parseISO, differenceInDays, differenceInCalendarDays } from "date-fns";
 import { CalendarIcon, Download, ChevronRight, ChevronDown, DollarSign, TrendingUp, ChartPie, Users } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -22,12 +22,37 @@ import {
   TableRow,
   TableFooter
 } from "@/components/ui/table";
-import { Client, TimeEntry, Project, Task, Purchase, Team } from "@/types";
+import { Client, TimeEntry, Project, Task, Purchase, Team, BillingType } from "@/types";
 import { Progress } from "@/components/ui/progress";
 
 // Helper function to calculate total hours from minutes
 const minutesToHours = (minutes: number) => {
   return +(minutes / 60).toFixed(1);
+};
+
+// Helper function to calculate pro-rated cost for monthly employees
+const calculateProRatedCost = (
+  user: { billingType?: BillingType; monthlyRate?: number; hourlyRate?: number },
+  hoursWorked: number,
+  dateRange: { from?: Date; to?: Date }
+) => {
+  // If billing type is hourly, simply multiply hours by rate
+  if (user.billingType !== 'monthly' || !dateRange.from || !dateRange.to) {
+    // Default to hourly calculation
+    return hoursWorked * (user.hourlyRate || 0);
+  }
+  
+  // For monthly paid employees, calculate pro-rated cost
+  const monthlyRate = user.monthlyRate || 0;
+  const daysInRange = differenceInCalendarDays(dateRange.to, dateRange.from) + 1;
+  
+  // Assuming an average month has 30 days
+  const averageMonthDays = 30;
+  
+  // Pro-rate the monthly rate based on selected date range
+  const proRatedRate = (monthlyRate / averageMonthDays) * daysInRange;
+  
+  return proRatedRate;
 };
 
 const Reports = () => {
@@ -561,8 +586,8 @@ const Reports = () => {
           userEntries.reduce((total, entry) => total + entry.duration, 0)
         );
         
-        const hourlyRate = member.hourlyRate || 0;
-        const totalCost = hoursWorked * hourlyRate;
+        // Calculate cost using pro-rating for monthly employees
+        const totalCost = calculateProRatedCost(member, hoursWorked, dateRange);
         
         // Calculate billable revenue
         let totalRevenue = 0;
@@ -582,7 +607,9 @@ const Reports = () => {
           userId: member.id,
           name: member.name,
           hoursWorked,
-          hourlyRate,
+          billingType: member.billingType || 'hourly',
+          hourlyRate: member.hourlyRate,
+          monthlyRate: member.monthlyRate,
           totalCost,
           totalRevenue,
           profit,
@@ -629,10 +656,11 @@ const Reports = () => {
         return total + revenue;
       }, 0);
       
-      // Calculate cost (what would be paid to team member)
+      // Calculate hours worked
       const totalHours = minutesToHours(userEntries.reduce((total, entry) => total + entry.duration, 0));
-      const hourlyRate = user.hourlyRate || 0;
-      const totalCost = totalHours * hourlyRate;
+      
+      // Calculate cost with pro-rating for monthly employees
+      const totalCost = calculateProRatedCost(user, totalHours, dateRange);
       
       // Calculate profit
       const profit = totalRevenue - totalCost;
@@ -641,7 +669,9 @@ const Reports = () => {
         userId: user.id,
         name: user.name,
         totalHours,
-        hourlyRate,
+        billingType: user.billingType || 'hourly',
+        hourlyRate: user.hourlyRate,
+        monthlyRate: user.monthlyRate,
         totalRevenue,
         totalCost,
         profit,
@@ -1220,7 +1250,7 @@ const Reports = () => {
             <CardHeader>
               <CardTitle>Team Cost vs Revenue</CardTitle>
               <CardDescription>
-                Cost and revenue breakdown per team
+                Cost and revenue breakdown per team (monthly employees are pro-rated based on date range)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1236,8 +1266,8 @@ const Reports = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {getTeamCostVsRevenueData().length > 0 ? (
-                    getTeamCostVsRevenueData().map((team) => (
+                  {teamCostRevenueData.length > 0 ? (
+                    teamCostRevenueData.map((team) => (
                       <>
                         <TableRow 
                           key={team.teamId}
@@ -1270,7 +1300,12 @@ const Reports = () => {
                         {expandedTeams[team.teamId] && team.members.map((member) => (
                           <TableRow key={`${team.teamId}-${member.userId}`} className="bg-muted/30">
                             <TableCell></TableCell>
-                            <TableCell className="pl-10">{member.name}</TableCell>
+                            <TableCell className="pl-10">
+                              {member.name}
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                ({member.billingType === 'monthly' ? 'Monthly rate' : 'Hourly rate'})
+                              </span>
+                            </TableCell>
                             <TableCell>{member.hoursWorked.toFixed(1)}h</TableCell>
                             <TableCell>{formatCurrency(member.totalCost)}</TableCell>
                             <TableCell>{formatCurrency(member.totalRevenue)}</TableCell>
