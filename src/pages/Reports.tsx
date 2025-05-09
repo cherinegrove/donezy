@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Client, TimeEntry, Project } from "@/types";
+import { Client, TimeEntry, Project, Task } from "@/types";
 
 // Helper function to calculate total hours from minutes
 const minutesToHours = (minutes: number) => {
@@ -30,7 +30,7 @@ const minutesToHours = (minutes: number) => {
 
 const Reports = () => {
   const { toast } = useToast();
-  const { timeEntries, clients, projects, users } = useAppContext();
+  const { timeEntries, clients, projects, users, tasks } = useAppContext();
   const [reportType, setReportType] = useState("time");
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
@@ -42,6 +42,8 @@ const Reports = () => {
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});
   const [expandedUsers, setExpandedUsers] = useState<Record<string, boolean>>({});
+  const [expandedUserClients, setExpandedUserClients] = useState<Record<string, boolean>>({});
+  const [expandedUserClientProjects, setExpandedUserClientProjects] = useState<Record<string, boolean>>({});
   
   // Define filter options
   const filterOptions: FilterOption[] = [
@@ -220,6 +222,76 @@ const Reports = () => {
     }).filter(Boolean).sort((a, b) => b!.hours - a!.hours); // Sort by highest hours first
   };
 
+  // Get project hours by user and client
+  const getProjectHoursByUserAndClient = (userId: string, clientId: string) => {
+    const filteredEntries = getFilteredTimeEntries()
+      .filter(entry => entry.userId === userId && entry.clientId === clientId);
+    
+    // Get projects for this client
+    const clientProjects = projects.filter(project => project.clientId === clientId);
+    
+    // Group time entries by project
+    const hoursByProject = filteredEntries.reduce((acc: Record<string, number>, entry: TimeEntry) => {
+      if (!entry.projectId) return acc;
+      
+      if (!acc[entry.projectId]) {
+        acc[entry.projectId] = 0;
+      }
+      
+      // Add duration in minutes
+      acc[entry.projectId] += entry.duration;
+      
+      return acc;
+    }, {});
+    
+    // Return projects with their hours
+    return clientProjects.map((project) => {
+      const totalMinutes = hoursByProject[project.id] || 0;
+      if (totalMinutes === 0) return null; // Skip projects with no hours
+      
+      return {
+        name: project.name,
+        hours: minutesToHours(totalMinutes),
+        projectId: project.id,
+      };
+    }).filter(Boolean).sort((a, b) => b!.hours - a!.hours); // Sort by highest hours first
+  };
+
+  // Get task hours by user, client, and project
+  const getTaskHoursByUserClientAndProject = (userId: string, clientId: string, projectId: string) => {
+    const filteredEntries = getFilteredTimeEntries()
+      .filter(entry => entry.userId === userId && entry.clientId === clientId && entry.projectId === projectId);
+    
+    // Get tasks for this project
+    const projectTasks = tasks.filter(task => task.projectId === projectId);
+    
+    // Group time entries by task
+    const hoursByTask = filteredEntries.reduce((acc: Record<string, number>, entry: TimeEntry) => {
+      if (!entry.taskId) return acc;
+      
+      if (!acc[entry.taskId]) {
+        acc[entry.taskId] = 0;
+      }
+      
+      // Add duration in minutes
+      acc[entry.taskId] += entry.duration;
+      
+      return acc;
+    }, {});
+    
+    // Return tasks with their hours
+    return projectTasks.map((task: Task) => {
+      const totalMinutes = hoursByTask[task.id] || 0;
+      if (totalMinutes === 0) return null; // Skip tasks with no hours
+      
+      return {
+        name: task.title,
+        hours: minutesToHours(totalMinutes),
+        taskId: task.id,
+      };
+    }).filter(Boolean).sort((a, b) => b!.hours - a!.hours); // Sort by highest hours first
+  };
+
   const clientHoursData = getClientHoursData();
   const userHoursData = getUserHoursData();
   
@@ -234,6 +306,20 @@ const Reports = () => {
     setExpandedUsers(prev => ({
       ...prev,
       [userId]: !prev[userId]
+    }));
+  };
+
+  const toggleUserClientExpand = (key: string) => {
+    setExpandedUserClients(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const toggleUserClientProjectExpand = (key: string) => {
+    setExpandedUserClientProjects(prev => ({
+      ...prev,
+      [key]: !prev[key]
     }));
   };
 
@@ -390,7 +476,7 @@ const Reports = () => {
         <CardHeader>
           <CardTitle>Hours by Team Member</CardTitle>
           <CardDescription>
-            Click on a team member to see client breakdown
+            Click on team members to explore their time breakdown
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -426,11 +512,62 @@ const Reports = () => {
                     
                     {expandedUsers[user.userId] && (
                       getClientHoursByUser(user.userId).map((client) => client && (
-                        <TableRow key={`${user.userId}-${client.clientId}`} className="bg-muted/40">
-                          <TableCell></TableCell>
-                          <TableCell className="pl-10">{client.name}</TableCell>
-                          <TableCell className="text-right">{client.hours}h</TableCell>
-                        </TableRow>
+                        <>
+                          <TableRow 
+                            key={`${user.userId}-${client.clientId}`} 
+                            className="bg-muted/30 cursor-pointer hover:bg-muted/40"
+                            onClick={() => toggleUserClientExpand(`${user.userId}-${client.clientId}`)}
+                          >
+                            <TableCell className="p-2 pl-10">
+                              <Button variant="ghost" size="icon" className="h-5 w-5">
+                                {expandedUserClients[`${user.userId}-${client.clientId}`] ? (
+                                  <ChevronDown className="h-3 w-3" />
+                                ) : (
+                                  <ChevronRight className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </TableCell>
+                            <TableCell className="pl-8">{client.name}</TableCell>
+                            <TableCell className="text-right">{client.hours}h</TableCell>
+                          </TableRow>
+
+                          {expandedUserClients[`${user.userId}-${client.clientId}`] && (
+                            getProjectHoursByUserAndClient(user.userId, client.clientId).map(project => project && (
+                              <>
+                                <TableRow 
+                                  key={`${user.userId}-${client.clientId}-${project.projectId}`}
+                                  className="bg-muted/50 cursor-pointer hover:bg-muted/60"
+                                  onClick={() => toggleUserClientProjectExpand(`${user.userId}-${client.clientId}-${project.projectId}`)}
+                                >
+                                  <TableCell className="p-1 pl-16">
+                                    <Button variant="ghost" size="icon" className="h-4 w-4">
+                                      {expandedUserClientProjects[`${user.userId}-${client.clientId}-${project.projectId}`] ? (
+                                        <ChevronDown className="h-3 w-3" />
+                                      ) : (
+                                        <ChevronRight className="h-3 w-3" />
+                                      )}
+                                    </Button>
+                                  </TableCell>
+                                  <TableCell className="pl-14">{project.name}</TableCell>
+                                  <TableCell className="text-right">{project.hours}h</TableCell>
+                                </TableRow>
+
+                                {expandedUserClientProjects[`${user.userId}-${client.clientId}-${project.projectId}`] && (
+                                  getTaskHoursByUserClientAndProject(user.userId, client.clientId, project.projectId).map(task => task && (
+                                    <TableRow 
+                                      key={`${user.userId}-${client.clientId}-${project.projectId}-${task.taskId}`}
+                                      className="bg-muted/70"
+                                    >
+                                      <TableCell></TableCell>
+                                      <TableCell className="pl-20 text-sm">{task.name}</TableCell>
+                                      <TableCell className="text-right">{task.hours}h</TableCell>
+                                    </TableRow>
+                                  ))
+                                )}
+                              </>
+                            ))
+                          )}
+                        </>
                       ))
                     )}
                   </>
