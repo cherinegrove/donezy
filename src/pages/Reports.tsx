@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -650,6 +651,7 @@ const Reports = () => {
     return revenueByUser.sort((a, b) => b.totalRevenue - a.totalRevenue); // Sort by highest revenue first
   };
 
+  // Process all data
   const clientHoursData = getClientHoursData();
   const userHoursData = getUserHoursData();
   const projectProgressData = getProjectProgressData();
@@ -657,7 +659,6 @@ const Reports = () => {
   const revenueByServiceType = getRevenueByServiceType();
   const monthlyRevenueData = getMonthlyRevenueData();
   const totalRevenue = calculateTotalRevenue();
-  const teamMemberRevenueData = getTeamMemberRevenueData();
   const teamRevenueData = getTeamRevenueData();
   const teamCostRevenueData = getTeamCostVsRevenueData();
   
@@ -905,4 +906,401 @@ const Reports = () => {
                               <TableRow 
                                 key={`${user.userId}-${client.clientId}`} 
                                 className="bg-muted/30 cursor-pointer hover:bg-muted/40"
-                                onClick={() => toggleUserClientExpand(`${
+                                onClick={() => toggleUserClientExpand(`${user.userId}-${client.clientId}`)}
+                              >
+                                <TableCell></TableCell>
+                                <TableCell className="pl-10">
+                                  <div className="flex items-center">
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 mr-2">
+                                      {expandedUserClients[`${user.userId}-${client.clientId}`] ? (
+                                        <ChevronDown className="h-4 w-4" />
+                                      ) : (
+                                        <ChevronRight className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                    {client.name}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">{client.hours}h</TableCell>
+                              </TableRow>
+                              
+                              {expandedUserClients[`${user.userId}-${client.clientId}`] && (
+                                getProjectHoursByUserAndClient(user.userId, client.clientId).map((project) => project && (
+                                  <>
+                                    <TableRow 
+                                      key={`${user.userId}-${client.clientId}-${project.projectId}`}
+                                      className="bg-muted/20 cursor-pointer hover:bg-muted/30"
+                                      onClick={() => toggleUserClientProjectExpand(`${user.userId}-${client.clientId}-${project.projectId}`)}
+                                    >
+                                      <TableCell></TableCell>
+                                      <TableCell className="pl-16">
+                                        <div className="flex items-center">
+                                          <Button variant="ghost" size="icon" className="h-6 w-6 mr-2">
+                                            {expandedUserClientProjects[`${user.userId}-${client.clientId}-${project.projectId}`] ? (
+                                              <ChevronDown className="h-4 w-4" />
+                                            ) : (
+                                              <ChevronRight className="h-4 w-4" />
+                                            )}
+                                          </Button>
+                                          {project.name}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-right">{project.hours}h</TableCell>
+                                    </TableRow>
+                                    
+                                    {expandedUserClientProjects[`${user.userId}-${client.clientId}-${project.projectId}`] && (
+                                      getTaskHoursByUserClientAndProject(user.userId, client.clientId, project.projectId).map((task) => task && (
+                                        <TableRow 
+                                          key={`${user.userId}-${client.clientId}-${project.projectId}-${task.taskId}`}
+                                          className="bg-muted/10"
+                                        >
+                                          <TableCell></TableCell>
+                                          <TableCell className="pl-24">{task.name}</TableCell>
+                                          <TableCell className="text-right">{task.hours}h</TableCell>
+                                        </TableRow>
+                                      ))
+                                    )}
+                                  </>
+                                ))
+                              )}
+                            </>
+                          ))
+                        )}
+                      </>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                        No data available for the selected date range
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
+      
+      {reportType === "progress" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Project Progress</CardTitle>
+            <CardDescription>
+              Status of active projects
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Project</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Tasks</TableHead>
+                  <TableHead>Hours Used</TableHead>
+                  <TableHead className="text-right">Progress</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {projectProgressData.length > 0 ? (
+                  projectProgressData.map((item) => (
+                    <TableRow key={item.project.id}>
+                      <TableCell className="font-medium">{item.project.name}</TableCell>
+                      <TableCell>{item.client?.name || "N/A"}</TableCell>
+                      <TableCell>{item.completedTasks} / {item.totalTasks}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col space-y-1">
+                          <div className="text-sm">
+                            {item.hoursUsed}h / {item.allocatedHours}h
+                          </div>
+                          <Progress value={item.hoursPercentage} className="h-2" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-col items-end space-y-1">
+                          <span>{item.completionPercentage}%</span>
+                          <Progress value={item.completionPercentage} className="h-2 w-24" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                      No active projects found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+      
+      {reportType === "financial" && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <Card className="col-span-1">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Revenue
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <DollarSign className="mr-2 h-6 w-6 text-primary" />
+                  <span className="text-2xl font-bold">
+                    {formatCurrency(totalRevenue)}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="col-span-1">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Revenue Trend
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <TrendingUp className="mr-2 h-6 w-6 text-primary" />
+                  <span className="text-lg font-medium">
+                    Last 6 Months
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center space-x-2">
+                  {monthlyRevenueData.map((month, i) => (
+                    <div 
+                      key={i} 
+                      className="flex flex-col items-center text-xs"
+                    >
+                      <div 
+                        className="bg-primary/90 w-6 rounded-t-sm" 
+                        style={{ 
+                          height: `${Math.max(15, Math.min(80, parseFloat(month.amount) / 100))}px` 
+                        }}
+                      ></div>
+                      <span className="mt-1">{month.month.split(' ')[0]}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="col-span-1">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Revenue by Service Type
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center mb-2">
+                  <ChartPie className="mr-2 h-5 w-5 text-primary" />
+                  <span className="text-sm font-medium">Distribution</span>
+                </div>
+                {revenueByServiceType.map((item, i) => (
+                  <div key={i} className="mt-1 space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span>{item.type}</span>
+                      <span className="font-medium">{item.percentage}%</span>
+                    </div>
+                    <Progress value={parseFloat(item.percentage)} className="h-1" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue by Client</CardTitle>
+              <CardDescription>
+                Detailed breakdown of revenue from each client
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Client</TableHead>
+                    <TableHead className="text-right">Revenue</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {clientRevenueData.length > 0 ? (
+                    clientRevenueData.map((client) => (
+                      <TableRow key={client.clientId}>
+                        <TableCell className="font-medium">{client.name}</TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(client.revenue, client.currency)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center py-10 text-muted-foreground">
+                        No revenue data available for the selected date range
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell>Total</TableCell>
+                    <TableCell className="text-right font-bold">
+                      {formatCurrency(totalRevenue)}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
+      
+      {reportType === "team" && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue by Team</CardTitle>
+              <CardDescription>
+                Revenue generated by each team
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead>Team</TableHead>
+                    <TableHead>Members</TableHead>
+                    <TableHead>Billable Hours</TableHead>
+                    <TableHead className="text-right">Revenue</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {teamRevenueData.length > 0 ? (
+                    teamRevenueData.map((team) => (
+                      <TableRow 
+                        key={team.teamId}
+                        className="cursor-pointer hover:bg-muted/80"
+                        onClick={() => toggleTeamExpand(team.teamId)}
+                      >
+                        <TableCell className="p-2 pl-4">
+                          <Button variant="ghost" size="icon" className="h-6 w-6">
+                            {expandedTeams[team.teamId] ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TableCell>
+                        <TableCell className="font-medium">{team.name}</TableCell>
+                        <TableCell>{team.memberCount}</TableCell>
+                        <TableCell>{team.billableHours}h</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(team.totalRevenue)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                        No team data available
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Team Cost vs Revenue</CardTitle>
+              <CardDescription>
+                Cost and revenue breakdown per team
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead>Team</TableHead>
+                    <TableHead>Total Hours</TableHead>
+                    <TableHead>Total Cost</TableHead>
+                    <TableHead>Total Revenue</TableHead>
+                    <TableHead className="text-right">Profit/Loss</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {getTeamCostVsRevenueData().length > 0 ? (
+                    getTeamCostVsRevenueData().map((team) => (
+                      <>
+                        <TableRow 
+                          key={team.teamId}
+                          className="cursor-pointer hover:bg-muted/80"
+                          onClick={() => toggleTeamExpand(team.teamId)}
+                        >
+                          <TableCell className="p-2 pl-4">
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              {expandedTeams[team.teamId] ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TableCell>
+                          <TableCell className="font-medium">{team.name}</TableCell>
+                          <TableCell>{team.totalHours.toFixed(1)}h</TableCell>
+                          <TableCell>{formatCurrency(team.totalCost)}</TableCell>
+                          <TableCell>{formatCurrency(team.totalRevenue)}</TableCell>
+                          <TableCell 
+                            className={cn(
+                              "text-right font-medium",
+                              team.totalProfit >= 0 ? "text-green-600" : "text-red-600"
+                            )}
+                          >
+                            {formatCurrency(team.totalProfit)}
+                          </TableCell>
+                        </TableRow>
+                        
+                        {expandedTeams[team.teamId] && team.members.map((member) => (
+                          <TableRow key={`${team.teamId}-${member.userId}`} className="bg-muted/30">
+                            <TableCell></TableCell>
+                            <TableCell className="pl-10">{member.name}</TableCell>
+                            <TableCell>{member.hoursWorked.toFixed(1)}h</TableCell>
+                            <TableCell>{formatCurrency(member.totalCost)}</TableCell>
+                            <TableCell>{formatCurrency(member.totalRevenue)}</TableCell>
+                            <TableCell 
+                              className={cn(
+                                "text-right",
+                                member.profit >= 0 ? "text-green-600" : "text-red-600"
+                              )}
+                            >
+                              {formatCurrency(member.profit)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                        No team cost vs revenue data available
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default Reports;
