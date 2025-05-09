@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { format, isWithinInterval, parseISO } from "date-fns";
-import { CalendarIcon, Download, ChevronRight, ChevronDown } from "lucide-react";
+import { CalendarIcon, Download, ChevronRight, ChevronDown, DollarSign, TrendingUp, ChartPie } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Client, TimeEntry, Project, Task } from "@/types";
+import { Client, TimeEntry, Project, Task, Purchase } from "@/types";
 import { Progress } from "@/components/ui/progress";
 
 // Helper function to calculate total hours from minutes
@@ -30,7 +30,7 @@ const minutesToHours = (minutes: number) => {
 
 const Reports = () => {
   const { toast } = useToast();
-  const { timeEntries, clients, projects, users, tasks } = useAppContext();
+  const { timeEntries, clients, projects, users, tasks, purchases } = useAppContext();
   const [reportType, setReportType] = useState("time");
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
@@ -332,9 +332,167 @@ const Reports = () => {
     });
   };
 
+  // Get financial data for revenue by client
+  const getClientRevenueData = () => {
+    // Filter purchases by date range if needed
+    const filteredPurchases = getFilteredPurchases();
+    
+    // Group purchases by client
+    const revenueByClient = filteredPurchases.reduce((acc: Record<string, number>, purchase: Purchase) => {
+      if (!purchase.clientId) return acc;
+      
+      if (!acc[purchase.clientId]) {
+        acc[purchase.clientId] = 0;
+      }
+      
+      // Add purchase amount
+      acc[purchase.clientId] += purchase.amount;
+      
+      return acc;
+    }, {});
+    
+    // Get billable time entries to calculate billable time revenue
+    const filteredTimeEntries = getFilteredTimeEntries()
+      .filter(entry => entry.billable);
+    
+    // Calculate billable time revenue by client
+    filteredTimeEntries.forEach(entry => {
+      if (!entry.clientId) return;
+      
+      const client = clients.find(c => c.id === entry.clientId);
+      if (!client || !client.billableRate) return;
+      
+      if (!revenueByClient[entry.clientId]) {
+        revenueByClient[entry.clientId] = 0;
+      }
+      
+      // Calculate revenue based on billable rate and time
+      const hours = entry.duration / 60;
+      const revenue = hours * client.billableRate;
+      
+      revenueByClient[entry.clientId] += revenue;
+    });
+    
+    // Convert to chart data format
+    return clients.map((client: Client) => {
+      const revenue = revenueByClient[client.id] || 0;
+      return {
+        name: client.name,
+        revenue: revenue.toFixed(2),
+        clientId: client.id,
+        currency: client.currency || 'USD',
+      };
+    }).sort((a, b) => parseFloat(b.revenue) - parseFloat(a.revenue)); // Sort by highest revenue first
+  };
+  
+  // Get revenue by service type
+  const getRevenueByServiceType = () => {
+    const filteredPurchases = getFilteredPurchases();
+    
+    // Group purchases by service type
+    const revenueByType = filteredPurchases.reduce((acc: Record<string, number>, purchase: Purchase) => {
+      const serviceType = purchase.serviceType || "other";
+      
+      if (!acc[serviceType]) {
+        acc[serviceType] = 0;
+      }
+      
+      // Add purchase amount
+      acc[serviceType] += purchase.amount;
+      
+      return acc;
+    }, {
+      "project": 0,
+      "bank-hours": 0,
+      "pay-as-you-go": 0,
+      "other": 0
+    });
+    
+    // Convert to chart data format
+    return Object.entries(revenueByType).map(([type, amount]) => ({
+      type: type === "bank-hours" ? "Bank Hours" : 
+            type === "pay-as-you-go" ? "Pay As You Go" : 
+            type === "project" ? "Fixed Project" : "Other",
+      amount: amount.toFixed(2),
+      percentage: filteredPurchases.length ? 
+        ((amount / filteredPurchases.reduce((sum, p) => sum + p.amount, 0)) * 100).toFixed(1) : 
+        "0"
+    })).sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount));
+  };
+  
+  // Get filtered purchases
+  const getFilteredPurchases = () => {
+    if (!dateRange.from && !dateRange.to) return purchases;
+    
+    return purchases.filter(purchase => {
+      const purchaseDate = new Date(purchase.date);
+      
+      if (dateRange.from && dateRange.to) {
+        // Set the time of dateRange.to to end of day to include the full day
+        const toDate = new Date(dateRange.to);
+        toDate.setHours(23, 59, 59, 999);
+        
+        return isWithinInterval(purchaseDate, { 
+          start: dateRange.from, 
+          end: toDate 
+        });
+      } else if (dateRange.from) {
+        return purchaseDate >= dateRange.from;
+      } else if (dateRange.to) {
+        const toDate = new Date(dateRange.to);
+        toDate.setHours(23, 59, 59, 999);
+        return purchaseDate <= toDate;
+      }
+      
+      return true;
+    });
+  };
+  
+  // Get monthly revenue data (for trend analysis)
+  const getMonthlyRevenueData = () => {
+    const filteredPurchases = getFilteredPurchases();
+    
+    // Group by month
+    const revenueByMonth: Record<string, number> = {};
+    
+    filteredPurchases.forEach(purchase => {
+      const date = new Date(purchase.date);
+      const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
+      
+      if (!revenueByMonth[monthKey]) {
+        revenueByMonth[monthKey] = 0;
+      }
+      
+      revenueByMonth[monthKey] += purchase.amount;
+    });
+    
+    // Sort by date and return last 6 months
+    return Object.entries(revenueByMonth)
+      .map(([monthKey, amount]) => {
+        const [year, month] = monthKey.split('-').map(Number);
+        return {
+          month: format(new Date(year, month - 1), 'MMM yyyy'),
+          amount: amount.toFixed(2),
+          timestamp: new Date(year, month - 1).getTime()
+        };
+      })
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .slice(-6);
+  };
+  
+  // Calculate total revenue
+  const calculateTotalRevenue = () => {
+    const filteredPurchases = getFilteredPurchases();
+    return filteredPurchases.reduce((total, purchase) => total + purchase.amount, 0).toFixed(2);
+  };
+
   const clientHoursData = getClientHoursData();
   const userHoursData = getUserHoursData();
   const projectProgressData = getProjectProgressData();
+  const clientRevenueData = getClientRevenueData();
+  const revenueByServiceType = getRevenueByServiceType();
+  const monthlyRevenueData = getMonthlyRevenueData();
+  const totalRevenue = calculateTotalRevenue();
   
   const toggleClientExpand = (clientId: string) => {
     setExpandedClients(prev => ({
@@ -362,6 +520,20 @@ const Reports = () => {
       ...prev,
       [key]: !prev[key]
     }));
+  };
+
+  // Format currency based on currency code
+  const formatCurrency = (amount: number | string, currencyCode: string = 'USD') => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    
+    const formatter = new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: currencyCode,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    
+    return formatter.format(numAmount);
   };
 
   return (
@@ -732,6 +904,197 @@ const Reports = () => {
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
                         No active projects found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
+      
+      {reportType === "financial" && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Total Revenue</CardDescription>
+                <CardTitle className="text-3xl flex items-center">
+                  <DollarSign className="h-6 w-6 text-primary mr-1" />
+                  {formatCurrency(totalRevenue)}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  {dateRange.from && dateRange.to 
+                    ? `From ${format(dateRange.from, 'MMM d, yyyy')} to ${format(dateRange.to, 'MMM d, yyyy')}`
+                    : 'All time revenue'}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Top Service Type</CardDescription>
+                <CardTitle className="flex items-center text-xl">
+                  <ChartPie className="h-5 w-5 text-primary mr-2" />
+                  {revenueByServiceType.length > 0 ? revenueByServiceType[0].type : 'No data'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    {revenueByServiceType.length > 0 ? `${revenueByServiceType[0].percentage}% of total revenue` : 'No data available'}
+                  </p>
+                  <p className="font-medium">
+                    {revenueByServiceType.length > 0 ? formatCurrency(revenueByServiceType[0].amount) : '$0.00'}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Revenue Trend</CardDescription>
+                <CardTitle className="flex items-center">
+                  <TrendingUp className="h-5 w-5 text-primary mr-2" />
+                  Monthly Growth
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">
+                  {monthlyRevenueData.length > 1 ? 
+                    `Last ${monthlyRevenueData.length} months history` : 
+                    'Insufficient data for trend analysis'}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue by Client</CardTitle>
+              <CardDescription>
+                Financial breakdown by client
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Currency</TableHead>
+                    <TableHead className="text-right">Revenue</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {clientRevenueData.length > 0 ? (
+                    clientRevenueData.map((client) => (
+                      <TableRow key={client.clientId}>
+                        <TableCell className="font-medium">{client.name}</TableCell>
+                        <TableCell>{client.currency}</TableCell>
+                        <TableCell className="text-right font-mono">
+                          {formatCurrency(client.revenue, client.currency)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                        No revenue data available for the selected date range
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue by Service Type</CardTitle>
+              <CardDescription>
+                Revenue breakdown by service offering
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Service Type</TableHead>
+                    <TableHead className="text-right">Revenue</TableHead>
+                    <TableHead>Distribution</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {revenueByServiceType.length > 0 ? (
+                    revenueByServiceType.map((item, index) => (
+                      <TableRow key={`service-type-${index}`}>
+                        <TableCell className="font-medium">{item.type}</TableCell>
+                        <TableCell className="text-right font-mono">
+                          {formatCurrency(item.amount)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Progress 
+                              value={parseFloat(item.percentage)} 
+                              className="h-2" 
+                              indicatorColor={
+                                index === 0 ? "bg-primary" :
+                                index === 1 ? "bg-blue-500" :
+                                index === 2 ? "bg-emerald-500" :
+                                "bg-gray-400"
+                              }
+                            />
+                            <span className="text-xs w-12 text-right font-medium">
+                              {item.percentage}%
+                            </span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                        No revenue data available for the selected date range
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Monthly Revenue</CardTitle>
+              <CardDescription>
+                Revenue trend over recent months
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Month</TableHead>
+                    <TableHead className="text-right">Revenue</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {monthlyRevenueData.length > 0 ? (
+                    monthlyRevenueData.map((item, index) => (
+                      <TableRow key={`month-${index}`}>
+                        <TableCell className="font-medium">{item.month}</TableCell>
+                        <TableCell className="text-right font-mono">
+                          {formatCurrency(item.amount)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center py-10 text-muted-foreground">
+                        No monthly revenue data available
                       </TableCell>
                     </TableRow>
                   )}
