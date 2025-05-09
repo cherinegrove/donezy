@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -22,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Client, TimeEntry, Project, Task } from "@/types";
+import { Progress } from "@/components/ui/progress";
 
 // Helper function to calculate total hours from minutes
 const minutesToHours = (minutes: number) => {
@@ -292,8 +292,49 @@ const Reports = () => {
     }).filter(Boolean).sort((a, b) => b!.hours - a!.hours); // Sort by highest hours first
   };
 
+  // Get Project Progress data
+  const getProjectProgressData = () => {
+    // Filter active projects
+    const activeProjects = projects.filter(project => 
+      project.status !== 'done'
+    );
+
+    return activeProjects.map(project => {
+      // Calculate total hours used for this project
+      const projectTimeEntries = timeEntries.filter(entry => {
+        const task = tasks.find(t => t.id === entry.taskId);
+        return task && task.projectId === project.id;
+      });
+
+      const totalMinutesUsed = projectTimeEntries.reduce((total, entry) => total + entry.duration, 0);
+      const hoursUsed = minutesToHours(totalMinutesUsed);
+
+      // Calculate completion percentage based on tasks
+      const projectTasks = tasks.filter(task => task.projectId === project.id);
+      const completedTasks = projectTasks.filter(task => task.status === 'done').length;
+      const completionPercentage = projectTasks.length > 0 
+        ? Math.round((completedTasks / projectTasks.length) * 100)
+        : 0;
+      
+      // Get client info
+      const client = clients.find(c => c.id === project.clientId);
+
+      return {
+        project,
+        client,
+        hoursUsed,
+        allocatedHours: project.allocatedHours || 0,
+        hoursPercentage: project.allocatedHours ? Math.round((hoursUsed / project.allocatedHours) * 100) : 0,
+        completionPercentage,
+        completedTasks,
+        totalTasks: projectTasks.length
+      };
+    });
+  };
+
   const clientHoursData = getClientHoursData();
   const userHoursData = getUserHoursData();
+  const projectProgressData = getProjectProgressData();
   
   const toggleClientExpand = (clientId: string) => {
     setExpandedClients(prev => ({
@@ -411,178 +452,295 @@ const Reports = () => {
       
       <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Hours by Client</CardTitle>
-          <CardDescription>
-            Click on a client to see projects breakdown
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]"></TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead className="text-right">Hours</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {clientHoursData.length > 0 ? (
-                clientHoursData.map((client) => (
-                  <>
-                    <TableRow 
-                      key={client.clientId}
-                      className="cursor-pointer hover:bg-muted/80"
-                      onClick={() => toggleClientExpand(client.clientId)}
-                    >
-                      <TableCell className="p-2 pl-4">
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          {expandedClients[client.clientId] ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TableCell>
-                      <TableCell className="font-medium">{client.name}</TableCell>
-                      <TableCell className="text-right font-medium">{client.hours}h</TableCell>
-                    </TableRow>
-                    
-                    {expandedClients[client.clientId] && (
-                      getProjectHoursByClient(client.clientId).map((project) => (
-                        <TableRow key={`${client.clientId}-${project.projectId}`} className="bg-muted/40">
-                          <TableCell></TableCell>
-                          <TableCell className="pl-10">{project.name}</TableCell>
-                          <TableCell className="text-right">{project.hours}h</TableCell>
+      {reportType === "time" && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Hours by Client</CardTitle>
+              <CardDescription>
+                Click on a client to see projects breakdown
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead className="text-right">Hours</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {clientHoursData.length > 0 ? (
+                    clientHoursData.map((client) => (
+                      <>
+                        <TableRow 
+                          key={client.clientId}
+                          className="cursor-pointer hover:bg-muted/80"
+                          onClick={() => toggleClientExpand(client.clientId)}
+                        >
+                          <TableCell className="p-2 pl-4">
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              {expandedClients[client.clientId] ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TableCell>
+                          <TableCell className="font-medium">{client.name}</TableCell>
+                          <TableCell className="text-right font-medium">{client.hours}h</TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
-                    No data available for the selected date range
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Hours by Team Member</CardTitle>
-          <CardDescription>
-            Click on team members to explore their time breakdown
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]"></TableHead>
-                <TableHead>Team Member</TableHead>
-                <TableHead className="text-right">Hours</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {userHoursData.length > 0 ? (
-                userHoursData.map((user) => (
-                  <>
-                    <TableRow 
-                      key={user.userId}
-                      className="cursor-pointer hover:bg-muted/80"
-                      onClick={() => toggleUserExpand(user.userId)}
-                    >
-                      <TableCell className="p-2 pl-4">
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          {expandedUsers[user.userId] ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </Button>
+                        
+                        {expandedClients[client.clientId] && (
+                          getProjectHoursByClient(client.clientId).map((project) => (
+                            <TableRow key={`${client.clientId}-${project.projectId}`} className="bg-muted/40">
+                              <TableCell></TableCell>
+                              <TableCell className="pl-10">{project.name}</TableCell>
+                              <TableCell className="text-right">{project.hours}h</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                        No data available for the selected date range
                       </TableCell>
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell className="text-right font-medium">{user.hours}h</TableCell>
                     </TableRow>
-                    
-                    {expandedUsers[user.userId] && (
-                      getClientHoursByUser(user.userId).map((client) => client && (
-                        <>
-                          <TableRow 
-                            key={`${user.userId}-${client.clientId}`} 
-                            className="bg-muted/30 cursor-pointer hover:bg-muted/40"
-                            onClick={() => toggleUserClientExpand(`${user.userId}-${client.clientId}`)}
-                          >
-                            <TableCell className="p-2 pl-10">
-                              <Button variant="ghost" size="icon" className="h-5 w-5">
-                                {expandedUserClients[`${user.userId}-${client.clientId}`] ? (
-                                  <ChevronDown className="h-3 w-3" />
-                                ) : (
-                                  <ChevronRight className="h-3 w-3" />
-                                )}
-                              </Button>
-                            </TableCell>
-                            <TableCell className="pl-8">{client.name}</TableCell>
-                            <TableCell className="text-right">{client.hours}h</TableCell>
-                          </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
 
-                          {expandedUserClients[`${user.userId}-${client.clientId}`] && (
-                            getProjectHoursByUserAndClient(user.userId, client.clientId).map(project => project && (
-                              <>
-                                <TableRow 
-                                  key={`${user.userId}-${client.clientId}-${project.projectId}`}
-                                  className="bg-muted/50 cursor-pointer hover:bg-muted/60"
-                                  onClick={() => toggleUserClientProjectExpand(`${user.userId}-${client.clientId}-${project.projectId}`)}
-                                >
-                                  <TableCell className="p-1 pl-16">
-                                    <Button variant="ghost" size="icon" className="h-4 w-4">
-                                      {expandedUserClientProjects[`${user.userId}-${client.clientId}-${project.projectId}`] ? (
-                                        <ChevronDown className="h-3 w-3" />
-                                      ) : (
-                                        <ChevronRight className="h-3 w-3" />
-                                      )}
-                                    </Button>
-                                  </TableCell>
-                                  <TableCell className="pl-14">{project.name}</TableCell>
-                                  <TableCell className="text-right">{project.hours}h</TableCell>
-                                </TableRow>
+          <Card>
+            <CardHeader>
+              <CardTitle>Hours by Team Member</CardTitle>
+              <CardDescription>
+                Click on team members to explore their time breakdown
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead>Team Member</TableHead>
+                    <TableHead className="text-right">Hours</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {userHoursData.length > 0 ? (
+                    userHoursData.map((user) => (
+                      <>
+                        <TableRow 
+                          key={user.userId}
+                          className="cursor-pointer hover:bg-muted/80"
+                          onClick={() => toggleUserExpand(user.userId)}
+                        >
+                          <TableCell className="p-2 pl-4">
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              {expandedUsers[user.userId] ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TableCell>
+                          <TableCell className="font-medium">{user.name}</TableCell>
+                          <TableCell className="text-right font-medium">{user.hours}h</TableCell>
+                        </TableRow>
+                        
+                        {expandedUsers[user.userId] && (
+                          getClientHoursByUser(user.userId).map((client) => client && (
+                            <>
+                              <TableRow 
+                                key={`${user.userId}-${client.clientId}`} 
+                                className="bg-muted/30 cursor-pointer hover:bg-muted/40"
+                                onClick={() => toggleUserClientExpand(`${user.userId}-${client.clientId}`)}
+                              >
+                                <TableCell className="p-2 pl-10">
+                                  <Button variant="ghost" size="icon" className="h-5 w-5">
+                                    {expandedUserClients[`${user.userId}-${client.clientId}`] ? (
+                                      <ChevronDown className="h-3 w-3" />
+                                    ) : (
+                                      <ChevronRight className="h-3 w-3" />
+                                    )}
+                                  </Button>
+                                </TableCell>
+                                <TableCell className="pl-8">{client.name}</TableCell>
+                                <TableCell className="text-right">{client.hours}h</TableCell>
+                              </TableRow>
 
-                                {expandedUserClientProjects[`${user.userId}-${client.clientId}-${project.projectId}`] && (
-                                  getTaskHoursByUserClientAndProject(user.userId, client.clientId, project.projectId).map(task => task && (
+                              {expandedUserClients[`${user.userId}-${client.clientId}`] && (
+                                getProjectHoursByUserAndClient(user.userId, client.clientId).map(project => project && (
+                                  <>
                                     <TableRow 
-                                      key={`${user.userId}-${client.clientId}-${project.projectId}-${task.taskId}`}
-                                      className="bg-muted/70"
+                                      key={`${user.userId}-${client.clientId}-${project.projectId}`}
+                                      className="bg-muted/50 cursor-pointer hover:bg-muted/60"
+                                      onClick={() => toggleUserClientProjectExpand(`${user.userId}-${client.clientId}-${project.projectId}`)}
                                     >
-                                      <TableCell></TableCell>
-                                      <TableCell className="pl-20 text-sm">{task.name}</TableCell>
-                                      <TableCell className="text-right">{task.hours}h</TableCell>
+                                      <TableCell className="p-1 pl-16">
+                                        <Button variant="ghost" size="icon" className="h-4 w-4">
+                                          {expandedUserClientProjects[`${user.userId}-${client.clientId}-${project.projectId}`] ? (
+                                            <ChevronDown className="h-3 w-3" />
+                                          ) : (
+                                            <ChevronRight className="h-3 w-3" />
+                                          )}
+                                        </Button>
+                                      </TableCell>
+                                      <TableCell className="pl-14">{project.name}</TableCell>
+                                      <TableCell className="text-right">{project.hours}h</TableCell>
                                     </TableRow>
-                                  ))
-                                )}
-                              </>
-                            ))
-                          )}
-                        </>
-                      ))
-                    )}
-                  </>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
-                    No data available for the selected date range
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+
+                                    {expandedUserClientProjects[`${user.userId}-${client.clientId}-${project.projectId}`] && (
+                                      getTaskHoursByUserClientAndProject(user.userId, client.clientId, project.projectId).map(task => task && (
+                                        <TableRow 
+                                          key={`${user.userId}-${client.clientId}-${project.projectId}-${task.taskId}`}
+                                          className="bg-muted/70"
+                                        >
+                                          <TableCell></TableCell>
+                                          <TableCell className="pl-20 text-sm">{task.name}</TableCell>
+                                          <TableCell className="text-right">{task.hours}h</TableCell>
+                                        </TableRow>
+                                      ))
+                                    )}
+                                  </>
+                                ))
+                              )}
+                            </>
+                          ))
+                        )}
+                      </>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                        No data available for the selected date range
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
+      
+      {reportType === "progress" && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Project Hours Utilization</CardTitle>
+              <CardDescription>
+                Hours used vs hours allocated for active projects
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Project Name</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead className="text-right">Hours Used</TableHead>
+                    <TableHead className="text-right">Allocated</TableHead>
+                    <TableHead>Hours Progress</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {projectProgressData.length > 0 ? (
+                    projectProgressData.map((item) => (
+                      <TableRow key={item.project.id}>
+                        <TableCell className="font-medium">{item.project.name}</TableCell>
+                        <TableCell>{item.client?.name || "No Client"}</TableCell>
+                        <TableCell className="text-right font-mono">{item.hoursUsed}h</TableCell>
+                        <TableCell className="text-right font-mono">
+                          {item.allocatedHours ? `${item.allocatedHours}h` : "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Progress 
+                              value={item.hoursPercentage} 
+                              className="h-2"
+                              indicatorColor={
+                                item.hoursPercentage > 90 ? "bg-destructive" : 
+                                item.hoursPercentage > 75 ? "bg-warning" : 
+                                "bg-primary"
+                              }
+                            />
+                            <span className="text-xs w-12 text-right font-medium">
+                              {item.hoursPercentage}%
+                            </span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                        No active projects found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Project Completion Status</CardTitle>
+              <CardDescription>
+                Task completion progress for active projects
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Project Name</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead className="text-right">Tasks</TableHead>
+                    <TableHead>Completion Progress</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {projectProgressData.length > 0 ? (
+                    projectProgressData.map((item) => (
+                      <TableRow key={`status-${item.project.id}`}>
+                        <TableCell className="font-medium">{item.project.name}</TableCell>
+                        <TableCell>{item.client?.name || "No Client"}</TableCell>
+                        <TableCell className="text-right">
+                          {item.completedTasks} / {item.totalTasks}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Progress 
+                              value={item.completionPercentage} 
+                              className="h-2"
+                            />
+                            <span className="text-xs w-12 text-right font-medium">
+                              {item.completionPercentage}%
+                            </span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                        No active projects found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 };
