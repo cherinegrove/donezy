@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import {
   User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role, ProjectTemplate, TemplateTask, CustomRole, ClientFile
@@ -5,7 +6,7 @@ import {
 import { AppContextType } from "./AppContextType";
 import {
   mockUsers, mockTeams, mockClients, mockProjects,
-  mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockCustomFields, mockComments, mockProjectTemplates, mockCustomRoles
+  mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockCustomFields, mockProjectTemplates, mockCustomRoles
 } from "@/data/mockData";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";

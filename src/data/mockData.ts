@@ -1,4 +1,4 @@
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField } from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, ProjectTemplate, CustomRole } from "@/types";
 
 export const mockUsers: User[] = [
   {
@@ -395,3 +395,9 @@ export const mockPurchases: Purchase[] = [
     description: "Globex project hours",
   }
 ];
+
+export const mockProjectTemplates: ProjectTemplate[] = [];
+
+export const mockCustomRoles: CustomRole[] = [];
+
+export const mockComments: any[] = [];
