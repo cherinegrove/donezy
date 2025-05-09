@@ -23,7 +23,8 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
   const [role, setRole] = useState<string>("developer");
   const [employmentType, setEmploymentType] = useState<EmploymentType>("full-time");
   const [billingType, setBillingType] = useState<BillingType>("hourly");
-  const [billingRate, setBillingRate] = useState<string>("0");
+  const [hourlyRate, setHourlyRate] = useState<string>("0");
+  const [monthlyRate, setMonthlyRate] = useState<string>("0");
   const [currency, setCurrency] = useState<string>("USD");
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +61,9 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
           phone,
           employmentType: employmentType as EmploymentType,
           billingType: billingType as BillingType,
-          billingRate: parseFloat(billingRate),
+          hourlyRate: billingType === "hourly" ? parseFloat(hourlyRate) : undefined,
+          monthlyRate: billingType === "monthly" ? parseFloat(monthlyRate) : undefined,
+          billingRate: billingType === "hourly" ? parseFloat(hourlyRate) : parseFloat(monthlyRate),
           currency,
           teamIds: selectedTeams,
         }
@@ -82,7 +85,8 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
         setRole("developer");
         setEmploymentType("full-time");
         setBillingType("hourly");
-        setBillingRate("0");
+        setHourlyRate("0");
+        setMonthlyRate("0");
         setCurrency("USD");
         setSelectedTeams([]);
         setIsSuccess(false);
@@ -191,13 +195,21 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="billingRate">Billing Rate</Label>
+          <Label htmlFor="billingRate">
+            {billingType === "hourly" ? "Hourly Rate" : "Monthly Rate"}
+          </Label>
           <div className="flex">
             <Input
               id="billingRate"
               type="number"
-              value={billingRate}
-              onChange={(e) => setBillingRate(e.target.value)}
+              value={billingType === "hourly" ? hourlyRate : monthlyRate}
+              onChange={(e) => {
+                if (billingType === "hourly") {
+                  setHourlyRate(e.target.value);
+                } else {
+                  setMonthlyRate(e.target.value);
+                }
+              }}
               min="0"
               step="0.01"
               className="rounded-r-none"

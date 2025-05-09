@@ -41,8 +41,8 @@ export interface User {
   employmentType?: EmploymentType;
   billingType?: BillingType;
   billingRate?: number;
-  hourlyRate?: number;  // Added hourlyRate property
-  monthlyRate?: number; // Added monthlyRate for monthly employees
+  hourlyRate?: number;  // For hourly employees
+  monthlyRate?: number; // For monthly employees
   currency?: string;
   managerId?: string;
   clientId?: string;

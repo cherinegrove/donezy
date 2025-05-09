@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import {
   User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role, ProjectTemplate, TemplateTask, CustomRole, ClientFile
@@ -216,9 +215,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       employmentType?: "full-time" | "part-time" | "contract";
       billingType?: "hourly" | "monthly";
       billingRate?: number;
+      hourlyRate?: number;
+      monthlyRate?: number;
       currency?: string;
       teamIds?: string[];
       clientId?: string;
+      clientRole?: "admin" | "team";
     }
   ) => {
     // In a real app, this would send an email invitation
@@ -240,10 +242,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     if (options?.billingType) {
       newUser.billingType = options.billingType;
-    }
-    
-    if (options?.billingRate !== undefined) {
-      newUser.billingRate = options.billingRate;
+      
+      if (options.billingType === "hourly" && options.hourlyRate !== undefined) {
+        newUser.hourlyRate = options.hourlyRate;
+        newUser.billingRate = options.hourlyRate;
+      } else if (options.billingType === "monthly" && options.monthlyRate !== undefined) {
+        newUser.monthlyRate = options.monthlyRate;
+        newUser.billingRate = options.monthlyRate;
+      } else if (options.billingRate !== undefined) {
+        newUser.billingRate = options.billingRate;
+        if (options.billingType === "hourly") {
+          newUser.hourlyRate = options.billingRate;
+        } else {
+          newUser.monthlyRate = options.billingRate;
+        }
+      }
     }
     
     if (options?.currency) {
@@ -252,6 +265,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     if (options?.clientId && role === "client") {
       newUser.clientId = options.clientId;
+    }
+    
+    if (options?.clientRole && role === "client") {
+      newUser.clientRole = options.clientRole;
     }
     
     addUser(newUser);

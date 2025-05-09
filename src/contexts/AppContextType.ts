@@ -39,6 +39,8 @@ export interface AppContextType {
     employmentType?: "full-time" | "part-time" | "contract";
     billingType?: "hourly" | "monthly";
     billingRate?: number;
+    hourlyRate?: number;
+    monthlyRate?: number;
     currency?: string;
     teamIds?: string[];
     clientId?: string;

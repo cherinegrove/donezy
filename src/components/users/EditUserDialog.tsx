@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,6 +54,8 @@ const formSchema = z.object({
   teamIds: z.array(z.string()),
   employmentType: z.enum(["full-time", "contract", "part-time"]).optional(),
   billingType: z.enum(["hourly", "monthly"]).optional(),
+  hourlyRate: z.number().optional(),
+  monthlyRate: z.number().optional(),
   billingRate: z.number().optional(),
   currency: z.string().optional(),
   clientId: z.string().optional(),
@@ -88,6 +89,8 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
       teamIds: user?.teamIds || [],
       employmentType: user?.employmentType || "full-time",
       billingType: user?.billingType || "hourly",
+      hourlyRate: user?.hourlyRate || 0,
+      monthlyRate: user?.monthlyRate || 0,
       billingRate: user?.billingRate || 0,
       currency: user?.currency || "USD",
       clientId: user?.clientId || undefined,
@@ -119,6 +122,8 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
         teamIds: user.teamIds,
         employmentType: user.employmentType || "full-time",
         billingType: user.billingType || "hourly",
+        hourlyRate: user.hourlyRate || 0,
+        monthlyRate: user.monthlyRate || 0,
         billingRate: user.billingRate || 0,
         currency: user.currency || "USD",
         clientId: user.clientId,
@@ -142,6 +147,8 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
         teamIds: [],
         employmentType: "full-time",
         billingType: "hourly",
+        hourlyRate: 0,
+        monthlyRate: 0,
         billingRate: 0,
         currency: "USD",
         clientRole: "team",
@@ -200,6 +207,15 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
         canViewReports: true,
         canManageUsers: true,
       };
+    }
+    
+    // Set the correct rate based on billing type
+    if (values.billingType === "hourly") {
+      values.billingRate = values.hourlyRate;
+      values.monthlyRate = undefined;
+    } else {
+      values.billingRate = values.monthlyRate;
+      values.hourlyRate = undefined;
     }
 
     if (isEditMode && user) {
@@ -457,26 +473,45 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                       )}
                     />
                     
-                    <FormField
-                      control={form.control}
-                      name="billingRate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            {watchBillingType === "hourly" ? "Hourly Rate" : "Monthly Rate"}
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="Enter rate" 
-                              {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {watchBillingType === "hourly" ? (
+                      <FormField
+                        control={form.control}
+                        name="hourlyRate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Hourly Rate</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="Enter hourly rate" 
+                                {...field}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ) : (
+                      <FormField
+                        control={form.control}
+                        name="monthlyRate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Monthly Rate</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="Enter monthly rate" 
+                                {...field}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                     
                     <FormField
                       control={form.control}
