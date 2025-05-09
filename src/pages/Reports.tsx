@@ -486,6 +486,48 @@ const Reports = () => {
     return filteredPurchases.reduce((total, purchase) => total + purchase.amount, 0).toFixed(2);
   };
 
+  // Get team member revenue data
+  const getTeamMemberRevenueData = () => {
+    const filteredEntries = getFilteredTimeEntries()
+      .filter(entry => entry.billable); // Only include billable entries
+    
+    // Group time entries by user
+    const revenueByUser = users.map(user => {
+      // Get all billable time entries for this user
+      const userEntries = filteredEntries.filter(entry => entry.userId === user.id);
+      
+      // Calculate total revenue generated
+      const totalRevenue = userEntries.reduce((total, entry) => {
+        const client = clients.find(c => c.id === entry.clientId);
+        if (!client || !client.billableRate) return total;
+        
+        const hours = entry.duration / 60;
+        const revenue = hours * client.billableRate;
+        return total + revenue;
+      }, 0);
+      
+      // Calculate cost (what would be paid to team member)
+      const totalHours = minutesToHours(userEntries.reduce((total, entry) => total + entry.duration, 0));
+      const hourlyRate = user.hourlyRate || 0;
+      const totalCost = totalHours * hourlyRate;
+      
+      // Calculate profit
+      const profit = totalRevenue - totalCost;
+      
+      return {
+        userId: user.id,
+        name: user.name,
+        totalHours,
+        hourlyRate,
+        totalRevenue,
+        totalCost,
+        profit,
+      };
+    });
+    
+    return revenueByUser.sort((a, b) => b.totalRevenue - a.totalRevenue); // Sort by highest revenue first
+  };
+
   const clientHoursData = getClientHoursData();
   const userHoursData = getUserHoursData();
   const projectProgressData = getProjectProgressData();
@@ -493,6 +535,7 @@ const Reports = () => {
   const revenueByServiceType = getRevenueByServiceType();
   const monthlyRevenueData = getMonthlyRevenueData();
   const totalRevenue = calculateTotalRevenue();
+  const teamMemberRevenueData = getTeamMemberRevenueData();
   
   const toggleClientExpand = (clientId: string) => {
     setExpandedClients(prev => ({
@@ -1095,6 +1138,80 @@ const Reports = () => {
                     <TableRow>
                       <TableCell colSpan={2} className="text-center py-10 text-muted-foreground">
                         No monthly revenue data available
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
+      
+      {reportType === "team" && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue by Team Member</CardTitle>
+              <CardDescription>
+                Financial contribution and profitability by team member
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Team Member</TableHead>
+                    <TableHead className="text-right">Hours</TableHead>
+                    <TableHead className="text-right">Hourly Rate</TableHead>
+                    <TableHead className="text-right">Revenue Generated</TableHead>
+                    <TableHead className="text-right">Cost</TableHead>
+                    <TableHead className="text-right">Profit</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {teamMemberRevenueData.length > 0 ? (
+                    teamMemberRevenueData.map((member) => (
+                      <TableRow key={member.userId}>
+                        <TableCell className="font-medium">{member.name}</TableCell>
+                        <TableCell className="text-right">{member.totalHours}h</TableCell>
+                        <TableCell className="text-right">{formatCurrency(member.hourlyRate)}/h</TableCell>
+                        <TableCell className="text-right font-mono">
+                          {formatCurrency(member.totalRevenue)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {formatCurrency(member.totalCost)}
+                        </TableCell>
+                        <TableCell className={cn(
+                          "text-right font-mono",
+                          member.profit >= 0 ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500"
+                        )}>
+                          {formatCurrency(member.profit)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                        No team member revenue data available
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {teamMemberRevenueData.length > 0 && (
+                    <TableRow className="font-semibold border-t-2">
+                      <TableCell>Total</TableCell>
+                      <TableCell className="text-right">
+                        {teamMemberRevenueData.reduce((sum, member) => sum + member.totalHours, 0).toFixed(1)}h
+                      </TableCell>
+                      <TableCell className="text-right">-</TableCell>
+                      <TableCell className="text-right font-mono">
+                        {formatCurrency(teamMemberRevenueData.reduce((sum, member) => sum + member.totalRevenue, 0))}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        {formatCurrency(teamMemberRevenueData.reduce((sum, member) => sum + member.totalCost, 0))}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        {formatCurrency(teamMemberRevenueData.reduce((sum, member) => sum + member.profit, 0))}
                       </TableCell>
                     </TableRow>
                   )}
