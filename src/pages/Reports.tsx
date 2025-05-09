@@ -8,7 +8,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
-import { format } from "date-fns";
+import { format, isWithinInterval, parseISO } from "date-fns";
 import { CalendarIcon, Download, ChevronRight, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -32,7 +32,13 @@ const Reports = () => {
   const { toast } = useToast();
   const { timeEntries, clients, projects } = useAppContext();
   const [reportType, setReportType] = useState("time");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [dateRange, setDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: new Date(),
+    to: new Date()
+  });
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});
   
@@ -64,10 +70,40 @@ const Reports = () => {
     setActiveFilters(filters);
   };
 
+  // Filter time entries by date range
+  const getFilteredTimeEntries = () => {
+    if (!dateRange.from && !dateRange.to) return timeEntries;
+    
+    return timeEntries.filter(entry => {
+      const entryDate = new Date(entry.startTime);
+      
+      if (dateRange.from && dateRange.to) {
+        // Set the time of dateRange.to to end of day to include the full day
+        const toDate = new Date(dateRange.to);
+        toDate.setHours(23, 59, 59, 999);
+        
+        return isWithinInterval(entryDate, { 
+          start: dateRange.from, 
+          end: toDate 
+        });
+      } else if (dateRange.from) {
+        return entryDate >= dateRange.from;
+      } else if (dateRange.to) {
+        const toDate = new Date(dateRange.to);
+        toDate.setHours(23, 59, 59, 999);
+        return entryDate <= toDate;
+      }
+      
+      return true;
+    });
+  };
+
   // Process data for the client hours report
   const getClientHoursData = () => {
+    const filteredEntries = getFilteredTimeEntries();
+    
     // Group time entries by client
-    const hoursByClient = timeEntries.reduce((acc: Record<string, number>, entry: TimeEntry) => {
+    const hoursByClient = filteredEntries.reduce((acc: Record<string, number>, entry: TimeEntry) => {
       if (!entry.clientId) return acc;
       
       if (!acc[entry.clientId]) {
@@ -93,11 +129,13 @@ const Reports = () => {
 
   // Get project hours by client
   const getProjectHoursByClient = (clientId: string) => {
+    const filteredEntries = getFilteredTimeEntries();
+    
     // Get projects for this client
     const clientProjects = projects.filter((project) => project.clientId === clientId);
     
     // Group time entries by project
-    const hoursByProject = timeEntries.reduce((acc: Record<string, number>, entry: TimeEntry) => {
+    const hoursByProject = filteredEntries.reduce((acc: Record<string, number>, entry: TimeEntry) => {
       if (!entry.projectId) return acc;
       
       if (!acc[entry.projectId]) {
@@ -140,7 +178,7 @@ const Reports = () => {
       </div>
       
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="w-full md:w-60">
             <Select onValueChange={setReportType} defaultValue={reportType}>
               <SelectTrigger>
@@ -160,20 +198,42 @@ const Reports = () => {
               <Button
                 variant="outline"
                 className={cn(
-                  "w-[240px] justify-start text-left font-normal",
-                  !selectedDate && "text-muted-foreground"
+                  "w-[280px] justify-start text-left font-normal",
+                  !dateRange.from && !dateRange.to && "text-muted-foreground"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {selectedDate ? format(selectedDate, "MMMM yyyy") : "Select month"}
+                {dateRange.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, "MMM d, yyyy")} - {format(dateRange.to, "MMM d, yyyy")}
+                    </>
+                  ) : (
+                    format(dateRange.from, "MMMM d, yyyy")
+                  )
+                ) : dateRange.to ? (
+                  format(dateRange.to, "MMMM d, yyyy")
+                ) : (
+                  "Select date range"
+                )}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                initialFocus
+                mode="range"
+                selected={dateRange}
+                onSelect={(range) => {
+                  if (range?.from) {
+                    setDateRange({
+                      from: range.from,
+                      to: range.to || range.from
+                    });
+                  } else {
+                    setDateRange({ from: undefined, to: undefined });
+                  }
+                }}
+                numberOfMonths={2}
+                className={cn("p-3 pointer-events-auto")}
               />
             </PopoverContent>
           </Popover>
@@ -248,7 +308,7 @@ const Reports = () => {
               ) : (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
-                    No data available
+                    No data available for the selected date range
                   </TableCell>
                 </TableRow>
               )}
