@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Form, 
   FormControl, 
@@ -61,7 +60,7 @@ export function RoleManagementTab() {
     form.reset({
       name: role.name,
       description: role.description || "",
-      permissions: role.permissions
+      permissions: { ...role.permissions }
     });
     setEditingRoleId(role.id);
     setIsEditing(true);
@@ -96,7 +95,7 @@ export function RoleManagementTab() {
     deleteCustomRole(id);
   };
 
-  const permissionOptions = ["none", "view", "edit"] as const;
+  const permissionOptions: AccessLevel[] = ["none", "view", "edit"];
   
   // Function to handle permission change
   const handlePermissionChange = (permission: keyof FormValues["permissions"], level: AccessLevel) => {
@@ -165,26 +164,32 @@ export function RoleManagementTab() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Object.keys(form.getValues().permissions).map((permission) => (
-                        <TableRow key={permission}>
-                          <TableCell className="font-medium capitalize">
-                            {permission.replace(/([A-Z])/g, ' $1').trim()}
-                          </TableCell>
-                          {permissionOptions.map((level) => (
-                            <TableCell key={`${permission}-${level}`}>
-                              <div className="flex items-center justify-center">
-                                <input
-                                  type="radio"
-                                  id={`${permission}-${level}`}
-                                  className="h-5 w-5 cursor-pointer"
-                                  checked={form.getValues().permissions[permission as keyof FormValues["permissions"]] === level}
-                                  onChange={() => handlePermissionChange(permission as keyof FormValues["permissions"], level)}
-                                />
-                              </div>
+                      {Object.keys(defaultFormValues.permissions).map((permission) => {
+                        const permKey = permission as keyof FormValues["permissions"];
+                        const currentValue = form.watch(`permissions.${permKey}`);
+                        
+                        return (
+                          <TableRow key={permission}>
+                            <TableCell className="font-medium capitalize">
+                              {permission.replace(/([A-Z])/g, ' $1').trim()}
                             </TableCell>
-                          ))}
-                        </TableRow>
-                      ))}
+                            {permissionOptions.map((level) => (
+                              <TableCell key={`${permission}-${level}`}>
+                                <div className="flex items-center justify-center">
+                                  <input
+                                    type="radio"
+                                    id={`${permission}-${level}`}
+                                    name={`permissions.${permKey}`}
+                                    className="h-5 w-5 cursor-pointer"
+                                    checked={currentValue === level}
+                                    onChange={() => handlePermissionChange(permKey, level)}
+                                  />
+                                </div>
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
