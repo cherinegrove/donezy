@@ -1,3 +1,4 @@
+
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
@@ -40,6 +41,7 @@ export interface User {
   employmentType?: EmploymentType;
   billingType?: BillingType;
   billingRate?: number;
+  hourlyRate?: number;  // Added hourlyRate property
   currency?: string;
   managerId?: string;
   clientId?: string;
