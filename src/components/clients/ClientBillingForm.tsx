@@ -24,6 +24,9 @@ const currencyOptions = [
   { value: "JPY", label: "Japanese Yen", symbol: "¥" }
 ];
 
+// Define the valid service types as a type
+type ServiceType = 'retainer' | 'payasyougo' | 'bank-hours';
+
 export const ClientBillingForm = ({ clientId }: ClientBillingFormProps) => {
   const { getClientById, updateClient } = useAppContext();
   const client = getClientById(clientId);
@@ -31,7 +34,7 @@ export const ClientBillingForm = ({ clientId }: ClientBillingFormProps) => {
   
   const [billableRate, setBillableRate] = useState(client?.billableRate || 0);
   const [currency, setCurrency] = useState(client?.currency || "USD");
-  const [serviceType, setServiceType] = useState(client?.serviceType || "payasyougo");
+  const [serviceType, setServiceType] = useState<ServiceType>(client?.serviceType as ServiceType || "payasyougo");
   const [allocatedHours, setAllocatedHours] = useState(client?.allocatedHours || 0);
   
   const handleSave = () => {
@@ -55,6 +58,11 @@ export const ClientBillingForm = ({ clientId }: ClientBillingFormProps) => {
   if (!client) {
     return <div>Client not found</div>;
   }
+  
+  // Create a handler that explicitly casts the value to ServiceType
+  const handleServiceTypeChange = (value: string) => {
+    setServiceType(value as ServiceType);
+  };
   
   return (
     <Card>
@@ -100,7 +108,7 @@ export const ClientBillingForm = ({ clientId }: ClientBillingFormProps) => {
             <Label>Client Type</Label>
             <RadioGroup
               value={serviceType}
-              onValueChange={setServiceType}
+              onValueChange={handleServiceTypeChange}
               className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2"
             >
               <div className={`flex items-start space-x-2 p-3 rounded-md border ${serviceType === "retainer" ? "border-primary bg-primary/5" : ""}`}>
