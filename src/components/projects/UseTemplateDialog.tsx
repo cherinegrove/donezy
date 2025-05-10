@@ -94,6 +94,8 @@ export function UseTemplateDialog({
       clientId: data.clientId,
       startDate: data.startDate,
       dueDate: data.dueDate,
+      // Always create as standard project with allocated hours if the template specifies
+      serviceType: "project",
     });
     
     form.reset();

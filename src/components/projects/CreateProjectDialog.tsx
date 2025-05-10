@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,8 @@ import { useAppContext } from "@/contexts/AppContext";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
 
 const projectSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
@@ -29,7 +31,7 @@ const projectSchema = z.object({
   teamIds: z.array(z.string()),
   startDate: z.string().min(1, { message: "Start date is required" }),
   dueDate: z.string().optional(),
-  serviceType: z.enum(["project", "bank-hours", "pay-as-you-go"]),
+  hasHourLimit: z.boolean().default(false),
   allocatedHours: z.string().optional().transform(val => val ? Number(val) : undefined),
 });
 
@@ -57,7 +59,7 @@ export function CreateProjectDialog({
       clientId: "",
       teamIds: [],
       startDate: new Date().toISOString().split("T")[0],
-      serviceType: "project",
+      hasHourLimit: false,
     },
   });
   
@@ -67,19 +69,20 @@ export function CreateProjectDialog({
       status: "todo",
       taskIds: [],
       usedHours: 0,
-      name: data.name,        // Explicitly set required properties
+      name: data.name,
       description: data.description,
       clientId: data.clientId,
       teamIds: data.teamIds,
       startDate: data.startDate,
-      serviceType: data.serviceType,
+      serviceType: "project", // Set default service type
+      allocatedHours: data.hasHourLimit ? data.allocatedHours : undefined,
     });
     
     form.reset();
     onOpenChange(false);
   };
   
-  const selectedServiceType = form.watch("serviceType");
+  const hasHourLimit = form.watch("hasHourLimit");
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -219,31 +222,26 @@ export function CreateProjectDialog({
             
             <FormField
               control={form.control}
-              name="serviceType"
+              name="hasHourLimit"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Service Type</FormLabel>
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Hour Limit</FormLabel>
+                    <FormDescription>
+                      Set a limit on the number of hours that can be used for this project.
+                    </FormDescription>
+                  </div>
                   <FormControl>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select service type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="project">Fixed Project</SelectItem>
-                        <SelectItem value="bank-hours">Bank of Hours</SelectItem>
-                        <SelectItem value="pay-as-you-go">Pay As You Go</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
             
-            {(selectedServiceType === "project" || selectedServiceType === "bank-hours") && (
+            {hasHourLimit && (
               <FormField
                 control={form.control}
                 name="allocatedHours"
