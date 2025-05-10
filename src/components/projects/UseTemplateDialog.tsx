@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,6 +31,8 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, ListChecks, Clock } from "lucide-react";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { Label } from "@/components/ui/label";
 import { ProjectTemplate } from "@/types";
 
 const useTemplateSchema = z.object({
@@ -52,8 +55,12 @@ export function UseTemplateDialog({
   onOpenChange,
   templateId,
 }: UseTemplateDialogProps) {
-  const { projectTemplates, clients, createProjectFromTemplate } = useAppContext();
+  const { projectTemplates, clients, users, createProjectFromTemplate } = useAppContext();
   const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplate | null>(null);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  
+  // Filter to only get team members (non-client users)
+  const teamMembers = users.filter(user => user.clientId === undefined);
   
   const form = useForm<UseTemplateFormData>({
     resolver: zodResolver(useTemplateSchema),
@@ -93,10 +100,11 @@ export function UseTemplateDialog({
       clientId: data.clientId,
       startDate: data.startDate,
       dueDate: data.dueDate,
-      // Remove the serviceType property as it's not expected in the function parameters
+      memberIds: selectedMembers.length > 0 ? selectedMembers : undefined,
     });
     
     form.reset();
+    setSelectedMembers([]);
     onOpenChange(false);
   };
 
@@ -124,6 +132,12 @@ export function UseTemplateDialog({
       form.setValue("dueDate", dueDate.toISOString().split("T")[0]);
     }
   };
+
+  // Convert users to options for MultiSelect
+  const memberOptions = teamMembers.map(member => ({
+    value: member.id,
+    label: member.name
+  }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -188,33 +202,45 @@ export function UseTemplateDialog({
                     )}
                   />
                   
-                  <FormField
-                    control={form.control}
-                    name="clientId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Client</FormLabel>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select client" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {clients.map((client) => (
-                              <SelectItem key={client.id} value={client.id}>
-                                {client.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="clientId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Client</FormLabel>
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select client" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {clients.map((client) => (
+                                <SelectItem key={client.id} value={client.id}>
+                                  {client.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="space-y-2">
+                      <Label>Assign Team Members</Label>
+                      <MultiSelect
+                        options={memberOptions}
+                        selectedValues={selectedMembers}
+                        onValueChange={setSelectedMembers}
+                        placeholder="Select team members"
+                      />
+                    </div>
+                  </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField

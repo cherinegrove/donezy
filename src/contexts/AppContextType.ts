@@ -74,6 +74,7 @@ export interface AppContextType {
     clientId: string;
     startDate: string;
     dueDate?: string;
+    memberIds?: string[];  // Added memberIds parameter
   }) => void;
   
   // CRUD operations for tasks

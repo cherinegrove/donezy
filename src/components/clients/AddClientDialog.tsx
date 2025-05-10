@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 const clientSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -31,7 +31,11 @@ interface AddClientDialogProps {
 }
 
 export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
-  const { addClient } = useAppContext();
+  const { addClient, users } = useAppContext();
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  
+  // Filter to only get team members (non-client users)
+  const teamMembers = users.filter(user => user.clientId === undefined);
 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
@@ -60,12 +64,21 @@ export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
       billableRate: data.billableRate,
       currency: data.currency,
       status: data.status,
-      projectIds: []
+      projectIds: [],
+      // Instead of teamIds, use memberIds
+      memberIds: selectedMembers.length > 0 ? selectedMembers : undefined
     });
     
     form.reset();
+    setSelectedMembers([]);
     onClose();
   };
+
+  // Convert users to options for MultiSelect
+  const memberOptions = teamMembers.map(member => ({
+    value: member.id,
+    label: member.name
+  }));
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -232,6 +245,16 @@ export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
                 </FormItem>
               )}
             />
+            
+            <div className="space-y-2">
+              <Label>Assign Team Members</Label>
+              <MultiSelect
+                options={memberOptions}
+                selectedValues={selectedMembers}
+                onValueChange={setSelectedMembers}
+                placeholder="Select team members"
+              />
+            </div>
             
             <div className="flex justify-end space-x-3 pt-4">
               <Button type="button" variant="outline" onClick={onClose}>

@@ -23,12 +23,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
+import { useState } from "react";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 const projectSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
   description: z.string(),
   clientId: z.string().min(1, { message: "Client is required" }),
-  teamIds: z.array(z.string()),
   startDate: z.string().min(1, { message: "Start date is required" }),
   dueDate: z.string().optional(),
   hasHourLimit: z.boolean().default(false),
@@ -46,10 +47,14 @@ export function CreateProjectDialog({
   open,
   onOpenChange,
 }: CreateProjectDialogProps) {
-  const { clients, teams, addProject } = useAppContext();
+  const { clients, users, addProject } = useAppContext();
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   
   // Filter to only active clients
   const activeClients = clients.filter(client => client.status === 'active');
+  
+  // Filter to only get team members (non-client users)
+  const teamMembers = users.filter(user => user.clientId === undefined);
   
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -57,7 +62,6 @@ export function CreateProjectDialog({
       name: "",
       description: "",
       clientId: "",
-      teamIds: [],
       startDate: new Date().toISOString().split("T")[0],
       hasHourLimit: false,
     },
@@ -72,17 +76,25 @@ export function CreateProjectDialog({
       name: data.name,
       description: data.description,
       clientId: data.clientId,
-      teamIds: data.teamIds,
+      memberIds: selectedMembers,
+      teamIds: [], // Keep empty as we're using members directly
       startDate: data.startDate,
       serviceType: "project", // Set default service type
       allocatedHours: data.hasHourLimit ? data.allocatedHours : undefined,
     });
     
     form.reset();
+    setSelectedMembers([]);
     onOpenChange(false);
   };
   
   const hasHourLimit = form.watch("hasHourLimit");
+  
+  // Convert users to options for MultiSelect
+  const memberOptions = teamMembers.map(member => ({
+    value: member.id,
+    label: member.name
+  }));
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -161,33 +173,15 @@ export function CreateProjectDialog({
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="teamIds"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Team</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value[0] || ""}
-                        onValueChange={(value) => field.onChange([value])}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Assign to team" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {teams.map((team) => (
-                            <SelectItem key={team.id} value={team.id}>
-                              {team.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <Label>Assign Team Members</Label>
+                <MultiSelect
+                  options={memberOptions}
+                  selectedValues={selectedMembers}
+                  onValueChange={setSelectedMembers}
+                  placeholder="Select team members"
+                />
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

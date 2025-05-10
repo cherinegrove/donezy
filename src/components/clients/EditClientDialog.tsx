@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,8 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
 import { Client } from "@/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckboxGroup, CheckboxGroupItem } from "@/components/ui/checkboxGroup";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 interface EditClientDialogProps {
   client: Client;
@@ -19,7 +19,7 @@ interface EditClientDialogProps {
 }
 
 export const EditClientDialog = ({ client, isOpen, onClose }: EditClientDialogProps) => {
-  const { updateClient, teams } = useAppContext();
+  const { updateClient, users } = useAppContext();
   const { toast } = useToast();
 
   const [name, setName] = useState(client.name);
@@ -30,7 +30,16 @@ export const EditClientDialog = ({ client, isOpen, onClose }: EditClientDialogPr
   const [website, setWebsite] = useState(client.website || "");
   const [notes, setNotes] = useState(client.notes || "");
   const [status, setStatus] = useState<'active' | 'inactive'>(client.status);
-  const [selectedTeams, setSelectedTeams] = useState<string[]>(client.teamIds || []);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>(client.memberIds || []);
+  
+  // Filter to only get team members (non-client users)
+  const teamMembers = users.filter(user => user.clientId === undefined);
+
+  // Convert users to options for MultiSelect
+  const memberOptions = teamMembers.map(member => ({
+    value: member.id,
+    label: member.name
+  }));
 
   const handleSave = () => {
     updateClient(client.id, {
@@ -42,7 +51,7 @@ export const EditClientDialog = ({ client, isOpen, onClose }: EditClientDialogPr
       website: website || undefined,
       notes: notes || undefined,
       status,
-      teamIds: selectedTeams.length > 0 ? selectedTeams : undefined,
+      memberIds: selectedMembers.length > 0 ? selectedMembers : undefined,
     });
 
     toast({
@@ -51,14 +60,6 @@ export const EditClientDialog = ({ client, isOpen, onClose }: EditClientDialogPr
     });
 
     onClose();
-  };
-
-  const handleTeamChange = (teamId: string) => {
-    if (selectedTeams.includes(teamId)) {
-      setSelectedTeams(selectedTeams.filter(id => id !== teamId));
-    } else {
-      setSelectedTeams([...selectedTeams, teamId]);
-    }
   };
 
   return (
@@ -140,27 +141,13 @@ export const EditClientDialog = ({ client, isOpen, onClose }: EditClientDialogPr
           </div>
 
           <div className="space-y-2">
-            <Label>Assigned Teams</Label>
-            {teams.length > 0 ? (
-              <ScrollArea className="h-[150px] border rounded-md p-2">
-                <CheckboxGroup>
-                  {teams.map(team => (
-                    <div key={team.id} className="flex items-center space-x-2 py-1">
-                      <CheckboxGroupItem 
-                        id={`team-${team.id}`}
-                        checked={selectedTeams.includes(team.id)}
-                        onCheckedChange={() => handleTeamChange(team.id)}
-                      />
-                      <Label htmlFor={`team-${team.id}`} className="cursor-pointer">
-                        {team.name}
-                      </Label>
-                    </div>
-                  ))}
-                </CheckboxGroup>
-              </ScrollArea>
-            ) : (
-              <p className="text-sm text-muted-foreground">No teams available</p>
-            )}
+            <Label>Assigned Team Members</Label>
+            <MultiSelect
+              options={memberOptions}
+              selectedValues={selectedMembers}
+              onValueChange={setSelectedMembers}
+              placeholder="Select team members"
+            />
           </div>
 
           <div className="space-y-2">
