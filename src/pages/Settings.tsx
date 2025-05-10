@@ -9,18 +9,35 @@ import { ManagerNotificationSettings } from "@/components/settings/ManagerNotifi
 import { ProfileInformationCard } from "@/components/settings/ProfileInformationCard";
 import { GeneralNotificationSettings } from "@/components/settings/GeneralNotificationSettings";
 import { Button } from "@/components/ui/button";
-import { Plus, Palette, Shield, Users, UserRound } from "lucide-react";
+import { Plus, Palette, Shield, Users, UserRound, Pencil } from "lucide-react";
 import { EditTeamDialog } from "@/components/teams/EditTeamDialog";
 import { CompanyThemeSettings } from "@/components/settings/CompanyThemeSettings";
 import { RoleManagementTab } from "@/components/settings/RoleManagementTab";
+import { Team } from "@/types";
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [activeAccountTab, setActiveAccountTab] = useState("setup");
-  const [isCreateTeamDialogOpen, setIsCreateTeamDialogOpen] = useState(false);
-  const { currentUser } = useAppContext();
+  const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<Team | undefined>(undefined);
+  const { currentUser, teams } = useAppContext();
   const isClient = currentUser?.role === 'client';
   const isAdminOrManager = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+  
+  const handleEditTeam = (team: Team) => {
+    setSelectedTeam(team);
+    setIsTeamDialogOpen(true);
+  };
+  
+  const handleCreateTeam = () => {
+    setSelectedTeam(undefined);
+    setIsTeamDialogOpen(true);
+  };
+  
+  const handleCloseTeamDialog = () => {
+    setIsTeamDialogOpen(false);
+    setSelectedTeam(undefined);
+  };
   
   return (
     <div className="space-y-6">
@@ -105,16 +122,44 @@ const Settings = () => {
                               </CardDescription>
                             </div>
                           </div>
-                          <Button onClick={() => setIsCreateTeamDialogOpen(true)}>
+                          <Button onClick={handleCreateTeam}>
                             <Plus className="h-4 w-4 mr-2" />
                             Create Team
                           </Button>
                         </CardHeader>
                         <CardContent>
-                          {/* Team management would go here */}
-                          <p className="text-center py-12 text-muted-foreground">
-                            Create a team to organize your team members
-                          </p>
+                          {teams.length > 0 ? (
+                            <div className="space-y-3">
+                              {teams.map((team) => (
+                                <div 
+                                  key={team.id}
+                                  className="flex items-center justify-between p-3 rounded-md border"
+                                >
+                                  <div>
+                                    <h3 className="font-medium">{team.name}</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                      {team.description || "No description"}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {team.members.length} members
+                                    </p>
+                                  </div>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleEditTeam(team)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                    <span className="sr-only">Edit</span>
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-center py-12 text-muted-foreground">
+                              Create a team to organize your team members
+                            </p>
+                          )}
                         </CardContent>
                       </Card>
                     )}
@@ -168,10 +213,11 @@ const Settings = () => {
         </TabsContent>
       </Tabs>
       
-      {/* Create Team Dialog */}
+      {/* Team Dialog (Edit or Create) */}
       <EditTeamDialog 
-        isOpen={isCreateTeamDialogOpen}
-        onClose={() => setIsCreateTeamDialogOpen(false)}
+        team={selectedTeam}
+        isOpen={isTeamDialogOpen}
+        onClose={handleCloseTeamDialog}
       />
     </div>
   );
