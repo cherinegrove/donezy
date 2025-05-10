@@ -1,4 +1,3 @@
-
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
@@ -124,6 +123,11 @@ export interface Client {
   currency: string;
   status: 'active' | 'inactive';
   files?: ClientFile[];
+  serviceType?: 'retainer' | 'payasyougo' | 'bank-hours';  // Added client service type
+  allocatedHours?: number;  // Added allocated hours
+  usedHours?: number;  // Added used hours
+  teamIds?: string[];  // Added team IDs
+  notes?: string;  // Added notes field
 }
 
 export interface Project {

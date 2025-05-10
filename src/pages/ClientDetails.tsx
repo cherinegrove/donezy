@@ -15,16 +15,35 @@ import { useState } from "react";
 import { EditClientDialog } from "@/components/clients/EditClientDialog";
 import { Avatar } from "@/components/ui/avatar";
 import { AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
 
 const ClientDetails = () => {
   const { clientId } = useParams<{ clientId: string }>();
-  const { getClientById, projects, purchases, currentUser, updateClient, teams, users } = useAppContext();
+  const { getClientById, projects, purchases, currentUser, updateClient, teams, users, timeEntries } = useAppContext();
   const navigate = useNavigate();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const client = clientId ? getClientById(clientId) : undefined;
   const clientProjects = projects.filter(project => project.clientId === clientId);
   const clientPurchases = purchases.filter(purchase => purchase.clientId === clientId);
+  
+  // Calculate hours used this month
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const clientTimeEntries = timeEntries.filter(entry => 
+    entry.clientId === clientId && 
+    new Date(entry.startTime) >= startOfMonth
+  );
+  
+  // Calculate total hours used this month (convert minutes to hours)
+  const hoursUsedThisMonth = clientTimeEntries.reduce((total, entry) => 
+    total + (entry.duration / 60), 0
+  );
+  
+  // For bank of hours, calculate the total used hours from all time entries
+  const totalHoursUsed = timeEntries
+    .filter(entry => entry.clientId === clientId)
+    .reduce((total, entry) => total + (entry.duration / 60), 0);
   
   // Check if current user is the client user or an admin/manager
   const isClientUser = currentUser?.role === 'client' && client?.userId === currentUser.id;
@@ -54,6 +73,21 @@ const ClientDetails = () => {
       </div>
     );
   }
+  
+  // Calculate hours remaining for bank of hours clients
+  const remainingHours = client.serviceType === 'bank-hours' && client.allocatedHours 
+    ? Math.max(0, client.allocatedHours - totalHoursUsed)
+    : 0;
+  
+  // Calculate percentage used for retainer clients
+  const retainerPercentageUsed = client.serviceType === 'retainer' && client.allocatedHours
+    ? Math.min(100, (hoursUsedThisMonth / client.allocatedHours) * 100)
+    : 0;
+    
+  // Calculate percentage used for bank of hours clients
+  const bankHoursPercentageUsed = client.serviceType === 'bank-hours' && client.allocatedHours
+    ? Math.min(100, (totalHoursUsed / client.allocatedHours) * 100)
+    : 0;
   
   return (
     <div className="space-y-6">
@@ -174,17 +208,49 @@ const ClientDetails = () => {
                   </div>
                   
                   {client.serviceType === 'retainer' && client.allocatedHours && (
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm">Monthly Hours:</span>
-                      <span>{client.allocatedHours} hours</span>
-                    </div>
+                    <>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm">Monthly Hours:</span>
+                        <span>{client.allocatedHours} hours</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-2 text-xs text-muted-foreground">
+                        <span>Used this month:</span>
+                        <span>{hoursUsedThisMonth.toFixed(1)} hours</span>
+                      </div>
+                      <div className="space-y-1 mb-3">
+                        <div className="flex justify-between text-xs">
+                          <span>Monthly Usage</span>
+                          <span>{retainerPercentageUsed.toFixed(0)}%</span>
+                        </div>
+                        <Progress value={retainerPercentageUsed} className="h-2" />
+                      </div>
+                    </>
                   )}
                   
                   {client.serviceType === 'bank-hours' && client.allocatedHours && (
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm">Bank Hours:</span>
-                      <span>{client.allocatedHours} hours</span>
-                    </div>
+                    <>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm">Bank Hours:</span>
+                        <span>{client.allocatedHours} hours</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-1 text-xs text-muted-foreground">
+                        <span>Used:</span>
+                        <span>{totalHoursUsed.toFixed(1)} hours</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-2 text-xs font-medium">
+                        <span>Remaining:</span>
+                        <span className={remainingHours < 5 ? "text-red-500" : ""}>
+                          {remainingHours.toFixed(1)} hours
+                        </span>
+                      </div>
+                      <div className="space-y-1 mb-3">
+                        <div className="flex justify-between text-xs">
+                          <span>Hours Used</span>
+                          <span>{bankHoursPercentageUsed.toFixed(0)}%</span>
+                        </div>
+                        <Progress value={bankHoursPercentageUsed} className="h-2" />
+                      </div>
+                    </>
                   )}
                   
                   {clientPurchases.length > 0 ? (
