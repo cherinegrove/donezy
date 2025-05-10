@@ -1,18 +1,26 @@
+
 import { useAppContext } from "@/contexts/AppContext";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Edit, Check, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClientBillingForm } from "@/components/clients/ClientBillingForm";
 import { ClientDashboard } from "@/components/clients/ClientDashboard";
 import { ClientFileUpload } from "@/components/clients/ClientFileUpload";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { EditClientDialog } from "@/components/clients/EditClientDialog";
+import { Avatar } from "@/components/ui/avatar";
+import { AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const ClientDetails = () => {
   const { clientId } = useParams<{ clientId: string }>();
-  const { getClientById, projects, purchases, currentUser } = useAppContext();
+  const { getClientById, projects, purchases, currentUser, updateClient, teams, users } = useAppContext();
   const navigate = useNavigate();
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const client = clientId ? getClientById(clientId) : undefined;
   const clientProjects = projects.filter(project => project.clientId === clientId);
@@ -22,6 +30,20 @@ const ClientDetails = () => {
   const isClientUser = currentUser?.role === 'client' && client?.userId === currentUser.id;
   const isAdminOrManager = currentUser?.role === 'admin' || currentUser?.role === 'manager';
   
+  // Get team members assigned to this client
+  const clientTeamMembers = client?.teamIds?.length 
+    ? teams
+        .filter(team => client.teamIds?.includes(team.id))
+        .flatMap(team => team.members)
+        .map(memberId => users.find(user => user.id === memberId))
+        .filter(Boolean)
+    : [];
+
+  const handleStatusToggle = (checked: boolean) => {
+    if (!client) return;
+    updateClient(client.id, { status: checked ? 'active' : 'inactive' });
+  };
+
   if (!client) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
@@ -35,13 +57,35 @@ const ClientDetails = () => {
   
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/clients")}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold">{client.name}</h1>
-          <p className="text-muted-foreground">{client.contactName}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/clients")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">{client.name}</h1>
+            <p className="text-muted-foreground">{client.contactName}</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          {isAdminOrManager && (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">
+                  {client.status === 'active' ? 'Active' : 'Inactive'}
+                </span>
+                <Switch
+                  checked={client.status === 'active'}
+                  onCheckedChange={handleStatusToggle}
+                />
+              </div>
+              <Button onClick={() => setIsEditDialogOpen(true)} variant="outline" size="sm">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Client
+              </Button>
+            </>
+          )}
         </div>
       </div>
       
@@ -120,11 +164,34 @@ const ClientDetails = () => {
                     </span>
                   </div>
                   
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm">Client Type:</span>
+                    <Badge variant="outline">
+                      {client.serviceType === 'retainer' ? 'Retainer' :
+                       client.serviceType === 'bank-hours' ? 'Bank of Hours' :
+                       'Pay As You Go'}
+                    </Badge>
+                  </div>
+                  
+                  {client.serviceType === 'retainer' && client.allocatedHours && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm">Monthly Hours:</span>
+                      <span>{client.allocatedHours} hours</span>
+                    </div>
+                  )}
+                  
+                  {client.serviceType === 'bank-hours' && client.allocatedHours && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm">Bank Hours:</span>
+                      <span>{client.allocatedHours} hours</span>
+                    </div>
+                  )}
+                  
                   {clientPurchases.length > 0 ? (
                     <div>
                       <div className="text-sm font-medium mb-2">Recent Purchases</div>
                       <ul className="space-y-2">
-                        {clientPurchases.map(purchase => (
+                        {clientPurchases.slice(0, 2).map(purchase => (
                           <li key={purchase.id} className="text-sm">
                             <div className="flex justify-between">
                               <span>{purchase.description}</span>
@@ -143,6 +210,42 @@ const ClientDetails = () => {
                 </CardContent>
               </Card>
             </div>
+            
+            {/* Team Members section */}
+            <Card className="mt-6">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Team Members</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {clientTeamMembers.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {clientTeamMembers.map(member => (
+                      <div key={member?.id} className="flex items-center gap-3 p-2 rounded-md border">
+                        <Avatar className="h-8 w-8">
+                          {member?.avatar ? (
+                            <AvatarImage src={member.avatar} alt={member.name} />
+                          ) : (
+                            <AvatarFallback>
+                              {member?.name.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm">{member?.name}</p>
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {member?.role}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center py-4 text-muted-foreground">
+                    No team members assigned to this client
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="projects" className="mt-4">
@@ -196,6 +299,13 @@ const ClientDetails = () => {
           </TabsContent>
         </Tabs>
       )}
+
+      {/* Edit Client Dialog */}
+      <EditClientDialog
+        client={client}
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+      />
     </div>
   );
 };

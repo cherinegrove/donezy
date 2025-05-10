@@ -1,11 +1,12 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Upload, FileUp, File, Trash2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { Progress } from "@/components/ui/progress";
 
 interface ClientFileUploadProps {
   clientId: string;
@@ -15,7 +16,9 @@ export const ClientFileUpload = ({ clientId }: ClientFileUploadProps) => {
   const { toast } = useToast();
   const { uploadClientFile, getClientFiles, deleteClientFile } = useAppContext();
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Simulated client files (in a real app, this would come from backend)
   const clientFiles = getClientFiles ? getClientFiles(clientId) : [];
@@ -38,24 +41,49 @@ export const ClientFileUpload = ({ clientId }: ClientFileUploadProps) => {
     }
     
     setUploading(true);
+    setUploadProgress(0);
     
     try {
-      // Simulate file upload
+      // Simulate file upload with progress
       if (uploadClientFile) {
+        const totalFiles = files.length;
+        let completedFiles = 0;
+        
         for (const file of files) {
+          // Simulate progress between files
+          const incrementsPerFile = 100 / totalFiles;
+          
+          // Simulate upload progress for this file
+          for (let i = 0; i < 10; i++) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            setUploadProgress(
+              Math.min(
+                ((completedFiles * incrementsPerFile) + 
+                ((i + 1) / 10) * incrementsPerFile),
+                99
+              )
+            );
+          }
+          
           await uploadClientFile(clientId, file);
+          completedFiles++;
         }
+        
+        // Complete the upload
+        setUploadProgress(100);
       }
       
       toast({
         title: "Files uploaded",
         description: `Successfully uploaded ${files.length} file(s)`,
       });
+      
       setFiles([]);
       
       // Reset the file input
-      const fileInput = document.getElementById("file-upload") as HTMLInputElement;
-      if (fileInput) fileInput.value = "";
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } catch (error) {
       toast({
         title: "Upload failed",
@@ -63,7 +91,11 @@ export const ClientFileUpload = ({ clientId }: ClientFileUploadProps) => {
         variant: "destructive",
       });
     } finally {
-      setUploading(false);
+      // Reset state after a delay to show 100% completion
+      setTimeout(() => {
+        setUploading(false);
+        setUploadProgress(0);
+      }, 500);
     }
   };
   
@@ -95,33 +127,45 @@ export const ClientFileUpload = ({ clientId }: ClientFileUploadProps) => {
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="grid flex-1 gap-2">
-              <Input
-                id="file-upload"
-                type="file"
-                multiple
-                onChange={handleFileChange}
-                disabled={uploading}
-                className="cursor-pointer"
-              />
-              <p className="text-xs text-muted-foreground">
-                Upload client documents, contracts, or other relevant files.
-              </p>
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="grid flex-1 gap-2">
+                <Input
+                  id="file-upload"
+                  type="file"
+                  ref={fileInputRef}
+                  multiple
+                  onChange={handleFileChange}
+                  disabled={uploading}
+                  className="cursor-pointer"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Upload client documents, contracts, or other relevant files.
+                </p>
+              </div>
+              <Button onClick={handleUpload} disabled={uploading || files.length === 0}>
+                {uploading ? (
+                  <>
+                    <Upload className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload
+                  </>
+                )}
+              </Button>
             </div>
-            <Button onClick={handleUpload} disabled={uploading || files.length === 0}>
-              {uploading ? (
-                <>
-                  <Upload className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload
-                </>
-              )}
-            </Button>
+            
+            {uploading && (
+              <div className="space-y-2">
+                <Progress value={uploadProgress} />
+                <p className="text-xs text-center text-muted-foreground">
+                  Uploading... {Math.round(uploadProgress)}%
+                </p>
+              </div>
+            )}
           </div>
           
           <div className="space-y-2">
