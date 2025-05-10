@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -94,8 +93,7 @@ export function UseTemplateDialog({
       clientId: data.clientId,
       startDate: data.startDate,
       dueDate: data.dueDate,
-      // Always create as standard project with allocated hours if the template specifies
-      serviceType: "project",
+      // Remove the serviceType property as it's not expected in the function parameters
     });
     
     form.reset();
