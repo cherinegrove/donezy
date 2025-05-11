@@ -1,5 +1,6 @@
+
 import {
-  User, Team, Client, Project, Task, TimeEntry, Comment, Message, Purchase, CustomField, ProjectTemplate, CustomRole, ClientFile
+  User, Team, Client, Project, Task, TimeEntry, Comment, Message, Purchase, CustomField, ProjectTemplate, CustomRole, ClientFile, ClientAgreement
 } from "@/types";
 
 export interface AppContextType {
@@ -15,6 +16,7 @@ export interface AppContextType {
   customFields: CustomField[];
   projectTemplates: ProjectTemplate[];
   customRoles: CustomRole[];  // Added for roles management
+  clientAgreements: ClientAgreement[];  // Added for client agreements
   
   // Current user and active states
   currentUser: User | null;
@@ -56,6 +58,12 @@ export interface AppContextType {
   addClient: (client: Omit<Client, "id">) => void;
   updateClient: (id: string, updates: Partial<Client>) => void;
   deleteClient: (id: string) => void;
+  
+  // Client agreement operations
+  addClientAgreement: (agreement: Omit<ClientAgreement, "id" | "createdAt">) => void;
+  updateClientAgreement: (id: string, updates: Partial<ClientAgreement>) => void;
+  deleteClientAgreement: (id: string) => void;
+  getClientAgreements: (clientId: string) => ClientAgreement[];
   
   // CRUD operations for projects
   addProject: (project: Omit<Project, "id">) => void;
@@ -115,6 +123,7 @@ export interface AppContextType {
   getProjectById: (id: string) => Project | undefined;
   getClientById: (id: string) => Client | undefined;
   getTaskById: (id: string) => Task | undefined;
+  getClientAgreementById: (id: string) => ClientAgreement | undefined;
   
   // Client file management
   getClientFiles: (clientId: string) => ClientFile[];

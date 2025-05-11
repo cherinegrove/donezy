@@ -16,6 +16,7 @@ import { EditClientDialog } from "@/components/clients/EditClientDialog";
 import { Avatar } from "@/components/ui/avatar";
 import { AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { ClientAgreements } from "@/components/clients/ClientAgreements";
 
 const ClientDetails = () => {
   const { clientId } = useParams<{ clientId: string }>();
@@ -50,12 +51,8 @@ const ClientDetails = () => {
   const isAdminOrManager = currentUser?.role === 'admin' || currentUser?.role === 'manager';
   
   // Get team members assigned to this client
-  const clientTeamMembers = client?.teamIds?.length 
-    ? teams
-        .filter(team => client.teamIds?.includes(team.id))
-        .flatMap(team => team.members)
-        .map(memberId => users.find(user => user.id === memberId))
-        .filter(Boolean)
+  const clientTeamMembers = client?.memberIds?.length 
+    ? users.filter(user => client.memberIds?.includes(user.id))
     : [];
 
   const handleStatusToggle = (checked: boolean) => {
@@ -132,6 +129,7 @@ const ClientDetails = () => {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="projects">Projects</TabsTrigger>
+            <TabsTrigger value="agreements">Agreements</TabsTrigger>
             <TabsTrigger value="files">Files</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
           </TabsList>
@@ -286,20 +284,20 @@ const ClientDetails = () => {
                 {clientTeamMembers.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {clientTeamMembers.map(member => (
-                      <div key={member?.id} className="flex items-center gap-3 p-2 rounded-md border">
+                      <div key={member.id} className="flex items-center gap-3 p-2 rounded-md border">
                         <Avatar className="h-8 w-8">
-                          {member?.avatar ? (
+                          {member.avatar ? (
                             <AvatarImage src={member.avatar} alt={member.name} />
                           ) : (
                             <AvatarFallback>
-                              {member?.name.substring(0, 2).toUpperCase()}
+                              {member.name.substring(0, 2).toUpperCase()}
                             </AvatarFallback>
                           )}
                         </Avatar>
                         <div>
-                          <p className="font-medium text-sm">{member?.name}</p>
+                          <p className="font-medium text-sm">{member.name}</p>
                           <p className="text-xs text-muted-foreground capitalize">
-                            {member?.role}
+                            {member.role}
                           </p>
                         </div>
                       </div>
@@ -355,6 +353,10 @@ const ClientDetails = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="agreements" className="mt-4">
+            <ClientAgreements clientId={clientId} />
+          </TabsContent>
           
           <TabsContent value="files" className="mt-4">
             <ClientFileUpload clientId={clientId} />
@@ -377,3 +379,4 @@ const ClientDetails = () => {
 };
 
 export default ClientDetails;
+

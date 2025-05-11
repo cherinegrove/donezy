@@ -1,4 +1,3 @@
-
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
@@ -110,6 +109,21 @@ export interface ClientFile {
   uploadedBy: string;
 }
 
+export interface ClientAgreement {
+  id: string;
+  clientId: string;
+  serviceType: 'retainer' | 'payasyougo' | 'bank-hours';
+  startDate: string;
+  endDate?: string;
+  allocatedHours?: number;
+  usedHours?: number;
+  rate: number;
+  currency: string;
+  description: string;
+  status: 'active' | 'completed' | 'cancelled';
+  createdAt: string;
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -124,12 +138,13 @@ export interface Client {
   currency: string;
   status: 'active' | 'inactive';
   files?: ClientFile[];
-  serviceType?: 'retainer' | 'payasyougo' | 'bank-hours';  // Added client service type
-  allocatedHours?: number;  // Added allocated hours
-  usedHours?: number;  // Added used hours
+  serviceType?: 'retainer' | 'payasyougo' | 'bank-hours';  // Current service type
+  allocatedHours?: number;  // Current allocated hours
+  usedHours?: number;  // Current used hours
   teamIds?: string[];  // Teams assigned to this client
-  memberIds?: string[];  // Added: individual team members assigned to this client
-  notes?: string;  // Added notes field
+  memberIds?: string[];  // Individual team members assigned to this client
+  notes?: string;
+  agreements?: string[];  // IDs of client agreements
 }
 
 export interface Project {

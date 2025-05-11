@@ -34,10 +34,7 @@ const Clients = () => {
             Manage your client relationships
           </p>
         </div>
-        <Button onClick={() => setIsAddClientDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Client
-        </Button>
+        {/* Removed the Add Client button from top header */}
       </div>
 
       <div className="flex items-center justify-between">

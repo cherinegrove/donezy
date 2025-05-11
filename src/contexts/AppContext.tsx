@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import {
-  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role, ProjectTemplate, TemplateTask, CustomRole, ClientFile
+  User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, Comment, Role, ProjectTemplate, TemplateTask, CustomRole, ClientFile, ClientAgreement
 } from "@/types";
 import { AppContextType } from "./AppContextType";
 import {
@@ -49,6 +49,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     customFields: mockCustomFields,
     projectTemplates: [],
     customRoles: [],
+    clientAgreements: [],
   };
 
   const [users, setUsers] = useState<User[]>(initialState.users || mockUsers);
@@ -62,6 +63,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [customFields, setCustomFields] = useState<CustomField[]>(initialState.customFields || mockCustomFields);
   const [projectTemplates, setProjectTemplates] = useState<ProjectTemplate[]>(initialState.projectTemplates || []);
   const [customRoles, setCustomRoles] = useState<CustomRole[]>(initialState.customRoles || []);
+  const [clientAgreements, setClientAgreements] = useState<ClientAgreement[]>(initialState.clientAgreements || []);
   
   // Current user (hardcoded for now, would come from auth in real app)
   const [currentUser, setCurrentUser] = useState<User | null>(initialState.currentUser || mockUsers[0]);
@@ -83,6 +85,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       customFields,
       projectTemplates,
       customRoles,
+      clientAgreements,
       currentUser,
       activeTimeEntry,
     };
@@ -91,7 +94,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, [
     users, teams, clients, projects, tasks, timeEntries, 
     messages, purchases, customFields, projectTemplates, 
-    customRoles, currentUser, activeTimeEntry
+    customRoles, clientAgreements, currentUser, activeTimeEntry
   ]);
   
   // Role management functions
@@ -163,6 +166,68 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const deleteClient = (id: string) => {
     setClients((prev) => prev.filter(client => client.id !== id));
     toast({ title: "Success", description: "Client has been deleted" });
+  };
+  
+  // Client agreement operations
+  const addClientAgreement = (agreement: Omit<ClientAgreement, "id" | "createdAt">) => {
+    const newAgreement = { 
+      ...agreement, 
+      id: `agreement-${uuidv4()}`,
+      createdAt: new Date().toISOString()
+    };
+    
+    setClientAgreements(prev => [...prev, newAgreement]);
+    
+    // Update client with reference to this agreement
+    setClients(prev => prev.map(client => {
+      if (client.id === agreement.clientId) {
+        const agreements = client.agreements || [];
+        return {
+          ...client,
+          agreements: [...agreements, newAgreement.id]
+        };
+      }
+      return client;
+    }));
+    
+    toast({ title: "Agreement Added", description: "Client agreement has been created" });
+    return newAgreement;
+  };
+  
+  const updateClientAgreement = (id: string, updates: Partial<ClientAgreement>) => {
+    setClientAgreements(prev => prev.map(agreement => 
+      agreement.id === id ? { ...agreement, ...updates } : agreement
+    ));
+    
+    toast({ title: "Agreement Updated", description: "Client agreement has been updated" });
+  };
+  
+  const deleteClientAgreement = (id: string) => {
+    const agreement = clientAgreements.find(a => a.id === id);
+    if (!agreement) return;
+    
+    setClientAgreements(prev => prev.filter(agreement => agreement.id !== id));
+    
+    // Remove reference from client
+    setClients(prev => prev.map(client => {
+      if (client.id === agreement.clientId && client.agreements) {
+        return {
+          ...client,
+          agreements: client.agreements.filter(agreementId => agreementId !== id)
+        };
+      }
+      return client;
+    }));
+    
+    toast({ title: "Agreement Deleted", description: "Client agreement has been removed" });
+  };
+  
+  const getClientAgreements = (clientId: string) => {
+    return clientAgreements.filter(agreement => agreement.clientId === clientId);
+  };
+  
+  const getClientAgreementById = (id: string) => {
+    return clientAgreements.find(agreement => agreement.id === id);
   };
   
   // Authentication
@@ -1009,6 +1074,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       customFields,
       projectTemplates,
       customRoles,
+      clientAgreements,
       
       // Current user and active states
       currentUser,
@@ -1039,6 +1105,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       addClient,
       updateClient,
       deleteClient,
+      
+      // Client agreement operations
+      addClientAgreement,
+      updateClientAgreement,
+      deleteClientAgreement,
+      getClientAgreements,
       
       // CRUD operations for projects
       addProject,
