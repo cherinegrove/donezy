@@ -1111,6 +1111,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       updateClientAgreement,
       deleteClientAgreement,
       getClientAgreements,
+      getClientAgreementById,
       
       // CRUD operations for projects
       addProject,
