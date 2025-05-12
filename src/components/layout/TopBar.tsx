@@ -8,7 +8,7 @@ import { Bell, Menu, Moon, Search, Sun } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 export function TopBar() {
-  const { currentUser } = useAppContext();
+  const { currentUser, messages } = useAppContext();
   const { theme, setTheme } = useTheme();
   const { toggleSidebar } = useSidebar();
   
@@ -16,6 +16,14 @@ export function TopBar() {
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
+  
+  // Calculate unread notifications
+  const unreadNotifications = currentUser 
+    ? messages.filter(msg => 
+        msg.recipientIds.includes(currentUser.id) && 
+        !msg.read
+      )
+    : [];
   
   return (
     <header className="border-b bg-background px-6 py-3">
@@ -58,7 +66,7 @@ export function TopBar() {
           >
             <Bell className="h-5 w-5" />
             <span className="sr-only">Notifications</span>
-            {currentUser && currentUser.unreadNotifications > 0 && (
+            {unreadNotifications.length > 0 && (
               <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary"></span>
             )}
           </Button>
