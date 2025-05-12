@@ -6,7 +6,6 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Bell, Menu, Moon, Search, Sun } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 
 export function TopBar() {
   const { currentUser } = useAppContext();
@@ -52,7 +51,17 @@ export function TopBar() {
             <span className="sr-only">Toggle theme</span>
           </Button>
           
-          <NotificationsPopover />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative text-muted-foreground hover:text-foreground"
+          >
+            <Bell className="h-5 w-5" />
+            <span className="sr-only">Notifications</span>
+            {currentUser && currentUser.unreadNotifications > 0 && (
+              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary"></span>
+            )}
+          </Button>
           
           {currentUser && (
             <div className="flex items-center gap-3">

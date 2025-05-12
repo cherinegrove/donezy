@@ -11,6 +11,8 @@ type ThemeColors = {
 type ThemeContextType = {
   colors: ThemeColors;
   updateColors: (colors: ThemeColors) => void;
+  theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
 };
 
 const defaultThemeColors: ThemeColors = {
@@ -23,12 +25,15 @@ const defaultThemeColors: ThemeColors = {
 const ThemeContext = createContext<ThemeContextType>({
   colors: defaultThemeColors,
   updateColors: () => {},
+  theme: 'light',
+  setTheme: () => {},
 });
 
 export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [colors, setColors] = useState<ThemeColors>(defaultThemeColors);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
     // Load theme colors from localStorage on component mount
@@ -40,7 +45,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.error('Error parsing theme from localStorage', e);
       }
     }
+
+    // Load theme preference from localStorage
+    const savedThemeMode = localStorage.getItem('themeMode');
+    if (savedThemeMode && (savedThemeMode === 'light' || savedThemeMode === 'dark')) {
+      setTheme(savedThemeMode);
+    }
   }, []);
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(theme);
+    localStorage.setItem('themeMode', theme);
+  }, [theme]);
 
   const updateColors = (newColors: ThemeColors) => {
     setColors(newColors);
@@ -62,7 +80,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [colors]);
 
   return (
-    <ThemeContext.Provider value={{ colors, updateColors }}>
+    <ThemeContext.Provider value={{ colors, updateColors, theme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );
