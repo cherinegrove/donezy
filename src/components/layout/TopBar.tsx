@@ -1,177 +1,73 @@
-
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Bell, Plus, Play, Pause } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { CreateTaskDialog } from "../tasks/CreateTaskDialog";
-import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
-import { StartTimerDialog } from "../time/StartTimerDialog";
+import { LogoutButton } from "@/components/auth/LogoutButton";
+import { Button } from "@/components/ui/button";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useSidebar } from "@/components/ui/sidebar";
+import { Bell, Menu, Moon, Search, Sun } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 
 export function TopBar() {
-  const navigate = useNavigate();
-  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-  const [isStartTimerOpen, setIsStartTimerOpen] = useState(false);
-  const { messages, currentUser, customRoles, activeTimeEntry, startTimeTracking, stopTimeTracking } = useAppContext();
+  const { currentUser } = useAppContext();
+  const { theme, setTheme } = useTheme();
+  const { isOpen, toggle } = useSidebar();
   
-  // Get unread messages for the current user
-  const unreadMessages = messages.filter(
-    msg => msg.recipientIds.includes(currentUser?.id || "") && !msg.read
-  );
-
-  // Sort notifications by timestamp (newest first)
-  const sortedUnreadMessages = [...unreadMessages].sort((a, b) => 
-    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
-  
-  // Check if the user has edit permission for tasks
-  const hasTaskEditPermission = () => {
-    if (!currentUser) return false;
-    
-    // Admin always has permission
-    if (currentUser.role === 'admin') return true;
-    
-    // Check custom role permissions
-    if (currentUser.customRoleId) {
-      const userRole = customRoles.find(role => role.id === currentUser.customRoleId);
-      if (userRole && userRole.permissions.tasks === 'edit') {
-        return true;
-      }
-    }
-    
-    // Default permissions based on built-in roles
-    return currentUser.role === 'manager' || currentUser.role === 'developer';
-  };
-
-  // Check if timer is currently running
-  const isTimerRunning = !!activeTimeEntry;
-
-  // Handle timer toggle
-  const handleTimerToggle = () => {
-    if (isTimerRunning) {
-      stopTimeTracking("Time tracking stopped from header");
-    } else {
-      // Open the start timer dialog
-      setIsStartTimerOpen(true);
-    }
-  };
-
   return (
-    <header className="border-b bg-background">
-      <div className="flex h-16 items-center px-4 md:px-6">
-        <SidebarTrigger />
-        <div className="ml-auto flex items-center space-x-4">
-          {hasTaskEditPermission() && (
-            <Button
-              onClick={() => setIsCreateTaskOpen(true)}
-              className="hidden md:flex"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Task
-            </Button>
-          )}
-          <Button
-            onClick={handleTimerToggle}
-            variant={isTimerRunning ? "destructive" : "default"}
-            className="hidden md:flex"
-          >
-            {isTimerRunning ? (
-              <>
-                <Pause className="mr-2 h-4 w-4" />
-                Stop Timer
-              </>
-            ) : (
-              <>
-                <Play className="mr-2 h-4 w-4" />
-                Start Timer
-              </>
-            )}
+    <header className="border-b bg-background px-6 py-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={toggle} className="md:hidden">
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle menu</span>
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="relative"
-              >
-                <Bell className="h-5 w-5" />
-                {sortedUnreadMessages.length > 0 && (
-                  <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500" />
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              {sortedUnreadMessages.length === 0 ? (
-                <DropdownMenuItem>
-                  <span>No new notifications</span>
-                </DropdownMenuItem>
-              ) : (
-                sortedUnreadMessages.slice(0, 5).map((msg) => (
-                  <DropdownMenuItem key={msg.id} onClick={() => navigate(`/messages/${msg.id}`)}>
-                    <div className="flex flex-col w-full">
-                      <span className="font-medium">{msg.content.slice(0, 30)}{msg.content.length > 30 ? '...' : ''}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(msg.timestamp).toLocaleString()}
-                      </span>
-                    </div>
-                  </DropdownMenuItem>
-                ))
-              )}
-              {sortedUnreadMessages.length > 5 && (
-                <DropdownMenuItem onClick={() => navigate("/messages")}>
-                  <span className="text-primary">View all notifications ({sortedUnreadMessages.length})</span>
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <div className="flex md:hidden">
-            {isTimerRunning ? (
-              <Button
-                size="icon"
-                variant="destructive"
-                className="rounded-full"
-                onClick={handleTimerToggle}
-              >
-                <Pause className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button
-                size="icon"
-                variant="outline"
-                className="rounded-full"
-                onClick={handleTimerToggle}
-              >
-                <Play className="h-4 w-4" />
-              </Button>
-            )}
+          
+          <div className="relative hidden md:flex items-center">
+            <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search..."
+              className="w-[200px] lg:w-[300px] pl-8 bg-background"
+            />
           </div>
-          {hasTaskEditPermission() && (
-            <Button
-              size="icon"
-              variant="outline"
-              className="rounded-full md:hidden"
-              onClick={() => setIsCreateTaskOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+            <span className="sr-only">Toggle theme</span>
+          </Button>
+          
+          <NotificationsPopover>
+            <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
+              <Bell className="h-5 w-5" />
+              <span className="sr-only">Notifications</span>
+              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary"></span>
             </Button>
+          </NotificationsPopover>
+          
+          {currentUser && (
+            <div className="flex items-center gap-3">
+              <div className="hidden md:block text-right">
+                <p className="text-sm font-medium leading-none">{currentUser.name}</p>
+                <p className="text-xs text-muted-foreground">{currentUser.role}</p>
+              </div>
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                {currentUser.name.charAt(0)}
+              </div>
+              <LogoutButton />
+            </div>
           )}
         </div>
       </div>
-      <CreateTaskDialog
-        open={isCreateTaskOpen}
-        onOpenChange={setIsCreateTaskOpen}
-      />
-      <StartTimerDialog 
-        open={isStartTimerOpen}
-        onOpenChange={setIsStartTimerOpen}
-        onStartTimer={() => {}}
-      />
     </header>
   );
 }

@@ -59,7 +59,6 @@ const queryClient = new QueryClient();
 // The AppRoutes component needs to be inside the AppProvider
 const AppRoutes = () => {
   const { currentUser } = useAppContext();
-  const isClient = currentUser?.role === 'client';
   
   return (
     <Routes>
