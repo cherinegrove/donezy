@@ -1,3 +1,4 @@
+
 import { useAppContext } from "@/contexts/AppContext";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { Button } from "@/components/ui/button";
@@ -5,18 +6,27 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Bell, Menu, Moon, Search, Sun } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 
 export function TopBar() {
   const { currentUser } = useAppContext();
-  const { theme, setTheme } = useTheme();
-  const { isOpen, toggle } = useSidebar();
+  const { colors, updateColors } = useTheme();
+  const { toggleSidebar } = useSidebar();
+  
+  // Toggle between light and dark mode
+  const toggleTheme = () => {
+    const isDark = document.documentElement.classList.contains('dark');
+    if (isDark) {
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+    }
+  };
   
   return (
     <header className="border-b bg-background px-6 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={toggle} className="md:hidden">
+          <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:hidden">
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle menu</span>
           </Button>
@@ -35,10 +45,10 @@ export function TopBar() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={toggleTheme}
             className="text-muted-foreground hover:text-foreground"
           >
-            {theme === "dark" ? (
+            {document.documentElement.classList.contains('dark') ? (
               <Sun className="h-5 w-5" />
             ) : (
               <Moon className="h-5 w-5" />
@@ -46,13 +56,11 @@ export function TopBar() {
             <span className="sr-only">Toggle theme</span>
           </Button>
           
-          <NotificationsPopover>
-            <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
-              <Bell className="h-5 w-5" />
-              <span className="sr-only">Notifications</span>
-              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary"></span>
-            </Button>
-          </NotificationsPopover>
+          <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
+            <Bell className="h-5 w-5" />
+            <span className="sr-only">Notifications</span>
+            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary"></span>
+          </Button>
           
           {currentUser && (
             <div className="flex items-center gap-3">
