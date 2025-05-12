@@ -1,182 +1,114 @@
 
-import { useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarTrigger
-} from "@/components/ui/sidebar";
-import {
-  Clock,
-  Home,
-  Briefcase,
-  BarChart,
-  Building,
-  Settings,
-  FileText,
-  MessageSquare,
-  CheckSquare
-} from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
-import { useTheme } from "@/contexts/ThemeContext";
-import { useEffect } from "react";
+import { 
+  Building, 
+  Calendar, 
+  ClipboardList, 
+  Clock, 
+  FileText, 
+  Home, 
+  MessageSquare, 
+  Settings, 
+  Users, 
+  ShieldCheck 
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sidebar } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 export function AppSidebar() {
   const location = useLocation();
-  const isMobile = useIsMobile();
-  const { currentUser, getUnreadMessageCount, customRoles } = useAppContext();
-  const { colors } = useTheme();
-  
-  useEffect(() => {
-    // Apply theme to sidebar elements
-    const sidebar = document.querySelector('[data-sidebar="sidebar"]');
-    if (sidebar) {
-      // Apply color to the entire sidebar
-      sidebar.setAttribute('style', `background-color: ${colors.sidebarColor}`);
-      
-      // Apply text color to all text elements inside sidebar
-      const sidebarTextElements = sidebar.querySelectorAll('button, a, span, p, h1, h2, h3, h4, h5, h6, div');
-      sidebarTextElements.forEach(element => {
-        element.setAttribute('style', `color: ${colors.sidebarTextColor}`);
-      });
-    }
-  }, [colors.sidebarColor, colors.sidebarTextColor]);
-  
-  const unreadMessages = currentUser ? getUnreadMessageCount(currentUser.id) : 0;
-  
+  const { currentUser } = useAppContext();
+
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  // Check if the user has access to a specific feature
-  const hasAccess = (feature: string) => {
-    if (!currentUser) return false;
-    
-    // Admin always has access to everything
-    if (currentUser.role === 'admin') return true;
-    
-    // Check custom role permissions if user has a custom role
-    if (currentUser.customRoleId) {
-      const userRole = customRoles.find(role => role.id === currentUser.customRoleId);
-      if (userRole) {
-        const permission = userRole.permissions[feature as keyof typeof userRole.permissions];
-        return permission !== 'none';
-      }
-    }
-    
-    // Default permissions based on built-in roles
-    if (currentUser.role === 'manager') return true;
-    if (currentUser.role === 'developer' && 
-        (feature === 'tasks' || feature === 'timeTracking' || feature === 'projects')) {
-      return true;
-    }
-    if (currentUser.role === 'client' && feature === 'projects') {
-      return true;
-    }
-    
-    return false;
-  };
-  
-  // Reordered navigation items according to the requested order:
-  // Dashboard, Messages, Tasks, Projects, Time Tracking, Clients, Reports
-  const navItems = [
-    {
-      name: "Dashboard",
-      icon: Home,
-      path: "/",
-      feature: "accountSettings" // Dashboard is part of account settings
-    },
-    {
-      name: "Messages",
-      icon: MessageSquare,
-      path: "/messages",
-      feature: "accountSettings", // Messages is part of general account settings
-      badge: unreadMessages > 0 ? unreadMessages : undefined,
-    },
-    {
-      name: "Tasks",
-      icon: CheckSquare,
-      path: "/tasks",
-      feature: "tasks"
-    },
-    {
-      name: "Projects",
-      icon: Briefcase,
-      path: "/projects",
-      feature: "projects"
-    },
-    {
-      name: "Time Tracking",
-      icon: Clock,
-      path: "/time",
-      feature: "timeTracking"
-    },
-    {
-      name: "Clients",
-      icon: Building,
-      path: "/clients",
-      feature: "clients"
-    },
-    {
-      name: "Reports",
-      icon: BarChart,
-      path: "/reports",
-      feature: "reports"
-    }
-  ];
-
-  // Filter out items the user doesn't have access to
-  const accessibleItems = navItems.filter(item => hasAccess(item.feature));
+  const isAdmin = currentUser?.role === 'admin';
+  const isClient = currentUser?.role === 'client';
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b px-4 py-6">
-        <a href="/" className="flex items-center gap-2 font-semibold">
-          <FileText className="h-6 w-6" />
-          <span className="text-xl">Manex</span>
-        </a>
-      </SidebarHeader>
-      <SidebarContent>
-        <nav 
-          className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center"
-        >
-          {accessibleItems.map((item) => (
-            <Button
-              key={item.path}
-              variant={isActive(item.path) ? "secondary" : "ghost"}
-              className={cn(
-                "w-full justify-start gap-3",
-                isActive(item.path) && "bg-secondary/50"
-              )}
-              onClick={() => window.location.href = item.path}
-            >
-              <item.icon className="h-5 w-5" />
-              <span>{item.name}</span>
-              {item.badge && (
-                <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                  {item.badge}
-                </span>
-              )}
-            </Button>
-          ))}
-        </nav>
-      </SidebarContent>
-      <SidebarFooter>
-        {hasAccess("accountSettings") && (
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3"
-            onClick={() => window.location.href = "/settings"}
-          >
-            <Settings className="h-5 w-5" />
-            <span>Settings</span>
-          </Button>
-        )}
-      </SidebarFooter>
+      <div className="px-3 py-2">
+        <h2 className="text-lg font-semibold mb-5 px-4">Manex</h2>
+        
+        <div className="space-y-1">
+          <NavButton to="/" isActive={isActive('/')} icon={<Home className="h-5 w-5" />}>
+            Dashboard
+          </NavButton>
+
+          <NavButton to="/tasks" isActive={isActive('/tasks')} icon={<ClipboardList className="h-5 w-5" />}>
+            Tasks
+          </NavButton>
+
+          <NavButton to="/projects" isActive={isActive('/projects')} icon={<FileText className="h-5 w-5" />}>
+            Projects
+          </NavButton>
+
+          {!isClient && (
+            <NavButton to="/clients" isActive={isActive('/clients')} icon={<Building className="h-5 w-5" />}>
+              Clients
+            </NavButton>
+          )}
+
+          {(isAdmin || currentUser?.role === 'manager') && (
+            <NavButton to="/team" isActive={isActive('/team')} icon={<Users className="h-5 w-5" />}>
+              Team
+            </NavButton>
+          )}
+
+          <NavButton to="/time" isActive={isActive('/time')} icon={<Clock className="h-5 w-5" />}>
+            Time Tracking
+          </NavButton>
+          
+          <NavButton to="/messages" isActive={isActive('/messages')} icon={<MessageSquare className="h-5 w-5" />}>
+            Messages
+          </NavButton>
+          
+          <NavButton to="/reports" isActive={isActive('/reports')} icon={<Calendar className="h-5 w-5" />}>
+            Reports
+          </NavButton>
+          
+          {isAdmin && (
+            <NavButton to="/admin" isActive={isActive('/admin')} icon={<ShieldCheck className="h-5 w-5" />}>
+              Admin
+            </NavButton>
+          )}
+
+          <NavButton to="/settings" isActive={isActive('/settings')} icon={<Settings className="h-5 w-5" />}>
+            Settings
+          </NavButton>
+        </div>
+      </div>
     </Sidebar>
+  );
+}
+
+function NavButton({ 
+  to, 
+  isActive, 
+  icon, 
+  children 
+}: { 
+  to: string; 
+  isActive: boolean; 
+  icon: React.ReactNode; 
+  children: React.ReactNode 
+}) {
+  return (
+    <Button
+      asChild
+      variant={isActive ? 'secondary' : 'ghost'}
+      className={cn(
+        'w-full justify-start',
+        isActive && 'bg-muted text-foreground'
+      )}
+    >
+      <Link to={to}>
+        <span className="mr-3">{icon}</span>
+        {children}
+      </Link>
+    </Button>
   );
 }

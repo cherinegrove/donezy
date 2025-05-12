@@ -6,20 +6,16 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Bell, Menu, Moon, Search, Sun } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 
 export function TopBar() {
   const { currentUser } = useAppContext();
-  const { colors, updateColors } = useTheme();
+  const { theme, setTheme } = useTheme();
   const { toggleSidebar } = useSidebar();
   
   // Toggle between light and dark mode
   const toggleTheme = () => {
-    const isDark = document.documentElement.classList.contains('dark');
-    if (isDark) {
-      document.documentElement.classList.remove('dark');
-    } else {
-      document.documentElement.classList.add('dark');
-    }
+    setTheme(theme === "dark" ? "light" : "dark");
   };
   
   return (
@@ -48,7 +44,7 @@ export function TopBar() {
             onClick={toggleTheme}
             className="text-muted-foreground hover:text-foreground"
           >
-            {document.documentElement.classList.contains('dark') ? (
+            {theme === "dark" ? (
               <Sun className="h-5 w-5" />
             ) : (
               <Moon className="h-5 w-5" />
@@ -56,11 +52,7 @@ export function TopBar() {
             <span className="sr-only">Toggle theme</span>
           </Button>
           
-          <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
-            <Bell className="h-5 w-5" />
-            <span className="sr-only">Notifications</span>
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary"></span>
-          </Button>
+          <NotificationsPopover />
           
           {currentUser && (
             <div className="flex items-center gap-3">

@@ -16,11 +16,24 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Lock } from "lucide-react";
+import { Lock, ArrowRight } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
 });
 
 export function LoginForm() {
@@ -29,12 +42,21 @@ export function LoginForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
+    },
+  });
+
+  const forgotPasswordForm = useForm<z.infer<typeof forgotPasswordSchema>>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: "",
     },
   });
 
@@ -57,6 +79,33 @@ export function LoginForm() {
     } catch (error) {
       setLoginError("An error occurred during login");
       console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleForgotPassword(values: z.infer<typeof forgotPasswordSchema>) {
+    setIsLoading(true);
+    
+    try {
+      // Simulated API call - in a real app, this would trigger a password reset email
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Show success message
+      setForgotPasswordSuccess(true);
+      toast({
+        title: "Password reset email sent",
+        description: `Instructions have been sent to ${values.email}`,
+      });
+      
+      // In a real app, we would call an API endpoint to send the password reset email
+      console.log("Password reset requested for:", values.email);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send password reset email",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -113,10 +162,79 @@ export function LoginForm() {
       </Form>
 
       <div className="text-center text-sm">
-        <p className="text-muted-foreground">
-          Forgot your password? Contact your administrator.
-        </p>
+        <button 
+          type="button" 
+          onClick={() => setShowForgotPassword(true)} 
+          className="text-primary hover:underline focus:outline-none"
+        >
+          Forgot password?
+        </button>
       </div>
+
+      {/* Forgot Password Dialog */}
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset your password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {forgotPasswordSuccess ? (
+            <Alert>
+              <AlertDescription className="text-center py-2">
+                Password reset instructions have been sent to your email address.
+                <br />
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setForgotPasswordSuccess(false);
+                    forgotPasswordForm.reset();
+                  }}
+                  className="mt-2 p-0"
+                >
+                  Return to login
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Form {...forgotPasswordForm}>
+              <form onSubmit={forgotPasswordForm.handleSubmit(handleForgotPassword)} className="space-y-4">
+                <FormField
+                  control={forgotPasswordForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="you@example.com" autoComplete="email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowForgotPassword(false)}
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? "Sending..." : "Send Reset Link"}
+                    {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Tasks from "./pages/Tasks";
 import Login from "./pages/Login";
+import Admin from "./pages/Admin"; // Add import for Admin page
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 
 // Protected route component to handle role-based access and authentication
@@ -106,6 +107,18 @@ const AppRoutes = () => {
         <Route path="/reports" element={<Reports />} />
         
         <Route path="/settings" element={<Settings />} />
+        
+        {/* Admin section - only accessible by admins */}
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute 
+              element={<Admin />} 
+              allowedRoles={['admin']} 
+            />
+          } 
+        />
+        
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
