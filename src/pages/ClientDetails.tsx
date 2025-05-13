@@ -1,4 +1,3 @@
-
 import { useAppContext } from "@/contexts/AppContext";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -379,4 +378,3 @@ const ClientDetails = () => {
 };
 
 export default ClientDetails;
-

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -173,7 +172,10 @@ export const ClientBillingForm = ({ clientId }: ClientBillingFormProps) => {
             </div>
           )}
           
-          <div className="pt-4 flex justify-end">
+          <div className="pt-4 flex justify-between items-center">
+            <p className="text-sm text-muted-foreground">
+              Need to set up retainers or banks of hours with specific dates? Use the Agreements tab.
+            </p>
             <Button onClick={handleSave}>Save Billing Settings</Button>
           </div>
         </div>
