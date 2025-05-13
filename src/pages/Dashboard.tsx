@@ -20,6 +20,7 @@ import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
 import { Task } from "@/types";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { TeamOverview } from "@/components/team/TeamOverview";
 
 const Dashboard = () => {
   const { tasks, projects, clients, currentUser } = useAppContext();
@@ -92,6 +93,8 @@ const Dashboard = () => {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
+  const showTeamOverview = currentUser?.role === "admin" || currentUser?.role === "manager";
+
   return (
     <div className="space-y-6">
       <div>
@@ -129,6 +132,13 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Show Team Overview for managers and admins */}
+      {showTeamOverview && (
+        <div className="py-2">
+          <TeamOverview />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
