@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ import { Task, TaskStatus } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ChevronRight } from "lucide-react";
 
 interface EditTaskDialogProps {
   task: Task;
@@ -30,7 +32,7 @@ interface EditTaskDialogProps {
 }
 
 export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps) {
-  const { projects, users, updateTask, deleteTask, startTimeTracking, customFields } = useAppContext();
+  const { projects, users, updateTask, deleteTask, startTimeTracking, customFields, tasks } = useAppContext();
   
   // Form state
   const [title, setTitle] = useState(task.title);
@@ -46,6 +48,12 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   const [customFieldValues, setCustomFieldValues] = useState({...task.customFields});
   
   const project = projects.find(p => p.id === task.projectId);
+  
+  // Get parent task if this is a child task
+  const parentTask = task.parentTaskId ? tasks.find(t => t.id === task.parentTaskId) : undefined;
+  
+  // Get child tasks if this is a parent task
+  const childTasks = tasks.filter(t => t.parentTaskId === task.id);
   
   const handleSave = () => {
     updateTask(task.id, {
@@ -91,6 +99,19 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
     setNewComment("");
   };
   
+  const handleOpenTask = (taskId: string) => {
+    // Find the task to open
+    const taskToOpen = tasks.find(t => t.id === taskId);
+    if (taskToOpen) {
+      // Close current dialog
+      onOpenChange(false);
+      
+      // We would typically navigate to the task in the project context
+      // For now, just redirect to project details with task id
+      window.location.href = `/projects/${taskToOpen.projectId}?taskId=${taskToOpen.id}`;
+    }
+  };
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px]">
@@ -116,6 +137,9 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="comments">Comments</TabsTrigger>
             <TabsTrigger value="time">Time Tracking</TabsTrigger>
+            {(parentTask || childTasks.length > 0) && (
+              <TabsTrigger value="related">Related Tasks</TabsTrigger>
+            )}
           </TabsList>
           
           <TabsContent value="details" className="space-y-4">
@@ -411,6 +435,67 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
               </div>
             )}
           </TabsContent>
+          
+          {(parentTask || childTasks.length > 0) && (
+            <TabsContent value="related" className="space-y-4">
+              {/* Parent task section */}
+              {parentTask && (
+                <div className="space-y-2">
+                  <h3 className="font-medium">Parent Task</h3>
+                  <div 
+                    className="flex justify-between items-center p-3 bg-muted/30 rounded-md cursor-pointer hover:bg-muted"
+                    onClick={() => handleOpenTask(parentTask.id)}
+                  >
+                    <div>
+                      <p className="font-medium">{parentTask.title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`inline-flex h-2 w-2 rounded-full ${
+                          parentTask.status === 'done' ? 'bg-green-500' : 
+                          parentTask.status === 'in-progress' ? 'bg-blue-500' : 
+                          parentTask.status === 'review' ? 'bg-yellow-500' : 'bg-gray-500'
+                        }`}></span>
+                        <span className="text-xs capitalize text-muted-foreground">
+                          {parentTask.status.replace('-', ' ')}
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                </div>
+              )}
+              
+              {/* Child tasks section */}
+              {childTasks.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="font-medium">Child Tasks ({childTasks.length})</h3>
+                  <div className="space-y-2">
+                    {childTasks.map(childTask => (
+                      <div 
+                        key={childTask.id}
+                        className="flex justify-between items-center p-3 bg-muted/30 rounded-md cursor-pointer hover:bg-muted"
+                        onClick={() => handleOpenTask(childTask.id)}
+                      >
+                        <div>
+                          <p className="font-medium">{childTask.title}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`inline-flex h-2 w-2 rounded-full ${
+                              childTask.status === 'done' ? 'bg-green-500' : 
+                              childTask.status === 'in-progress' ? 'bg-blue-500' : 
+                              childTask.status === 'review' ? 'bg-yellow-500' : 'bg-gray-500'
+                            }`}></span>
+                            <span className="text-xs capitalize text-muted-foreground">
+                              {childTask.status.replace('-', ' ')}
+                            </span>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+          )}
         </Tabs>
         
         <DialogFooter className="gap-2">
