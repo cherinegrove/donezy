@@ -23,7 +23,7 @@ import { Task, TaskStatus } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronRight } from "lucide-react";
+import { Clock } from "lucide-react";
 
 interface EditTaskDialogProps {
   task: Task;
@@ -109,6 +109,24 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
       // We would typically navigate to the task in the project context
       // For now, just redirect to project details with task id
       window.location.href = `/projects/${taskToOpen.projectId}?taskId=${taskToOpen.id}`;
+    }
+  };
+  
+  // Helper function to get task status color 
+  const getStatusColor = (taskStatus: TaskStatus) => {
+    switch (taskStatus) {
+      case 'done':
+        return "bg-green-500";
+      case 'in-progress':
+        return "bg-blue-500";
+      case 'review':
+        return "bg-yellow-500";
+      case 'todo':
+        return "bg-gray-400";
+      case 'backlog':
+        return "bg-gray-300";
+      default:
+        return "bg-gray-500";
     }
   };
   
@@ -443,23 +461,50 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                 <div className="space-y-2">
                   <h3 className="font-medium">Parent Task</h3>
                   <div 
-                    className="flex justify-between items-center p-3 bg-muted/30 rounded-md cursor-pointer hover:bg-muted"
+                    className="p-4 border rounded-md hover:bg-muted/50 cursor-pointer"
                     onClick={() => handleOpenTask(parentTask.id)}
                   >
-                    <div>
-                      <p className="font-medium">{parentTask.title}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`inline-flex h-2 w-2 rounded-full ${
-                          parentTask.status === 'done' ? 'bg-green-500' : 
-                          parentTask.status === 'in-progress' ? 'bg-blue-500' : 
-                          parentTask.status === 'review' ? 'bg-yellow-500' : 'bg-gray-500'
-                        }`}></span>
-                        <span className="text-xs capitalize text-muted-foreground">
-                          {parentTask.status.replace('-', ' ')}
-                        </span>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">{parentTask.title}</h4>
+                        <div className="flex items-center gap-2">
+                          <span 
+                            className={`inline-flex h-2 w-2 rounded-full ${getStatusColor(parentTask.status)}`}
+                          ></span>
+                          <span className="text-xs capitalize text-muted-foreground">
+                            {parentTask.status.replace('-', ' ')}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>
+                            {parentTask.createdAt && `Created: ${format(new Date(parentTask.createdAt), "MMM d, yyyy")}`}
+                            {parentTask.dueDate && ` • Due: ${format(new Date(parentTask.dueDate), "MMM d, yyyy")}`}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground">Assignees:</span>
+                        <div className="flex -space-x-2">
+                          {parentTask.assigneeIds.map(id => {
+                            const user = users.find(u => u.id === id);
+                            return user ? (
+                              <Avatar key={id} className="h-5 w-5 border-2 border-background">
+                                <AvatarImage src={user.avatar} />
+                                <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                              </Avatar>
+                            ) : null;
+                          })}
+                          {parentTask.assigneeIds.length === 0 && (
+                            <span className="text-xs text-muted-foreground">None assigned</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   </div>
                 </div>
               )}
@@ -468,27 +513,54 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
               {childTasks.length > 0 && (
                 <div className="space-y-2">
                   <h3 className="font-medium">Child Tasks ({childTasks.length})</h3>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {childTasks.map(childTask => (
                       <div 
                         key={childTask.id}
-                        className="flex justify-between items-center p-3 bg-muted/30 rounded-md cursor-pointer hover:bg-muted"
+                        className="p-4 border rounded-md hover:bg-muted/50 cursor-pointer"
                         onClick={() => handleOpenTask(childTask.id)}
                       >
-                        <div>
-                          <p className="font-medium">{childTask.title}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className={`inline-flex h-2 w-2 rounded-full ${
-                              childTask.status === 'done' ? 'bg-green-500' : 
-                              childTask.status === 'in-progress' ? 'bg-blue-500' : 
-                              childTask.status === 'review' ? 'bg-yellow-500' : 'bg-gray-500'
-                            }`}></span>
-                            <span className="text-xs capitalize text-muted-foreground">
-                              {childTask.status.replace('-', ' ')}
-                            </span>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium">{childTask.title}</h4>
+                            <div className="flex items-center gap-2">
+                              <span 
+                                className={`inline-flex h-2 w-2 rounded-full ${getStatusColor(childTask.status)}`}
+                              ></span>
+                              <span className="text-xs capitalize text-muted-foreground">
+                                {childTask.status.replace('-', ' ')}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span>
+                                {childTask.createdAt && `Created: ${format(new Date(childTask.createdAt), "MMM d, yyyy")}`}
+                                {childTask.dueDate && ` • Due: ${format(new Date(childTask.dueDate), "MMM d, yyyy")}`}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground">Assignees:</span>
+                            <div className="flex -space-x-2">
+                              {childTask.assigneeIds.map(id => {
+                                const user = users.find(u => u.id === id);
+                                return user ? (
+                                  <Avatar key={id} className="h-5 w-5 border-2 border-background">
+                                    <AvatarImage src={user.avatar} />
+                                    <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                                  </Avatar>
+                                ) : null;
+                              })}
+                              {childTask.assigneeIds.length === 0 && (
+                                <span className="text-xs text-muted-foreground">None assigned</span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
                       </div>
                     ))}
                   </div>
