@@ -16,8 +16,9 @@ import {
   Cell
 } from "recharts";
 import { Button } from "@/components/ui/button";
-import { format, parseISO, startOfWeek, endOfWeek } from "date-fns";
+import { format, parseISO, startOfWeek, endOfWeek, isAfter, isBefore, isThisWeek } from "date-fns";
 import { Task, User } from "@/types";
+import { toast } from "@/components/ui/use-toast";
 
 export const TeamOverview = () => {
   const { users, tasks, teams, currentUser } = useAppContext();
@@ -78,11 +79,11 @@ export const TeamOverview = () => {
     const startOfCurrentWeek = startOfWeek(now);
     const endOfCurrentWeek = endOfWeek(now);
     
+    // Instead of using completedAt, we'll use createdAt and check if status is "done"
+    // and if the created date is within this week (as an approximation)
     const completedTasksThisWeek = relevantTasks.filter(task => 
       task.status === "done" && 
-      task.completedAt && 
-      parseISO(task.completedAt) >= startOfCurrentWeek &&
-      parseISO(task.completedAt) <= endOfCurrentWeek
+      isThisWeek(parseISO(task.createdAt))
     );
     
     return completedTasksThisWeek.length;
@@ -116,6 +117,16 @@ export const TeamOverview = () => {
   
   // For the pie chart colors
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+
+  // Handle user selection with toast notification
+  const handleUserSelect = (userId: string) => {
+    setSelectedUserId(userId);
+    const userName = users.find(u => u.id === userId)?.name || 'Unknown';
+    toast({
+      title: "Team Member Selected",
+      description: `Now showing data for ${userName}`,
+    });
+  };
   
   return (
     <div className="space-y-6">
@@ -141,7 +152,7 @@ export const TeamOverview = () => {
               key={member.id}
               variant="outline"
               className="flex items-center justify-start space-x-2 p-4 h-auto"
-              onClick={() => setSelectedUserId(member.id)}
+              onClick={() => handleUserSelect(member.id)}
             >
               <Avatar className="h-8 w-8">
                 <AvatarImage src={member.avatar} />
