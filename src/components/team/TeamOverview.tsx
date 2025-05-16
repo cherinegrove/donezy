@@ -19,6 +19,13 @@ import { Button } from "@/components/ui/button";
 import { format, parseISO, startOfWeek, endOfWeek, isAfter, isBefore, isThisWeek } from "date-fns";
 import { Task, User } from "@/types";
 import { toast } from "@/components/ui/use-toast";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 
 export const TeamOverview = () => {
   const { users, tasks, teams, currentUser } = useAppContext();
@@ -145,29 +152,28 @@ export const TeamOverview = () => {
         )}
       </div>
       
-      {!selectedUserId && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {teamMembers.map(member => (
-            <Button
-              key={member.id}
-              variant="outline"
-              className="flex items-center justify-start space-x-2 p-4 h-auto"
-              onClick={() => handleUserSelect(member.id)}
-            >
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={member.avatar} />
-                <AvatarFallback>
-                  {member.name.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="text-left">
-                <div className="font-medium">{member.name}</div>
-                <div className="text-sm text-muted-foreground capitalize">{member.role}</div>
-              </div>
-            </Button>
-          ))}
-        </div>
-      )}
+      {/* Team member dropdown selector */}
+      <div className="w-full max-w-xs">
+        <Select
+          value={selectedUserId || ""}
+          onValueChange={handleUserSelect}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select team member" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Team Members</SelectItem>
+            {teamMembers.map(member => (
+              <SelectItem key={member.id} value={member.id}>
+                <div className="flex items-center gap-2">
+                  <span>{member.name}</span>
+                  <span className="text-xs text-muted-foreground capitalize">({member.role})</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       
       {/* Key metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
