@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +55,9 @@ export const TeamOverview = () => {
       );
     }
   };
+
+  // Calculate the relevant tasks whenever needed
+  const relevantTasks = getRelevantTasks();
 
   // Get tasks by status
   const getTasksByStatus = () => {
