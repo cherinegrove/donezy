@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,6 +41,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { CheckIcon, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface EditUserDialogProps {
   user?: User;
@@ -79,6 +94,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   const { toast } = useToast();
   const isEditMode = !!user;
   const [activeTab, setActiveTab] = useState("details");
+  const [teamSelectOpen, setTeamSelectOpen] = useState(false);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -111,6 +127,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   const watchRole = form.watch('role');
   const watchBillingType = form.watch('billingType');
   const watchClientRole = form.watch('clientRole');
+  const watchTeamIds = form.watch('teamIds');
   
   // Update form values when user changes
   useEffect(() => {
@@ -235,17 +252,19 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
     onClose();
   };
 
-  const handleTeamChange = (teamId: string, checked: boolean) => {
-    const currentTeams = form.getValues('teamIds') || [];
-    let newTeams: string[];
+  // Toggle team selection
+  const toggleTeamSelection = (teamId: string) => {
+    const currentTeamIds = form.getValues('teamIds') || [];
+    const isSelected = currentTeamIds.includes(teamId);
     
-    if (checked) {
-      newTeams = [...currentTeams, teamId];
+    let newTeamIds: string[];
+    if (isSelected) {
+      newTeamIds = currentTeamIds.filter(id => id !== teamId);
     } else {
-      newTeams = currentTeams.filter(id => id !== teamId);
+      newTeamIds = [...currentTeamIds, teamId];
     }
     
-    form.setValue('teamIds', newTeams, { shouldValidate: true });
+    form.setValue('teamIds', newTeamIds, { shouldValidate: true });
   };
 
   return (
@@ -394,28 +413,59 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                 )}
                 
                 {watchRole !== "client" && (
-                  <div>
-                    <FormLabel>Teams</FormLabel>
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {teams.map((team) => (
-                        <div key={team.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`team-${team.id}`}
-                            checked={form.getValues('teamIds')?.includes(team.id)}
-                            onCheckedChange={(checked) => 
-                              handleTeamChange(team.id, checked === true)
-                            }
-                          />
-                          <label
-                            htmlFor={`team-${team.id}`}
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            {team.name}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="teamIds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Teams</FormLabel>
+                        <FormControl>
+                          <Popover open={teamSelectOpen} onOpenChange={setTeamSelectOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={teamSelectOpen}
+                                className="w-full justify-between"
+                              >
+                                {watchTeamIds?.length > 0
+                                  ? `${watchTeamIds.length} team${watchTeamIds.length > 1 ? 's' : ''} selected`
+                                  : "Select teams"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0">
+                              <Command>
+                                <CommandInput placeholder="Search teams..." />
+                                <CommandEmpty>No teams found.</CommandEmpty>
+                                <CommandGroup>
+                                  {teams.map((team) => (
+                                    <CommandItem
+                                      key={team.id}
+                                      value={team.id}
+                                      onSelect={() => toggleTeamSelection(team.id)}
+                                    >
+                                      <CheckIcon
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          watchTeamIds?.includes(team.id) ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {team.name}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </FormControl>
+                        <FormDescription>
+                          Select the teams this user belongs to
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
               </TabsContent>
               
