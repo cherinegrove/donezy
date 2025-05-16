@@ -4,7 +4,7 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/components/ui/sidebar";
-import { Bell, Menu, Moon, Plus, Search, Sun, Timer } from "lucide-react";
+import { Menu, Moon, Plus, Search, Sun, Timer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { StartTimerDialog } from "@/components/time/StartTimerDialog";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
@@ -15,9 +15,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 
 export function TopBar() {
-  const { currentUser, messages } = useAppContext();
+  const { currentUser } = useAppContext();
   const { theme, setTheme } = useTheme();
   const { toggleSidebar } = useSidebar();
   const [isTimerDialogOpen, setIsTimerDialogOpen] = useState(false);
@@ -27,14 +28,6 @@ export function TopBar() {
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
-  
-  // Calculate unread notifications
-  const unreadNotifications = currentUser 
-    ? messages.filter(msg => 
-        msg.recipientIds.includes(currentUser.id) && 
-        !msg.read
-      )
-    : [];
   
   return (
     <header className="border-b bg-background px-6 py-3">
@@ -53,6 +46,9 @@ export function TopBar() {
               className="w-[200px] lg:w-[300px] pl-8 bg-background"
             />
           </div>
+          
+          {/* Messages Notifications */}
+          <NotificationsPopover />
           
           {/* Quick Action Plus Button */}
           <DropdownMenu>
@@ -92,18 +88,6 @@ export function TopBar() {
               <Moon className="h-5 w-5" />
             )}
             <span className="sr-only">Toggle theme</span>
-          </Button>
-          
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="relative text-muted-foreground hover:text-foreground"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="sr-only">Notifications</span>
-            {unreadNotifications.length > 0 && (
-              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary"></span>
-            )}
           </Button>
           
           {currentUser && (
