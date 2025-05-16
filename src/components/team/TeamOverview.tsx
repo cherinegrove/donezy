@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,8 +55,6 @@ export const TeamOverview = () => {
     }
   };
 
-  const relevantTasks = getRelevantTasks();
-  
   // Get tasks by status
   const getTasksByStatus = () => {
     const statusCounts = {
@@ -127,12 +124,21 @@ export const TeamOverview = () => {
 
   // Handle user selection with toast notification
   const handleUserSelect = (userId: string) => {
-    setSelectedUserId(userId);
-    const userName = users.find(u => u.id === userId)?.name || 'Unknown';
-    toast({
-      title: "Team Member Selected",
-      description: `Now showing data for ${userName}`,
-    });
+    // If "all" is selected, set selectedUserId to null to show all team members
+    if (userId === "all") {
+      setSelectedUserId(null);
+      toast({
+        title: "Team Selection",
+        description: "Now showing data for all team members",
+      });
+    } else {
+      setSelectedUserId(userId);
+      const userName = users.find(u => u.id === userId)?.name || 'Unknown';
+      toast({
+        title: "Team Member Selected",
+        description: `Now showing data for ${userName}`,
+      });
+    }
   };
   
   return (
@@ -146,7 +152,7 @@ export const TeamOverview = () => {
         </h2>
         
         {selectedUserId && (
-          <Button variant="outline" onClick={() => setSelectedUserId(null)}>
+          <Button variant="outline" onClick={() => handleUserSelect("all")}>
             View All Team
           </Button>
         )}
@@ -155,14 +161,14 @@ export const TeamOverview = () => {
       {/* Team member dropdown selector */}
       <div className="w-full max-w-xs">
         <Select
-          value={selectedUserId || ""}
+          value={selectedUserId || "all"}
           onValueChange={handleUserSelect}
         >
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select team member" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Team Members</SelectItem>
+            <SelectItem value="all">All Team Members</SelectItem>
             {teamMembers.map(member => (
               <SelectItem key={member.id} value={member.id}>
                 <div className="flex items-center gap-2">
