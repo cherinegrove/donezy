@@ -13,11 +13,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Team } from "@/types";
-import { Search, Plus, Users, UserPlus } from "lucide-react";
+import { Search, Plus, Users, UserPlus, Pencil } from "lucide-react";
+import { EditTeamDialog } from "@/components/teams/EditTeamDialog";
 
 export default function AdminTeams() {
   const { teams, users } = useAppContext();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTeam, setSelectedTeam] = useState<Team | undefined>(undefined);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // Filter teams based on search term
   const filteredTeams = teams.filter(team => 
@@ -28,6 +31,16 @@ export default function AdminTeams() {
   // Get team members
   const getTeamMembers = (team: Team) => {
     return users.filter(user => user.teamIds.includes(team.id));
+  };
+
+  const handleCreateTeam = () => {
+    setSelectedTeam(undefined);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditTeam = (team: Team) => {
+    setSelectedTeam(team);
+    setIsEditDialogOpen(true);
   };
 
   return (
@@ -42,7 +55,7 @@ export default function AdminTeams() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button>
+        <Button onClick={handleCreateTeam}>
           <Plus className="mr-2 h-4 w-4" />
           Create Team
         </Button>
@@ -59,10 +72,20 @@ export default function AdminTeams() {
                     <CardTitle>{team.name}</CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">{team.description}</p>
                   </div>
-                  <Button variant="outline" size="sm">
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add Member
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Button variant="outline" size="sm">
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Add Member
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEditTeam(team)}
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit Team
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -109,12 +132,19 @@ export default function AdminTeams() {
           <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
           <h3 className="text-lg font-medium">No teams found</h3>
           <p className="text-sm text-muted-foreground mt-1">Create a new team to get started</p>
-          <Button className="mt-4">
+          <Button className="mt-4" onClick={handleCreateTeam}>
             <Plus className="mr-2 h-4 w-4" />
             Create Team
           </Button>
         </div>
       )}
+
+      {/* Team edit dialog */}
+      <EditTeamDialog 
+        team={selectedTeam}
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+      />
     </div>
   );
 }
