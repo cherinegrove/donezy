@@ -4,13 +4,24 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/components/ui/sidebar";
-import { Bell, Menu, Moon, Search, Sun } from "lucide-react";
+import { Bell, Menu, Moon, Plus, Search, Sun, Timer } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { StartTimerDialog } from "@/components/time/StartTimerDialog";
+import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
+import { useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function TopBar() {
   const { currentUser, messages } = useAppContext();
   const { theme, setTheme } = useTheme();
   const { toggleSidebar } = useSidebar();
+  const [isTimerDialogOpen, setIsTimerDialogOpen] = useState(false);
+  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   
   // Toggle between light and dark mode
   const toggleTheme = () => {
@@ -42,6 +53,30 @@ export function TopBar() {
               className="w-[200px] lg:w-[300px] pl-8 bg-background"
             />
           </div>
+          
+          {/* Quick Action Plus Button */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="default" 
+                size="icon" 
+                className="rounded-full bg-primary text-primary-foreground ml-2"
+              >
+                <Plus className="h-5 w-5" />
+                <span className="sr-only">Quick actions</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setIsTimerDialogOpen(true)}>
+                <Timer className="mr-2 h-4 w-4" />
+                <span>Start Timer</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsTaskDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                <span>Create Task</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         
         <div className="flex items-center gap-4">
@@ -85,6 +120,18 @@ export function TopBar() {
           )}
         </div>
       </div>
+      
+      {/* Dialogs */}
+      <StartTimerDialog 
+        open={isTimerDialogOpen} 
+        onOpenChange={setIsTimerDialogOpen}
+        onStartTimer={() => {}}
+      />
+      
+      <CreateTaskDialog
+        open={isTaskDialogOpen}
+        onOpenChange={setIsTaskDialogOpen}
+      />
     </header>
   );
 }
