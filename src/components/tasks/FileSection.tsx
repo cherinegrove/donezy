@@ -18,7 +18,7 @@ export function FileSection({ taskId }: FileSectionProps) {
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
-  // Add null check for tasks
+  // Add null check for tasks and ensure it's an array
   const safeTask = tasks && Array.isArray(tasks) ? tasks.find(t => t && t.id === taskId) : null;
   
   // Fallback if task not found
@@ -86,8 +86,8 @@ export function FileSection({ taskId }: FileSectionProps) {
     }
   };
   
-  // Get files for the current task
-  const taskFiles = safeTask.files || [];
+  // Get files for the current task with safety checks
+  const taskFiles = safeTask.files && Array.isArray(safeTask.files) ? safeTask.files : [];
   
   return (
     <div className="space-y-4">

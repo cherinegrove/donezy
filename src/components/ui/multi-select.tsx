@@ -100,7 +100,8 @@ export function MultiSelect({
       .filter((option): option is Option => Boolean(option));
   }, [safeSelectedValues, safeOptions]);
 
-  // Create command items using useMemo to avoid re-rendering issues
+  // The key issue is here - we need to ensure commandItems is always a valid array
+  // and that all the properties we're accessing exist
   const commandItems = React.useMemo(() => {
     // Extra safety check - only proceed if we have valid options
     if (!Array.isArray(safeOptions)) {
@@ -201,8 +202,8 @@ export function MultiSelect({
             <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
             <CommandEmpty>No options found.</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
-              {/* Always ensure commandItems is a valid array before rendering */}
-              {Array.isArray(commandItems) && commandItems.length > 0 ? commandItems : null}
+              {/* Important fix: Always render an empty array when commandItems is undefined */}
+              {Array.isArray(commandItems) ? commandItems : []}
               {allowFileUpload && (
                 <CommandItem 
                   onSelect={() => {
