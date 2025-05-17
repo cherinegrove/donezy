@@ -19,6 +19,11 @@ interface StatusSelectProps {
 
 export function StatusSelect({ field, onChange }: StatusSelectProps) {
   const handleChange = (value: string) => {
+    // Make sure we never pass an empty string value
+    if (value === "") {
+      console.warn("Empty string value detected in StatusSelect");
+      return;
+    }
     if (field?.onChange) field.onChange(value);
     if (onChange) onChange(value as TaskStatus);
   };

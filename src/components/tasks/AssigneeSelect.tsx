@@ -22,16 +22,21 @@ export function AssigneeSelect({ field, onChange }: AssigneeSelectProps) {
   const { users } = useAppContext();
   
   const handleChange = (value: string) => {
+    // Instead of converting "unassigned" to undefined here, we'll handle this 
+    // differently to avoid empty string issues with Radix UI Select
     const finalValue = value === "unassigned" ? undefined : value;
     if (field?.onChange) field.onChange(finalValue);
     if (onChange) onChange(finalValue);
   };
   
+  // Use a non-empty string for unassigned value in the Select component
+  const selectValue = field?.value || "unassigned";
+  
   return (
     <Select 
-      value={field?.value || "unassigned"} 
+      value={selectValue} 
       onValueChange={handleChange}
-      defaultValue={field?.value || "unassigned"}
+      defaultValue={selectValue}
     >
       <SelectTrigger>
         <SelectValue placeholder="Select assignee" />
