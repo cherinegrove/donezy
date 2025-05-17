@@ -36,13 +36,28 @@ import { TaskLogsSection } from "./TaskLogsSection";
 
 interface EditTaskDialogProps {
   task: Task;
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;          // Make isOpen optional
+  onClose?: () => void;      // Make onClose optional
+  open?: boolean;            // Add open prop
+  onOpenChange?: (open: boolean) => void; // Add onOpenChange prop
 }
 
-export function EditTaskDialog({ task, isOpen, onClose }: EditTaskDialogProps) {
+export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: EditTaskDialogProps) {
   const { updateTask, deleteTask, users } = useAppContext();
   const { toast } = useToast();
+
+  // Use either isOpen or open, with open taking precedence
+  const dialogOpen = open !== undefined ? open : isOpen;
+  
+  // Handle both callback styles
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      if (onOpenChange) onOpenChange(false);
+      if (onClose) onClose();
+    } else if (onOpenChange) {
+      onOpenChange(true);
+    }
+  };
 
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || "");
@@ -87,7 +102,7 @@ export function EditTaskDialog({ task, isOpen, onClose }: EditTaskDialogProps) {
   const handleDelete = () => {
     deleteTask(task.id);
     setDeleteDialogOpen(false);
-    onClose();
+    handleOpenChange(false);
 
     toast({
       title: "Task Deleted",
@@ -98,7 +113,7 @@ export function EditTaskDialog({ task, isOpen, onClose }: EditTaskDialogProps) {
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Task</DialogTitle>
@@ -138,16 +153,14 @@ export function EditTaskDialog({ task, isOpen, onClose }: EditTaskDialogProps) {
                 <div className="space-y-2">
                   <Label>Project</Label>
                   <ProjectSelect
-                    value={projectId}
-                    onChange={setProjectId}
+                    field={{ value: projectId, onChange: setProjectId }}
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <Label>Assignee</Label>
                   <AssigneeSelect
-                    value={assigneeId}
-                    onChange={setAssigneeId}
+                    field={{ value: assigneeId, onChange: setAssigneeId }}
                   />
                 </div>
               </div>
@@ -179,8 +192,7 @@ export function EditTaskDialog({ task, isOpen, onClose }: EditTaskDialogProps) {
                 <div className="space-y-2">
                   <Label>Priority</Label>
                   <PrioritySelect
-                    value={priority}
-                    onChange={setPriority}
+                    field={{ value: priority, onChange: setPriority }}
                   />
                 </div>
               </div>
@@ -188,8 +200,7 @@ export function EditTaskDialog({ task, isOpen, onClose }: EditTaskDialogProps) {
               <div className="space-y-2">
                 <Label>Status</Label>
                 <StatusSelect
-                  value={status}
-                  onChange={setStatus}
+                  field={{ value: status, onChange: setStatus }}
                 />
               </div>
             </TabsContent>
@@ -224,10 +235,10 @@ export function EditTaskDialog({ task, isOpen, onClose }: EditTaskDialogProps) {
               Delete Task
             </Button>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={onClose}>
+              <Button variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => { handleSaveChanges(); onClose(); }}>
+              <Button onClick={() => { handleSaveChanges(); handleOpenChange(false); }}>
                 Save Changes
               </Button>
             </div>

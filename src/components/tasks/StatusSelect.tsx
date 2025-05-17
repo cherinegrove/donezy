@@ -14,10 +14,14 @@ interface StatusSelectProps {
     value: string;
     onChange: (value: string) => void;
   };
+  value?: string;
   onChange?: (status: TaskStatus) => void;
 }
 
-export function StatusSelect({ field, onChange }: StatusSelectProps) {
+export function StatusSelect({ field, value, onChange }: StatusSelectProps) {
+  // Use either field props or direct value/onChange props
+  const actualValue = field?.value ?? value;
+
   const handleChange = (value: string) => {
     // Make sure we never pass an empty string value
     if (value === "") {
@@ -30,9 +34,9 @@ export function StatusSelect({ field, onChange }: StatusSelectProps) {
   
   return (
     <Select 
-      value={field?.value} 
+      value={actualValue} 
       onValueChange={handleChange}
-      defaultValue={field?.value}
+      defaultValue={actualValue}
     >
       <SelectTrigger>
         <SelectValue placeholder="Select status" />

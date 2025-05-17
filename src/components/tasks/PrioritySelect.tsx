@@ -9,18 +9,28 @@ import {
 } from "@/components/ui/select";
 
 interface PrioritySelectProps {
-  field: {
+  field?: {
     value: string;
     onChange: (value: string) => void;
   };
+  value?: string;
+  onChange?: (value: string) => void;
 }
 
-export function PrioritySelect({ field }: PrioritySelectProps) {  
+export function PrioritySelect({ field, value, onChange }: PrioritySelectProps) {  
+  // Use either field props or direct value/onChange props
+  const actualValue = field?.value ?? value;
+  
+  const handleChange = (newValue: string) => {
+    if (field?.onChange) field.onChange(newValue);
+    if (onChange) onChange(newValue);
+  };
+
   return (
     <Select 
-      value={field.value} 
-      onValueChange={field.onChange}
-      defaultValue={field.value}
+      value={actualValue} 
+      onValueChange={handleChange}
+      defaultValue={actualValue}
     >
       <SelectTrigger>
         <SelectValue placeholder="Select priority" />

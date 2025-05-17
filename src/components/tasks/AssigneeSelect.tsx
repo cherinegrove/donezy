@@ -15,11 +15,15 @@ interface AssigneeSelectProps {
     value: string | undefined;
     onChange: (value: string | undefined) => void;
   };
+  value?: string | undefined;
   onChange?: (userId: string | undefined) => void;
 }
 
-export function AssigneeSelect({ field, onChange }: AssigneeSelectProps) {
+export function AssigneeSelect({ field, value, onChange }: AssigneeSelectProps) {
   const { users } = useAppContext();
+  
+  // Use either field props or direct value/onChange props
+  const actualValue = field?.value ?? value;
   
   const handleChange = (value: string) => {
     // Instead of converting "unassigned" to undefined here, we'll handle this 
@@ -30,7 +34,7 @@ export function AssigneeSelect({ field, onChange }: AssigneeSelectProps) {
   };
   
   // Use a non-empty string for unassigned value in the Select component
-  const selectValue = field?.value || "unassigned";
+  const selectValue = actualValue || "unassigned";
   
   return (
     <Select 
