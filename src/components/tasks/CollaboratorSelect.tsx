@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { User } from "@/types";
 import { MultiSelect } from "@/components/ui/multi-select";
 
@@ -18,6 +18,16 @@ export function CollaboratorSelect({
   placeholder = "Select collaborators",
   maxSelection = 10,
 }: CollaboratorSelectProps) {
+  // Debug logging for troubleshooting
+  useEffect(() => {
+    if (!Array.isArray(users)) {
+      console.warn("CollaboratorSelect expected users to be array, got:", users);
+    }
+    if (!Array.isArray(selectedValues)) {
+      console.warn("CollaboratorSelect expected selectedValues to be array, got:", selectedValues);
+    }
+  }, [users, selectedValues]);
+  
   // Always ensure users is an array and filter out any undefined/null values
   const safeUsers = Array.isArray(users) ? users.filter(Boolean) : [];
   

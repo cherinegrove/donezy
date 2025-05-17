@@ -92,6 +92,13 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   // Ensure collaboratorIds is always a valid array
   const safeCollaboratorIds = Array.isArray(task.collaboratorIds) ? task.collaboratorIds : [];
   
+  // Print warning when task.collaboratorIds is undefined or not an array
+  React.useEffect(() => {
+    if (!Array.isArray(task.collaboratorIds)) {
+      console.warn("EditTaskDialog: task.collaboratorIds is not an array:", task.collaboratorIds);
+    }
+  }, [task.collaboratorIds]);
+  
   const form = useForm<z.infer<typeof taskSchema>>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
@@ -142,7 +149,7 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   // Safety for TaskWatchButton
   const taskForWatchButton = task ? { ...task } : null;
   
-  // Safely get users array
+  // Safely get users array with defensive check
   const safeUsers = Array.isArray(users) ? users : [];
   
   return (
@@ -320,17 +327,26 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                   <FormField
                     control={form.control}
                     name="collaboratorIds"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Collaborators</FormLabel>
-                        <CollaboratorSelect 
-                          users={safeUsers} 
-                          selectedValues={field.value || []} 
-                          onValueChange={(values) => field.onChange(values)} 
-                        />
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // Ensure field.value is always an array
+                      const safeFieldValue = Array.isArray(field.value) ? field.value : [];
+                      
+                      return (
+                        <FormItem>
+                          <FormLabel>Collaborators</FormLabel>
+                          <CollaboratorSelect 
+                            users={safeUsers} 
+                            selectedValues={safeFieldValue} 
+                            onValueChange={(values) => {
+                              // Double ensure values is an array before setting
+                              const safeValues = Array.isArray(values) ? values : [];
+                              field.onChange(safeValues);
+                            }} 
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   
                   <FormField

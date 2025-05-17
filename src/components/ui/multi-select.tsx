@@ -40,9 +40,24 @@ export function MultiSelect({
   const [fileDialogOpen, setFileDialogOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
-  // Force empty arrays when undefined to prevent "undefined is not iterable" errors
-  const safeOptions = Array.isArray(options) ? options.filter(Boolean) : [];
-  const safeSelectedValues = Array.isArray(selectedValues) ? selectedValues : [];
+  // Defensive programming: ensure we always have valid arrays
+  const safeOptions = React.useMemo(() => {
+    return Array.isArray(options) ? options.filter(Boolean) : [];
+  }, [options]);
+  
+  const safeSelectedValues = React.useMemo(() => {
+    return Array.isArray(selectedValues) ? selectedValues : [];
+  }, [selectedValues]);
+
+  // Log warning if we received invalid data
+  React.useEffect(() => {
+    if (!Array.isArray(options)) {
+      console.warn("MultiSelect expected options to be array, got:", options);
+    }
+    if (!Array.isArray(selectedValues)) {
+      console.warn("MultiSelect expected selectedValues to be array, got:", selectedValues);
+    }
+  }, [options, selectedValues]);
 
   const handleSelect = React.useCallback(
     (value: string) => {
@@ -72,19 +87,22 @@ export function MultiSelect({
     }
   };
 
-  // Get selected items safely
-  const getSelectedItems = React.useCallback(() => {
+  // Get selected items safely using useMemo to prevent recalculations
+  const selectedItems = React.useMemo(() => {
     if (!Array.isArray(safeOptions) || !Array.isArray(safeSelectedValues)) {
       return [];
     }
     
     return safeSelectedValues
-      .map(value => safeOptions.find(option => option && option.value === value))
+      .map(value => safeOptions.find(option => 
+        option && typeof option === 'object' && 'value' in option && option.value === value
+      ))
       .filter((option): option is Option => Boolean(option));
   }, [safeSelectedValues, safeOptions]);
 
   // Create command items using useMemo to avoid re-rendering issues
   const commandItems = React.useMemo(() => {
+    // Extra safety check - only proceed if we have valid options
     if (!Array.isArray(safeOptions)) {
       return [];
     }
@@ -153,7 +171,7 @@ export function MultiSelect({
           >
             <div className="flex flex-wrap gap-1">
               {safeSelectedValues.length > 0 ? (
-                getSelectedItems().map((option) => (
+                selectedItems.map((option) => (
                   <Badge
                     key={option.value}
                     variant="secondary"
@@ -183,6 +201,7 @@ export function MultiSelect({
             <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
             <CommandEmpty>No options found.</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
+              {/* Only render if commandItems is a valid array */}
               {Array.isArray(commandItems) && commandItems.length > 0 ? commandItems : null}
               {allowFileUpload && (
                 <CommandItem 
