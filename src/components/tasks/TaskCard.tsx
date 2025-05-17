@@ -25,6 +25,7 @@ export function TaskCard({ task, onClick, displayOptions = ["project", "client",
   const collaborators = users.filter(user => task.collaboratorIds?.includes(user.id));
   const parentTask = task.parentTaskId ? tasks.find(t => t.id === task.parentTaskId) : null;
   const client = project ? projects.find(p => p.id === task.projectId)?.clientId : null;
+  const clientId = client ? useAppContext().clients.find(c => c.id === client)?.id : null;
   const clientName = client ? useAppContext().clients.find(c => c.id === client)?.name : null;
   
   const getBadgeColor = () => {
@@ -55,7 +56,9 @@ export function TaskCard({ task, onClick, displayOptions = ["project", "client",
   
   const handleStartTimer = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent the card click event
-    startTimeTracking(task.id);
+    if (clientId) {
+      startTimeTracking(task.id, project?.id, clientId);
+    }
   };
 
   return (
@@ -72,6 +75,7 @@ export function TaskCard({ task, onClick, displayOptions = ["project", "client",
                 size="icon" 
                 onClick={handleStartTimer}
                 className="h-7 w-7 text-green-500 hover:text-green-600 hover:bg-green-100"
+                disabled={!clientId}
               >
                 <Play className="h-4 w-4" />
               </Button>

@@ -21,7 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { UserProfileDialog } from "@/components/users/UserProfileDialog";
 
 export function TopBar() {
-  const { currentUser } = useAppContext();
+  const { currentUser, clients } = useAppContext();
   const { theme, setTheme } = useTheme();
   const { toggleSidebar } = useSidebar();
   const [isTimerDialogOpen, setIsTimerDialogOpen] = useState(false);

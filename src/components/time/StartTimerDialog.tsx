@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,7 +41,6 @@ export function StartTimerDialog({
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      setSelectedClientId("");
       setSelectedTaskId("");
       
       if (defaultProjectId) {
@@ -53,6 +53,11 @@ export function StartTimerDialog({
         }
       } else {
         setSelectedProjectId("");
+      }
+      
+      // If there was no project or we couldn't find the client, reset client selection
+      if (!selectedClientId) {
+        setSelectedClientId("");
       }
     }
   }, [open, defaultProjectId, projects]);
@@ -68,12 +73,14 @@ export function StartTimerDialog({
     : [];
   
   const handleStartTimer = () => {
-    startTimeTracking(selectedTaskId || undefined, selectedProjectId || undefined);
-    onStartTimer();
-    onOpenChange(false);
+    if (selectedClientId) {
+      startTimeTracking(selectedTaskId || undefined, selectedProjectId || undefined, selectedClientId);
+      onStartTimer();
+      onOpenChange(false);
+    }
   };
   
-  // Only require client selection to enable the Start Timer button
+  // Only enable the Start Timer button when a client is selected
   const canStartTimer = !!selectedClientId;
   
   return (
@@ -81,6 +88,7 @@ export function StartTimerDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Start Time Tracking</DialogTitle>
+          <DialogDescription>Select a client to start tracking time</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">

@@ -20,7 +20,9 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
   
   const handleStartTimer = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent the card click event
-    startTimeTracking(undefined, project.id);
+    if (client) {
+      startTimeTracking(undefined, project.id, client.id);
+    }
   };
   
   const getStatusBadgeClass = () => {
@@ -52,6 +54,7 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
                 size="icon" 
                 onClick={handleStartTimer}
                 className="h-7 w-7 text-green-500 hover:text-green-600 hover:bg-green-100"
+                disabled={!client}
               >
                 <Play className="h-4 w-4" />
               </Button>
