@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -22,6 +21,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MentionDropdown } from "./MentionDropdown";
 import { getCaretCoordinates } from "@/utils/textUtils";
+import { User } from "@/types"; 
 
 interface ComposeMessageDialogProps {
   open: boolean;
@@ -125,7 +125,7 @@ export function ComposeMessageDialog({
   };
   
   // Handle user selection from the mention dropdown
-  const handleSelectUser = (user: { id: string; name: string }) => {
+  const handleSelectUser = (user: User) => {
     if (!textareaRef.current) return;
     
     const text = content;
@@ -221,12 +221,12 @@ export function ComposeMessageDialog({
               rows={5}
             />
             
-            {/* Mention Dropdown */}
+            {/* Updated MentionDropdown with correct props */}
             <MentionDropdown
               users={otherUsers}
+              onSelect={handleSelectUser}
               isOpen={mentionOpen}
               position={mentionPosition}
-              onSelectUser={handleSelectUser}
               searchQuery={mentionQuery}
             />
           </div>

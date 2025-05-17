@@ -19,8 +19,12 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function AppSidebar() {
-  // Updated to use the correct properties from useSidebar()
-  const { collapsed, setCollapsed } = useSidebar() || { collapsed: false, setCollapsed: () => {} };
+  // Update to correctly handle the sidebar context
+  const sidebar = useSidebar();
+  // Provide defaults in case sidebar context is null
+  const collapsed = sidebar?.collapsed ?? false;
+  const setCollapsed = sidebar?.setCollapsed ?? (() => {});
+  
   const location = useLocation();
   const { currentUser } = useAppContext();
   const isMobile = useIsMobile();

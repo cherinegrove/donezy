@@ -21,7 +21,8 @@ export const useAppContext = () => {
   return context;
 };
 
-export const AppContextProvider: React.FC<AppContextProps> = ({ children }) => {
+// Rename AppContextProvider to AppProvider for consistency with App.tsx
+export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
   const [users, setUsers] = useState<User[]>(() => {
     const storedUsers = localStorage.getItem('users');
     return storedUsers ? JSON.parse(storedUsers) : mockUsers;

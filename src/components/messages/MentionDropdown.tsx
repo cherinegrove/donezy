@@ -4,10 +4,13 @@ import { User } from "@/types";
 
 interface MentionDropdownProps {
   users: User[];
-  onSelect: (user: User) => void; // Added onSelect prop
+  onSelect: (user: User) => void;
   id?: string;
   className?: string;
   style?: React.CSSProperties;
+  isOpen?: boolean;              // Added isOpen prop
+  position?: { top: number; left: number; };  // Added position prop
+  searchQuery?: string;          // Added searchQuery prop
 }
 
 export function MentionDropdown({ 
@@ -15,24 +18,42 @@ export function MentionDropdown({
   onSelect,
   id,
   className,
-  style
+  style,
+  isOpen,
+  position,
+  searchQuery
 }: MentionDropdownProps) {
   // Safety check - ensure users is always an array
   const safeUsers = Array.isArray(users) ? users : [];
   
-  if (safeUsers.length === 0) {
+  // Filter users by search query if provided
+  const filteredUsers = searchQuery 
+    ? safeUsers.filter(user => 
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : safeUsers;
+  
+  // Don't render if no users or not open
+  if ((filteredUsers.length === 0) || (isOpen === false)) {
     return null;
   }
+
+  // Apply position styling if provided
+  const positionStyle = position ? {
+    position: 'absolute',
+    top: `${position.top}px`,
+    left: `${position.left}px`,
+    ...style
+  } as React.CSSProperties : style;
 
   return (
     <div 
       id={id}
       className={`bg-popover text-popover-foreground shadow-md rounded-md border border-border overflow-hidden ${className || ''}`}
-      style={style}
+      style={positionStyle}
     >
       <div className="p-1">
         <div className="max-h-[200px] overflow-y-auto">
-          {safeUsers.map(user => {
+          {filteredUsers.map(user => {
             const firstName = user.name.split(' ')[0];
             
             return (
