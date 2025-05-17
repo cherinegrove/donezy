@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useState } from "react";
-import { MoreHorizontal, Pencil, Trash, Copy } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash, Copy, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface RecordActionsProps {
@@ -19,9 +19,12 @@ interface RecordActionsProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
+  onApprove?: () => void;
+  onDecline?: () => void;
   disableEdit?: boolean;
   disableDelete?: boolean;
   disableDuplicate?: boolean;
+  showApproveDecline?: boolean;
 }
 
 export function RecordActions({
@@ -31,9 +34,12 @@ export function RecordActions({
   onEdit,
   onDelete,
   onDuplicate,
+  onApprove,
+  onDecline,
   disableEdit = false,
   disableDelete = false,
   disableDuplicate = true,
+  showApproveDecline = false,
 }: RecordActionsProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { toast } = useToast();
@@ -59,6 +65,26 @@ export function RecordActions({
     }
   };
 
+  const handleApprove = () => {
+    if (onApprove) {
+      onApprove();
+      toast({
+        title: `${recordType} Approved`,
+        description: `${recordType} ${recordName || recordId} has been approved.`,
+      });
+    }
+  };
+
+  const handleDecline = () => {
+    if (onDecline) {
+      onDecline();
+      toast({
+        title: `${recordType} Declined`,
+        description: `${recordType} ${recordName || recordId} has been declined.`,
+      });
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -69,6 +95,20 @@ export function RecordActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {showApproveDecline && (
+            <>
+              <DropdownMenuItem onClick={handleApprove} className="text-green-600 focus:text-green-600">
+                <CheckCircle className="mr-2 h-4 w-4" />
+                <span>Approve</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDecline} className="text-amber-600 focus:text-amber-600">
+                <XCircle className="mr-2 h-4 w-4" />
+                <span>Decline</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+          
           {!disableEdit && (
             <DropdownMenuItem onClick={onEdit}>
               <Pencil className="mr-2 h-4 w-4" />
@@ -83,7 +123,7 @@ export function RecordActions({
           )}
           {!disableDelete && (
             <>
-              {!disableEdit && <DropdownMenuSeparator />}
+              {(!disableEdit || !disableDuplicate || showApproveDecline) && <DropdownMenuSeparator />}
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive"
                 onClick={() => setShowDeleteDialog(true)}
