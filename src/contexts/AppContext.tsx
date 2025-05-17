@@ -539,7 +539,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         title: templateTask.title,
         description: templateTask.description,
         projectId: projectId,
-        assigneeId: taskIdMap.get(index) || `user-${uuidv4()}`, // Use assigneeId instead of assigneeIds
+        assigneeId: taskIdMap.get(index) || `user-${uuidv4()}`,
+        collaboratorIds: [],
         status: templateTask.status,
         priority: templateTask.priority,
         customFields: {},
@@ -576,7 +577,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           description: subtask.description,
           projectId: projectId,
           parentTaskId: parentTaskId,
-          assigneeId: subtaskId, // Use assigneeId instead of assigneeIds
+          assigneeId: subtaskId,
+          collaboratorIds: [],
           status: "todo",
           priority: "medium",
           createdAt: new Date().toISOString(),
@@ -628,6 +630,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       createdAt: new Date().toISOString(),
       timeEntries: [],
       comments: [],
+      collaboratorIds: task.collaboratorIds || []
     };
     setTasks((prev) => [...prev, newTask]);
     

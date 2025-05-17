@@ -71,6 +71,8 @@ import { TaskWatchButton } from "./TaskWatchButton";
 import { ProjectSelect } from "./ProjectSelect";
 import { AssigneeSelect } from "./AssigneeSelect";
 import { CollaboratorSelect } from "@/components/tasks/CollaboratorSelect";
+import { PrioritySelect } from "./PrioritySelect";
+import { StatusSelect } from "./StatusSelect";
 
 const taskSchema = z.object({
   title: z.string().min(2, {
