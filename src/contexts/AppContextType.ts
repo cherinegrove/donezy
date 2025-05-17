@@ -1,4 +1,3 @@
-
 import {
   User, Team, Client, Project, Task, TimeEntry, Comment, Message, Purchase, CustomField, ProjectTemplate, CustomRole, ClientFile, ClientAgreement, TimeEntryStatus, TaskLog
 } from "@/types";
@@ -106,7 +105,7 @@ export interface AppContextType {
   addTimeEntry: (entry: Omit<TimeEntry, "id">) => void;
   updateTimeEntry: (id: string, updates: Partial<TimeEntry>) => void;
   deleteTimeEntry: (id: string) => void;
-  updateTimeEntryStatus: (id: string, status: TimeEntryStatus, approvedBy: string) => void;
+  updateTimeEntryStatus: (id: string, status: TimeEntryStatus, approvedBy: string, declineReason?: string) => void;
   
   // Message operations
   sendMessage: (message: Omit<Message, "id" | "timestamp" | "read">) => void;

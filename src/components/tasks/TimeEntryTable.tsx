@@ -15,15 +15,28 @@ import { RecordActions } from "@/components/common/RecordActions";
 import { EditTimeEntryDialog } from "@/components/time/EditTimeEntryDialog";
 import { TimeEntryStatus } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription,
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 interface TimeEntryTableProps {
   taskId: string;
 }
 
 export function TimeEntryTable({ taskId }: TimeEntryTableProps) {
-  const { timeEntries, currentUser, updateTimeEntryStatus } = useAppContext();
+  const { timeEntries, currentUser, updateTimeEntryStatus, deleteTimeEntry } = useAppContext();
   const [selectedTimeEntry, setSelectedTimeEntry] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeclineDialogOpen, setIsDeclineDialogOpen] = useState(false);
+  const [declineReason, setDeclineReason] = useState("");
+  const [entryToDecline, setEntryToDecline] = useState<string | null>(null);
   const { toast } = useToast();
   
   const taskTimeEntries = timeEntries.filter(entry => entry.taskId === taskId);
@@ -45,14 +58,33 @@ export function TimeEntryTable({ taskId }: TimeEntryTableProps) {
     }
   };
   
-  const handleDeclineTimeEntry = (entryId: string) => {
-    if (currentUser) {
-      updateTimeEntryStatus(entryId, "declined", currentUser.id);
+  const handleDeleteTimeEntry = (entryId: string) => {
+    deleteTimeEntry(entryId);
+    
+    toast({
+      title: "Time Entry Deleted",
+      description: "The time entry has been deleted.",
+      variant: "destructive",
+    });
+  };
+  
+  const openDeclineDialog = (entryId: string) => {
+    setEntryToDecline(entryId);
+    setIsDeclineDialogOpen(true);
+  };
+  
+  const handleDeclineTimeEntry = () => {
+    if (currentUser && entryToDecline) {
+      updateTimeEntryStatus(entryToDecline, "declined", currentUser.id, declineReason);
       
       toast({
         title: "Time Entry Declined",
         description: "The time entry has been declined.",
       });
+      
+      setIsDeclineDialogOpen(false);
+      setDeclineReason("");
+      setEntryToDecline(null);
     }
   };
   
@@ -109,7 +141,14 @@ export function TimeEntryTable({ taskId }: TimeEntryTableProps) {
                 <TableCell>{format(startDate, "MMM d, yyyy")}</TableCell>
                 <TableCell>{`${durationHours}h ${durationMinutes}m`}</TableCell>
                 <TableCell>{entry.notes || "-"}</TableCell>
-                <TableCell>{getStatusBadge(entry.status)}</TableCell>
+                <TableCell>
+                  {getStatusBadge(entry.status)}
+                  {entry.status === "declined" && entry.declineReason && (
+                    <div className="text-xs text-red-500 mt-1">
+                      Reason: {entry.declineReason}
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell className="text-right">{entry.billable ? "Yes" : "No"}</TableCell>
                 <TableCell>
                   <RecordActions
@@ -117,12 +156,12 @@ export function TimeEntryTable({ taskId }: TimeEntryTableProps) {
                     recordType="Time Entry"
                     recordName={`${format(startDate, "MMM d, yyyy")} (${durationHours}h ${durationMinutes}m)`}
                     onEdit={() => handleEditTimeEntry(entry.id)}
-                    onApprove={() => handleApproveTimeEntry(entry.id, true)}
+                    onDelete={() => handleDeleteTimeEntry(entry.id)}
                     onApproveBillable={() => handleApproveTimeEntry(entry.id, true)}
                     onApproveNonBillable={() => handleApproveTimeEntry(entry.id, false)}
-                    onDecline={() => handleDeclineTimeEntry(entry.id)}
+                    onDecline={() => openDeclineDialog(entry.id)}
                     disableEdit={!canEdit}
-                    disableDelete={!isAdminOrManager}
+                    disableDelete={!canEdit}
                     showApproveDecline={isAdminOrManager && entry.status === "pending"}
                   />
                 </TableCell>
@@ -140,6 +179,38 @@ export function TimeEntryTable({ taskId }: TimeEntryTableProps) {
         }}
         timeEntry={getSelectedTimeEntry()}
       />
+      
+      <Dialog open={isDeclineDialogOpen} onOpenChange={setIsDeclineDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Decline Time Entry</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for declining this time entry.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder="Reason for declining"
+              value={declineReason}
+              onChange={(e) => setDeclineReason(e.target.value)}
+              className="min-h-[100px]"
+              required
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeclineDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeclineTimeEntry}
+              disabled={!declineReason.trim()}
+            >
+              Decline Entry
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

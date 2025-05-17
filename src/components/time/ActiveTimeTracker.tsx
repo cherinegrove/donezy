@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function ActiveTimeTracker() {
-  const { activeTimeEntry, stopTimeTracking, tasks } = useAppContext();
+  const { activeTimeEntry, stopTimeTracking, deleteTimeEntry, tasks } = useAppContext();
   const [elapsed, setElapsed] = useState<string>("00:00:00");
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [notes, setNotes] = useState("");
@@ -45,6 +45,14 @@ export function ActiveTimeTracker() {
     stopTimeTracking(notes);
     setStopDialogOpen(false);
     setNotes("");
+  };
+
+  const handleDeleteTimeEntry = () => {
+    if (activeTimeEntry) {
+      deleteTimeEntry(activeTimeEntry.id);
+      setStopDialogOpen(false);
+      setNotes("");
+    }
   };
 
   if (!activeTimeEntry) return null;
@@ -96,9 +104,17 @@ export function ActiveTimeTracker() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setStopDialogOpen(false)}>Cancel</Button>
-            <Button onClick={confirmStopTracking}>Save Time Entry</Button>
+          <DialogFooter className="flex justify-between">
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteTimeEntry}
+            >
+              Delete Entry
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setStopDialogOpen(false)}>Cancel</Button>
+              <Button onClick={confirmStopTracking}>Save Time Entry</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

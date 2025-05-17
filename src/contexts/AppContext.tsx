@@ -645,16 +645,22 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
   };
   
   const deleteTimeEntry = (id: string) => {
+    // If this is the active time entry, clear it
+    if (activeTimeEntry && activeTimeEntry.id === id) {
+      setActiveTimeEntry(null);
+    }
+    
     setTimeEntries(prev => prev.filter(entry => entry.id !== id));
   };
   
-  const updateTimeEntryStatus = (id: string, status: TimeEntryStatus, approvedBy: string) => {
+  const updateTimeEntryStatus = (id: string, status: TimeEntryStatus, approvedBy: string, declineReason?: string) => {
     setTimeEntries(prev => prev.map(entry => 
       entry.id === id ? { 
         ...entry, 
         status, 
         approvedBy, 
-        approvedDate: new Date().toISOString() 
+        approvedDate: new Date().toISOString(),
+        declineReason: status === "declined" ? declineReason : undefined 
       } : entry
     ));
   };
