@@ -1,7 +1,8 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
-import { Task } from "@/types";
+import { Task, TaskStatus } from "@/types";
 import { Button } from "@/components/ui/button";
 import { CheckSquare, Plus } from "lucide-react";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
@@ -16,6 +17,13 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ViewSelector } from "@/components/kanban/ViewSelector";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type ViewMode = "list" | "gantt" | "kanban";
 
@@ -25,6 +33,7 @@ export default function Tasks() {
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(tasks);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
 
@@ -59,6 +68,11 @@ export default function Tasks() {
   // Filter tasks based on all filters
   React.useEffect(() => {
     const filtered = tasks.filter(task => {
+      // Apply status filter
+      if (statusFilter !== "all" && task.status !== statusFilter) {
+        return false;
+      }
+      
       // Apply active filters
       for (const [filterId, values] of Object.entries(activeFilters)) {
         if (values.length === 0) continue;
@@ -109,7 +123,7 @@ export default function Tasks() {
     });
     
     setFilteredTasks(filtered);
-  }, [tasks, activeFilters, startDate, dueDate, projects]);
+  }, [tasks, activeFilters, startDate, dueDate, projects, statusFilter]);
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setActiveFilters(filters);
@@ -136,6 +150,24 @@ export default function Tasks() {
 
       <div className="flex flex-wrap gap-2">
         <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
+        
+        {/* Status Filter */}
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}
+        >
+          <SelectTrigger className="w-[180px] h-9">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="backlog">Backlog</SelectItem>
+            <SelectItem value="todo">To Do</SelectItem>
+            <SelectItem value="in-progress">In Progress</SelectItem>
+            <SelectItem value="review">Review</SelectItem>
+            <SelectItem value="done">Done</SelectItem>
+          </SelectContent>
+        </Select>
         
         {/* Start Date Filter */}
         <Popover>
@@ -196,7 +228,7 @@ export default function Tasks() {
         </Popover>
         
         {/* Clear all filters button */}
-        {(Object.keys(activeFilters).length > 0 || startDate || dueDate) && (
+        {(Object.keys(activeFilters).length > 0 || startDate || dueDate || statusFilter !== "all") && (
           <Button 
             variant="ghost" 
             size="sm" 
@@ -205,6 +237,7 @@ export default function Tasks() {
               setActiveFilters({});
               setStartDate(undefined);
               setDueDate(undefined);
+              setStatusFilter("all");
             }}
           >
             Clear all filters
@@ -219,7 +252,7 @@ export default function Tasks() {
               <CheckSquare className="h-10 w-10 text-muted-foreground/50" />
               <p className="mt-2 text-lg font-medium">No tasks found</p>
               <p className="text-muted-foreground text-sm">
-                {Object.keys(activeFilters).length > 0 || startDate || dueDate
+                {Object.keys(activeFilters).length > 0 || startDate || dueDate || statusFilter !== "all"
                   ? "Try adjusting your filters"
                   : "Create a new task to get started"}
               </p>

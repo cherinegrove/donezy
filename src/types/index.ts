@@ -1,3 +1,4 @@
+import { Role, TaskStatus, ServiceType, NotificationTimeframe, EmploymentType, BillingType, AccessLevel, ClientRole, TimeEntryStatus } from './index';
 
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
@@ -51,7 +52,6 @@ export interface User {
   clientRole?: ClientRole;  // Added client role field
   jobTitle?: string;
   projectAccess?: string[];
-  watchedTaskIds?: string[];
   notificationPreferences?: {
     taskDue?: NotificationTimeframe[];
     taskStatusChange?: boolean;
@@ -230,7 +230,19 @@ export interface Task {
   subtasks: string[]; // Task IDs
   timeEntries: TimeEntry[];
   comments: Comment[];
-  watcherIds?: string[]; // Users watching this task
+  files?: TaskFile[];  // Added files array
+  relatedTaskIds?: string[];  // Added related tasks
+}
+
+export interface TaskFile {
+  id: string;
+  taskId: string;
+  name: string;
+  path: string;
+  type: string;
+  sizeKb: number;
+  uploadedAt: string;
+  uploadedBy: string; // User ID
 }
 
 export interface TimeEntry {
@@ -258,7 +270,7 @@ export interface Comment {
   content: string;
   timestamp: string;
   attachments?: string[];
-  mentionedUserIds?: string[]; // Added to track mentioned users
+  mentionedUserIds?: string[]; // For tracking mentioned users
 }
 
 export interface Message {
@@ -272,6 +284,15 @@ export interface Message {
   taskId: string;    // Reference to related task
   projectId?: string; // Reference to related project
   clientId?: string;  // Reference to related client
+}
+
+export interface TaskLog {
+  id: string;
+  taskId: string;
+  userId?: string; // Optional (can be system-generated)
+  timestamp: string;
+  action: string;
+  details?: string;
 }
 
 export interface Purchase {

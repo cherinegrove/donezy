@@ -7,14 +7,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { getCaretCoordinates } from "@/utils/textUtils";
 import { CollaboratorSelect } from "./CollaboratorSelect";
+import { useToast } from "@/hooks/use-toast";
 
 interface CommentSectionProps {
   taskId: string;
 }
 
 export function CommentSection({ taskId }: CommentSectionProps) {
-  const { tasks, users, currentUser, addComment } = useAppContext();
+  const { tasks, users, currentUser, addComment, createMessage } = useAppContext();
   const [comment, setComment] = useState("");
+  const { toast } = useToast();
   
   // Mention states
   const [mentionQuery, setMentionQuery] = useState("");
@@ -33,7 +35,89 @@ export function CommentSection({ taskId }: CommentSectionProps) {
     e.preventDefault();
     if (!comment.trim() || !currentUser) return;
     
-    addComment(taskId, currentUser.id, comment);
+    // Extract mentioned users from the comment
+    const mentionRegex = /@(\w+)/g;
+    const mentionMatches = [...comment.matchAll(mentionRegex)];
+    
+    // Find user IDs for mentioned users
+    const mentionedUserIds: string[] = [];
+    mentionMatches.forEach(match => {
+      const firstName = match[1];
+      const mentionedUser = safeUsers.find(u => 
+        u.name.toLowerCase().startsWith(firstName.toLowerCase())
+      );
+      
+      if (mentionedUser && !mentionedUserIds.includes(mentionedUser.id)) {
+        mentionedUserIds.push(mentionedUser.id);
+      }
+    });
+    
+    // Add the comment to the task
+    const commentId = addComment(taskId, currentUser.id, comment, mentionedUserIds);
+    
+    // Create notification messages for each mentioned user and task assignee/collaborators
+    if (task) {
+      // For mentions
+      mentionedUserIds.forEach(userId => {
+        if (userId !== currentUser.id) {
+          createMessage({
+            senderId: currentUser.id,
+            recipientIds: [userId],
+            content: `You were mentioned in a comment on task "${task.title}"`,
+            timestamp: new Date().toISOString(),
+            read: false,
+            commentId: commentId,
+            taskId: taskId,
+            projectId: task.projectId
+          });
+        }
+      });
+      
+      // For task assignee
+      if (task.assigneeId && task.assigneeId !== currentUser.id && !mentionedUserIds.includes(task.assigneeId)) {
+        createMessage({
+          senderId: currentUser.id,
+          recipientIds: [task.assigneeId],
+          content: `New comment on task "${task.title}" you're assigned to`,
+          timestamp: new Date().toISOString(),
+          read: false,
+          commentId: commentId,
+          taskId: taskId,
+          projectId: task.projectId
+        });
+      }
+      
+      // For collaborators
+      if (task.collaboratorIds && task.collaboratorIds.length > 0) {
+        task.collaboratorIds.forEach(collaboratorId => {
+          if (
+            collaboratorId !== currentUser.id && 
+            collaboratorId !== task.assigneeId && 
+            !mentionedUserIds.includes(collaboratorId)
+          ) {
+            createMessage({
+              senderId: currentUser.id,
+              recipientIds: [collaboratorId],
+              content: `New comment on task "${task.title}" you're collaborating on`,
+              timestamp: new Date().toISOString(),
+              read: false,
+              commentId: commentId,
+              taskId: taskId,
+              projectId: task.projectId
+            });
+          }
+        });
+      }
+    }
+    
+    toast({
+      title: "Comment Added",
+      description: mentionedUserIds.length > 0 
+        ? "Your comment was added and mentioned users were notified" 
+        : "Your comment was added",
+    });
+    
+    // Reset comment input
     setComment("");
   };
   
@@ -66,17 +150,11 @@ export function CommentSection({ taskId }: CommentSectionProps) {
         // Calculate mention dropdown position based on textarea and cursor
         if (textareaRef.current) {
           const cursorCoords = getCaretCoordinates(textareaRef.current, atIndex);
-          console.log("Cursor coordinates:", cursorCoords);
           
           const textareaRect = textareaRef.current.getBoundingClientRect();
           
           setMentionPosition({
             top: cursorCoords.top + 20,  // Add some offset below the @
-            left: cursorCoords.left
-          });
-          
-          console.log("Setting mention position:", {
-            top: cursorCoords.top + 20,
             left: cursorCoords.left
           });
         }
@@ -158,7 +236,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
               <div key={c.id} className="flex gap-3">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={commentUser?.avatar} />
-                  <AvatarFallback>{commentUser?.name.substring(0, 2)}</AvatarFallback>
+                  <AvatarFallback>{commentUser?.name?.substring(0, 2)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -167,7 +245,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
                       {format(new Date(c.timestamp), "MMM d, yyyy 'at' h:mm a")}
                     </span>
                   </div>
-                  <p className="mt-1">{c.content}</p>
+                  <p className="mt-1 whitespace-pre-wrap">{c.content}</p>
                 </div>
               </div>
             );

@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Clock, Play } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { TaskWatchButton } from "./TaskWatchButton";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -18,12 +17,12 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onClick, displayOptions = ["project", "client", "assignee", "parentTask"] }: TaskCardProps) {
-  const { projects, users, startTimeTracking, tasks } = useAppContext();
+  const { projects, users, startTimeTracking } = useAppContext();
   
   const project = projects.find(p => p.id === task.projectId);
   const assignee = task.assigneeId ? users.find(user => user.id === task.assigneeId) : null;
   const collaborators = users.filter(user => task.collaboratorIds?.includes(user.id));
-  const parentTask = task.parentTaskId ? tasks.find(t => t.id === task.parentTaskId) : null;
+  const parentTask = task.parentTaskId ? users.find(t => t.id === task.parentTaskId) : null;
   const client = project ? projects.find(p => p.id === task.projectId)?.clientId : null;
   const clientId = client ? useAppContext().clients.find(c => c.id === client)?.id : null;
   const clientName = client ? useAppContext().clients.find(c => c.id === client)?.name : null;
@@ -117,7 +116,7 @@ export function TaskCard({ task, onClick, displayOptions = ["project", "client",
 
           {displayOptions.includes("parentTask") && parentTask && (
             <Badge variant="outline" className="bg-purple-50 text-purple-800">
-              Parent: {parentTask.title.length > 15 ? `${parentTask.title.substring(0, 15)}...` : parentTask.title}
+              Parent: {parentTask.title && parentTask.title.length > 15 ? `${parentTask.title.substring(0, 15)}...` : parentTask.title}
             </Badge>
           )}
         </div>
