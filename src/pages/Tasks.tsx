@@ -18,7 +18,8 @@ import { cn } from "@/lib/utils";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ViewSelector } from "@/components/kanban/ViewSelector";
 
-type ViewMode = "standard" | "compact" | "detailed";
+type ViewMode = "list" | "gantt" | "kanban";
+type DisplayMode = "standard" | "compact" | "detailed";
 
 export default function Tasks() {
   const { tasks, projects, users, clients } = useAppContext();
@@ -27,7 +28,8 @@ export default function Tasks() {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(tasks);
-  const [viewMode, setViewMode] = useState<ViewMode>("standard");
+  const [viewMode, setViewMode] = useState<ViewMode>("kanban");
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("standard");
 
   // Define filter options
   const filterOptions: FilterOption[] = [
@@ -195,6 +197,36 @@ export default function Tasks() {
           </PopoverContent>
         </Popover>
         
+        {/* Display mode selector (only show when in Kanban view) */}
+        {viewMode === "kanban" && (
+          <div className="flex items-center gap-1">
+            <Button
+              variant={displayMode === "standard" ? "secondary" : "outline"}
+              size="sm"
+              className="h-9"
+              onClick={() => setDisplayMode("standard")}
+            >
+              Standard
+            </Button>
+            <Button
+              variant={displayMode === "compact" ? "secondary" : "outline"}
+              size="sm"
+              className="h-9"
+              onClick={() => setDisplayMode("compact")}
+            >
+              Compact
+            </Button>
+            <Button
+              variant={displayMode === "detailed" ? "secondary" : "outline"}
+              size="sm"
+              className="h-9"
+              onClick={() => setDisplayMode("detailed")}
+            >
+              Detailed
+            </Button>
+          </div>
+        )}
+        
         {/* Clear all filters button */}
         {(Object.keys(activeFilters).length > 0 || startDate || dueDate) && (
           <Button 
@@ -235,7 +267,11 @@ export default function Tasks() {
           </Card>
         ) : (
           <div className="w-full overflow-auto">
-            <KanbanBoard tasks={filteredTasks} viewMode={viewMode} />
+            <KanbanBoard 
+              tasks={filteredTasks} 
+              viewMode={viewMode} 
+              displayMode={displayMode}
+            />
           </div>
         )}
       </div>

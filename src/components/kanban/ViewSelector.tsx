@@ -1,9 +1,9 @@
 
-import { LayoutGrid, LayoutList, Columns } from "lucide-react";
+import { LayoutGrid, LayoutList, ChartGantt, Kanban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-type ViewMode = "standard" | "compact" | "detailed";
+type ViewMode = "list" | "gantt" | "kanban";
 
 interface ViewSelectorProps {
   currentView: ViewMode;
@@ -17,50 +17,50 @@ export function ViewSelector({ currentView, onViewChange }: ViewSelectorProps) {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant={currentView === "standard" ? "secondary" : "ghost"}
+              variant={currentView === "list" ? "secondary" : "ghost"}
               size="sm"
               className="h-8 w-8 p-0"
-              onClick={() => onViewChange("standard")}
-            >
-              <Columns className="h-4 w-4" />
-              <span className="sr-only">Standard view</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Standard view</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={currentView === "compact" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => onViewChange("compact")}
-            >
-              <LayoutGrid className="h-4 w-4" />
-              <span className="sr-only">Compact view</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Compact view</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={currentView === "detailed" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => onViewChange("detailed")}
+              onClick={() => onViewChange("list")}
             >
               <LayoutList className="h-4 w-4" />
-              <span className="sr-only">Detailed view</span>
+              <span className="sr-only">List view</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Detailed view</TooltipContent>
+          <TooltipContent>List view</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={currentView === "gantt" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => onViewChange("gantt")}
+            >
+              <ChartGantt className="h-4 w-4" />
+              <span className="sr-only">Gantt view</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Gantt view</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={currentView === "kanban" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => onViewChange("kanban")}
+            >
+              <Kanban className="h-4 w-4" />
+              <span className="sr-only">Kanban view</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Kanban view</TooltipContent>
         </Tooltip>
       </TooltipProvider>
     </div>
