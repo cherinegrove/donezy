@@ -6,14 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Plus, Check, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AddClientDialog } from "@/components/clients/AddClientDialog";
+import { EditClientDialog } from "@/components/clients/EditClientDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { RecordActions } from "@/components/common/RecordActions";
 
 const Clients = () => {
   const { clients, projects } = useAppContext();
   const navigate = useNavigate();
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [editingClient, setEditingClient] = useState<string | null>(null);
   
   const getProjectCount = (clientId: string) => {
     return projects.filter(project => project.clientId === clientId).length;
@@ -24,6 +27,14 @@ const Clients = () => {
     if (statusFilter === 'all') return true;
     return client.status === statusFilter;
   });
+  
+  const handleEditClient = (clientId: string) => {
+    setEditingClient(clientId);
+  };
+  
+  const handleCardClick = (clientId: string) => {
+    navigate(`/clients/${clientId}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -34,7 +45,6 @@ const Clients = () => {
             Manage your client relationships
           </p>
         </div>
-        {/* Removed the Add Client button from top header */}
       </div>
 
       <div className="flex items-center justify-between">
@@ -57,18 +67,26 @@ const Clients = () => {
           <Card 
             key={client.id} 
             className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => navigate(`/clients/${client.id}`)}
+            onClick={() => handleCardClick(client.id)}
           >
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>{client.name}</CardTitle>
-                <Badge variant={client.status === 'active' ? 'default' : 'secondary'}>
-                  {client.status === 'active' ? (
-                    <><Check className="h-3 w-3 mr-1" /> Active</>
-                  ) : (
-                    <><X className="h-3 w-3 mr-1" /> Inactive</>
-                  )}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={client.status === 'active' ? 'default' : 'secondary'}>
+                    {client.status === 'active' ? (
+                      <><Check className="h-3 w-3 mr-1" /> Active</>
+                    ) : (
+                      <><X className="h-3 w-3 mr-1" /> Inactive</>
+                    )}
+                  </Badge>
+                  <RecordActions
+                    recordId={client.id}
+                    recordType="Client"
+                    recordName={client.name}
+                    onEdit={() => handleEditClient(client.id)}
+                  />
+                </div>
               </div>
               <CardDescription>{client.contactName}</CardDescription>
             </CardHeader>
@@ -109,6 +127,14 @@ const Clients = () => {
         isOpen={isAddClientDialogOpen} 
         onClose={() => setIsAddClientDialogOpen(false)}
       />
+      
+      {editingClient && (
+        <EditClientDialog 
+          client={clients.find(c => c.id === editingClient)!} 
+          isOpen={!!editingClient}
+          onClose={() => setEditingClient(null)}
+        />
+      )}
     </div>
   );
 };

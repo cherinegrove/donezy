@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Plus, Play, Pause } from "lucide-react";
 import { useState } from "react";
 import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
+import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
 import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
@@ -13,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreateTemplateDialog } from "@/components/projects/CreateTemplateDialog";
 import { UseTemplateDialog } from "@/components/projects/UseTemplateDialog";
 import { TemplatesList } from "@/components/projects/TemplatesList";
+import { RecordActions } from "@/components/common/RecordActions";
 
 const Projects = () => {
   const { projects, tasks, clients, teams, activeTimeEntry, startTimeTracking, stopTimeTracking } = useAppContext();
@@ -21,6 +23,7 @@ const Projects = () => {
   const [isUseTemplateDialogOpen, setIsUseTemplateDialogOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
   const [activeTab, setActiveTab] = useState("projects");
+  const [editingProject, setEditingProject] = useState<string | null>(null);
   const navigate = useNavigate();
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
 
@@ -122,6 +125,14 @@ const Projects = () => {
     setSelectedTemplateId(templateId);
     setIsUseTemplateDialogOpen(true);
   };
+  
+  const handleEditProject = (projectId: string) => {
+    setEditingProject(projectId);
+  };
+  
+  const handleCardClick = (projectId: string) => {
+    navigate(`/projects/${projectId}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -164,25 +175,36 @@ const Projects = () => {
                 <Card 
                   key={project.id} 
                   className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigate(`/projects/${project.id}`)}
+                  onClick={() => handleCardClick(project.id)}
                 >
                   <CardHeader className="flex flex-row justify-between items-start pb-2">
                     <div>
                       <CardTitle>{project.name}</CardTitle>
                       <CardDescription>{project.description}</CardDescription>
                     </div>
-                    <Button 
-                      size="sm" 
-                      variant={timerRunning ? "destructive" : "outline"} 
-                      className="h-8 w-8 rounded-full p-0 ml-2 flex-shrink-0"
-                      onClick={(e) => handleTimerToggle(project.id, e)}
-                    >
-                      {timerRunning ? (
-                        <Pause className="h-3.5 w-3.5" />
-                      ) : (
-                        <Play className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
+                    <div className="flex items-center">
+                      <Button 
+                        size="sm" 
+                        variant={timerRunning ? "destructive" : "outline"} 
+                        className="h-8 w-8 rounded-full p-0 mr-2 flex-shrink-0"
+                        onClick={(e) => handleTimerToggle(project.id, e)}
+                      >
+                        {timerRunning ? (
+                          <Pause className="h-3.5 w-3.5" />
+                        ) : (
+                          <Play className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                      <RecordActions
+                        recordId={project.id}
+                        recordType="Project"
+                        recordName={project.name}
+                        onEdit={() => handleEditProject(project.id)}
+                        onDelete={() => {}}
+                        disableDelete={true}
+                        disableDuplicate={true}
+                      />
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
@@ -266,6 +288,16 @@ const Projects = () => {
         onOpenChange={setIsUseTemplateDialogOpen}
         templateId={selectedTemplateId}
       />
+      
+      {editingProject && (
+        <EditProjectDialog
+          project={projects.find(p => p.id === editingProject)!}
+          isOpen={!!editingProject}
+          onOpenChange={(open) => {
+            if (!open) setEditingProject(null);
+          }}
+        />
+      )}
     </div>
   );
 }

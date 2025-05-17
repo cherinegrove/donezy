@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { User } from "@/types";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -11,6 +12,7 @@ interface CollaboratorSelectProps {
   maxSelection?: number;
 }
 
+// This component is no longer used in tasks but kept for reference
 export function CollaboratorSelect({
   users = [],
   selectedValues = [],
