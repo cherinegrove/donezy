@@ -1,4 +1,3 @@
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -81,16 +80,16 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
-  // Check if task exists and has required properties
-  if (!task) {
-    console.error("Task is undefined in EditTaskDialog");
-    return null; // Don't render anything if task is undefined
+  // Critical safety check - don't proceed if task is undefined
+  if (!task || typeof task !== 'object') {
+    console.error("Task is undefined or invalid in EditTaskDialog");
+    return null;
   }
   
   const project = projects.find(p => p.id === task.projectId);
   const assignee = task.assigneeId ? users.find(user => user.id === task.assigneeId) : null;
   
-  // Ensure collaboratorIds is always an array
+  // Ensure collaboratorIds is always a valid array
   const safeCollaboratorIds = Array.isArray(task.collaboratorIds) ? task.collaboratorIds : [];
   
   const form = useForm<z.infer<typeof taskSchema>>({
@@ -98,11 +97,11 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
     defaultValues: {
       title: task.title || "",
       description: task.description || "",
-      projectId: task.projectId,
-      assigneeId: task.assigneeId,
-      collaboratorIds: safeCollaboratorIds,
-      status: task.status,
-      priority: task.priority,
+      projectId: task.projectId || "",
+      assigneeId: task.assigneeId || "",
+      collaboratorIds: safeCollaboratorIds, // Use sanitized array
+      status: task.status || "todo",
+      priority: task.priority || "medium",
       dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
       startDate: task.startDate ? new Date(task.startDate) : undefined,
       customFields: task.customFields || {},
@@ -110,14 +109,14 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   });
   
   const onSubmit = (values: z.infer<typeof taskSchema>) => {
-    // Ensure collaboratorIds is always an array before saving
+    // Ensure collaboratorIds is always a valid array
     const collaboratorIds = Array.isArray(values.collaboratorIds) ? values.collaboratorIds : [];
     
     updateTask(task.id, {
       ...values,
       dueDate: values.dueDate?.toISOString(),
       startDate: values.startDate?.toISOString(),
-      collaboratorIds: collaboratorIds,
+      collaboratorIds, // Use sanitized array
     });
     onOpenChange(false);
   };
@@ -140,6 +139,9 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
     }
   };
   
+  // Safety for TaskWatchButton
+  const taskForWatchButton = task ? { ...task } : null;
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-hidden flex flex-col">
@@ -150,7 +152,7 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
               <Badge variant="outline" className={getBadgeColor()}>
                 {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
               </Badge>
-              <TaskWatchButton task={task} />
+              {taskForWatchButton && <TaskWatchButton task={taskForWatchButton} />}
             </div>
           </DialogTitle>
         </DialogHeader>
@@ -319,7 +321,7 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                       <FormItem>
                         <FormLabel>Collaborators</FormLabel>
                         <CollaboratorSelect 
-                          users={users} 
+                          users={users || []} 
                           selectedValues={field.value || []} 
                           onValueChange={(values) => field.onChange(values)} 
                         />

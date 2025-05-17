@@ -1,4 +1,3 @@
-
 import React from "react";
 import { User } from "@/types";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -18,36 +17,33 @@ export function CollaboratorSelect({
   placeholder = "Select collaborators",
   maxSelection = 10,
 }: CollaboratorSelectProps) {
-  // Ensure users is always an array
-  const safeUsers = Array.isArray(users) ? users : [];
+  // Always ensure users is an array and filter out any undefined/null values
+  const safeUsers = Array.isArray(users) ? users.filter(Boolean) : [];
   
-  // Format users data for the multi-select and ensure no undefined objects
-  const options = safeUsers
-    .filter(Boolean) // Filter out any undefined or null users
-    .map(user => ({
-      label: user.name || "Unknown",
-      value: user.id,
-      avatar: user.avatar,
-      initials: user.name ? user.name.substring(0, 2) : "??",
-    }));
-
-  // Ensure selectedValues is always an array
+  // Format users data for the multi-select with strict filtering
+  const options = safeUsers.map(user => ({
+    label: user.name || "Unknown",
+    value: user.id,
+    avatar: user.avatar,
+    initials: user.name ? user.name.substring(0, 2) : "??",
+  })).filter(option => option && option.value); // Extra safety filter
+  
+  // Always ensure selectedValues is an array
   const safeSelectedValues = Array.isArray(selectedValues) ? selectedValues : [];
   
   // Handle selection changes with limit
   const handleSelectionChange = (values: string[]) => {
-    if (!Array.isArray(values)) {
-      values = [];
-    }
+    // Ensure values is always an array
+    const safeValues = Array.isArray(values) ? values : [];
     
     // Limit the number of selections
-    if (values.length > maxSelection) {
+    if (safeValues.length > maxSelection) {
       // If trying to add beyond the limit, keep only the first maxSelection items
-      onValueChange(values.slice(0, maxSelection));
+      onValueChange(safeValues.slice(0, maxSelection));
       return;
     }
     
-    onValueChange(values);
+    onValueChange(safeValues);
   };
 
   return (

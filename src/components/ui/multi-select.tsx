@@ -40,7 +40,7 @@ export function MultiSelect({
   const [fileDialogOpen, setFileDialogOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
-  // Ensure options and selectedValues are always arrays
+  // Ensure options and selectedValues are always arrays - defensive approach
   const safeOptions = Array.isArray(options) ? options.filter(Boolean) : [];
   const safeSelectedValues = Array.isArray(selectedValues) ? selectedValues : [];
 
@@ -72,8 +72,8 @@ export function MultiSelect({
     }
   };
 
+  // Get selected items safely - ensure we never return undefined
   const getSelectedItems = React.useCallback(() => {
-    // Double check arrays before attempting to use them
     if (!Array.isArray(safeSelectedValues) || !Array.isArray(safeOptions)) {
       return [];
     }
@@ -83,17 +83,16 @@ export function MultiSelect({
       .filter((option): option is Option => Boolean(option));
   }, [safeSelectedValues, safeOptions]);
 
-  // Create commandItems separately to ensure it's never undefined
+  // Create command items using useMemo to avoid re-rendering issues
   const commandItems = React.useMemo(() => {
-    // Ensure safeOptions is defined and filtered before mapping
-    if (!safeOptions || !Array.isArray(safeOptions)) {
-      return []; // Return empty array if safeOptions is not an array
+    if (!Array.isArray(safeOptions)) {
+      return [];
     }
     
     return safeOptions
-      .filter(option => option && option.value) // Filter out any null/undefined options or ones without values
+      .filter(option => option && typeof option === 'object' && 'value' in option) // Strict filtering
       .map((option) => {
-        const isSelected = safeSelectedValues.includes(option.value);
+        const isSelected = Array.isArray(safeSelectedValues) && safeSelectedValues.includes(option.value);
         
         return (
           <CommandItem
@@ -184,7 +183,7 @@ export function MultiSelect({
             <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
             <CommandEmpty>No options found.</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
-              {/* Ensure commandItems is a valid array and use it if it has items */}
+              {/* Only render commandItems if it's an array with items */}
               {Array.isArray(commandItems) && commandItems.length > 0 ? commandItems : null}
               {allowFileUpload && (
                 <CommandItem 
