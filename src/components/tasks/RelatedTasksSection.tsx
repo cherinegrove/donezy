@@ -10,10 +10,12 @@ interface RelatedTasksSectionProps {
 
 export function RelatedTasksSection({ taskId }: RelatedTasksSectionProps) {
   const { tasks } = useAppContext();
-  const task = tasks.find(t => t.id === taskId);
+  
+  // Add null check for tasks
+  const safeTask = tasks && Array.isArray(tasks) ? tasks.find(t => t && t.id === taskId) : null;
   
   // Fallback if task not found
-  if (!task) {
+  if (!safeTask) {
     return (
       <div className="text-center py-4 text-muted-foreground">
         Task not found
