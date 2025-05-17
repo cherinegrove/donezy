@@ -73,6 +73,7 @@ export function MultiSelect({
   };
 
   const getSelectedItems = React.useCallback(() => {
+    // Double check arrays before attempting to use them
     if (!Array.isArray(safeSelectedValues) || !Array.isArray(safeOptions)) {
       return [];
     }
@@ -86,7 +87,7 @@ export function MultiSelect({
   const commandItems = React.useMemo(() => {
     // Ensure safeOptions is defined and filtered before mapping
     if (!safeOptions || !Array.isArray(safeOptions)) {
-      return [];
+      return []; // Return empty array if safeOptions is not an array
     }
     
     return safeOptions
@@ -183,8 +184,8 @@ export function MultiSelect({
             <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
             <CommandEmpty>No options found.</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
-              {/* Ensure commandItems is a valid array */}
-              {commandItems && commandItems.length > 0 ? commandItems : null}
+              {/* Ensure commandItems is a valid array and use it if it has items */}
+              {Array.isArray(commandItems) && commandItems.length > 0 ? commandItems : null}
               {allowFileUpload && (
                 <CommandItem 
                   onSelect={() => {

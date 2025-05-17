@@ -81,6 +81,12 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
+  // Check if task exists and has required properties
+  if (!task) {
+    console.error("Task is undefined in EditTaskDialog");
+    return null; // Don't render anything if task is undefined
+  }
+  
   const project = projects.find(p => p.id === task.projectId);
   const assignee = task.assigneeId ? users.find(user => user.id === task.assigneeId) : null;
   
@@ -104,11 +110,14 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   });
   
   const onSubmit = (values: z.infer<typeof taskSchema>) => {
+    // Ensure collaboratorIds is always an array before saving
+    const collaboratorIds = Array.isArray(values.collaboratorIds) ? values.collaboratorIds : [];
+    
     updateTask(task.id, {
       ...values,
       dueDate: values.dueDate?.toISOString(),
       startDate: values.startDate?.toISOString(),
-      collaboratorIds: values.collaboratorIds || [], // Ensure collaboratorIds is always an array
+      collaboratorIds: collaboratorIds,
     });
     onOpenChange(false);
   };
