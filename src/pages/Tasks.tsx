@@ -1,11 +1,10 @@
 
 import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
 import { Task } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Calendar, CheckSquare, Plus } from "lucide-react";
-import { TaskCard } from "@/components/tasks/TaskCard";
+import { CheckSquare, Plus } from "lucide-react";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { 
@@ -16,6 +15,7 @@ import {
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 
 export default function Tasks() {
   const { tasks, projects, users, clients } = useAppContext();
@@ -23,6 +23,7 @@ export default function Tasks() {
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>(tasks);
 
   // Define filter options
   const filterOptions: FilterOption[] = [
@@ -43,8 +44,8 @@ export default function Tasks() {
       })),
     },
     {
-      id: "owners",
-      name: "Owner",
+      id: "assignees",
+      name: "Assignee",
       options: users.map(user => ({
         id: user.id,
         label: user.name,
@@ -53,65 +54,59 @@ export default function Tasks() {
   ];
 
   // Filter tasks based on all filters
-  const filteredTasks = tasks.filter(task => {
-    // Apply active filters
-    for (const [filterId, values] of Object.entries(activeFilters)) {
-      if (values.length === 0) continue;
+  React.useEffect(() => {
+    const filtered = tasks.filter(task => {
+      // Apply active filters
+      for (const [filterId, values] of Object.entries(activeFilters)) {
+        if (values.length === 0) continue;
 
-      switch (filterId) {
-        case "clients":
-          // Find projects for the selected clients
-          const projectsForClients = projects.filter(project => 
-            values.includes(project.clientId)
-          );
-          const projectIds = projectsForClients.map(p => p.id);
-          if (!projectIds.includes(task.projectId)) {
-            return false;
-          }
-          break;
-        case "projects":
-          if (!values.includes(task.projectId)) {
-            return false;
-          }
-          break;
-        case "owners":
-          // Check if task has any of the selected owners
-          if (task.assigneeIds.length === 0 || !task.assigneeIds.some(id => values.includes(id))) {
-            return false;
-          }
-          break;
+        switch (filterId) {
+          case "clients":
+            // Find projects for the selected clients
+            const projectsForClients = projects.filter(project => 
+              values.includes(project.clientId)
+            );
+            const projectIds = projectsForClients.map(p => p.id);
+            if (!projectIds.includes(task.projectId)) {
+              return false;
+            }
+            break;
+          case "projects":
+            if (!values.includes(task.projectId)) {
+              return false;
+            }
+            break;
+          case "assignees":
+            // Check if task has any of the selected assignees
+            if (task.assigneeIds.length === 0 || !task.assigneeIds.some(id => values.includes(id))) {
+              return false;
+            }
+            break;
+        }
       }
-    }
 
-    // Filter by start date
-    if (startDate && task.dueDate) {
-      const taskDueDate = new Date(task.dueDate);
-      // Use startDate as the minimum due date
-      if (taskDueDate < startDate) {
-        return false;
+      // Filter by start date
+      if (startDate && task.dueDate) {
+        const taskDueDate = new Date(task.dueDate);
+        // Use startDate as the minimum due date
+        if (taskDueDate < startDate) {
+          return false;
+        }
       }
-    }
 
-    // Filter by due date
-    if (dueDate && task.dueDate) {
-      const taskDueDate = new Date(task.dueDate);
-      if (taskDueDate > dueDate) {
-        return false;
+      // Filter by due date
+      if (dueDate && task.dueDate) {
+        const taskDueDate = new Date(task.dueDate);
+        if (taskDueDate > dueDate) {
+          return false;
+        }
       }
-    }
 
-    return true;
-  });
-
-  // Group tasks by project
-  const tasksByProject = filteredTasks.reduce<{[key: string]: Task[]}>((acc, task) => {
-    const projectId = task.projectId;
-    if (!acc[projectId]) {
-      acc[projectId] = [];
-    }
-    acc[projectId].push(task);
-    return acc;
-  }, {});
+      return true;
+    });
+    
+    setFilteredTasks(filtered);
+  }, [tasks, activeFilters, startDate, dueDate, projects]);
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setActiveFilters(filters);
@@ -139,7 +134,6 @@ export default function Tasks() {
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="h-9">
-              <Calendar className="mr-2 h-4 w-4" />
               {startDate ? format(startDate, "MMM d, yyyy") : "Start Date"}
             </Button>
           </PopoverTrigger>
@@ -169,7 +163,6 @@ export default function Tasks() {
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="h-9">
-              <Calendar className="mr-2 h-4 w-4" />
               {dueDate ? format(dueDate, "MMM d, yyyy") : "Due Date"}
             </Button>
           </PopoverTrigger>
@@ -212,8 +205,8 @@ export default function Tasks() {
         )}
       </div>
 
-      <div className="mt-6 grid gap-6">
-        {Object.keys(tasksByProject).length === 0 ? (
+      <div className="mt-6">
+        {filteredTasks.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-10">
               <CheckSquare className="h-10 w-10 text-muted-foreground/50" />
@@ -234,37 +227,10 @@ export default function Tasks() {
             </CardContent>
           </Card>
         ) : (
-          Object.entries(tasksByProject).map(([projectId, tasks]) => {
-            const project = projects.find(p => p.id === projectId);
-            return (
-              <Card key={projectId}>
-                <CardHeader>
-                  <CardTitle>
-                    {project ? project.name : "No Project"} 
-                    <span className="ml-2 text-sm text-muted-foreground">({tasks.length} tasks)</span>
-                  </CardTitle>
-                  <CardDescription>
-                    {project ? project.description : "Tasks without a project"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {tasks.map((task) => (
-                      <TaskCard 
-                        key={task.id} 
-                        task={task} 
-                        onClick={() => {
-                          // Navigate to project details with task focus
-                          const projectUrl = `/projects/${task.projectId}?taskId=${task.id}`;
-                          window.location.href = projectUrl;
-                        }}
-                      />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
+          <div className="w-full overflow-auto">
+            {/* Pass all tasks to the KanbanBoard component but with an ID that doesn't exist */}
+            <KanbanBoard tasks={filteredTasks} />
+          </div>
         )}
       </div>
       

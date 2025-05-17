@@ -2,15 +2,16 @@
 import { Task, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { EditTaskDialog } from "../tasks/EditTaskDialog";
 
 interface KanbanBoardProps {
-  projectId: string;
+  tasks: Task[];
+  projectId?: string;
 }
 
-export function KanbanBoard({ projectId }: KanbanBoardProps) {
-  const { getTasksByProject, moveTask } = useAppContext();
+export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
+  const { moveTask } = useAppContext();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [columnColors, setColumnColors] = useState<Record<TaskStatus, string>>({
@@ -21,8 +22,6 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     done: "#DCFCE7"
   });
   
-  const projectTasks = getTasksByProject(projectId);
-  
   const columns: { id: TaskStatus; title: string }[] = [
     { id: "backlog", title: "Backlog" },
     { id: "todo", title: "To Do" },
@@ -31,28 +30,9 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     { id: "done", title: "Done" },
   ];
   
-  // Load column colors from localStorage
-  useEffect(() => {
-    const savedColors = localStorage.getItem('kanbanColors');
-    if (savedColors) {
-      try {
-        const parsedColors = JSON.parse(savedColors);
-        const colorMap: Record<TaskStatus, string> = {} as Record<TaskStatus, string>;
-        
-        parsedColors.forEach((color: { name: TaskStatus; value: string }) => {
-          colorMap[color.name] = color.value;
-        });
-        
-        setColumnColors(colorMap);
-      } catch (e) {
-        console.error('Error parsing kanban colors from localStorage', e);
-      }
-    }
-  }, []);
-  
   // Prepare tasks by status
   const tasksByStatus = columns.reduce((acc, column) => {
-    acc[column.id] = projectTasks.filter(task => task.status === column.id);
+    acc[column.id] = tasks.filter(task => task.status === column.id);
     return acc;
   }, {} as Record<TaskStatus, Task[]>);
   
