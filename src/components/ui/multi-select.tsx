@@ -28,7 +28,7 @@ interface MultiSelectProps {
 
 export function MultiSelect({
   options,
-  selectedValues,
+  selectedValues = [], // Provide default empty array
   onValueChange,
   placeholder = "Select options",
   disabled = false,
@@ -39,23 +39,29 @@ export function MultiSelect({
   const [open, setOpen] = React.useState(false);
   const [fileDialogOpen, setFileDialogOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  
+  // Ensure options is always an array
+  const safeOptions = Array.isArray(options) ? options : [];
+  
+  // Ensure selectedValues is always an array
+  const safeSelectedValues = Array.isArray(selectedValues) ? selectedValues : [];
 
   const handleSelect = React.useCallback(
     (value: string) => {
-      if (selectedValues.includes(value)) {
-        onValueChange(selectedValues.filter((item) => item !== value));
+      if (safeSelectedValues.includes(value)) {
+        onValueChange(safeSelectedValues.filter((item) => item !== value));
       } else {
-        onValueChange([...selectedValues, value]);
+        onValueChange([...safeSelectedValues, value]);
       }
     },
-    [selectedValues, onValueChange]
+    [safeSelectedValues, onValueChange]
   );
 
   const handleRemove = React.useCallback(
     (value: string) => {
-      onValueChange(selectedValues.filter((item) => item !== value));
+      onValueChange(safeSelectedValues.filter((item) => item !== value));
     },
-    [selectedValues, onValueChange]
+    [safeSelectedValues, onValueChange]
   );
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,10 +72,14 @@ export function MultiSelect({
   };
 
   const getSelectedItems = React.useCallback(() => {
-    return selectedValues
-      .map(value => options.find(option => option.value === value))
+    if (!Array.isArray(safeOptions) || !Array.isArray(safeSelectedValues)) {
+      return [];
+    }
+    
+    return safeSelectedValues
+      .map(value => safeOptions.find(option => option.value === value))
       .filter((option): option is Option => !!option);
-  }, [selectedValues, options]);
+  }, [safeSelectedValues, safeOptions]);
 
   return (
     <>
@@ -83,7 +93,7 @@ export function MultiSelect({
             disabled={disabled}
           >
             <div className="flex flex-wrap gap-1">
-              {selectedValues.length > 0 ? (
+              {safeSelectedValues.length > 0 ? (
                 getSelectedItems().map((option) => (
                   <Badge
                     key={option.value}
@@ -114,8 +124,8 @@ export function MultiSelect({
             <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
             <CommandEmpty>No options found.</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
-              {options.map((option) => {
-                const isSelected = selectedValues.includes(option.value);
+              {safeOptions.map((option) => {
+                const isSelected = safeSelectedValues.includes(option.value);
                 return (
                   <CommandItem
                     key={option.value}

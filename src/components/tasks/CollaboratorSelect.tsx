@@ -25,7 +25,7 @@ export function CollaboratorSelect({
   }));
 
   // Ensure selectedValues is always an array
-  const safeSelectedValues = selectedValues || [];
+  const safeSelectedValues = Array.isArray(selectedValues) ? selectedValues : [];
 
   return (
     <MultiSelect
