@@ -1,4 +1,3 @@
-
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
@@ -14,6 +13,8 @@ export type BillingType = 'hourly' | 'monthly';
 export type AccessLevel = 'none' | 'view' | 'edit';
 
 export type ClientRole = 'admin' | 'team';  // Added ClientRole type
+
+export type TimeEntryStatus = 'pending' | 'approved-billable' | 'approved-non-billable' | 'declined';
 
 export interface CustomRole {
   id: string;
@@ -242,6 +243,11 @@ export interface TimeEntry {
   duration: number; // In minutes
   notes?: string;
   billable: boolean;
+  status: TimeEntryStatus; // Added status field
+  manuallyAdded?: boolean; // Flag for manual entries
+  edited?: boolean; // Flag for edited entries
+  approvedBy?: string; // ID of user who approved/declined the entry
+  approvedDate?: string; // Date when the entry was approved/declined
 }
 
 export interface Comment {

@@ -1,188 +1,222 @@
 
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, Calendar, Clock, DollarSign } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, FileText, Calendar, DollarSign, Clock, Trash2 } from "lucide-react";
 import { format } from "date-fns";
-import { ClientAgreement } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import { AddAgreementDialog } from "./AddAgreementDialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { AddAgreementDialog } from "@/components/clients/AddAgreementDialog";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 interface ClientAgreementsProps {
   clientId: string;
 }
 
-export const ClientAgreements = ({ clientId }: ClientAgreementsProps) => {
-  const { getClientAgreements, getClientById } = useAppContext();
-  const [isAddAgreementDialogOpen, setIsAddAgreementDialogOpen] = useState(false);
-  const [selectedAgreement, setSelectedAgreement] = useState<ClientAgreement | null>(null);
+export function ClientAgreements({ clientId }: ClientAgreementsProps) {
+  const { getClientAgreements, deleteClientAgreement, uploadClientFile, getClientFiles, deleteClientFile, currentUser } = useAppContext();
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [agreementToDelete, setAgreementToDelete] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   
-  const client = getClientById(clientId);
   const agreements = getClientAgreements(clientId);
+  const clientFiles = getClientFiles ? getClientFiles(clientId) : [];
   
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency 
-    }).format(amount);
-  };
+  // Convert files to options for MultiSelect
+  const fileOptions = clientFiles.map(file => ({
+    value: file.id,
+    label: file.name
+  }));
   
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
-    }
-  };
-  
-  const getServiceTypeLabel = (serviceType: string) => {
-    switch (serviceType) {
-      case 'retainer':
-        return 'Retainer';
-      case 'payasyougo':
-        return 'Pay As You Go';
-      case 'bank-hours':
-        return 'Bank of Hours';
-      default:
-        return serviceType;
-    }
-  };
+  const isAdmin = currentUser?.role === 'admin';
 
-  if (!client) {
-    return <div>Client not found</div>;
-  }
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (fileList) {
+      setFiles(Array.from(fileList));
+    }
+  };
+  
+  const handleFileUpload = async () => {
+    if (files.length === 0) return;
+    
+    try {
+      for (const file of files) {
+        if (uploadClientFile) {
+          await uploadClientFile(clientId, file);
+        }
+      }
+      // Reset form
+      setFiles([]);
+    } catch (error) {
+      console.error("Error uploading files:", error);
+    }
+  };
   
   return (
     <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>Billing Agreements</CardTitle>
-            <CardDescription>
-              Track and manage client billing agreements
-            </CardDescription>
-          </div>
-          <Button onClick={() => setIsAddAgreementDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> 
-            New Agreement
-          </Button>
-        </div>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          Client Agreements
+        </CardTitle>
+        <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Agreement
+        </Button>
       </CardHeader>
       <CardContent>
-        {agreements.length > 0 ? (
-          <ScrollArea className="h-[400px] pr-4">
+        <div className="space-y-6">
+          {/* File Upload Section */}
+          <div className="space-y-4 border p-4 rounded-md">
+            <h3 className="text-sm font-medium">Upload Files</h3>
+            <div className="flex flex-col gap-2">
+              <Input 
+                type="file" 
+                multiple 
+                onChange={handleFileChange}
+              />
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={handleFileUpload}
+                disabled={files.length === 0}
+              >
+                Upload Files
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Available Files</Label>
+              <MultiSelect
+                options={fileOptions}
+                selectedValues={selectedFiles}
+                onValueChange={setSelectedFiles}
+                placeholder="Select files to attach"
+              />
+            </div>
+          </div>
+
+          {/* Agreements List */}
+          {agreements.length > 0 ? (
             <div className="space-y-4">
               {agreements.map((agreement) => (
-                <div 
+                <div
                   key={agreement.id}
-                  className="border rounded-lg p-4 hover:border-primary/50 transition-colors cursor-pointer"
-                  onClick={() => {
-                    setSelectedAgreement(agreement);
-                    setIsAddAgreementDialogOpen(true);
-                  }}
+                  className="flex flex-col sm:flex-row justify-between gap-4 p-4 border rounded-md"
                 >
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <h3 className="font-medium">{agreement.description}</h3>
-                    </div>
-                    <Badge className={getStatusColor(agreement.status)}>
-                      {agreement.status}
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-y-2 gap-x-4 mt-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <DollarSign className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">Rate:</span>
-                      <span className="font-medium">
-                        {formatCurrency(agreement.rate, agreement.currency)}/hr
-                      </span>
+                      <Badge variant={agreement.status === 'active' ? 'default' : 'outline'}>
+                        {agreement.status.charAt(0).toUpperCase() + agreement.status.slice(1)}
+                      </Badge>
+                      <span className="font-medium">{agreement.serviceType}</span>
                     </div>
                     
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">Start:</span>
-                      <span className="font-medium">
-                        {format(new Date(agreement.startDate), "MMM d, yyyy")}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-sm capitalize">
-                      <FileText className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">Type:</span>
-                      <span className="font-medium">
-                        {getServiceTypeLabel(agreement.serviceType)}
-                      </span>
-                    </div>
-                    
-                    {agreement.endDate && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">End:</span>
-                        <span className="font-medium">
-                          {format(new Date(agreement.endDate), "MMM d, yyyy")}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>
+                          {format(new Date(agreement.startDate), 'PP')}
+                          {agreement.endDate ? ` - ${format(new Date(agreement.endDate), 'PP')}` : ' (Ongoing)'}
                         </span>
                       </div>
-                    )}
-                    
-                    {(agreement.serviceType === 'retainer' || agreement.serviceType === 'bank-hours') && (
-                      <>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-muted-foreground">Allocated:</span>
-                          <span className="font-medium">
-                            {agreement.allocatedHours} hrs
+                      
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-4 w-4" />
+                        <span>
+                          {agreement.currency} {agreement.rate.toLocaleString()}
+                          {agreement.serviceType !== 'payasyougo' ? '/hour' : ''}
+                        </span>
+                      </div>
+                      
+                      {agreement.allocatedHours && (
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          <span>
+                            {agreement.allocatedHours} hours allocated
+                            {agreement.usedHours !== undefined && ` (${agreement.usedHours} used)`}
                           </span>
                         </div>
-                        
-                        {agreement.usedHours !== undefined && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Clock className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-muted-foreground">Used:</span>
-                            <span className="font-medium">
-                              {agreement.usedHours} hrs
-                            </span>
-                          </div>
-                        )}
-                      </>
-                    )}
+                      )}
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground">
+                      {agreement.description}
+                    </p>
                   </div>
+                  
+                  {isAdmin && (
+                    <div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => setAgreementToDelete(agreement.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
-          </ScrollArea>
-        ) : (
-          <div className="text-center py-8">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2 opacity-50" />
-            <h3 className="text-lg font-medium mb-1">No Agreements</h3>
-            <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-              Create a billing agreement to track contracts, retainers, or banks of hours for this client.
-            </p>
-            <Button onClick={() => setIsAddAgreementDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Add First Agreement
-            </Button>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-12 border border-dashed rounded-md">
+              <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
+              <p className="mt-2 text-muted-foreground">No agreements found</p>
+              <Button className="mt-4" onClick={() => setIsAddDialogOpen(true)}>
+                Add Agreement
+              </Button>
+            </div>
+          )}
+        </div>
+        
+        <AddAgreementDialog
+          clientId={clientId}
+          isOpen={isAddDialogOpen}
+          onClose={() => setIsAddDialogOpen(false)}
+          selectedFiles={selectedFiles}
+        />
+        
+        <AlertDialog open={!!agreementToDelete} onOpenChange={() => setAgreementToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete this agreement.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => {
+                  if (agreementToDelete) {
+                    deleteClientAgreement(agreementToDelete);
+                  }
+                  setAgreementToDelete(null);
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
-      
-      <AddAgreementDialog 
-        clientId={clientId}
-        isOpen={isAddAgreementDialogOpen}
-        onClose={() => {
-          setIsAddAgreementDialogOpen(false);
-          setSelectedAgreement(null);
-        }}
-        existingAgreement={selectedAgreement}
-      />
     </Card>
   );
-};
+}

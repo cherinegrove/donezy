@@ -1,32 +1,25 @@
 
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useAppContext } from "@/contexts/AppContext";
-import { Team, User } from "@/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Team, User } from "@/types";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface EditTeamDialogProps {
   team?: Team;
@@ -34,178 +27,172 @@ interface EditTeamDialogProps {
   onClose: () => void;
 }
 
-const formSchema = z.object({
-  name: z.string().min(2, "Team name must be at least 2 characters"),
-  description: z.string().optional(),
-  members: z.array(z.string()).optional(),
-});
-
 export function EditTeamDialog({ team, isOpen, onClose }: EditTeamDialogProps) {
-  const { addTeam, updateTeam, users } = useAppContext();
+  const { addTeam, updateTeam, users, deleteTeam, currentUser } = useAppContext();
   const { toast } = useToast();
-  const isEditMode = !!team;
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: team?.name || "",
-      description: team?.description || "",
-      members: team?.members || [],
-    },
-  });
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [members, setMembers] = useState<string[]>([]);
+
+  // Check if current user is admin
+  const isAdmin = currentUser?.role === 'admin';
   
-  // Update form values when team changes
   useEffect(() => {
     if (team) {
-      form.reset({
-        name: team.name,
-        description: team.description,
-        members: team.members,
+      setName(team.name);
+      setDescription(team.description);
+      setMembers(team.members);
+    } else {
+      setName("");
+      setDescription("");
+      setMembers([]);
+    }
+  }, [team]);
+  
+  // Get only users that aren't clients (for team membership)
+  const teamUsers = users.filter((user) => user.role !== "client");
+  
+  // Format users for MultiSelect component
+  const userOptions = teamUsers.map((user: User) => ({
+    value: user.id,
+    label: user.name,
+    avatar: user.avatar,
+    initials: user.name.substring(0, 2),
+  }));
+
+  const handleSave = () => {
+    if (!name.trim()) {
+      toast({
+        title: "Error",
+        description: "Team name is required",
+        variant: "destructive",
       });
-      setSelectedMembers(team.members);
-    } else {
-      form.reset({
-        name: "",
-        description: "",
-        members: [],
+      return;
+    }
+
+    if (team) {
+      // Update existing team
+      updateTeam(team.id, {
+        name,
+        description,
+        members,
       });
-      setSelectedMembers([]);
-    }
-  }, [team, form]);
-  
-  // Filter users who are not clients
-  const teamMembers = users.filter(user => user.role !== "client");
-  
-  const handleMemberToggle = (userId: string, checked: boolean) => {
-    let newSelectedMembers: string[];
-    
-    if (checked) {
-      newSelectedMembers = [...selectedMembers, userId];
+
+      toast({
+        title: "Team Updated",
+        description: "Team has been updated successfully",
+      });
     } else {
-      newSelectedMembers = selectedMembers.filter(id => id !== userId);
+      // Create new team
+      addTeam({
+        name,
+        description,
+        members,
+        projectIds: [],
+      });
+
+      toast({
+        title: "Team Created",
+        description: "New team has been created successfully",
+      });
     }
-    
-    setSelectedMembers(newSelectedMembers);
-    form.setValue('members', newSelectedMembers);
-  };
-  
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    const teamData = {
-      name: values.name,
-      description: values.description || "",
-      members: selectedMembers,
-      projectIds: team?.projectIds || [],
-    };
-    
-    if (isEditMode && team) {
-      updateTeam(team.id, teamData);
-      toast({ title: "Success", description: "Team updated successfully" });
-    } else {
-      addTeam(teamData);
-      toast({ title: "Success", description: "Team created successfully" });
-    }
-    form.reset();
+
     onClose();
   };
 
+  const handleDelete = () => {
+    if (team) {
+      deleteTeam(team.id);
+      toast({
+        title: "Team Deleted",
+        description: "The team has been deleted successfully",
+      });
+      setDeleteDialogOpen(false);
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>{isEditMode ? "Edit Team" : "Create Team"}</DialogTitle>
-          <DialogDescription>
-            {isEditMode 
-              ? "Make changes to the team details and members below"
-              : "Add a new team to your organization"}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Team Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter team name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{team ? "Edit Team" : "Create Team"}</DialogTitle>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Team Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter team name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter team description"
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Team Members</Label>
+              <MultiSelect
+                options={userOptions}
+                selectedValues={members}
+                onValueChange={setMembers}
+                placeholder="Select team members"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex items-center justify-between">
+            <div>
+              {isAdmin && team && (
+                <Button 
+                  variant="destructive" 
+                  onClick={() => setDeleteDialogOpen(true)}
+                  type="button"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Team
+                </Button>
               )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Describe the team's purpose and focus" 
-                      {...field} 
-                      rows={4}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="members"
-              render={() => (
-                <FormItem>
-                  <FormLabel>Team Members</FormLabel>
-                  <FormControl>
-                    <ScrollArea className="h-[200px] border rounded-md p-4">
-                      <div className="space-y-2">
-                        {teamMembers.map((member) => (
-                          <div key={member.id} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`member-${member.id}`}
-                              checked={selectedMembers.includes(member.id)}
-                              onCheckedChange={(checked) => 
-                                handleMemberToggle(member.id, checked === true)
-                              }
-                            />
-                            <label
-                              htmlFor={`member-${member.id}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
-                            >
-                              <span>{member.name}</span>
-                              <span className="text-xs text-muted-foreground ml-2">
-                                ({member.role})
-                              </span>
-                            </label>
-                          </div>
-                        ))}
-                        
-                        {teamMembers.length === 0 && (
-                          <p className="text-sm text-muted-foreground">No team members available</p>
-                        )}
-                      </div>
-                    </ScrollArea>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit">
-                {isEditMode ? "Update Team" : "Create Team"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose}>Cancel</Button>
+              <Button onClick={handleSave}>{team ? "Update Team" : "Create Team"}</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the team
+              and remove all member associations.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

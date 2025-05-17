@@ -46,8 +46,11 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
 const TimeTracking = () => {
-  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry } = useAppContext();
+  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser } = useAppContext();
   const [activeTab, setActiveTab] = useState("active");
+  const [isAddEntryDialogOpen, setIsAddEntryDialogOpen] = useState(false);
+  const [selectedTimeEntry, setSelectedTimeEntry] = useState<TimeEntry | undefined>(undefined);
+  const [isEditEntryDialogOpen, setIsEditEntryDialogOpen] = useState(false);
   
   // Filter state
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
@@ -295,13 +298,78 @@ const TimeTracking = () => {
     return `${hours}h ${mins}m`;
   };
 
+  // Checks if current user can edit a time entry
+  const canEditTimeEntry = (entry: TimeEntry) => {
+    // Users can edit their own entries
+    if (entry.userId === currentUser?.id) return true;
+    
+    // Admins and managers can edit any entry
+    if (currentUser?.role === 'admin' || currentUser?.role === 'manager') return true;
+    
+    return false;
+  };
+
+  // Checks if current user can approve/decline a time entry
+  const canApproveTimeEntry = () => {
+    // Only admins and managers can approve/decline time entries
+    return currentUser?.role === 'admin' || currentUser?.role === 'manager';
+  };
+  
+  const handleEditTimeEntry = (entry: TimeEntry) => {
+    setSelectedTimeEntry(entry);
+    setIsEditEntryDialogOpen(true);
+  };
+  
+  const handleAddNewEntry = () => {
+    setSelectedTimeEntry(undefined);
+    setIsAddEntryDialogOpen(true);
+  };
+  
+  // Status display helper
+  const renderTimeEntryStatus = (status: TimeEntryStatus) => {
+    switch (status) {
+      case 'pending':
+        return (
+          <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
+            Pending
+          </span>
+        );
+      case 'approved-billable':
+        return (
+          <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200">
+            Approved (Billable)
+          </span>
+        );
+      case 'approved-non-billable':
+        return (
+          <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">
+            Approved (Non-billable)
+          </span>
+        );
+      case 'declined':
+        return (
+          <span className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200">
+            Declined
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Time Tracking</h1>
-        <p className="text-muted-foreground mt-1">
-          Track time spent on tasks and projects
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Time Tracking</h1>
+          <p className="text-muted-foreground mt-1">
+            Track time spent on tasks and projects
+          </p>
+        </div>
+        <Button onClick={handleAddNewEntry}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Manual Entry
+        </Button>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -468,27 +536,44 @@ const TimeTracking = () => {
                     {entriesByDate[date].map(entry => {
                       const task = tasks.find(t => t.id === entry.taskId);
                       const project = task ? projects.find(p => p.id === task.projectId) : undefined;
-                      const client = project ? clients.find(c => c.id === project.clientId) : undefined;
+                      const client = project ? clients.find(c => c.id === project.clientId) : 
+                                     clients.find(c => c.id === entry.clientId);
                       const user = users.find(u => u.id === entry.userId);
                       
                       return (
-                        <div key={entry.id} className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-muted/20 rounded-md">
+                        <div 
+                          key={entry.id} 
+                          className={cn(
+                            "grid grid-cols-1 md:grid-cols-3 gap-3 p-3 rounded-md",
+                            entry.manuallyAdded || entry.edited ? "bg-yellow-50/50 dark:bg-yellow-900/10" : "bg-muted/20"
+                          )}
+                        >
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
                               <AvatarImage src={user?.avatar} />
                               <AvatarFallback>{user?.name.slice(0, 2) || "U"}</AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium">{task?.title}</p>
+                              <p className="font-medium">{task?.title || "No task"}</p>
                               <div className="flex flex-col text-xs text-muted-foreground">
-                                <span>{project?.name}</span>
-                                <span>{client?.name}</span>
+                                <span>{project?.name || "No project"}</span>
+                                <span>{client?.name || "No client"}</span>
                               </div>
                             </div>
                           </div>
                           
-                          <div className="text-sm md:text-center">
-                            {entry.notes || "No description"}
+                          <div className="flex flex-col text-sm md:text-center">
+                            <p>{entry.notes || "No description"}</p>
+                            <div className="mt-2">
+                              {renderTimeEntryStatus(entry.status || 'pending')}
+                              {(entry.manuallyAdded || entry.edited) && (
+                                <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
+                                  {entry.manuallyAdded ? "Manual entry" : ""}
+                                  {entry.manuallyAdded && entry.edited ? ", " : ""}
+                                  {entry.edited ? "Edited" : ""}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           
                           <div className="flex items-center justify-between md:justify-end gap-3">
@@ -499,9 +584,40 @@ const TimeTracking = () => {
                               </span>
                             </div>
                             
-                            <div className="text-xs">
-                              {format(new Date(entry.startTime), "HH:mm")} - 
-                              {entry.endTime ? format(new Date(entry.endTime), " HH:mm") : " now"}
+                            <div className="flex items-center gap-2">
+                              <div className="text-xs">
+                                {format(new Date(entry.startTime), "HH:mm")} - 
+                                {entry.endTime ? format(new Date(entry.endTime), " HH:mm") : " now"}
+                              </div>
+                              
+                              {canEditTimeEntry(entry) && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <ChevronDown className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleEditTimeEntry(entry)}>
+                                      Edit Time Entry
+                                    </DropdownMenuItem>
+                                    {canApproveTimeEntry() && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem className="text-green-600 dark:text-green-400">
+                                          Approve (Billable)
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem className="text-blue-600 dark:text-blue-400">
+                                          Approve (Non-billable)
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem className="text-red-600 dark:text-red-400">
+                                          Decline
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -609,6 +725,20 @@ const TimeTracking = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Add Time Entry Dialog */}
+      <EditTimeEntryDialog
+        isOpen={isAddEntryDialogOpen}
+        onClose={() => setIsAddEntryDialogOpen(false)}
+        isNewEntry={true}
+      />
+      
+      {/* Edit Time Entry Dialog */}
+      <EditTimeEntryDialog
+        timeEntry={selectedTimeEntry}
+        isOpen={isEditEntryDialogOpen}
+        onClose={() => setIsEditEntryDialogOpen(false)}
+      />
     </div>
   );
 };
