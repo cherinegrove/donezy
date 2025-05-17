@@ -1,4 +1,3 @@
-
 import React from "react";
 import { User } from "@/types";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -8,6 +7,7 @@ interface CollaboratorSelectProps {
   selectedValues: string[];
   onValueChange: (values: string[]) => void;
   placeholder?: string;
+  maxSelection?: number;
 }
 
 export function CollaboratorSelect({
@@ -15,6 +15,7 @@ export function CollaboratorSelect({
   selectedValues,
   onValueChange,
   placeholder = "Select collaborators",
+  maxSelection = 10,
 }: CollaboratorSelectProps) {
   // Format users data for the multi-select
   const options = users.map(user => ({
@@ -26,13 +27,31 @@ export function CollaboratorSelect({
 
   // Ensure selectedValues is always an array
   const safeSelectedValues = Array.isArray(selectedValues) ? selectedValues : [];
+  
+  // Handle selection changes with limit
+  const handleSelectionChange = (values: string[]) => {
+    // Limit the number of selections
+    if (values.length > maxSelection) {
+      // If trying to add beyond the limit, keep only the first maxSelection items
+      onValueChange(values.slice(0, maxSelection));
+      return;
+    }
+    onValueChange(values);
+  };
 
   return (
-    <MultiSelect
-      options={options}
-      selectedValues={safeSelectedValues}
-      onValueChange={onValueChange}
-      placeholder={placeholder}
-    />
+    <div>
+      <MultiSelect
+        options={options}
+        selectedValues={safeSelectedValues}
+        onValueChange={handleSelectionChange}
+        placeholder={placeholder}
+      />
+      {safeSelectedValues.length >= maxSelection && (
+        <p className="text-xs text-muted-foreground mt-1">
+          Maximum of {maxSelection} collaborators allowed
+        </p>
+      )}
+    </div>
   );
 }

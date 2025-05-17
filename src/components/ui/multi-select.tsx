@@ -27,8 +27,8 @@ interface MultiSelectProps {
 }
 
 export function MultiSelect({
-  options,
-  selectedValues = [], // Provide default empty array
+  options = [], // Default to empty array
+  selectedValues = [], // Default to empty array
   onValueChange,
   placeholder = "Select options",
   disabled = false,
@@ -40,14 +40,14 @@ export function MultiSelect({
   const [fileDialogOpen, setFileDialogOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
-  // Ensure options is always an array
+  // Ensure options and selectedValues are always arrays
   const safeOptions = Array.isArray(options) ? options : [];
-  
-  // Ensure selectedValues is always an array
   const safeSelectedValues = Array.isArray(selectedValues) ? selectedValues : [];
 
   const handleSelect = React.useCallback(
     (value: string) => {
+      if (!value) return;
+      
       if (safeSelectedValues.includes(value)) {
         onValueChange(safeSelectedValues.filter((item) => item !== value));
       } else {
@@ -59,6 +59,7 @@ export function MultiSelect({
 
   const handleRemove = React.useCallback(
     (value: string) => {
+      if (!value) return;
       onValueChange(safeSelectedValues.filter((item) => item !== value));
     },
     [safeSelectedValues, onValueChange]

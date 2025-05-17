@@ -1,19 +1,7 @@
+
 import React from "react";
 import { Task } from "@/types";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer,
-  Cell,
-  Rectangle 
-} from "recharts";
 import { format, differenceInDays, addDays, startOfDay, parseISO, addMonths, addWeeks } from "date-fns";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -303,6 +291,18 @@ export function GanttChart({ tasks }: GanttChartProps) {
         </div>
       </div>
 
+      {/* Date ticks at the top */}
+      <div className="grid grid-cols-[600px_1fr]">
+        <div></div>
+        <div className="flex justify-between overflow-x-auto">
+          {dateTicks.map((tick, index) => (
+            <div key={index} className="text-xs text-muted-foreground px-1">
+              {formatXAxis(tick)}
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="w-full border rounded-md overflow-hidden">
         <Table>
           <TableHeader>
@@ -356,19 +356,6 @@ export function GanttChart({ tasks }: GanttChartProps) {
             ))}
           </TableBody>
         </Table>
-      </div>
-      
-      <div className="mt-2 border-t pt-2">
-        <div className="grid grid-cols-[600px_1fr]">
-          <div></div>
-          <div className="flex justify-between overflow-x-auto">
-            {dateTicks.map((tick, index) => (
-              <div key={index} className="text-xs text-muted-foreground px-1">
-                {formatXAxis(tick)}
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
       
       {/* Add edit dialog for Gantt chart task */}
