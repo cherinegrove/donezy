@@ -1,3 +1,4 @@
+
 import React from "react";
 import { User } from "@/types";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -22,11 +23,11 @@ export function CollaboratorSelect({
   
   // Format users data for the multi-select with strict filtering
   const options = safeUsers.map(user => ({
-    label: user.name || "Unknown",
-    value: user.id,
-    avatar: user.avatar,
-    initials: user.name ? user.name.substring(0, 2) : "??",
-  })).filter(option => option && option.value); // Extra safety filter
+    label: user?.name || "Unknown",
+    value: user?.id || "",
+    avatar: user?.avatar,
+    initials: user?.name ? user.name.substring(0, 2) : "??",
+  })).filter(option => Boolean(option.value)); // Extra safety filter
   
   // Always ensure selectedValues is an array
   const safeSelectedValues = Array.isArray(selectedValues) ? selectedValues : [];

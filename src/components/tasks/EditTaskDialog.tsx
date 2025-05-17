@@ -142,6 +142,9 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   // Safety for TaskWatchButton
   const taskForWatchButton = task ? { ...task } : null;
   
+  // Safely get users array
+  const safeUsers = Array.isArray(users) ? users : [];
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-hidden flex flex-col">
@@ -321,7 +324,7 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                       <FormItem>
                         <FormLabel>Collaborators</FormLabel>
                         <CollaboratorSelect 
-                          users={users || []} 
+                          users={safeUsers} 
                           selectedValues={field.value || []} 
                           onValueChange={(values) => field.onChange(values)} 
                         />

@@ -40,7 +40,7 @@ export function MultiSelect({
   const [fileDialogOpen, setFileDialogOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
-  // Ensure options and selectedValues are always arrays - defensive approach
+  // Force empty arrays when undefined to prevent "undefined is not iterable" errors
   const safeOptions = Array.isArray(options) ? options.filter(Boolean) : [];
   const safeSelectedValues = Array.isArray(selectedValues) ? selectedValues : [];
 
@@ -48,11 +48,11 @@ export function MultiSelect({
     (value: string) => {
       if (!value) return;
       
-      if (safeSelectedValues.includes(value)) {
-        onValueChange(safeSelectedValues.filter((item) => item !== value));
-      } else {
-        onValueChange([...safeSelectedValues, value]);
-      }
+      const updatedValues = safeSelectedValues.includes(value) 
+        ? safeSelectedValues.filter((item) => item !== value)
+        : [...safeSelectedValues, value];
+        
+      onValueChange(updatedValues);
     },
     [safeSelectedValues, onValueChange]
   );
@@ -66,20 +66,20 @@ export function MultiSelect({
   );
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0] && onFileUpload) {
+    if (e.target?.files?.[0] && onFileUpload) {
       onFileUpload(e.target.files[0]);
       setFileDialogOpen(false);
     }
   };
 
-  // Get selected items safely - ensure we never return undefined
+  // Get selected items safely
   const getSelectedItems = React.useCallback(() => {
-    if (!Array.isArray(safeSelectedValues) || !Array.isArray(safeOptions)) {
+    if (!Array.isArray(safeOptions) || !Array.isArray(safeSelectedValues)) {
       return [];
     }
     
     return safeSelectedValues
-      .map(value => safeOptions.find(option => option?.value === value))
+      .map(value => safeOptions.find(option => option && option.value === value))
       .filter((option): option is Option => Boolean(option));
   }, [safeSelectedValues, safeOptions]);
 
@@ -92,7 +92,7 @@ export function MultiSelect({
     return safeOptions
       .filter(option => option && typeof option === 'object' && 'value' in option) // Strict filtering
       .map((option) => {
-        const isSelected = Array.isArray(safeSelectedValues) && safeSelectedValues.includes(option.value);
+        const isSelected = safeSelectedValues.includes(option.value);
         
         return (
           <CommandItem
@@ -183,7 +183,6 @@ export function MultiSelect({
             <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
             <CommandEmpty>No options found.</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
-              {/* Only render commandItems if it's an array with items */}
               {Array.isArray(commandItems) && commandItems.length > 0 ? commandItems : null}
               {allowFileUpload && (
                 <CommandItem 
