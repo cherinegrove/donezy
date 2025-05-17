@@ -1,17 +1,16 @@
 
 import React from "react";
 import { Task } from "@/types";
-import { format, differenceInDays, addDays, startOfDay, parseISO, addMonths, addWeeks } from "date-fns";
+import { format, differenceInDays, addDays, startOfDay, parseISO, subDays, isWithinInterval } from "date-fns";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
+import { Calendar as CalendarIcon, ArrowLeft, ArrowRight } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useAppContext } from "@/contexts/AppContext";
 import {
   Table,
@@ -21,12 +20,13 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface GanttChartProps {
   tasks: Task[];
 }
-
-type ViewScale = "day" | "week" | "month";
 
 interface TaskWithDetails {
   id: string;
@@ -41,12 +41,14 @@ interface TaskWithDetails {
   task: Task;
 }
 
+const MAX_DATE_RANGE = 40; // Maximum date range in days
+
 export function GanttChart({ tasks }: GanttChartProps) {
   const { projects } = useAppContext();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [viewScale, setViewScale] = useState<ViewScale>("week");
   const [nestedTaskDialogOpen, setNestedTaskDialogOpen] = useState<boolean>(false);
+  const [dateRangeOpen, setDateRangeOpen] = useState(false);
 
   // Skip tasks without dates
   const tasksWithDates = tasks.filter(
@@ -64,8 +66,8 @@ export function GanttChart({ tasks }: GanttChartProps) {
     );
   }
 
-  // Find earliest start date and latest end date
-  const startDate = new Date(
+  // Find earliest start date and latest end date from tasks
+  const earliestDate = new Date(
     Math.min(
       ...tasksWithDates.map((task) => 
         new Date(task.createdAt).getTime()
@@ -73,7 +75,7 @@ export function GanttChart({ tasks }: GanttChartProps) {
     )
   );
   
-  const endDate = new Date(
+  const latestDate = new Date(
     Math.max(
       ...tasksWithDates.map((task) => 
         new Date(task.dueDate || new Date()).getTime()
@@ -81,8 +83,11 @@ export function GanttChart({ tasks }: GanttChartProps) {
     )
   );
 
-  const projectStartDate = startOfDay(startDate);
-  const projectEndDate = startOfDay(endDate);
+  // Initialize view range - default to earliest date as start and ensuring range doesn't exceed 40 days
+  const [viewRange, setViewRange] = useState({
+    startDate: startOfDay(earliestDate),
+    endDate: startOfDay(addDays(earliestDate, Math.min(MAX_DATE_RANGE - 1, differenceInDays(latestDate, earliestDate))))
+  });
 
   // Get color based on task status
   function getColorForStatus(status: string): string {
@@ -107,6 +112,15 @@ export function GanttChart({ tasks }: GanttChartProps) {
     tasksByProject.set(task.projectId, projectTasks);
   });
   
+  // Filter tasks that fall within the view range
+  const isInViewRange = (dateStr: string) => {
+    const date = parseISO(dateStr);
+    return isWithinInterval(date, {
+      start: viewRange.startDate,
+      end: viewRange.endDate
+    });
+  };
+  
   // Process projects
   projects.forEach(project => {
     const projectTasks = tasksByProject.get(project.id);
@@ -117,11 +131,13 @@ export function GanttChart({ tasks }: GanttChartProps) {
     
     // Process each parent task
     parentTasks.forEach(parentTask => {
-      if (parentTask.createdAt && parentTask.dueDate) {
+      // Check if task is in view range
+      if (parentTask.createdAt && parentTask.dueDate && 
+          (isInViewRange(parentTask.createdAt) || isInViewRange(parentTask.dueDate))) {
         const taskStartDate = parseISO(parentTask.createdAt);
         const taskEndDate = parseISO(parentTask.dueDate);
         
-        const startDayOffset = differenceInDays(taskStartDate, projectStartDate);
+        const startDayOffset = differenceInDays(taskStartDate, viewRange.startDate);
         const duration = differenceInDays(taskEndDate, taskStartDate) + 1;
         
         chartData.push({
@@ -140,11 +156,12 @@ export function GanttChart({ tasks }: GanttChartProps) {
         // Add child tasks
         const childTasks = projectTasks.filter(task => task.parentTaskId === parentTask.id);
         childTasks.forEach(childTask => {
-          if (childTask.createdAt && childTask.dueDate) {
+          if (childTask.createdAt && childTask.dueDate &&
+              (isInViewRange(childTask.createdAt) || isInViewRange(childTask.dueDate))) {
             const childStartDate = parseISO(childTask.createdAt);
             const childEndDate = parseISO(childTask.dueDate);
             
-            const childStartDayOffset = differenceInDays(childStartDate, projectStartDate);
+            const childStartDayOffset = differenceInDays(childStartDate, viewRange.startDate);
             const childDuration = differenceInDays(childEndDate, childStartDate) + 1;
             
             chartData.push({
@@ -170,11 +187,12 @@ export function GanttChart({ tasks }: GanttChartProps) {
     );
     
     orphanTasks.forEach(task => {
-      if (task.createdAt && task.dueDate) {
+      if (task.createdAt && task.dueDate && 
+          (isInViewRange(task.createdAt) || isInViewRange(task.dueDate))) {
         const taskStartDate = parseISO(task.createdAt);
         const taskEndDate = parseISO(task.dueDate);
         
-        const startDayOffset = differenceInDays(taskStartDate, projectStartDate);
+        const startDayOffset = differenceInDays(taskStartDate, viewRange.startDate);
         const duration = differenceInDays(taskEndDate, taskStartDate) + 1;
         
         chartData.push({
@@ -192,24 +210,16 @@ export function GanttChart({ tasks }: GanttChartProps) {
       }
     });
   });
-  
-  // Generate x-axis ticks based on view scale
+
+  // Generate date ticks for the timeline
   const dateTicks = [];
-  let tickInterval = 1;
+  const totalDays = differenceInDays(viewRange.endDate, viewRange.startDate) + 1;
   
-  switch (viewScale) {
-    case "day":
-      tickInterval = 1;
-      break;
-    case "week":
-      tickInterval = 7;
-      break;
-    case "month":
-      tickInterval = 30;
-      break;
-  }
-  
-  const totalDays = differenceInDays(projectEndDate, projectStartDate) + 1;
+  // Calculate tick interval based on total days (to avoid overcrowding)
+  const tickInterval = totalDays <= 10 ? 1 : 
+                      totalDays <= 20 ? 2 : 
+                      totalDays <= 30 ? 3 : 5;
+                      
   for (let i = 0; i <= totalDays; i += tickInterval) {
     dateTicks.push(i);
   }
@@ -222,17 +232,45 @@ export function GanttChart({ tasks }: GanttChartProps) {
     }
   };
 
-  // Format X-axis ticks (dates)
+  // Navigate to previous time range
+  const goToPrevious = () => {
+    const newStartDate = subDays(viewRange.startDate, MAX_DATE_RANGE);
+    const newEndDate = subDays(viewRange.endDate, MAX_DATE_RANGE);
+    setViewRange({
+      startDate: newStartDate,
+      endDate: newEndDate
+    });
+  };
+
+  // Navigate to next time range
+  const goToNext = () => {
+    const newStartDate = addDays(viewRange.startDate, MAX_DATE_RANGE);
+    const newEndDate = addDays(viewRange.endDate, MAX_DATE_RANGE);
+    setViewRange({
+      startDate: newStartDate,
+      endDate: newEndDate
+    });
+  };
+
+  // Handle date range selection
+  const handleDateRangeChange = (date: Date | undefined) => {
+    if (!date) return;
+    
+    const newStartDate = startOfDay(date);
+    const newEndDate = addDays(newStartDate, MAX_DATE_RANGE - 1);
+    
+    setViewRange({
+      startDate: newStartDate,
+      endDate: newEndDate
+    });
+    
+    setDateRangeOpen(false);
+  };
+  
+  // Format date for display
   const formatXAxis = (value: number) => {
-    const date = addDays(projectStartDate, value);
-    switch (viewScale) {
-      case "day":
-        return format(date, "MMM d");
-      case "week":
-        return format(date, "MMM d");
-      case "month":
-        return format(date, "MMM yyyy");
-    }
+    const date = addDays(viewRange.startDate, value);
+    return format(date, "MMM d");
   };
   
   // Status legend items
@@ -261,18 +299,46 @@ export function GanttChart({ tasks }: GanttChartProps) {
   return (
     <div className="w-full mt-4 overflow-hidden">
       <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-4">
-          <div className="text-sm font-medium">View Scale:</div>
-          <Select value={viewScale} onValueChange={(value: ViewScale) => setViewScale(value)}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Scale" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="day">Daily</SelectItem>
-              <SelectItem value="week">Weekly</SelectItem>
-              <SelectItem value="month">Monthly</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={goToPrevious}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          
+          <Popover open={dateRangeOpen} onOpenChange={setDateRangeOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="min-w-[200px]">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {format(viewRange.startDate, "MMM d, yyyy")} - {format(viewRange.endDate, "MMM d, yyyy")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={viewRange.startDate}
+                onSelect={handleDateRangeChange}
+                disabled={(date) => date > addDays(latestDate, MAX_DATE_RANGE) || date < subDays(earliestDate, MAX_DATE_RANGE)}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+              <div className="p-3 border-t border-border">
+                <p className="text-sm text-muted-foreground">
+                  Selecting a date will show a {MAX_DATE_RANGE}-day range from that date.
+                </p>
+              </div>
+            </PopoverContent>
+          </Popover>
+          
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={goToNext}
+          >
+            <ArrowRight className="h-4 w-4" />
+          </Button>
         </div>
 
         <div className="flex items-center">
@@ -291,26 +357,32 @@ export function GanttChart({ tasks }: GanttChartProps) {
         </div>
       </div>
 
-      {/* Date ticks at the top */}
-      <div className="grid grid-cols-[600px_1fr]">
-        <div></div>
-        <div className="flex justify-between overflow-x-auto">
-          {dateTicks.map((tick, index) => (
-            <div key={index} className="text-xs text-muted-foreground px-1">
-              {formatXAxis(tick)}
-            </div>
-          ))}
-        </div>
-      </div>
-
       <div className="w-full border rounded-md overflow-hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 bg-background">
             <TableRow>
               <TableHead className="w-[200px]">Project</TableHead>
               <TableHead className="w-[200px]">Parent Task</TableHead>
               <TableHead className="w-[200px]">Task</TableHead>
-              <TableHead className="w-full">Timeline</TableHead>
+              <TableHead className="w-full relative">
+                {/* Add date ticks at the top of the timeline column */}
+                <div className="absolute top-0 left-0 right-0 flex w-full">
+                  {dateTicks.map((tick, index) => (
+                    <div 
+                      key={index} 
+                      className="text-xs text-muted-foreground absolute"
+                      style={{ 
+                        left: `${(tick / totalDays) * 100}%`, 
+                        transform: 'translateX(-50%)',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {formatXAxis(tick)}
+                    </div>
+                  ))}
+                </div>
+                <span className="ml-2 pt-6 inline-block">Timeline</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -335,25 +407,36 @@ export function GanttChart({ tasks }: GanttChartProps) {
                 </TableCell>
                 <TableCell className="p-0 relative">
                   <div className="w-full h-[40px] relative">
-                    <div 
-                      className="absolute h-[20px] rounded-md top-[10px]"
-                      style={{
-                        left: `${(task.start / totalDays) * 100}%`,
-                        width: `${(task.duration / totalDays) * 100}%`,
-                        backgroundColor: task.color,
-                        minWidth: '10px'
-                      }}
-                    >
-                      {task.duration > 5 && (
-                        <span className="text-xs text-white px-2 overflow-hidden whitespace-nowrap">
-                          {task.duration}d
-                        </span>
-                      )}
-                    </div>
+                    {/* Conditional rendering to handle tasks that might start before the view range */}
+                    {task.start <= totalDays && (
+                      <div 
+                        className="absolute h-[20px] rounded-md top-[10px]"
+                        style={{
+                          left: `${Math.max(0, (task.start / totalDays) * 100)}%`,
+                          width: `${Math.min(100 - (Math.max(0, task.start) / totalDays) * 100, (task.duration / totalDays) * 100)}%`,
+                          backgroundColor: task.color,
+                          minWidth: '10px'
+                        }}
+                      >
+                        {task.duration > 3 && (
+                          <span className="text-xs text-white px-2 overflow-hidden whitespace-nowrap">
+                            {task.duration}d
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
             ))}
+            
+            {sortedChartData.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  No tasks in the selected date range
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
