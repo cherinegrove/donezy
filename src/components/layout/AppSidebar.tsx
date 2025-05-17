@@ -16,13 +16,13 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function AppSidebar() {
   const { collapsed, setCollapsed } = useSidebar();
   const location = useLocation();
   const { currentUser } = useAppContext();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   
   // If on mobile, and sidebar is open, clicking a nav link should close the sidebar
   const handleNavClick = () => {
