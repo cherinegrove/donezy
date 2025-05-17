@@ -289,7 +289,7 @@ export function GanttChart({ tasks }: GanttChartProps) {
         </div>
 
         <div className="flex items-center">
-          <div className="text-sm font-medium mr-2">Legend:</div>
+          <div className="text-sm font-medium mr-2">Task Status:</div>
           <div className="flex gap-3">
             {legendItems.map(item => (
               <div key={item.status} className="flex items-center gap-1">

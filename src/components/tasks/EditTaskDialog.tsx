@@ -70,9 +70,7 @@ import { CommentSection } from "./CommentSection";
 import { TaskWatchButton } from "./TaskWatchButton";
 import { ProjectSelect } from "./ProjectSelect";
 import { AssigneeSelect } from "./AssigneeSelect";
-import { CollaboratorSelect } from "./CollaboratorSelect";
-import { PrioritySelect } from "./PrioritySelect";
-import { StatusSelect } from "./StatusSelect";
+import { CollaboratorSelect } from "@/components/tasks/CollaboratorSelect";
 
 const taskSchema = z.object({
   title: z.string().min(2, {
@@ -278,7 +276,11 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Collaborators</FormLabel>
-                              <CollaboratorSelect field={field} />
+                              <CollaboratorSelect 
+                                users={users} 
+                                selectedValues={field.value || []} 
+                                onValueChange={(values) => field.onChange(values)} 
+                              />
                               <FormMessage />
                             </FormItem>
                           )}

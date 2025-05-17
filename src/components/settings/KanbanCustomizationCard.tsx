@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Palette } from "lucide-react";
+import { Palette, Plus, X, Save, Check } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAppContext } from "@/contexts/AppContext";
 
@@ -74,6 +75,10 @@ interface CustomFieldForm {
 
 export const KanbanCustomizationCard = () => {
   const [colors, setColors] = useState<ColorOption[]>(defaultColors);
+  const [newStatusName, setNewStatusName] = useState('');
+  const [newStatusId, setNewStatusId] = useState('');
+  const [newStatusColor, setNewStatusColor] = useState('#EAEAEA');
+  const [isEditingNames, setIsEditingNames] = useState(false);
   const { toast } = useToast();
   const { customFields, addCustomField, deleteCustomField } = useAppContext();
   
@@ -101,11 +106,17 @@ export const KanbanCustomizationCard = () => {
       prev.map(color => color.name === name ? { ...color, value } : color)
     );
   };
+
+  const handleLabelChange = (name: string, label: string) => {
+    setColors(prev => 
+      prev.map(color => color.name === name ? { ...color, label } : color)
+    );
+  };
   
   const applyPalette = (palette: typeof predefinedPalettes[number]) => {
     const newColors = colors.map(color => ({
       ...color,
-      value: palette.colors[color.name as keyof typeof palette.colors]
+      value: palette.colors[color.name as keyof typeof palette.colors] || color.value
     }));
     
     setColors(newColors);
@@ -179,6 +190,71 @@ export const KanbanCustomizationCard = () => {
       });
     }
   };
+
+  const handleAddStatus = () => {
+    if (!newStatusName.trim() || !newStatusId.trim()) {
+      toast({
+        title: "Error",
+        description: "Status name and ID are required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if status ID already exists
+    if (colors.some(color => color.name === newStatusId)) {
+      toast({
+        title: "Error",
+        description: "Status with this ID already exists",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newStatus: ColorOption = {
+      name: newStatusId.toLowerCase().replace(/\s+/g, '-'),
+      value: newStatusColor,
+      label: newStatusName
+    };
+
+    setColors(prev => [...prev, newStatus]);
+    
+    // Reset form
+    setNewStatusName('');
+    setNewStatusId('');
+    setNewStatusColor('#EAEAEA');
+    
+    toast({
+      title: "Status Added",
+      description: `The status "${newStatusName}" has been added`
+    });
+  };
+  
+  const handleDeleteStatus = (name: string) => {
+    if (colors.length <= 1) {
+      toast({
+        title: "Error",
+        description: "Cannot delete the last status",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (name === 'done' || name === 'todo' || name === 'in-progress') {
+      toast({
+        title: "Error",
+        description: "Cannot delete required statuses (Todo, In Progress, Done)",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setColors(prev => prev.filter(color => color.name !== name));
+    toast({
+      title: "Status Deleted",
+      description: "The status has been removed"
+    });
+  };
   
   return (
     <Card>
@@ -188,33 +264,129 @@ export const KanbanCustomizationCard = () => {
           <div>
             <CardTitle className="text-lg">Kanban Board Customization</CardTitle>
             <CardDescription>
-              Customize the colors for each column in your kanban boards
+              Customize status names, colors, and add new statuses to your kanban boards
             </CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {colors.map(color => (
-              <div key={color.name} className="space-y-2">
-                <Label htmlFor={`color-${color.name}`}>{color.label}</Label>
-                <div className="flex gap-2">
-                  <div 
-                    className="w-10 h-10 rounded border"
-                    style={{ backgroundColor: color.value }}
-                  />
+          {/* Status Management */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Task Statuses</h3>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setIsEditingNames(!isEditingNames)}
+                >
+                  {isEditingNames ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Done Editing
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Edit Names
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {colors.map(color => (
+                <div key={color.name} className="space-y-2 border rounded-md p-4">
+                  {isEditingNames ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={color.label}
+                        onChange={(e) => handleLabelChange(color.name, e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive"
+                        onClick={() => handleDeleteStatus(color.name)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Label htmlFor={`color-${color.name}`}>{color.label}</Label>
+                  )}
+                  <div className="flex gap-2">
+                    <div 
+                      className="w-10 h-10 rounded border"
+                      style={{ backgroundColor: color.value }}
+                    />
+                    <Input
+                      id={`color-${color.name}`}
+                      type="text"
+                      value={color.value}
+                      onChange={(e) => handleColorChange(color.name, e.target.value)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Add new status */}
+            <div className="border-t pt-4 mt-4">
+              <h4 className="font-medium mb-3">Add New Status</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-status-name">Display Name</Label>
                   <Input
-                    id={`color-${color.name}`}
-                    type="text"
-                    value={color.value}
-                    onChange={(e) => handleColorChange(color.name, e.target.value)}
+                    id="new-status-name"
+                    placeholder="e.g. Waiting for Review"
+                    value={newStatusName}
+                    onChange={(e) => setNewStatusName(e.target.value)}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-status-id">Status ID</Label>
+                  <Input
+                    id="new-status-id"
+                    placeholder="e.g. waiting-review"
+                    value={newStatusId}
+                    onChange={(e) => setNewStatusId(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Lowercase with hyphens, no spaces
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-status-color">Color</Label>
+                  <div className="flex gap-2">
+                    <div 
+                      className="w-10 h-10 rounded border"
+                      style={{ backgroundColor: newStatusColor }}
+                    />
+                    <Input
+                      id="new-status-color"
+                      type="text"
+                      value={newStatusColor}
+                      onChange={(e) => setNewStatusColor(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
               </div>
-            ))}
+              <Button 
+                onClick={handleAddStatus} 
+                className="mt-4"
+                size="sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Status
+              </Button>
+            </div>
           </div>
-          
+
           <div className="space-y-3">
             <Label>Color Presets</Label>
             <div className="flex flex-wrap gap-2">
