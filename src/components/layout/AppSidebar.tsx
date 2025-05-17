@@ -37,6 +37,10 @@ export function AppSidebar() {
           <NavButton to="/" isActive={isActive('/')} icon={<Home className="h-5 w-5" />}>
             Dashboard
           </NavButton>
+          
+          <NavButton to="/messages" isActive={isActive('/messages')} icon={<MessageSquare className="h-5 w-5" />}>
+            Messages
+          </NavButton>
 
           <NavButton to="/tasks" isActive={isActive('/tasks')} icon={<ClipboardList className="h-5 w-5" />}>
             Tasks
@@ -60,10 +64,6 @@ export function AppSidebar() {
 
           <NavButton to="/time" isActive={isActive('/time')} icon={<Clock className="h-5 w-5" />}>
             Time Tracking
-          </NavButton>
-          
-          <NavButton to="/messages" isActive={isActive('/messages')} icon={<MessageSquare className="h-5 w-5" />}>
-            Messages
           </NavButton>
           
           <NavButton to="/reports" isActive={isActive('/reports')} icon={<Calendar className="h-5 w-5" />}>
