@@ -19,7 +19,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Tasks from "./pages/Tasks";
 import Login from "./pages/Login";
-import Admin from "./pages/Admin"; // Add import for Admin page
+import Admin from "./pages/Admin"; 
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 
 // Protected route component to handle role-based access and authentication
@@ -128,13 +128,13 @@ const AppRoutes = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <AppProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <BrowserRouter>
+        <AppProvider>
+          <Toaster />
+          <Sonner />
           <AppRoutes />
-        </BrowserRouter>
-      </AppProvider>
+        </AppProvider>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
