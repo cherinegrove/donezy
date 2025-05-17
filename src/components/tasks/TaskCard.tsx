@@ -3,38 +3,26 @@ import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Clock, Play, Settings } from "lucide-react";
+import { Clock, Play } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TaskWatchButton } from "./TaskWatchButton";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useState } from "react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
+export type DisplayOption = "project" | "client" | "assignee" | "parentTask" | "dueDate" | "priority" | "status" | "collaborators";
 
 interface TaskCardProps {
   task: Task;
   onClick?: () => void;
+  displayOptions?: DisplayOption[];
 }
 
-type DisplayOption = "project" | "client" | "assignee" | "parentTask" | "dueDate" | "priority" | "status";
-
-export function TaskCard({ task, onClick }: TaskCardProps) {
+export function TaskCard({ task, onClick, displayOptions = ["project", "client", "assignee", "parentTask"] }: TaskCardProps) {
   const { projects, users, startTimeTracking, tasks } = useAppContext();
   
-  // Default display options
-  const [displayOptions, setDisplayOptions] = useState<DisplayOption[]>([
-    "project", "client", "assignee", "parentTask"
-  ]);
-  
   const project = projects.find(p => p.id === task.projectId);
-  const assignees = users.filter(user => task.assigneeIds.includes(user.id));
+  const assignee = task.assigneeId ? users.find(user => user.assigneeId === task.assigneeId) : null;
+  const collaborators = users.filter(user => task.collaboratorIds?.includes(user.id));
   const parentTask = task.parentTaskId ? tasks.find(t => t.id === task.parentTaskId) : null;
   const client = project ? projects.find(p => p.id === task.projectId)?.clientId : null;
   const clientName = client ? useAppContext().clients.find(c => c.id === client)?.name : null;
@@ -70,86 +58,12 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
     startTimeTracking(task.id);
   };
 
-  const toggleDisplayOption = (option: DisplayOption) => {
-    if (displayOptions.includes(option)) {
-      setDisplayOptions(displayOptions.filter(opt => opt !== option));
-    } else {
-      setDisplayOptions([...displayOptions, option]);
-    }
-  };
-
   return (
     <div 
       className="border rounded-md p-4 bg-card shadow-sm hover:shadow transition-all cursor-pointer relative group"
       onClick={onClick}
     >
       <div className="absolute top-2 right-2 flex gap-1">
-        <DropdownMenu>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-7 w-7 hover:bg-accent"
-                    onClick={(e) => e.stopPropagation()} // Prevent card click
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-              </TooltipTrigger>
-              <TooltipContent>Customize card view</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Display Options</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem
-              checked={displayOptions.includes("project")}
-              onCheckedChange={() => toggleDisplayOption("project")}
-            >
-              Project
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={displayOptions.includes("client")}
-              onCheckedChange={() => toggleDisplayOption("client")}
-            >
-              Client
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={displayOptions.includes("assignee")}
-              onCheckedChange={() => toggleDisplayOption("assignee")}
-            >
-              Assignee
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={displayOptions.includes("parentTask")}
-              onCheckedChange={() => toggleDisplayOption("parentTask")}
-            >
-              Parent Task
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={displayOptions.includes("dueDate")}
-              onCheckedChange={() => toggleDisplayOption("dueDate")}
-            >
-              Due Date
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={displayOptions.includes("priority")}
-              onCheckedChange={() => toggleDisplayOption("priority")}
-            >
-              Priority
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={displayOptions.includes("status")}
-              onCheckedChange={() => toggleDisplayOption("status")}
-            >
-              Status
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -205,19 +119,32 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         </div>
         
         <div className="flex justify-between items-end">
-          {displayOptions.includes("assignee") && (
-            <div className="flex -space-x-2">
-              {assignees.slice(0, 3).map(user => (
-                <Avatar key={user.id} className="h-6 w-6 border-2 border-background">
-                  <AvatarImage src={user.avatar} />
-                  <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
-                </Avatar>
-              ))}
-              {assignees.length > 3 && (
-                <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs">
-                  +{assignees.length - 3}
-                </div>
-              )}
+          {displayOptions.includes("assignee") && assignee && (
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">Assignee:</span>
+              <Avatar className="h-6 w-6 border-2 border-background">
+                <AvatarImage src={assignee.avatar} />
+                <AvatarFallback>{assignee.name?.slice(0, 2)}</AvatarFallback>
+              </Avatar>
+            </div>
+          )}
+          
+          {displayOptions.includes("collaborators") && collaborators.length > 0 && (
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">Collaborators:</span>
+              <div className="flex -space-x-2">
+                {collaborators.slice(0, 3).map(user => (
+                  <Avatar key={user.id} className="h-6 w-6 border-2 border-background">
+                    <AvatarImage src={user.avatar} />
+                    <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                  </Avatar>
+                ))}
+                {collaborators.length > 3 && (
+                  <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs">
+                    +{collaborators.length - 3}
+                  </div>
+                )}
+              </div>
             </div>
           )}
           

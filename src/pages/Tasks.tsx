@@ -81,8 +81,8 @@ export default function Tasks() {
             }
             break;
           case "assignees":
-            // Check if task has any of the selected assignees
-            if (task.assigneeIds.length === 0 || !task.assigneeIds.some(id => values.includes(id))) {
+            // Check if task has the selected assignee
+            if (!task.assigneeId || !values.includes(task.assigneeId)) {
               return false;
             }
             break;
@@ -90,10 +90,10 @@ export default function Tasks() {
       }
 
       // Filter by start date
-      if (startDate && task.dueDate) {
-        const taskDueDate = new Date(task.dueDate);
-        // Use startDate as the minimum due date
-        if (taskDueDate < startDate) {
+      if (startDate && task.createdAt) {
+        const taskStartDate = new Date(task.createdAt);
+        // Use startDate as the minimum start date
+        if (taskStartDate < startDate) {
           return false;
         }
       }
@@ -117,7 +117,7 @@ export default function Tasks() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
@@ -212,7 +212,7 @@ export default function Tasks() {
         )}
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 w-full">
         {filteredTasks.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-10">
