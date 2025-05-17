@@ -39,7 +39,7 @@ export function GanttChart({ tasks }: GanttChartProps) {
   const startDate = new Date(
     Math.min(
       ...tasksWithDates.map((task) => 
-        new Date(task.createdAt || task.startDate || new Date()).getTime()
+        new Date(task.createdAt).getTime()
       )
     )
   );
@@ -58,9 +58,7 @@ export function GanttChart({ tasks }: GanttChartProps) {
 
   // Prepare data for the chart
   const data = tasksWithDates.map((task) => {
-    const taskStartDate = task.startDate 
-      ? parseISO(task.startDate)
-      : parseISO(task.createdAt);
+    const taskStartDate = parseISO(task.createdAt);
     const taskEndDate = parseISO(task.dueDate || task.createdAt);
     
     const startDayOffset = differenceInDays(taskStartDate, projectStartDate);
