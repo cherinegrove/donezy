@@ -1,3 +1,4 @@
+
 import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +12,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 interface TaskCardProps {
   task: Task;
   onClick?: () => void;
+  variant?: "standard" | "compact" | "detailed";
 }
 
-export function TaskCard({ task, onClick }: TaskCardProps) {
+export function TaskCard({ task, onClick, variant = "standard" }: TaskCardProps) {
   const { projects, users, startTimeTracking } = useAppContext();
   
   const project = projects.find(p => p.id === task.projectId);
@@ -49,7 +51,111 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
     e.stopPropagation(); // Prevent the card click event
     startTimeTracking(task.id);
   };
+
+  // Render compact variant
+  if (variant === "compact") {
+    return (
+      <div 
+        className="border rounded-md p-2 bg-card shadow-sm hover:shadow transition-all cursor-pointer relative group"
+        onClick={onClick}
+      >
+        <div className="space-y-1">
+          <h3 className="font-medium text-sm line-clamp-1">{task.title}</h3>
+          
+          <div className="flex justify-between items-center">
+            {project && (
+              <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                {project.name}
+              </span>
+            )}
+            {task.dueDate && (
+              <div className="flex items-center text-xs text-muted-foreground">
+                <Clock className="h-3 w-3 mr-1" />
+                {format(new Date(task.dueDate), "MMM d")}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render detailed variant
+  if (variant === "detailed") {
+    return (
+      <div 
+        className="border rounded-md p-4 bg-card shadow-sm hover:shadow transition-all cursor-pointer relative group"
+        onClick={onClick}
+      >
+        <div className="absolute top-2 right-2 flex gap-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleStartTimer}
+                  className="h-7 w-7 text-green-500 hover:text-green-600 hover:bg-green-100"
+                >
+                  <Play className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Start timer for this task</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        
+        <div className="space-y-3">
+          <h3 className="font-medium text-base line-clamp-2 pr-6">{task.title}</h3>
+          
+          {task.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">{task.description}</p>
+          )}
+          
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="outline" className={getBadgeColor()}>
+              {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+            </Badge>
+            
+            <Badge variant="outline" className={getStatusColor()}>
+              {task.status.replace(/-/g, ' ')}
+            </Badge>
+            
+            {project && (
+              <Badge variant="secondary">
+                {project.name}
+              </Badge>
+            )}
+          </div>
+          
+          <div className="flex justify-between items-end">
+            <div className="flex -space-x-2">
+              {assignees.slice(0, 3).map(user => (
+                <Avatar key={user.id} className="h-6 w-6 border-2 border-background">
+                  <AvatarImage src={user.avatar} />
+                  <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                </Avatar>
+              ))}
+              {assignees.length > 3 && (
+                <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs">
+                  +{assignees.length - 3}
+                </div>
+              )}
+            </div>
+            
+            {task.dueDate && (
+              <div className="flex items-center text-xs text-muted-foreground">
+                <Clock className="h-3 w-3 mr-1" />
+                {format(new Date(task.dueDate), "MMM d")}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
   
+  // Render standard variant (default)
   return (
     <div 
       className="border rounded-md p-4 bg-card shadow-sm hover:shadow transition-all cursor-pointer relative group"

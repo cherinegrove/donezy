@@ -16,6 +16,9 @@ import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
+import { ViewSelector } from "@/components/kanban/ViewSelector";
+
+type ViewMode = "standard" | "compact" | "detailed";
 
 export default function Tasks() {
   const { tasks, projects, users, clients } = useAppContext();
@@ -24,6 +27,7 @@ export default function Tasks() {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(tasks);
+  const [viewMode, setViewMode] = useState<ViewMode>("standard");
 
   // Define filter options
   const filterOptions: FilterOption[] = [
@@ -121,10 +125,13 @@ export default function Tasks() {
             Manage and track all your tasks across projects
           </p>
         </div>
-        <Button onClick={() => setIsCreateTaskOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Task
-        </Button>
+        <div className="flex items-center gap-2">
+          <ViewSelector currentView={viewMode} onViewChange={setViewMode} />
+          <Button onClick={() => setIsCreateTaskOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Task
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -228,8 +235,7 @@ export default function Tasks() {
           </Card>
         ) : (
           <div className="w-full overflow-auto">
-            {/* Pass all tasks to the KanbanBoard component but with an ID that doesn't exist */}
-            <KanbanBoard tasks={filteredTasks} />
+            <KanbanBoard tasks={filteredTasks} viewMode={viewMode} />
           </div>
         )}
       </div>
