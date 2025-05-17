@@ -33,6 +33,7 @@ import { FileSection } from "./FileSection";
 import { TimerSection } from "./TimerSection";
 import { RelatedTasksSection } from "./RelatedTasksSection";
 import { TaskLogsSection } from "./TaskLogsSection";
+import { CollaboratorSelect } from "./CollaboratorSelect";
 
 interface EditTaskDialogProps {
   task: Task;
@@ -64,6 +65,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState(task.priority);
   const [assigneeId, setAssigneeId] = useState(task.assigneeId);
+  const [collaboratorIds, setCollaboratorIds] = useState<string[]>(task.collaboratorIds || []);
   const [projectId, setProjectId] = useState(task.projectId);
   const [dueDate, setDueDate] = useState<Date | undefined>(
     task.dueDate ? new Date(task.dueDate) : undefined
@@ -78,6 +80,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     setStatus(task.status);
     setPriority(task.priority);
     setAssigneeId(task.assigneeId);
+    setCollaboratorIds(task.collaboratorIds || []);
     setProjectId(task.projectId);
     setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
   }, [task]);
@@ -89,6 +92,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       status,
       priority,
       assigneeId,
+      collaboratorIds,
       projectId,
       dueDate: dueDate ? dueDate.toISOString() : undefined,
     });
@@ -180,6 +184,17 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                     field={{ value: assigneeId, onChange: handleAssigneeChange }}
                   />
                 </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Collaborators</Label>
+                <CollaboratorSelect
+                  users={users}
+                  selectedValues={collaboratorIds}
+                  onValueChange={setCollaboratorIds}
+                  placeholder="Select collaborators"
+                  maxSelection={10}
+                />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
