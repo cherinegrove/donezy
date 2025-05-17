@@ -1,5 +1,5 @@
-import { Role, TaskStatus, ServiceType, NotificationTimeframe, EmploymentType, BillingType, AccessLevel, ClientRole, TimeEntryStatus } from './index';
 
+// Define all the types and enums without importing from the same file
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
@@ -14,7 +14,7 @@ export type BillingType = 'hourly' | 'monthly';
 
 export type AccessLevel = 'none' | 'view' | 'edit';
 
-export type ClientRole = 'admin' | 'team';  // Added ClientRole type
+export type ClientRole = 'admin' | 'team';
 
 export type TimeEntryStatus = 'pending' | 'approved-billable' | 'approved-non-billable' | 'declined';
 
@@ -44,12 +44,12 @@ export interface User {
   employmentType?: EmploymentType;
   billingType?: BillingType;
   billingRate?: number;
-  hourlyRate?: number;  // For hourly employees
-  monthlyRate?: number; // For monthly employees
+  hourlyRate?: number;
+  monthlyRate?: number;
   currency?: string;
   managerId?: string;
   clientId?: string;
-  clientRole?: ClientRole;  // Added client role field
+  clientRole?: ClientRole;
   jobTitle?: string;
   projectAccess?: string[];
   notificationPreferences?: {
@@ -141,13 +141,13 @@ export interface Client {
   currency: string;
   status: 'active' | 'inactive';
   files?: ClientFile[];
-  serviceType?: 'retainer' | 'payasyougo' | 'bank-hours';  // Current service type
-  allocatedHours?: number;  // Current allocated hours
-  usedHours?: number;  // Current used hours
-  teamIds?: string[];  // Teams assigned to this client
-  memberIds?: string[];  // Individual team members assigned to this client
+  serviceType?: 'retainer' | 'payasyougo' | 'bank-hours';
+  allocatedHours?: number;
+  usedHours?: number;
+  teamIds?: string[];
+  memberIds?: string[];
   notes?: string;
-  agreements?: string[];  // IDs of client agreements
+  agreements?: string[];
 }
 
 export interface Project {
@@ -156,7 +156,7 @@ export interface Project {
   description: string;
   clientId: string;
   teamIds: string[];
-  memberIds?: string[];  // Added: individual team members assigned to this project
+  memberIds?: string[];
   taskIds: string[];
   startDate: string;
   dueDate?: string;
@@ -230,8 +230,9 @@ export interface Task {
   subtasks: string[]; // Task IDs
   timeEntries: TimeEntry[];
   comments: Comment[];
-  files?: TaskFile[];  // Added files array
-  relatedTaskIds?: string[];  // Added related tasks
+  files?: TaskFile[];
+  relatedTaskIds?: string[];
+  watcherIds?: string[]; // Added for task watchers
 }
 
 export interface TaskFile {
@@ -247,20 +248,20 @@ export interface TaskFile {
 
 export interface TimeEntry {
   id: string;
-  taskId?: string;  // Optional task ID
-  projectId?: string; // Optional project ID
-  clientId: string; // Client ID is required
+  taskId?: string;
+  projectId?: string;
+  clientId: string;
   userId: string;
   startTime: string;
   endTime?: string;
   duration: number; // In minutes
   notes?: string;
   billable: boolean;
-  status?: TimeEntryStatus; // Made status optional
-  manuallyAdded?: boolean; // Flag for manual entries
-  edited?: boolean; // Flag for edited entries
-  approvedBy?: string; // ID of user who approved/declined the entry
-  approvedDate?: string; // Date when the entry was approved/declined
+  status?: TimeEntryStatus;
+  manuallyAdded?: boolean;
+  edited?: boolean;
+  approvedBy?: string;
+  approvedDate?: string;
 }
 
 export interface Comment {
@@ -280,10 +281,10 @@ export interface Message {
   content: string;
   timestamp: string;
   read: boolean;
-  commentId: string; // Reference to the comment that created this message
-  taskId: string;    // Reference to related task
-  projectId?: string; // Reference to related project
-  clientId?: string;  // Reference to related client
+  commentId?: string;
+  taskId?: string;
+  projectId?: string;
+  clientId?: string;
 }
 
 export interface TaskLog {

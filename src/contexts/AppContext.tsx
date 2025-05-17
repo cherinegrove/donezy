@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom';
 import {
-  User, Team, Client, Project, Task, TimeEntry, Comment, Message, Purchase, CustomField, ProjectTemplate, CustomRole, ClientFile, ClientAgreement, TimeEntryStatus
+  User, Team, Client, Project, Task, TimeEntry, Comment, Message, Purchase, CustomField, ProjectTemplate, CustomRole, ClientFile, ClientAgreement, TimeEntryStatus, TaskLog
 } from "@/types";
 import { mockUsers, mockTeams, mockClients, mockProjects, mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockCustomFields, mockProjectTemplates, mockCustomRoles } from "@/data/mockData";
 import { AppContextType } from "./AppContextType";
@@ -72,6 +72,12 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     return storedClientAgreements ? JSON.parse(storedClientAgreements) : [];
   });
   
+  // Initialize taskLogs state
+  const [taskLogs, setTaskLogs] = useState<TaskLog[]>(() => {
+    const storedTaskLogs = localStorage.getItem('taskLogs');
+    return storedTaskLogs ? JSON.parse(storedTaskLogs) : [];
+  });
+  
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem('currentUser');
     return storedUser ? JSON.parse(storedUser) : null;
@@ -95,7 +101,8 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     localStorage.setItem('customRoles', JSON.stringify(customRoles));
     localStorage.setItem('clientAgreements', JSON.stringify(clientAgreements));
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
-  }, [users, teams, clients, projects, tasks, timeEntries, messages, purchases, customFields, projectTemplates, customRoles, clientAgreements, currentUser]);
+    localStorage.setItem('taskLogs', JSON.stringify(taskLogs));
+  }, [users, teams, clients, projects, tasks, timeEntries, messages, purchases, customFields, projectTemplates, customRoles, clientAgreements, currentUser, taskLogs]);
   
   // Authentication functions
   const login = async (email: string, password: string) => {
@@ -449,6 +456,8 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
         if (task.id === taskId) {
           const watcherIds = task.watcherIds || [];
           if (!watcherIds.includes(userId)) {
+            // Add task log for watching
+            addTaskLog(taskId, userId, `Started watching this task`);
             return { ...task, watcherIds: [...watcherIds, userId] };
           }
         }
@@ -462,6 +471,10 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
       prevTasks.map(task => {
         if (task.id === taskId) {
           let watcherIds = task.watcherIds || [];
+          if (watcherIds.includes(userId)) {
+            // Add task log for unwatching
+            addTaskLog(taskId, userId, `Stopped watching this task`);
+          }
           watcherIds = watcherIds.filter(id => id !== userId);
           return { ...task, watcherIds: watcherIds };
         }
@@ -470,25 +483,171 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     );
   };
   
-  // Time tracking operations
-  const createTimeEntry = (entry: Omit<TimeEntry, "id">) => {
-    const timeEntry: TimeEntry = {
-      id: uuidv4(),
-      taskId: entry.taskId,
-      projectId: entry.projectId,
-      clientId: entry.clientId,
-      userId: entry.userId,
-      startTime: entry.startTime,
-      endTime: entry.endTime,
-      duration: entry.duration,
-      notes: entry.notes || "",
-      billable: entry.billable,
-      status: entry.status || "pending", // Add default status
-      manuallyAdded: entry.manuallyAdded || false,
-      edited: entry.edited || false
+  const linkTasks = (taskId: string, relatedTaskId: string) => {
+    setTasks(prevTasks => {
+      return prevTasks.map(task => {
+        if (task.id === taskId) {
+          const relatedTaskIds = task.relatedTaskIds || [];
+          if (!relatedTaskIds.includes(relatedTaskId)) {
+            // Add a task log for linking
+            addTaskLog(taskId, currentUser?.id, `Linked to task ${relatedTaskId}`);
+            return { ...task, relatedTaskIds: [...relatedTaskIds, relatedTaskId] };
+          }
+        }
+        return task;
+      });
+    });
+  };
+  
+  const unlinkTasks = (taskId: string, relatedTaskId: string) => {
+    setTasks(prevTasks => {
+      return prevTasks.map(task => {
+        if (task.id === taskId) {
+          const relatedTaskIds = task.relatedTaskIds || [];
+          const newRelatedIds = relatedTaskIds.filter(id => id !== relatedTaskId);
+          
+          // Add a task log for unlinking
+          addTaskLog(taskId, currentUser?.id, `Unlinked from task ${relatedTaskId}`);
+          
+          return { ...task, relatedTaskIds: newRelatedIds };
+        }
+        return task;
+      });
+    });
+  };
+  
+  const uploadTaskFile = async (taskId: string, file: File, userId: string) => {
+    const newFileId = uuidv4();
+    const newFile = {
+      id: newFileId,
+      taskId: taskId,
+      name: file.name,
+      path: `uploads/${taskId}/${newFileId}`,
+      type: file.type,
+      sizeKb: file.size / 1024,
+      uploadedAt: new Date().toISOString(),
+      uploadedBy: userId
     };
     
-    return timeEntry;
+    setTasks(prevTasks => {
+      return prevTasks.map(task => {
+        if (task.id === taskId) {
+          const files = task.files || [];
+          
+          // Add a task log for file upload
+          addTaskLog(taskId, userId, `Uploaded file: ${file.name}`);
+          
+          return { ...task, files: [...files, newFile] };
+        }
+        return task;
+      });
+    });
+    
+    return newFile;
+  };
+  
+  const deleteTaskFile = async (taskId: string, fileId: string) => {
+    setTasks(prevTasks => {
+      return prevTasks.map(task => {
+        if (task.id === taskId) {
+          const files = task.files || [];
+          const fileToDelete = files.find(f => f.id === fileId);
+          
+          // Add a task log for file deletion
+          if (fileToDelete) {
+            addTaskLog(taskId, currentUser?.id, `Deleted file: ${fileToDelete.name}`);
+          }
+          
+          return { 
+            ...task, 
+            files: files.filter(f => f.id !== fileId) 
+          };
+        }
+        return task;
+      });
+    });
+  };
+  
+  const addComment = (taskId: string, userId: string, content: string, mentionedUserIds?: string[]) => {
+    const newComment: Comment = {
+      id: uuidv4(),
+      taskId,
+      userId,
+      content,
+      timestamp: new Date().toISOString(),
+      mentionedUserIds
+    };
+    
+    // Add the comment to the task
+    setTasks(prevTasks => {
+      return prevTasks.map(task => {
+        if (task.id === taskId) {
+          const comments = task.comments || [];
+          
+          // Add a task log for the comment
+          addTaskLog(taskId, userId, `Added a comment`, content);
+          
+          return { ...task, comments: [...comments, newComment] };
+        }
+        return task;
+      });
+    });
+    
+    return newComment.id;
+  };
+  
+  const createMessage = (message: Omit<Message, "id" | "read">) => {
+    const newMessage: Message = {
+      id: uuidv4(),
+      ...message,
+      read: false
+    };
+    
+    setMessages(prevMessages => [...prevMessages, newMessage]);
+    return newMessage;
+  };
+  
+  const updateTimeEntry = (id: string, updates: Partial<TimeEntry>) => {
+    setTimeEntries(prev => prev.map(entry => 
+      entry.id === id ? { ...entry, ...updates } : entry
+    ));
+  };
+  
+  const deleteTimeEntry = (id: string) => {
+    setTimeEntries(prev => prev.filter(entry => entry.id !== id));
+  };
+  
+  const updateTimeEntryStatus = (id: string, status: TimeEntryStatus, approvedBy: string) => {
+    setTimeEntries(prev => prev.map(entry => 
+      entry.id === id ? { 
+        ...entry, 
+        status, 
+        approvedBy, 
+        approvedDate: new Date().toISOString() 
+      } : entry
+    ));
+  };
+  
+  // Message operations
+  const sendMessage = (message: Omit<Message, "id" | "timestamp" | "read">) => {
+    const newMessage: Message = {
+      id: uuidv4(),
+      ...message,
+      timestamp: new Date().toISOString(),
+      read: false,
+    };
+    setMessages(prevMessages => [...prevMessages, newMessage]);
+  };
+  
+  const markMessageAsRead = (id: string) => {
+    setMessages(prevMessages =>
+      prevMessages.map(message => (message.id === id ? { ...message, read: true } : message))
+    );
+  };
+  
+  const addTimeEntry = (entry: Omit<TimeEntry, "id">) => {
+    const newTimeEntry = createTimeEntry(entry);
+    setTimeEntries(prevEntries => [...prevEntries, newTimeEntry]);
   };
   
   const startTimeTracking = (taskId?: string, projectId?: string, clientId?: string) => {
@@ -545,63 +704,6 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     setActiveTimeEntry(null);
   };
   
-  const addTimeEntry = (entry: Omit<TimeEntry, "id">) => {
-    const newTimeEntry = createTimeEntry(entry);
-    setTimeEntries(prevEntries => [...prevEntries, newTimeEntry]);
-  };
-  
-  const updateTimeEntry = (id: string, updates: Partial<TimeEntry>) => {
-    setTimeEntries(prev => prev.map(entry => 
-      entry.id === id ? { ...entry, ...updates } : entry
-    ));
-  };
-  
-  const deleteTimeEntry = (id: string) => {
-    setTimeEntries(prev => prev.filter(entry => entry.id !== id));
-  };
-  
-  const updateTimeEntryStatus = (id: string, status: TimeEntryStatus, approvedBy: string) => {
-    setTimeEntries(prev => prev.map(entry => 
-      entry.id === id ? { 
-        ...entry, 
-        status, 
-        approvedBy, 
-        approvedDate: new Date().toISOString() 
-      } : entry
-    ));
-  };
-  
-  // Message operations
-  const sendMessage = (message: Omit<Message, "id" | "timestamp" | "read">) => {
-    const newMessage: Message = {
-      id: uuidv4(),
-      ...message,
-      timestamp: new Date().toISOString(),
-      read: false,
-    };
-    setMessages(prevMessages => [...prevMessages, newMessage]);
-  };
-  
-  const markMessageAsRead = (id: string) => {
-    setMessages(prevMessages =>
-      prevMessages.map(message => (message.id === id ? { ...message, read: true } : message))
-    );
-  };
-  
-  const addComment = (taskId: string, userId: string, content: string) => {
-    const newComment: Comment = {
-      id: uuidv4(),
-      taskId,
-      userId,
-      content,
-      timestamp: new Date().toISOString(),
-    };
-    // Assuming you have a comments state, update it here
-    // setComments(prevComments => [...prevComments, newComment]);
-    return newComment;
-  };
-  
-  // Purchase operations
   const addPurchase = (purchase: Omit<Purchase, "id">) => {
     const newPurchase: Purchase = {
       id: uuidv4(),
@@ -610,7 +712,6 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     setPurchases(prevPurchases => [...prevPurchases, newPurchase]);
   };
   
-  // Custom field operations
   const addCustomField = (field: Omit<CustomField, "id">) => {
     const newField: CustomField = {
       id: uuidv4(),
@@ -629,7 +730,6 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     setCustomFields(prevFields => prevFields.filter(field => field.id !== id));
   };
   
-  // Manager operations
   const updateManagerNotificationPreferences = (userId: string, preferences: User['notificationPreferences']) => {
     setUsers(prevUsers =>
       prevUsers.map(user => (user.id === userId ? { ...user, notificationPreferences: preferences } : user))
@@ -701,7 +801,7 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     return tasks.find(task => task.id === id);
   };
   
-   const getClientAgreementById = (id: string) => {
+  const getClientAgreementById = (id: string) => {
     return clientAgreements.find(agreement => agreement.id === id);
   };
   
@@ -750,6 +850,7 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     projectTemplates,
     customRoles,
     clientAgreements,
+    taskLogs,
     currentUser,
     activeTimeEntry,
     login,
@@ -788,6 +889,10 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     moveTask,
     watchTask,
     unwatchTask,
+    linkTasks, 
+    unlinkTasks,
+    uploadTaskFile,
+    deleteTaskFile,
     startTimeTracking,
     stopTimeTracking,
     addTimeEntry,
@@ -797,6 +902,7 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     sendMessage,
     markMessageAsRead,
     addComment,
+    createMessage,
     addPurchase,
     addCustomField,
     updateCustomField,
@@ -810,7 +916,7 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     getProjectById,
     getClientById,
     getTaskById,
-	getClientAgreementById,
+    getClientAgreementById,
     getClientFiles,
     uploadClientFile,
     deleteClientFile,

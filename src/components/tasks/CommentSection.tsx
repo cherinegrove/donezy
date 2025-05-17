@@ -65,7 +65,6 @@ export function CommentSection({ taskId }: CommentSectionProps) {
             recipientIds: [userId],
             content: `You were mentioned in a comment on task "${task.title}"`,
             timestamp: new Date().toISOString(),
-            read: false,
             commentId: commentId,
             taskId: taskId,
             projectId: task.projectId
@@ -80,7 +79,6 @@ export function CommentSection({ taskId }: CommentSectionProps) {
           recipientIds: [task.assigneeId],
           content: `New comment on task "${task.title}" you're assigned to`,
           timestamp: new Date().toISOString(),
-          read: false,
           commentId: commentId,
           taskId: taskId,
           projectId: task.projectId
@@ -100,7 +98,6 @@ export function CommentSection({ taskId }: CommentSectionProps) {
               recipientIds: [collaboratorId],
               content: `New comment on task "${task.title}" you're collaborating on`,
               timestamp: new Date().toISOString(),
-              read: false,
               commentId: commentId,
               taskId: taskId,
               projectId: task.projectId

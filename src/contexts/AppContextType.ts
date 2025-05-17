@@ -1,6 +1,6 @@
 
 import {
-  User, Team, Client, Project, Task, TimeEntry, Comment, Message, Purchase, CustomField, ProjectTemplate, CustomRole, ClientFile, ClientAgreement, TimeEntryStatus
+  User, Team, Client, Project, Task, TimeEntry, Comment, Message, Purchase, CustomField, ProjectTemplate, CustomRole, ClientFile, ClientAgreement, TimeEntryStatus, TaskLog
 } from "@/types";
 
 export interface AppContextType {
@@ -15,8 +15,9 @@ export interface AppContextType {
   purchases: Purchase[];
   customFields: CustomField[];
   projectTemplates: ProjectTemplate[];
-  customRoles: CustomRole[];  // Added for roles management
-  clientAgreements: ClientAgreement[];  // Added for client agreements
+  customRoles: CustomRole[];
+  clientAgreements: ClientAgreement[];
+  taskLogs: TaskLog[];  // Added task logs
   
   // Current user and active states
   currentUser: User | null;
@@ -46,7 +47,7 @@ export interface AppContextType {
     currency?: string;
     teamIds?: string[];
     clientId?: string;
-    clientRole?: "admin" | "team";  // Added clientRole option
+    clientRole?: "admin" | "team";
   }) => void;
   
   // CRUD operations for teams
@@ -82,7 +83,7 @@ export interface AppContextType {
     clientId: string;
     startDate: string;
     dueDate?: string;
-    memberIds?: string[];  // Added memberIds parameter
+    memberIds?: string[];
   }) => void;
   
   // CRUD operations for tasks
@@ -92,6 +93,12 @@ export interface AppContextType {
   moveTask: (taskId: string, newStatus: Task["status"], newProjectId?: string) => void;
   watchTask: (taskId: string, userId: string) => void;
   unwatchTask: (taskId: string, userId: string) => void;
+  linkTasks: (taskId: string, relatedTaskId: string) => void; // Added for linking tasks
+  unlinkTasks: (taskId: string, relatedTaskId: string) => void; // Added for unlinking tasks
+  
+  // File operations
+  uploadTaskFile: (taskId: string, file: File, userId: string) => Promise<any>; // Added for file uploads
+  deleteTaskFile: (taskId: string, fileId: string) => Promise<void>; // Added for file deletion
   
   // Time tracking operations
   startTimeTracking: (taskId?: string, projectId?: string, clientId?: string) => void;
@@ -104,7 +111,8 @@ export interface AppContextType {
   // Message operations
   sendMessage: (message: Omit<Message, "id" | "timestamp" | "read">) => void;
   markMessageAsRead: (id: string) => void;
-  addComment: (taskId: string, userId: string, content: string) => any;
+  addComment: (taskId: string, userId: string, content: string, mentionedUserIds?: string[]) => string; // Updated signature
+  createMessage: (message: Omit<Message, "id" | "read">) => void; // Added for creating messages
   
   // Purchase operations
   addPurchase: (purchase: Omit<Purchase, "id">) => void;

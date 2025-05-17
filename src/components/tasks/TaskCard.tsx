@@ -17,12 +17,15 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onClick, displayOptions = ["project", "client", "assignee", "parentTask"] }: TaskCardProps) {
-  const { projects, users, startTimeTracking } = useAppContext();
+  const { projects, users, tasks, startTimeTracking } = useAppContext();
   
   const project = projects.find(p => p.id === task.projectId);
   const assignee = task.assigneeId ? users.find(user => user.id === task.assigneeId) : null;
   const collaborators = users.filter(user => task.collaboratorIds?.includes(user.id));
-  const parentTask = task.parentTaskId ? users.find(t => t.id === task.parentTaskId) : null;
+  
+  // Fix: Get parent task properly
+  const parentTask = task.parentTaskId ? tasks.find(t => t.id === task.parentTaskId) : null;
+  
   const client = project ? projects.find(p => p.id === task.projectId)?.clientId : null;
   const clientId = client ? useAppContext().clients.find(c => c.id === client)?.id : null;
   const clientName = client ? useAppContext().clients.find(c => c.id === client)?.name : null;
