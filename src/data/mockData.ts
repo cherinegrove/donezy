@@ -1,4 +1,3 @@
-
 // First part stays the same
 import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, ProjectTemplate, CustomRole } from "@/types";
 
@@ -172,13 +171,14 @@ export const mockTasks: Task[] = [
         id: "time-1",
         taskId: "task-1",
         projectId: "project-1",
-        clientId: "client-1", // Added clientId
+        clientId: "client-1",
         userId: "user-2",
         startTime: "2025-05-10T09:00:00Z",
         endTime: "2025-05-10T12:30:00Z",
         duration: 210,
         notes: "Initial wireframing",
         billable: true,
+        status: "pending"
       },
     ],
     comments: [
@@ -315,25 +315,27 @@ export const mockTimeEntries: TimeEntry[] = [
     id: "time-1",
     taskId: "task-1",
     projectId: "project-1",
-    clientId: "client-1", // Added clientId
+    clientId: "client-1",
     userId: "user-2",
     startTime: "2025-05-10T09:00:00Z",
     endTime: "2025-05-10T12:30:00Z",
     duration: 210,
     notes: "Initial wireframing",
     billable: true,
+    status: "pending"
   },
   {
     id: "time-2",
     taskId: "task-1",
     projectId: "project-1",
-    clientId: "client-1", // Added clientId
+    clientId: "client-1",
     userId: "user-2",
     startTime: "2025-05-11T10:00:00Z",
     endTime: "2025-05-11T14:00:00Z",
     duration: 240,
     notes: "Finalizing design",
     billable: true,
+    status: "pending"
   },
 ];
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,12 @@ import { ProjectSelect } from "@/components/tasks/ProjectSelect";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { TimeEntry, TimeEntryStatus } from "@/types";
+
+interface ProjectSelectProps {
+  defaultValue?: string;
+  onProjectChange: (projectId: string) => void;
+  placeholder?: string;
+}
 
 interface EditTimeEntryDialogProps {
   isOpen: boolean;
@@ -42,7 +47,7 @@ export function EditTimeEntryDialog({ isOpen, onClose, timeEntry, isNewEntry = f
   const [endTime, setEndTime] = useState<string>("");
   const [duration, setDuration] = useState<number>(0);
   const [notes, setNotes] = useState<string>("");
-  const [billable, setBillable] = useState<boolean>(true);
+  const [billable, setBillable] = useState<boolean>(true); // Changed from useState<true>
   const [status, setStatus] = useState<TimeEntryStatus>("pending");
 
   // Initialize form with existing timeEntry data if editing
@@ -231,11 +236,21 @@ export function EditTimeEntryDialog({ isOpen, onClose, timeEntry, isNewEntry = f
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="project">Project</Label>
-            <ProjectSelect
-              value={projectId}
+            <Select 
+              value={projectId} 
               onValueChange={setProjectId}
-              placeholder="Select project"
-            />
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select project" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map(project => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           {projectId && (

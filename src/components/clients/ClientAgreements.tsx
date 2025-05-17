@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Card, 
@@ -274,8 +273,8 @@ export function ClientAgreements({ clientId }: ClientAgreementsProps) {
       
       {/* Add Agreement Dialog */}
       <AddAgreementDialog 
-        isOpen={isAddDialogOpen} 
-        onClose={() => setIsAddDialogOpen(false)} 
+        open={isAddDialogOpen} 
+        onOpenChange={setIsAddDialogOpen} 
         clientId={clientId} 
       />
       

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -22,12 +21,11 @@ import { cn } from "@/lib/utils";
 
 interface AddAgreementDialogProps {
   clientId: string;
-  isOpen: boolean;
-  onClose: () => void;
-  selectedFiles?: string[];
+  open: boolean;  // Changed from isOpen to open
+  onOpenChange: (open: boolean) => void;  // Changed from onClose to onOpenChange
 }
 
-export function AddAgreementDialog({ clientId, isOpen, onClose, selectedFiles = [] }: AddAgreementDialogProps) {
+export function AddAgreementDialog({ clientId, open, onOpenChange }: AddAgreementDialogProps) {
   const { addClientAgreement, getClientById } = useAppContext();
   const { toast } = useToast();
   const client = getClientById(clientId);
@@ -103,7 +101,7 @@ export function AddAgreementDialog({ clientId, isOpen, onClose, selectedFiles = 
       description: "The client agreement has been added successfully",
     });
     
-    onClose();
+    onOpenChange(false); // Updated to use onOpenChange
   };
   
   // Function to upload client file (placeholder)
@@ -115,7 +113,7 @@ export function AddAgreementDialog({ clientId, isOpen, onClose, selectedFiles = 
   };
   
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Add Agreement</DialogTitle>
@@ -280,7 +278,7 @@ export function AddAgreementDialog({ clientId, isOpen, onClose, selectedFiles = 
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSubmit}>Add Agreement</Button>
         </DialogFooter>
       </DialogContent>

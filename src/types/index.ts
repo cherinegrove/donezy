@@ -244,7 +244,7 @@ export interface TimeEntry {
   duration: number; // In minutes
   notes?: string;
   billable: boolean;
-  status: TimeEntryStatus; // Added status field
+  status?: TimeEntryStatus; // Made status optional
   manuallyAdded?: boolean; // Flag for manual entries
   edited?: boolean; // Flag for edited entries
   approvedBy?: string; // ID of user who approved/declined the entry

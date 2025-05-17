@@ -1,63 +1,44 @@
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { User } from "@/types";
 
 interface MentionDropdownProps {
   users: User[];
-  isOpen: boolean;
-  position: { top: number; left: number };
-  onSelectUser: (user: User & { firstName?: string }) => void;
-  searchQuery: string;
+  onSelect: (user: User) => void; // Added onSelect prop
+  id?: string;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 export function MentionDropdown({ 
   users, 
-  isOpen, 
-  position, 
-  onSelectUser, 
-  searchQuery 
+  onSelect,
+  id,
+  className,
+  style
 }: MentionDropdownProps) {
   // Safety check - ensure users is always an array
   const safeUsers = Array.isArray(users) ? users : [];
   
-  // Filter users based on search query
-  const filteredUsers = safeUsers.filter(user => {
-    if (!searchQuery) return true;
-    
-    const query = searchQuery.toLowerCase();
-    const userName = user.name.toLowerCase();
-    
-    // Get first name for matching too
-    const firstName = user.name.split(' ')[0].toLowerCase();
-    
-    return userName.includes(query) || firstName.includes(query);
-  });
-  
-  if (!isOpen || filteredUsers.length === 0) {
+  if (safeUsers.length === 0) {
     return null;
   }
 
   return (
     <div 
-      className="absolute z-50 bg-popover text-popover-foreground shadow-md rounded-md border border-border overflow-hidden"
-      style={{
-        top: position.top,
-        left: position.left,
-        minWidth: '200px',
-      }}
+      id={id}
+      className={`bg-popover text-popover-foreground shadow-md rounded-md border border-border overflow-hidden ${className || ''}`}
+      style={style}
     >
       <div className="p-1">
-        <p className="text-xs text-muted-foreground px-2 py-1">
-          {searchQuery ? `Matching "${searchQuery}"` : 'Select a user'}
-        </p>
         <div className="max-h-[200px] overflow-y-auto">
-          {filteredUsers.map(user => {
+          {safeUsers.map(user => {
             const firstName = user.name.split(' ')[0];
             
             return (
               <div
                 key={user.id}
-                onClick={() => onSelectUser({ ...user, firstName })}
+                onClick={() => onSelect(user)}
                 className="flex items-center px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer rounded-sm"
               >
                 {user.avatar ? (
