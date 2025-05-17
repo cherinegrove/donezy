@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { RecordActions } from "@/components/common/RecordActions";
 import { EditTimeEntryDialog } from "@/components/time/EditTimeEntryDialog";
 import { TimeEntryStatus } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 
 interface TimeEntryTableProps {
   taskId: string;
@@ -23,6 +24,7 @@ export function TimeEntryTable({ taskId }: TimeEntryTableProps) {
   const { timeEntries, currentUser, updateTimeEntryStatus } = useAppContext();
   const [selectedTimeEntry, setSelectedTimeEntry] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const { toast } = useToast();
   
   const taskTimeEntries = timeEntries.filter(entry => entry.taskId === taskId);
   
@@ -31,15 +33,26 @@ export function TimeEntryTable({ taskId }: TimeEntryTableProps) {
     setIsEditDialogOpen(true);
   };
   
-  const handleApproveTimeEntry = (entryId: string) => {
+  const handleApproveTimeEntry = (entryId: string, billable: boolean = true) => {
     if (currentUser) {
-      updateTimeEntryStatus(entryId, "approved-billable", currentUser.id);
+      const status = billable ? "approved-billable" : "approved-non-billable";
+      updateTimeEntryStatus(entryId, status, currentUser.id);
+      
+      toast({
+        title: "Time Entry Approved",
+        description: `The time entry has been marked as ${billable ? 'billable' : 'non-billable'}.`,
+      });
     }
   };
   
   const handleDeclineTimeEntry = (entryId: string) => {
     if (currentUser) {
       updateTimeEntryStatus(entryId, "declined", currentUser.id);
+      
+      toast({
+        title: "Time Entry Declined",
+        description: "The time entry has been declined.",
+      });
     }
   };
   
@@ -104,7 +117,9 @@ export function TimeEntryTable({ taskId }: TimeEntryTableProps) {
                     recordType="Time Entry"
                     recordName={`${format(startDate, "MMM d, yyyy")} (${durationHours}h ${durationMinutes}m)`}
                     onEdit={() => handleEditTimeEntry(entry.id)}
-                    onApprove={() => handleApproveTimeEntry(entry.id)}
+                    onApprove={() => handleApproveTimeEntry(entry.id, true)}
+                    onApproveBillable={() => handleApproveTimeEntry(entry.id, true)}
+                    onApproveNonBillable={() => handleApproveTimeEntry(entry.id, false)}
                     onDecline={() => handleDeclineTimeEntry(entry.id)}
                     disableEdit={!canEdit}
                     disableDelete={!isAdminOrManager}

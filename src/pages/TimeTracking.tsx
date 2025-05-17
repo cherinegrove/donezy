@@ -46,13 +46,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { EditTimeEntryDialog } from "@/components/time/EditTimeEntryDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const TimeTracking = () => {
-  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser } = useAppContext();
+  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser, updateTimeEntryStatus } = useAppContext();
   const [activeTab, setActiveTab] = useState("active");
   const [isAddEntryDialogOpen, setIsAddEntryDialogOpen] = useState(false);
   const [selectedTimeEntry, setSelectedTimeEntry] = useState<TimeEntry | undefined>(undefined);
   const [isEditEntryDialogOpen, setIsEditEntryDialogOpen] = useState(false);
+  const { toast } = useToast();
   
   // Filter state
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
@@ -327,6 +329,29 @@ const TimeTracking = () => {
     setIsAddEntryDialogOpen(true);
   };
   
+  const handleApproveTimeEntry = (entry: TimeEntry, billable: boolean = true) => {
+    if (!currentUser) return;
+    
+    const status = billable ? "approved-billable" : "approved-non-billable";
+    updateTimeEntryStatus(entry.id, status, currentUser.id);
+    
+    toast({
+      title: "Time Entry Approved",
+      description: `The time entry has been marked as ${billable ? 'billable' : 'non-billable'}.`,
+    });
+  };
+  
+  const handleDeclineTimeEntry = (entry: TimeEntry) => {
+    if (!currentUser) return;
+    
+    updateTimeEntryStatus(entry.id, "declined", currentUser.id);
+    
+    toast({
+      title: "Time Entry Declined",
+      description: "The time entry has been declined.",
+    });
+  };
+  
   // Status display helper
   const renderTimeEntryStatus = (status: TimeEntryStatus) => {
     switch (status) {
@@ -539,7 +564,7 @@ const TimeTracking = () => {
                       const task = tasks.find(t => t.id === entry.taskId);
                       const project = task ? projects.find(p => p.id === task.projectId) : undefined;
                       const client = project ? clients.find(c => c.id === project.clientId) : 
-                                     clients.find(c => c.id === entry.clientId);
+                                   clients.find(c => c.id === entry.clientId);
                       const user = users.find(u => u.id === entry.userId);
                       
                       return (
@@ -603,16 +628,25 @@ const TimeTracking = () => {
                                     <DropdownMenuItem onClick={() => handleEditTimeEntry(entry)}>
                                       Edit Time Entry
                                     </DropdownMenuItem>
-                                    {canApproveTimeEntry() && (
+                                    {canApproveTimeEntry() && entry.status === 'pending' && (
                                       <>
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="text-green-600 dark:text-green-400">
+                                        <DropdownMenuItem 
+                                          className="text-green-600 dark:text-green-400"
+                                          onClick={() => handleApproveTimeEntry(entry, true)}
+                                        >
                                           Approve (Billable)
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem className="text-blue-600 dark:text-blue-400">
+                                        <DropdownMenuItem 
+                                          className="text-blue-600 dark:text-blue-400"
+                                          onClick={() => handleApproveTimeEntry(entry, false)}
+                                        >
                                           Approve (Non-billable)
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem className="text-red-600 dark:text-red-400">
+                                        <DropdownMenuItem 
+                                          className="text-red-600 dark:text-red-400"
+                                          onClick={() => handleDeclineTimeEntry(entry)}
+                                        >
                                           Decline
                                         </DropdownMenuItem>
                                       </>

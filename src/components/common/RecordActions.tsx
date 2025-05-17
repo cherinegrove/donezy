@@ -20,6 +20,8 @@ interface RecordActionsProps {
   onDelete?: () => void;
   onDuplicate?: () => void;
   onApprove?: () => void;
+  onApproveBillable?: () => void;
+  onApproveNonBillable?: () => void;
   onDecline?: () => void;
   disableEdit?: boolean;
   disableDelete?: boolean;
@@ -35,6 +37,8 @@ export function RecordActions({
   onDelete,
   onDuplicate,
   onApprove,
+  onApproveBillable,
+  onApproveNonBillable,
   onDecline,
   disableEdit = false,
   disableDelete = false,
@@ -75,13 +79,24 @@ export function RecordActions({
     }
   };
 
+  const handleApproveBillable = () => {
+    if (onApproveBillable) {
+      onApproveBillable();
+      // Toast is handled in the parent component
+    }
+  };
+
+  const handleApproveNonBillable = () => {
+    if (onApproveNonBillable) {
+      onApproveNonBillable();
+      // Toast is handled in the parent component
+    }
+  };
+
   const handleDecline = () => {
     if (onDecline) {
       onDecline();
-      toast({
-        title: `${recordType} Declined`,
-        description: `${recordType} ${recordName || recordId} has been declined.`,
-      });
+      // Toast is handled in the parent component
     }
   };
 
@@ -97,14 +112,33 @@ export function RecordActions({
         <DropdownMenuContent align="end">
           {showApproveDecline && (
             <>
-              <DropdownMenuItem onClick={handleApprove} className="text-green-600 focus:text-green-600">
-                <CheckCircle className="mr-2 h-4 w-4" />
-                <span>Approve</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDecline} className="text-amber-600 focus:text-amber-600">
-                <XCircle className="mr-2 h-4 w-4" />
-                <span>Decline</span>
-              </DropdownMenuItem>
+              {onApproveBillable ? (
+                <DropdownMenuItem onClick={handleApproveBillable} className="text-green-600 focus:text-green-600">
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  <span>Approve (Billable)</span>
+                </DropdownMenuItem>
+              ) : (
+                onApprove && (
+                  <DropdownMenuItem onClick={handleApprove} className="text-green-600 focus:text-green-600">
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    <span>Approve</span>
+                  </DropdownMenuItem>
+                )
+              )}
+              
+              {onApproveNonBillable && (
+                <DropdownMenuItem onClick={handleApproveNonBillable} className="text-blue-600 focus:text-blue-600">
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  <span>Approve (Non-billable)</span>
+                </DropdownMenuItem>
+              )}
+              
+              {onDecline && (
+                <DropdownMenuItem onClick={handleDecline} className="text-amber-600 focus:text-amber-600">
+                  <XCircle className="mr-2 h-4 w-4" />
+                  <span>Decline</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
             </>
           )}
