@@ -1,4 +1,3 @@
-
 import { Task, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
@@ -30,6 +29,8 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }
   const { moveTask, tasks: allTasks } = useAppContext();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [nestedSelectedTask, setNestedSelectedTask] = useState<Task | null>(null);
+  const [isNestedDialogOpen, setIsNestedDialogOpen] = useState(false);
   const [columnColors, setColumnColors] = useState<Record<TaskStatus, string>>({
     backlog: "#F3F4F6",
     todo: "#DBEAFE",
@@ -87,6 +88,11 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
     setIsEditDialogOpen(true);
+  };
+
+  const handleNestedTaskClick = (task: Task) => {
+    setNestedSelectedTask(task);
+    setIsNestedDialogOpen(true);
   };
 
   // Toggle display option for all cards
@@ -198,6 +204,14 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }
               onOpenChange={setIsEditDialogOpen}
             />
           )}
+          
+          {nestedSelectedTask && (
+            <EditTaskDialog
+              task={nestedSelectedTask}
+              open={isNestedDialogOpen}
+              onOpenChange={setIsNestedDialogOpen}
+            />
+          )}
         </div>
       </div>
     );
@@ -285,6 +299,14 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }
             task={selectedTask}
             open={isEditDialogOpen}
             onOpenChange={setIsEditDialogOpen}
+          />
+        )}
+        
+        {nestedSelectedTask && (
+          <EditTaskDialog
+            task={nestedSelectedTask}
+            open={isNestedDialogOpen}
+            onOpenChange={setIsNestedDialogOpen}
           />
         )}
       </div>
@@ -416,6 +438,14 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }
           task={selectedTask}
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
+        />
+      )}
+      
+      {nestedSelectedTask && (
+        <EditTaskDialog
+          task={nestedSelectedTask}
+          open={isNestedDialogOpen}
+          onOpenChange={setIsNestedDialogOpen}
         />
       )}
     </div>
