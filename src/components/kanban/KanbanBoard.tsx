@@ -1,4 +1,3 @@
-
 import { Task, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
@@ -6,12 +5,12 @@ import { useState } from "react";
 import { EditTaskDialog } from "../tasks/EditTaskDialog";
 
 interface KanbanBoardProps {
-  tasks: Task[];
+  tasks?: Task[];
   projectId?: string;
 }
 
-export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
-  const { moveTask } = useAppContext();
+export function KanbanBoard({ tasks: propTasks, projectId }: KanbanBoardProps) {
+  const { moveTask, tasks: allTasks } = useAppContext();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [columnColors, setColumnColors] = useState<Record<TaskStatus, string>>({
@@ -21,6 +20,15 @@ export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
     review: "#FCE7F3",
     done: "#DCFCE7"
   });
+  
+  // If tasks were passed in as props, use those
+  // Otherwise, if projectId was provided, filter all tasks for that project
+  // If neither, use all tasks
+  const tasks = propTasks 
+    ? propTasks 
+    : projectId
+    ? allTasks.filter(task => task.projectId === projectId)
+    : allTasks;
   
   const columns: { id: TaskStatus; title: string }[] = [
     { id: "backlog", title: "Backlog" },
