@@ -250,7 +250,7 @@ export function EditTaskDialog({ task, isOpen, onClose }: EditTaskDialogProps) {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </Dialog>
+      </AlertDialog>
     </>
   );
 }
