@@ -7,6 +7,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Palette, Plus, X, Save, Check } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAppContext } from "@/contexts/AppContext";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface ColorOption {
   name: string;
@@ -80,6 +87,8 @@ export const KanbanCustomizationCard = () => {
   const [isEditingNames, setIsEditingNames] = useState(false);
   const { toast } = useToast();
   const { customFields, addCustomField, deleteCustomField } = useAppContext();
+  const [addStatusDialogOpen, setAddStatusDialogOpen] = useState(false);
+  const [addFieldDialogOpen, setAddFieldDialogOpen] = useState(false);
   
   const [newField, setNewField] = useState<CustomFieldForm>({
     name: "",
@@ -155,7 +164,7 @@ export const KanbanCustomizationCard = () => {
     }
     
     // Parse options for select and multiselect types
-    const options = newField.type === 'select' || newField.type === 'multiselect' 
+    const options = newField.type === 'select' || newField.type === 'multiselect' || newField.type === 'dropdown' || newField.type === 'file-upload'
       ? newField.options.split(',').map(opt => opt.trim()).filter(opt => opt)
       : undefined;
     
@@ -173,6 +182,8 @@ export const KanbanCustomizationCard = () => {
       options: "",
       required: false
     });
+    
+    setAddFieldDialogOpen(false);
     
     toast({
       title: "Custom Field Added",
@@ -222,6 +233,7 @@ export const KanbanCustomizationCard = () => {
     setNewStatusName('');
     setNewStatusId('');
     setNewStatusColor('#EAEAEA');
+    setAddStatusDialogOpen(false);
     
     toast({
       title: "Status Added",
@@ -283,6 +295,13 @@ export const KanbanCustomizationCard = () => {
                     </>
                   )}
                 </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setAddStatusDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Status
+                </Button>
               </div>
             </div>
             
@@ -324,58 +343,7 @@ export const KanbanCustomizationCard = () => {
                 </div>
               ))}
             </div>
-            
-            {/* Add new status */}
-            <div className="border-t pt-4 mt-4">
-              <h4 className="font-medium mb-3">Add New Status</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-status-name">Display Name</Label>
-                  <Input
-                    id="new-status-name"
-                    placeholder="e.g. Waiting for Review"
-                    value={newStatusName}
-                    onChange={(e) => setNewStatusName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-status-id">Status ID</Label>
-                  <Input
-                    id="new-status-id"
-                    placeholder="e.g. waiting-review"
-                    value={newStatusId}
-                    onChange={(e) => setNewStatusId(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Lowercase with hyphens, no spaces
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-status-color">Color</Label>
-                  <div className="flex gap-2">
-                    <div 
-                      className="w-10 h-10 rounded border"
-                      style={{ backgroundColor: newStatusColor }}
-                    />
-                    <Input
-                      id="new-status-color"
-                      type="text"
-                      value={newStatusColor}
-                      onChange={(e) => setNewStatusColor(e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-              </div>
-              <Button 
-                onClick={handleAddStatus} 
-                className="mt-4"
-                size="sm"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Status
-              </Button>
-            </div>
+
           </div>
 
           <div className="space-y-3">
@@ -406,6 +374,13 @@ export const KanbanCustomizationCard = () => {
                   Add custom fields to tasks in your kanban board
                 </p>
               </div>
+              <Button
+                size="sm"
+                onClick={() => setAddFieldDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Field
+              </Button>
             </div>
             
             {/* Existing Custom Fields */}
@@ -436,75 +411,134 @@ export const KanbanCustomizationCard = () => {
                 <p className="text-center py-3 text-muted-foreground">No custom fields created yet</p>
               )}
             </div>
-            
-            {/* Add New Custom Field */}
-            <div className="space-y-4 border p-4 rounded-md">
-              <h4 className="text-sm font-medium">Add New Field</h4>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="field-name">Field Name</Label>
-                  <Input
-                    id="field-name"
-                    placeholder="e.g., Story Points"
-                    value={newField.name}
-                    onChange={(e) => handleFieldChange("name", e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="field-type">Field Type</Label>
-                  <Select
-                    value={newField.type}
-                    onValueChange={(value) => handleFieldChange("type", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="text">Text</SelectItem>
-                      <SelectItem value="number">Number</SelectItem>
-                      <SelectItem value="date">Date</SelectItem>
-                      <SelectItem value="select">Single Select</SelectItem>
-                      <SelectItem value="multiselect">Multi Select</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              {(newField.type === 'select' || newField.type === 'multiselect') && (
-                <div className="space-y-2">
-                  <Label htmlFor="field-options">Options (comma separated)</Label>
-                  <Input
-                    id="field-options"
-                    placeholder="Option 1, Option 2, Option 3"
-                    value={newField.options}
-                    onChange={(e) => handleFieldChange("options", e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Separate options with commas
-                  </p>
-                </div>
-              )}
-              
-              <div className="flex items-center space-x-2">
-                <input
-                  id="field-required"
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300"
-                  checked={newField.required}
-                  onChange={(e) => handleFieldChange("required", e.target.checked)}
-                />
-                <Label htmlFor="field-required">Required Field</Label>
-              </div>
-              
-              <Button onClick={handleAddField} className="w-full mt-2">
-                Add Field
-              </Button>
-            </div>
           </div>
         </div>
       </CardContent>
+
+      {/* Add Status Dialog */}
+      <Dialog open={addStatusDialogOpen} onOpenChange={setAddStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Status</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-status-name">Display Name</Label>
+                <Input
+                  id="new-status-name"
+                  placeholder="e.g. Waiting for Review"
+                  value={newStatusName}
+                  onChange={(e) => setNewStatusName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-status-id">Status ID</Label>
+                <Input
+                  id="new-status-id"
+                  placeholder="e.g. waiting-review"
+                  value={newStatusId}
+                  onChange={(e) => setNewStatusId(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Lowercase with hyphens, no spaces
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-status-color">Color</Label>
+                <div className="flex gap-2">
+                  <div 
+                    className="w-10 h-10 rounded border"
+                    style={{ backgroundColor: newStatusColor }}
+                  />
+                  <Input
+                    id="new-status-color"
+                    type="text"
+                    value={newStatusColor}
+                    onChange={(e) => setNewStatusColor(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddStatusDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddStatus}>Add Status</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Field Dialog */}
+      <Dialog open={addFieldDialogOpen} onOpenChange={setAddFieldDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Field</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="field-name">Field Name</Label>
+              <Input
+                id="field-name"
+                placeholder="e.g., Story Points"
+                value={newField.name}
+                onChange={(e) => handleFieldChange("name", e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="field-type">Field Type</Label>
+              <Select
+                value={newField.type}
+                onValueChange={(value) => handleFieldChange("type", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="text">Text</SelectItem>
+                  <SelectItem value="number">Number</SelectItem>
+                  <SelectItem value="date">Date</SelectItem>
+                  <SelectItem value="select">Single Select</SelectItem>
+                  <SelectItem value="multiselect">Multi Select</SelectItem>
+                  <SelectItem value="dropdown">Dropdown</SelectItem>
+                  <SelectItem value="file-upload">File Upload</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {(newField.type === 'select' || newField.type === 'multiselect' || newField.type === 'dropdown') && (
+              <div className="space-y-2">
+                <Label htmlFor="field-options">Options (comma separated)</Label>
+                <Input
+                  id="field-options"
+                  placeholder="Option 1, Option 2, Option 3"
+                  value={newField.options}
+                  onChange={(e) => handleFieldChange("options", e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Separate options with commas
+                </p>
+              </div>
+            )}
+            
+            <div className="flex items-center space-x-2">
+              <input
+                id="field-required"
+                type="checkbox"
+                className="h-4 w-4 rounded border-gray-300"
+                checked={newField.required}
+                onChange={(e) => handleFieldChange("required", e.target.checked)}
+              />
+              <Label htmlFor="field-required">Required Field</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddFieldDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddField}>Add Field</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Task } from "@/types";
 import { 
@@ -334,7 +333,7 @@ export function GanttChart({ tasks }: GanttChartProps) {
                     {task.name}
                   </div>
                 </TableCell>
-                <TableCell className="p-0">
+                <TableCell className="p-0 relative">
                   <div className="w-full h-[40px] relative">
                     <div 
                       className="absolute h-[20px] rounded-md top-[10px]"
@@ -360,12 +359,15 @@ export function GanttChart({ tasks }: GanttChartProps) {
       </div>
       
       <div className="mt-2 border-t pt-2">
-        <div className="flex ml-[600px] overflow-x-auto">
-          {dateTicks.map((tick, index) => (
-            <div key={index} className="text-xs text-muted-foreground px-1">
-              {formatXAxis(tick)}
-            </div>
-          ))}
+        <div className="grid grid-cols-[600px_1fr]">
+          <div></div>
+          <div className="flex justify-between overflow-x-auto">
+            {dateTicks.map((tick, index) => (
+              <div key={index} className="text-xs text-muted-foreground px-1">
+                {formatXAxis(tick)}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       

@@ -1,3 +1,4 @@
+
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
@@ -205,7 +206,7 @@ export interface TemplateSubtask {
 export interface CustomField {
   id: string;
   name: string;
-  type: 'text' | 'number' | 'date' | 'select' | 'multiselect';
+  type: 'text' | 'number' | 'date' | 'select' | 'multiselect' | 'dropdown' | 'file-upload';
   options?: string[]; // For select and multiselect types
   required: boolean;
 }
