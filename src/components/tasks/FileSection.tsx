@@ -2,9 +2,10 @@
 import React, { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
-import { Upload, File, Trash2 } from "lucide-react";
+import { Upload, File, Trash2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface FileSectionProps {
   taskId: string;
@@ -13,6 +14,7 @@ interface FileSectionProps {
 export function FileSection({ taskId }: FileSectionProps) {
   const { tasks, uploadTaskFile, deleteTaskFile, currentUser } = useAppContext();
   const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
@@ -32,17 +34,28 @@ export function FileSection({ taskId }: FileSectionProps) {
     const files = e.target.files;
     if (!files || files.length === 0 || !currentUser) return;
     
+    setError(null);
     setIsUploading(true);
+    
+    const file = files[0];
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    
     try {
-      await uploadTaskFile(taskId, files[0], currentUser.id);
+      // Check file size (10MB limit)
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error("File size exceeds 10MB limit");
+      }
+      
+      await uploadTaskFile(taskId, file, currentUser.id);
       toast({
         title: "File uploaded",
         description: "Your file was successfully uploaded to this task.",
       });
     } catch (error) {
+      setError(error instanceof Error ? error.message : "Upload failed");
       toast({
         title: "Upload failed",
-        description: "There was an error uploading your file. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error uploading your file. Please try again.",
         variant: "destructive",
       });
       console.error("File upload error:", error);
@@ -96,6 +109,17 @@ export function FileSection({ taskId }: FileSectionProps) {
             {isUploading ? "Uploading..." : "Upload File"}
           </Button>
         </div>
+      </div>
+      
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      <div className="text-xs text-muted-foreground mb-2">
+        Maximum file size: 10MB
       </div>
       
       {taskFiles.length > 0 ? (

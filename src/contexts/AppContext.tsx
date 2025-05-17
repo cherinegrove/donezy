@@ -86,6 +86,29 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
   
   const navigate = useNavigate();
   
+  // Helper function to add task logs
+  const addTaskLog = (taskId: string, userId: string | undefined, action: string, details?: string) => {
+    const newLog: TaskLog = {
+      id: uuidv4(),
+      taskId,
+      userId,
+      timestamp: new Date().toISOString(),
+      action,
+      details
+    };
+    
+    setTaskLogs(prevLogs => [...prevLogs, newLog]);
+    return newLog;
+  };
+  
+  // Helper function to create time entries
+  const createTimeEntry = (entry: Omit<TimeEntry, "id">): TimeEntry => {
+    return {
+      id: uuidv4(),
+      ...entry,
+    };
+  };
+  
   // Update localStorage on state change
   useEffect(() => {
     localStorage.setItem('users', JSON.stringify(users));
@@ -291,6 +314,8 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
         if (project.id === projectId) {
           const watcherIds = project.watcherIds || [];
           if (!watcherIds.includes(userId)) {
+            // Add task log for watching
+            addTaskLog(projectId, userId, `Started watching this project`);
             return { ...project, watcherIds: [...watcherIds, userId] };
           }
         }
@@ -517,6 +542,12 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
   };
   
   const uploadTaskFile = async (taskId: string, file: File, userId: string) => {
+    // Check file size (10MB limit)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > MAX_FILE_SIZE) {
+      throw new Error("File size exceeds 10MB limit");
+    }
+    
     const newFileId = uuidv4();
     const newFile = {
       id: newFileId,

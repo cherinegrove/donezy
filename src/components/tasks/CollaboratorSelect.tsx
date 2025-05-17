@@ -1,7 +1,7 @@
-
 import React, { useEffect } from "react";
 import { User } from "@/types";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { useToast } from "@/hooks/use-toast";
 
 interface CollaboratorSelectProps {
   users: User[];
@@ -18,6 +18,8 @@ export function CollaboratorSelect({
   placeholder = "Select collaborators",
   maxSelection = 10,
 }: CollaboratorSelectProps) {
+  const { toast } = useToast();
+  
   // Debug logging for troubleshooting
   useEffect(() => {
     if (!Array.isArray(users)) {
@@ -50,7 +52,16 @@ export function CollaboratorSelect({
     // Limit the number of selections
     if (safeValues.length > maxSelection) {
       // If trying to add beyond the limit, keep only the first maxSelection items
-      onValueChange(safeValues.slice(0, maxSelection));
+      const trimmedValues = safeValues.slice(0, maxSelection);
+      onValueChange(trimmedValues);
+      
+      // Show toast notification
+      toast({
+        title: "Maximum collaborators reached",
+        description: `You can select a maximum of ${maxSelection} collaborators for a task.`,
+        variant: "default"
+      });
+      
       return;
     }
     

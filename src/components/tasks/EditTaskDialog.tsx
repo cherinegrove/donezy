@@ -45,7 +45,6 @@ import * as z from "zod";
 import { cn } from "@/lib/utils";
 import { useAppContext } from "@/contexts/AppContext";
 import { Badge } from "@/components/ui/badge";
-import { TaskWatchButton } from "./TaskWatchButton";
 import { ProjectSelect } from "./ProjectSelect";
 import { AssigneeSelect } from "./AssigneeSelect";
 import { CollaboratorSelect } from "@/components/tasks/CollaboratorSelect";
@@ -147,9 +146,6 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
     }
   };
   
-  // Safety for TaskWatchButton
-  const taskForWatchButton = task ? { ...task } : null;
-  
   // Safely get users array with defensive check
   const safeUsers = Array.isArray(users) ? users : [];
   
@@ -163,259 +159,226 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
               <Badge variant="outline" className={getBadgeColor()}>
                 {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
               </Badge>
-              {taskForWatchButton && <TaskWatchButton task={taskForWatchButton} />}
             </div>
           </DialogTitle>
         </DialogHeader>
         
-        <div className="grid grid-cols-3 gap-4 overflow-hidden flex-grow">
-          <div className="col-span-2 overflow-auto pr-4">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="space-y-4">
+        <div className="overflow-auto pr-4 flex-grow">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Task title" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="title"
+                    name="projectId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Title</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Task title" {...field} />
-                        </FormControl>
+                        <FormLabel>Project</FormLabel>
+                        <ProjectSelect field={field} />
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="projectId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Project</FormLabel>
-                          <ProjectSelect field={field} />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="status"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Status</FormLabel>
-                          <StatusSelect field={field} />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="assigneeId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Assignee</FormLabel>
-                          <AssigneeSelect field={field} />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="priority"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Priority</FormLabel>
-                          <PrioritySelect field={field} />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="startDate"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Start Date</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={"outline"}
-                                  className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value ? (
-                                    format(field.value, "PPP")
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormDescription>
-                            The date the task is scheduled to start.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="dueDate"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Due Date</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={"outline"}
-                                  className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value ? (
-                                    format(field.value, "PPP")
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormDescription>
-                            The date the task is scheduled to be completed.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
                   <FormField
                     control={form.control}
-                    name="collaboratorIds"
-                    render={({ field }) => {
-                      // Ensure field.value is always an array
-                      const safeFieldValue = Array.isArray(field.value) ? field.value : [];
-                      
-                      return (
-                        <FormItem>
-                          <FormLabel>Collaborators</FormLabel>
-                          <CollaboratorSelect 
-                            users={safeUsers} 
-                            selectedValues={safeFieldValue} 
-                            onValueChange={(values) => {
-                              // Double ensure values is an array before setting
-                              const safeValues = Array.isArray(values) ? values : [];
-                              field.onChange(safeValues);
-                            }} 
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <StatusSelect field={field} />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="assigneeId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Assignee</FormLabel>
+                        <AssigneeSelect field={field} />
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                   
                   <FormField
                     control={form.control}
-                    name="description"
+                    name="priority"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Task description"
-                            className="resize-none min-h-[100px]"
-                            {...field}
-                          />
-                        </FormControl>
+                        <FormLabel>Priority</FormLabel>
+                        <PrioritySelect field={field} />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Start Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
                         <FormDescription>
-                          Add a detailed description to your task.
+                          The date the task is scheduled to start.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="dueDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Due Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormDescription>
+                          The date the task is scheduled to be completed.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-              </form>
-            </Form>
-            
-            {/* Task Details Tabs */}
-            <div className="mt-4">
-              <TaskDetailTabs taskId={task.id} />
-            </div>
-          </div>
-          
-          <div className="col-span-1 space-y-4">
-            <div className="bg-muted/40 p-4 rounded-lg">
-              <h3 className="text-sm font-medium mb-2">Task Info</h3>
-              
-              <div className="space-y-3 text-sm">
-                {project && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Project:</span>
-                    <span className="font-medium">{project.name}</span>
-                  </div>
-                )}
                 
-                {assignee && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Assignee:</span>
-                    <span className="font-medium">{assignee.name}</span>
-                  </div>
-                )}
+                <FormField
+                  control={form.control}
+                  name="collaboratorIds"
+                  render={({ field }) => {
+                    // Ensure field.value is always an array
+                    const safeFieldValue = Array.isArray(field.value) ? field.value : [];
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel>Collaborators</FormLabel>
+                        <FormDescription>
+                          Select up to 10 team members who will collaborate on this task
+                        </FormDescription>
+                        <CollaboratorSelect 
+                          users={safeUsers} 
+                          selectedValues={safeFieldValue} 
+                          onValueChange={(values) => {
+                            // Double ensure values is an array before setting
+                            const safeValues = Array.isArray(values) ? values : [];
+                            field.onChange(safeValues);
+                          }} 
+                          maxSelection={10}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
                 
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Status:</span>
-                  <span className="font-medium capitalize">{task.status.replace(/-/g, ' ')}</span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Created:</span>
-                  <span className="font-medium">
-                    {task.createdAt ? format(new Date(task.createdAt), "MMM d, yyyy") : "N/A"}
-                  </span>
-                </div>
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Task description"
+                          className="resize-none min-h-[100px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Add a detailed description to your task.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-            </div>
+            </form>
+          </Form>
+          
+          {/* Task Details Tabs */}
+          <div className="mt-4">
+            <TaskDetailTabs taskId={task.id} />
           </div>
         </div>
         
-        <DialogFooter className="sm:justify-between">
+        <DialogFooter className="mt-4 sm:justify-between">
           <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <AlertDialogTrigger asChild>
               <Button variant="destructive">Delete Task</Button>
