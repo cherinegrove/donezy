@@ -1,10 +1,9 @@
 
 import React from "react";
-import { LoginForm } from "@/components/auth/LoginForm";
+import { SignupForm } from "@/components/auth/SignupForm";
 import { FileText } from "lucide-react";
-import { Link } from "react-router-dom";
 
-export default function Login() {
+export default function Signup() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-muted/30">
       <div className="mb-8 flex items-center gap-2">
@@ -13,13 +12,10 @@ export default function Login() {
       </div>
       
       <div className="w-full max-w-md">
-        <LoginForm />
+        <SignupForm />
         
-        <p className="mt-6 text-center text-sm">
-          <span className="text-muted-foreground">Don't have an account? </span>
-          <Link to="/signup" className="text-primary hover:underline font-medium">
-            Sign up
-          </Link>
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          By creating an account, you agree to our Terms of Service and Privacy Policy.
         </p>
       </div>
       

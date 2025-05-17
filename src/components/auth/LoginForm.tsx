@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -161,7 +160,7 @@ export function LoginForm() {
         </form>
       </Form>
 
-      <div className="text-center text-sm">
+      <div className="flex flex-col space-y-2 text-center text-sm">
         <button 
           type="button" 
           onClick={() => setShowForgotPassword(true)} 
@@ -169,6 +168,13 @@ export function LoginForm() {
         >
           Forgot password?
         </button>
+        
+        <div className="text-muted-foreground">
+          Don't have an account?{" "}
+          <Link to="/signup" className="text-primary hover:underline font-medium">
+            Sign up
+          </Link>
+        </div>
       </div>
 
       {/* Forgot Password Dialog */}

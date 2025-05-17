@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +18,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Tasks from "./pages/Tasks";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import Admin from "./pages/Admin"; 
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 
@@ -65,6 +65,7 @@ const AppRoutes = () => {
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<PublicRoute element={<Login />} />} />
+      <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
       
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
