@@ -201,7 +201,7 @@ export function MultiSelect({
             <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
             <CommandEmpty>No options found.</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
-              {/* Only render if commandItems is a valid array */}
+              {/* Always ensure commandItems is a valid array before rendering */}
               {Array.isArray(commandItems) && commandItems.length > 0 ? commandItems : null}
               {allowFileUpload && (
                 <CommandItem 
