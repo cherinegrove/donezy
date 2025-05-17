@@ -13,12 +13,17 @@ import {
 } from "recharts";
 import { format, differenceInDays, addDays, startOfDay, parseISO } from "date-fns";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
+import { useState } from "react";
 
 interface GanttChartProps {
   tasks: Task[];
 }
 
 export function GanttChart({ tasks }: GanttChartProps) {
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
   // Skip tasks without dates
   const tasksWithDates = tasks.filter(
     (task) => task.dueDate && task.createdAt
@@ -71,6 +76,7 @@ export function GanttChart({ tasks }: GanttChartProps) {
       duration: duration > 0 ? duration : 1, // Ensure minimum duration of 1 day
       color: getColorForStatus(task.status),
       id: task.id,
+      task: task, // Store the full task for editing
     };
   });
 
@@ -91,6 +97,15 @@ export function GanttChart({ tasks }: GanttChartProps) {
       default: return "#9CA3AF";
     }
   }
+  
+  // Handle task click to edit
+  const handleTaskClick = (taskData: any) => {
+    const task = taskData.task;
+    if (task) {
+      setSelectedTask(task);
+      setIsEditDialogOpen(true);
+    }
+  };
 
   // Custom tooltip content
   const CustomTooltip = ({ active, payload }: any) => {
@@ -107,6 +122,7 @@ export function GanttChart({ tasks }: GanttChartProps) {
             {format(startDate, "MMM d")} - {format(endDate, "MMM d")}
           </p>
           <p className="text-muted-foreground">Duration: {data.duration} day(s)</p>
+          <p className="text-xs text-blue-500 mt-1">Click to edit</p>
         </div>
       );
     }
@@ -162,8 +178,9 @@ export function GanttChart({ tasks }: GanttChartProps) {
             radius={[4, 4, 4, 4]} 
             minPointSize={3}
             background={{ fill: "#f3f4f6" }}
-            // Custom fill based on task status
             fillOpacity={0.8}
+            onClick={handleTaskClick}
+            className="cursor-pointer"
             shape={(props: any) => {
               const { x, y, width, height, fill, payload } = props;
               // Adjust the x position based on the start value
@@ -179,12 +196,22 @@ export function GanttChart({ tasks }: GanttChartProps) {
                   fill={payload.color}
                   rx={4}
                   ry={4}
+                  className="cursor-pointer hover:opacity-80 transition-opacity"
                 />
               );
             }}
           />
         </BarChart>
       </ChartContainer>
+      
+      {/* Add edit dialog for Gantt chart task */}
+      {selectedTask && (
+        <EditTaskDialog
+          task={selectedTask}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+        />
+      )}
     </div>
   );
 }

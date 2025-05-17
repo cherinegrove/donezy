@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -39,7 +38,11 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   const [description, setDescription] = useState(task.description);
   const [status, setStatus] = useState<TaskStatus>(task.status);
   const [priority, setPriority] = useState<"low" | "medium" | "high">(task.priority);
-  const [dueDate, setDueDate] = useState(task.dueDate || "");
+  
+  // Update these date fields
+  const [startDate, setStartDate] = useState(task.createdAt?.split('T')[0] || "");
+  const [dueDate, setDueDate] = useState(task.dueDate?.split('T')[0] || "");
+  
   const [assigneeIds, setAssigneeIds] = useState<string[]>(task.assigneeIds);
   const [activeTab, setActiveTab] = useState("details");
   const [newComment, setNewComment] = useState("");
@@ -61,7 +64,8 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
       description,
       status,
       priority,
-      dueDate: dueDate || undefined,
+      createdAt: startDate ? `${startDate}T00:00:00.000Z` : task.createdAt,  // Update start date
+      dueDate: dueDate ? `${dueDate}T23:59:59.999Z` : undefined,
       assigneeIds,
       customFields: customFieldValues,
     });
@@ -177,12 +181,13 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                 <Input value={project?.name || "Unknown Project"} disabled className="mt-2" />
               </div>
               
+              {/* Add Start Date field */}
               <div>
-                <Label>Due Date</Label>
+                <Label>Start Date</Label>
                 <Input 
                   type="date" 
-                  value={dueDate} 
-                  onChange={(e) => setDueDate(e.target.value)}
+                  value={startDate} 
+                  onChange={(e) => setStartDate(e.target.value)}
                   className="mt-2"
                 />
               </div>
@@ -208,22 +213,33 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                 </Select>
               </div>
               
+              {/* Move Due Date to same row as Status */}
               <div>
-                <Label>Priority</Label>
-                <Select 
-                  value={priority} 
-                  onValueChange={(value: "low" | "medium" | "high") => setPriority(value)}
-                >
-                  <SelectTrigger className="mt-2">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Due Date</Label>
+                <Input 
+                  type="date" 
+                  value={dueDate} 
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="mt-2"
+                />
               </div>
+            </div>
+            
+            <div>
+              <Label>Priority</Label>
+              <Select 
+                value={priority} 
+                onValueChange={(value: "low" | "medium" | "high") => setPriority(value)}
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             <div>
