@@ -1,9 +1,9 @@
-
 import { Task, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
 import { useState } from "react";
 import { EditTaskDialog } from "../tasks/EditTaskDialog";
+import { GanttChart } from "./GanttChart";
 
 type ViewMode = "list" | "gantt" | "kanban";
 
@@ -123,21 +123,11 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     );
   }
   
-  // Render Gantt view placeholder
-  // In a real implementation, this would use a proper Gantt chart library
+  // Render Gantt view
   if (viewMode === "gantt") {
     return (
       <div className="w-full">
-        <div className="border-2 border-dashed border-muted rounded-md p-8 flex flex-col items-center justify-center bg-background/40 min-h-[400px]">
-          <p className="text-lg font-medium mb-2">Gantt View</p>
-          <p className="text-sm text-muted-foreground">
-            This would display a timeline-based Gantt chart of tasks
-          </p>
-          
-          {tasks.length === 0 && (
-            <p className="text-sm text-muted-foreground mt-4">No tasks found</p>
-          )}
-        </div>
+        <GanttChart tasks={tasks} />
         
         {selectedTask && (
           <EditTaskDialog
