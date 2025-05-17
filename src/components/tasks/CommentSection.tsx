@@ -23,6 +23,9 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   const [cursorPosition, setCursorPosition] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
+  // Ensure we have valid users array
+  const safeUsers = Array.isArray(users) ? users : [];
+  
   const task = tasks.find(t => t.id === taskId);
   if (!task) return null;
   
@@ -56,14 +59,24 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       if (atIndex !== -1 && (atIndex === 0 || /\s/.test(textBeforeCursor[atIndex - 1]))) {
         const query = textBeforeCursor.substring(atIndex + 1);
         
+        // Always show dropdown after typing @ (even with empty query)
         setMentionQuery(query);
         setMentionOpen(true);
         
         // Calculate mention dropdown position based on textarea and cursor
         if (textareaRef.current) {
           const cursorCoords = getCaretCoordinates(textareaRef.current, atIndex);
+          console.log("Cursor coordinates:", cursorCoords);
+          
+          const textareaRect = textareaRef.current.getBoundingClientRect();
+          
           setMentionPosition({
             top: cursorCoords.top + 20,  // Add some offset below the @
+            left: cursorCoords.left
+          });
+          
+          console.log("Setting mention position:", {
+            top: cursorCoords.top + 20,
             left: cursorCoords.left
           });
         }
@@ -74,6 +87,18 @@ export function CommentSection({ taskId }: CommentSectionProps) {
     
     setMentionOpen(false);
   };
+  
+  // Listen for clicks outside to close the dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (mentionOpen && textareaRef.current && !textareaRef.current.contains(e.target as Node)) {
+        setMentionOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [mentionOpen]);
   
   // Handle user selection from the mention dropdown
   const handleSelectUser = (user: { id: string; name: string; firstName?: string }) => {
@@ -113,7 +138,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   };
   
   // Create a filtered list of users for the mention dropdown
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = safeUsers.filter(user => {
     if (!mentionQuery) return true;
     
     const query = mentionQuery.toLowerCase();
@@ -165,40 +190,48 @@ export function CommentSection({ taskId }: CommentSectionProps) {
           />
           
           {/* Mention dropdown */}
-          {mentionOpen && filteredUsers.length > 0 && (
-            <div 
-              className="absolute z-50 bg-white dark:bg-gray-800 border rounded-md shadow-md"
-              style={{
-                top: `${mentionPosition.top}px`,
-                left: `${mentionPosition.left}px`,
-                minWidth: '200px',
-                maxHeight: '300px',
-                overflowY: 'auto'
-              }}
-            >
-              <div className="rounded-md overflow-hidden">
-                <div className="p-1 bg-popover text-popover-foreground">
-                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                    {mentionQuery ? `Matching "${mentionQuery}"` : "Select a user"}
-                  </div>
-                  <div className="overflow-hidden max-h-[200px] overflow-y-auto">
-                    {filteredUsers.map((user) => {
-                      const firstName = getFirstName(user.name);
-                      
-                      return (
-                        <div
-                          key={user.id}
-                          onClick={() => handleSelectUser({...user, firstName})}
-                          className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-                        >
-                          <Avatar className="h-6 w-6 mr-2">
-                            <AvatarImage src={user.avatar} />
-                            <AvatarFallback>{firstName.slice(0, 2).toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <span>{user.name}</span>
-                        </div>
-                      );
-                    })}
+          {mentionOpen && (
+            <div className="relative z-50">
+              <div 
+                className="absolute z-50"
+                style={{
+                  top: 0,
+                  left: 0,
+                  transform: `translate(${mentionPosition.left}px, ${mentionPosition.top}px)`,
+                }}
+              >
+                <div className="bg-white dark:bg-gray-800 border rounded-md shadow-md">
+                  <div className="rounded-md overflow-hidden">
+                    <div className="p-1 bg-popover text-popover-foreground">
+                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                        {mentionQuery ? `Matching "${mentionQuery}"` : "Select a user"}
+                      </div>
+                      <div className="overflow-hidden max-h-[200px] overflow-y-auto">
+                        {filteredUsers.length > 0 ? (
+                          filteredUsers.map((user) => {
+                            const firstName = getFirstName(user.name);
+                            
+                            return (
+                              <div
+                                key={user.id}
+                                onClick={() => handleSelectUser({...user, firstName})}
+                                className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                              >
+                                <Avatar className="h-6 w-6 mr-2">
+                                  <AvatarImage src={user.avatar} />
+                                  <AvatarFallback>{firstName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <span>{user.name}</span>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="px-2 py-1.5 text-sm">
+                            No users found matching "{mentionQuery}"
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

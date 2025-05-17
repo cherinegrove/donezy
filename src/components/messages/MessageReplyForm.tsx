@@ -26,12 +26,20 @@ export function MessageReplyForm({
   replyContent,
   setReplyContent
 }: MessageReplyFormProps) {
+  // Ensure users is always an array
+  const safeUsers = Array.isArray(users) ? users : [];
+  
   // Mention states
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionOpen, setMentionOpen] = useState(false);
   const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
   const [cursorPosition, setCursorPosition] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Debug - log users when component mounts
+  useEffect(() => {
+    console.log("MessageReplyForm users:", safeUsers);
+  }, [safeUsers]);
   
   // Helper function to get first name
   const getFirstName = (fullName: string): string => {
@@ -63,6 +71,8 @@ export function MessageReplyForm({
         // Calculate mention dropdown position based on textarea and cursor
         if (textareaRef.current) {
           const cursorCoords = getCaretCoordinates(textareaRef.current, atIndex);
+          console.log("Cursor coords:", cursorCoords);
+          
           setMentionPosition({
             top: cursorCoords.top + 20,  // Add some offset below the @
             left: cursorCoords.left
@@ -137,13 +147,15 @@ export function MessageReplyForm({
         rows={4}
       />
       
-      <MentionDropdown 
-        users={users}
-        isOpen={mentionOpen}
-        position={mentionPosition}
-        onSelectUser={handleSelectUser}
-        searchQuery={mentionQuery}
-      />
+      <div className="relative">
+        <MentionDropdown 
+          users={safeUsers}
+          isOpen={mentionOpen}
+          position={mentionPosition}
+          onSelectUser={handleSelectUser}
+          searchQuery={mentionQuery}
+        />
+      </div>
       
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onCancel}>

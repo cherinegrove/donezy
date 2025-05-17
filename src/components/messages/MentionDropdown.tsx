@@ -1,13 +1,13 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 
 interface User {
   id: string;
   name: string;
   avatar?: string;
-  firstName?: string; // Added firstName as an optional property
-  email?: string;     // Added email as an optional property for disambiguation
+  firstName?: string;
+  email?: string;
 }
 
 interface MentionDropdownProps {
@@ -25,7 +25,10 @@ export function MentionDropdown({
   onSelectUser,
   searchQuery = ""
 }: MentionDropdownProps) {
-  const [filteredUsers, setFilteredUsers] = useState<User[]>(users);
+  // Ensure users is always an array
+  const safeUsers = Array.isArray(users) ? users : [];
+  
+  const [filteredUsers, setFilteredUsers] = useState<User[]>(safeUsers);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [duplicateFirstNames, setDuplicateFirstNames] = useState<Set<string>>(new Set());
   
@@ -36,10 +39,12 @@ export function MentionDropdown({
   
   // Identify duplicate first names
   useEffect(() => {
+    if (!safeUsers.length) return;
+    
     const firstNameCounts: Record<string, number> = {};
     const duplicates = new Set<string>();
     
-    users.forEach(user => {
+    safeUsers.forEach(user => {
       const firstName = user.firstName || getFirstName(user.name);
       firstNameCounts[firstName.toLowerCase()] = (firstNameCounts[firstName.toLowerCase()] || 0) + 1;
       
@@ -49,19 +54,25 @@ export function MentionDropdown({
     });
     
     setDuplicateFirstNames(duplicates);
-  }, [users]);
+  }, [safeUsers]);
   
   // Filter users with improved partial matching - show all when query is empty
   useEffect(() => {
+    if (!safeUsers.length) {
+      setFilteredUsers([]);
+      return;
+    }
+    
     if (!searchQuery) {
-      setFilteredUsers(users); // Show all users initially when @ is typed
+      // Show all users initially when @ is typed
+      setFilteredUsers(safeUsers);
       setSelectedIndex(0);
       return;
     }
     
     // Only filter once the user has typed at least 1 character
     const query = searchQuery.toLowerCase();
-    const filtered = users.filter(user => {
+    const filtered = safeUsers.filter(user => {
       // Get first name if it's not already provided
       const firstName = (user.firstName || getFirstName(user.name)).toLowerCase();
       const fullName = user.name.toLowerCase();
@@ -75,13 +86,13 @@ export function MentionDropdown({
     
     setFilteredUsers(filtered);
     setSelectedIndex(0); // Reset selection when filter changes
-  }, [users, searchQuery]);
+  }, [safeUsers, searchQuery]);
   
   // Handle keyboard navigation
   useEffect(() => {
+    if (!isOpen) return;
+    
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-      
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
@@ -101,8 +112,7 @@ export function MentionDropdown({
           break;
         case 'Escape':
           e.preventDefault();
-          // Close the dropdown
-          // This will be handled in the parent component
+          // Close the dropdown will be handled in parent component
           break;
       }
     };
@@ -111,7 +121,17 @@ export function MentionDropdown({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, filteredUsers, selectedIndex, onSelectUser]);
   
+  // Don't render anything if not open
   if (!isOpen) return null;
+  
+  // Debug logging
+  console.log("MentionDropdown render:", { 
+    isOpen, 
+    searchQuery, 
+    userCount: safeUsers.length,
+    filteredCount: filteredUsers.length,
+    position
+  });
   
   // Show a helpful message when there are no matches
   if (filteredUsers.length === 0) {
