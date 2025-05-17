@@ -11,10 +11,9 @@ interface KanbanBoardProps {
   tasks?: Task[];
   projectId?: string;
   viewMode?: ViewMode;
-  displayMode?: "standard" | "compact" | "detailed";
 }
 
-export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", displayMode = "standard" }: KanbanBoardProps) {
+export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }: KanbanBoardProps) {
   const { moveTask, tasks: allTasks } = useAppContext();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -71,24 +70,6 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     setSelectedTask(task);
     setIsEditDialogOpen(true);
   };
-
-  // Render different views based on displayMode
-  const renderTaskCard = (task: Task) => {
-    return (
-      <div
-        key={task.id}
-        draggable
-        onDragStart={() => handleDragStart(task)}
-        className={displayMode === "compact" ? "mb-2" : ""}
-      >
-        <TaskCard 
-          task={task} 
-          onClick={() => handleTaskClick(task)}
-          variant={displayMode}
-        />
-      </div>
-    );
-  };
   
   // Render list view
   if (viewMode === "list") {
@@ -100,7 +81,6 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
               <TaskCard 
                 task={task} 
                 onClick={() => handleTaskClick(task)}
-                variant={displayMode}
               />
             </div>
           ))}
@@ -143,16 +123,16 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   // Default: Render Kanban view
   return (
     <div className="w-full overflow-x-auto">
-      <div className={`flex min-w-[800px] gap-4 ${displayMode === "compact" ? "gap-2" : "gap-4"}`}>
+      <div className="flex min-w-[800px] gap-4">
         {columns.map((column) => (
           <div
             key={column.id}
-            className={`flex-1 ${displayMode === "compact" ? "min-w-[200px]" : "min-w-[250px]"}`}
+            className="flex-1 min-w-[250px]"
             onDragOver={handleDragOver}
             onDrop={() => handleDrop(column.id)}
           >
             <div 
-              className={`rounded-lg p-3 h-full ${displayMode === "compact" ? "p-2" : "p-3"}`}
+              className="rounded-lg p-3 h-full"
               style={{ backgroundColor: columnColors[column.id] }}
             >
               <div className="flex justify-between items-center mb-3">
@@ -162,8 +142,19 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                 </span>
               </div>
               
-              <div className={`space-y-3 min-h-[500px] ${displayMode === "compact" ? "space-y-2 min-h-[400px]" : "space-y-3 min-h-[500px]"}`}>
-                {tasksByStatus[column.id].map(renderTaskCard)}
+              <div className="space-y-3 min-h-[500px]">
+                {tasksByStatus[column.id].map(task => (
+                  <div
+                    key={task.id}
+                    draggable
+                    onDragStart={() => handleDragStart(task)}
+                  >
+                    <TaskCard 
+                      task={task} 
+                      onClick={() => handleTaskClick(task)}
+                    />
+                  </div>
+                ))}
                 
                 {tasksByStatus[column.id].length === 0 && (
                   <div className="border-2 border-dashed border-muted rounded-md h-20 flex items-center justify-center bg-background/40">
