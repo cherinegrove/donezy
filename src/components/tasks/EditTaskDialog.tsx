@@ -111,6 +111,23 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     });
   };
 
+  // Handlers for the select components with proper typing
+  const handlePriorityChange = (value: string) => {
+    setPriority(value as "low" | "medium" | "high");
+  };
+
+  const handleStatusChange = (value: string) => {
+    setStatus(value as "backlog" | "todo" | "in-progress" | "review" | "done");
+  };
+
+  const handleProjectChange = (value: string) => {
+    setProjectId(value);
+  };
+
+  const handleAssigneeChange = (value: string | undefined) => {
+    setAssigneeId(value);
+  };
+
   return (
     <>
       <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
@@ -153,14 +170,14 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                 <div className="space-y-2">
                   <Label>Project</Label>
                   <ProjectSelect
-                    field={{ value: projectId, onChange: setProjectId }}
+                    field={{ value: projectId, onChange: handleProjectChange }}
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <Label>Assignee</Label>
                   <AssigneeSelect
-                    field={{ value: assigneeId, onChange: setAssigneeId }}
+                    field={{ value: assigneeId, onChange: handleAssigneeChange }}
                   />
                 </div>
               </div>
@@ -192,7 +209,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                 <div className="space-y-2">
                   <Label>Priority</Label>
                   <PrioritySelect
-                    field={{ value: priority, onChange: setPriority }}
+                    field={{ value: priority, onChange: handlePriorityChange }}
                   />
                 </div>
               </div>
@@ -200,7 +217,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
               <div className="space-y-2">
                 <Label>Status</Label>
                 <StatusSelect
-                  field={{ value: status, onChange: setStatus }}
+                  field={{ value: status, onChange: handleStatusChange }}
                 />
               </div>
             </TabsContent>

@@ -8,6 +8,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+type PriorityType = "low" | "medium" | "high";
+
 interface PrioritySelectProps {
   field?: {
     value: string;

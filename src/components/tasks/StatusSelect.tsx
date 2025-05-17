@@ -15,7 +15,7 @@ interface StatusSelectProps {
     onChange: (value: string) => void;
   };
   value?: string;
-  onChange?: (status: TaskStatus) => void;
+  onChange?: (value: string) => void;
 }
 
 export function StatusSelect({ field, value, onChange }: StatusSelectProps) {
@@ -29,7 +29,7 @@ export function StatusSelect({ field, value, onChange }: StatusSelectProps) {
       return;
     }
     if (field?.onChange) field.onChange(value);
-    if (onChange) onChange(value as TaskStatus);
+    if (onChange) onChange(value);
   };
   
   return (
