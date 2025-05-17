@@ -360,7 +360,7 @@ export function GanttChart({ tasks }: GanttChartProps) {
       </div>
       
       <div className="mt-2 border-t pt-2">
-        <div className="flex justify-between overflow-x-auto">
+        <div className="flex ml-[600px] overflow-x-auto">
           {dateTicks.map((tick, index) => (
             <div key={index} className="text-xs text-muted-foreground px-1">
               {formatXAxis(tick)}

@@ -126,7 +126,10 @@ export default function Tasks() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <ViewSelector currentView={viewMode} onViewChange={setViewMode} />
+          {/* Hide the ViewSelector in Gantt view */}
+          {viewMode !== "gantt" && (
+            <ViewSelector currentView={viewMode} onViewChange={setViewMode} />
+          )}
           <Button onClick={() => setIsCreateTaskOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             New Task

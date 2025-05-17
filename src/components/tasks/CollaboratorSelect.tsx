@@ -21,13 +21,16 @@ export function CollaboratorSelect({
     label: user.name,
     value: user.id,
     avatar: user.avatar,
-    initials: user.name.slice(0, 2),
+    initials: user.name.substring(0, 2),
   }));
+
+  // Ensure selectedValues is always an array
+  const safeSelectedValues = selectedValues || [];
 
   return (
     <MultiSelect
       options={options}
-      selectedValues={selectedValues}
+      selectedValues={safeSelectedValues}
       onValueChange={onValueChange}
       placeholder={placeholder}
     />

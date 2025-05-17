@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -122,7 +121,7 @@ export const KanbanCustomizationCard = () => {
     setColors(newColors);
     toast({
       title: "Palette Applied",
-      description: `${palette.name} palette has been applied to your kanban board`
+      description: `${palette.name} palette has been applied to your task statuses`
     });
   };
   
@@ -137,7 +136,7 @@ export const KanbanCustomizationCard = () => {
     
     toast({
       title: "Changes Saved",
-      description: "Your kanban color customizations have been saved"
+      description: "Your status color customizations have been saved"
     });
   };
   
@@ -240,15 +239,6 @@ export const KanbanCustomizationCard = () => {
       return;
     }
     
-    if (name === 'done' || name === 'todo' || name === 'in-progress') {
-      toast({
-        title: "Error",
-        description: "Cannot delete required statuses (Todo, In Progress, Done)",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     setColors(prev => prev.filter(color => color.name !== name));
     toast({
       title: "Status Deleted",
@@ -262,9 +252,9 @@ export const KanbanCustomizationCard = () => {
         <div className="flex items-center gap-2">
           <Palette className="h-5 w-5 text-primary" />
           <div>
-            <CardTitle className="text-lg">Kanban Board Customization</CardTitle>
+            <CardTitle className="text-lg">Task Status Customization</CardTitle>
             <CardDescription>
-              Customize status names, colors, and add new statuses to your kanban boards
+              Customize status names, colors, and add new statuses for tasks across the application
             </CardDescription>
           </div>
         </div>
@@ -311,6 +301,7 @@ export const KanbanCustomizationCard = () => {
                         size="icon"
                         className="text-destructive"
                         onClick={() => handleDeleteStatus(color.name)}
+                        disabled={color.name === 'todo' || color.name === 'in-progress' || color.name === 'done'}
                       >
                         <X className="h-4 w-4" />
                       </Button>
