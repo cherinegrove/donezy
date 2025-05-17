@@ -12,6 +12,7 @@ import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ConvertToTemplateDialog } from "@/components/projects/ConvertToTemplateDialog";
+import { ProjectNotes } from "@/components/projects/ProjectNotes";
 
 const ProjectDetails = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -192,6 +193,7 @@ const ProjectDetails = () => {
           <TabsTrigger value="kanban">Kanban Board</TabsTrigger>
           <TabsTrigger value="time">Time Tracking</TabsTrigger>
           <TabsTrigger value="files">Files</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
         
         <TabsContent value="kanban" className="mt-6">
@@ -260,6 +262,10 @@ const ProjectDetails = () => {
               </p>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="notes" className="mt-6">
+          <ProjectNotes projectId={projectId!} />
         </TabsContent>
       </Tabs>
       

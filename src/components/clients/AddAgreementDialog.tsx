@@ -16,7 +16,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Upload, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +42,7 @@ export function AddAgreementDialog({ clientId, isOpen, onClose, selectedFiles = 
   const [rate, setRate] = useState<number>(client?.billableRate || 100);
   const [currency, setCurrency] = useState<string>(client?.currency || 'USD');
   const [description, setDescription] = useState<string>('');
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   
   // Handle service type change
   const handleServiceTypeChange = (value: 'retainer' | 'payasyougo' | 'bank-hours') => {
@@ -53,8 +54,15 @@ export function AddAgreementDialog({ clientId, isOpen, onClose, selectedFiles = 
     }
   };
   
+  // Handle file upload form change
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFileToUpload(e.target.files[0]);
+    }
+  };
+  
   // Handle form submission
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!startDate) {
       toast({
         title: "Error",
@@ -64,6 +72,7 @@ export function AddAgreementDialog({ clientId, isOpen, onClose, selectedFiles = 
       return;
     }
     
+    // Add the agreement
     addClientAgreement({
       clientId,
       serviceType,
@@ -74,9 +83,20 @@ export function AddAgreementDialog({ clientId, isOpen, onClose, selectedFiles = 
       currency,
       description,
       status: 'active',
-      // Also include the selected files if needed in your data model
-      // fileIds: selectedFiles
     });
+    
+    // Upload file if selected
+    if (fileToUpload) {
+      try {
+        await uploadClientFile(clientId, fileToUpload);
+      } catch (error) {
+        toast({
+          title: "Warning",
+          description: "Agreement was added but file upload failed",
+          variant: "destructive",
+        });
+      }
+    }
     
     toast({
       title: "Agreement Added",
@@ -84,6 +104,14 @@ export function AddAgreementDialog({ clientId, isOpen, onClose, selectedFiles = 
     });
     
     onClose();
+  };
+  
+  // Function to upload client file (placeholder)
+  const uploadClientFile = async (clientId: string, file: File) => {
+    // This would be implemented with actual file upload logic
+    console.log(`Uploading file ${file.name} for client ${clientId}`);
+    // Implementation would be done here
+    return Promise.resolve();
   };
   
   return (
@@ -205,14 +233,39 @@ export function AddAgreementDialog({ clientId, isOpen, onClose, selectedFiles = 
             </div>
           </div>
           
-          {selectedFiles && selectedFiles.length > 0 && (
-            <div className="space-y-2">
-              <Label>Selected Files</Label>
-              <div className="p-2 border rounded-md bg-muted/10">
-                <p className="text-sm">{selectedFiles.length} file(s) selected</p>
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="file-upload">Agreement File (Optional)</Label>
+            <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
+              <Label htmlFor="file-upload" className="cursor-pointer">
+                <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                <span className="mt-2 block text-sm font-medium">
+                  Click to upload or drag and drop
+                </span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  PDF, DOC, DOCX, XLS, XLSX up to 10MB
+                </span>
+                <Input 
+                  id="file-upload" 
+                  type="file" 
+                  className="hidden"
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx,.xls,.xlsx"
+                />
+              </Label>
             </div>
-          )}
+            
+            {fileToUpload && (
+              <div className="flex items-center justify-between p-2 bg-muted rounded mt-2">
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 mr-2" />
+                  <span className="text-sm truncate max-w-[250px]">{fileToUpload.name}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {(fileToUpload.size / (1024 * 1024)).toFixed(2)} MB
+                </span>
+              </div>
+            )}
+          </div>
           
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>

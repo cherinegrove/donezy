@@ -1,3 +1,4 @@
+
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
@@ -282,4 +283,13 @@ export interface Purchase {
   date: string;
   projectId?: string;
   description: string;
+}
+
+export interface ProjectNote {
+  id: string;
+  projectId: string;
+  userId: string;
+  content: string;
+  timestamp: string;
+  mentionedUserIds: string[];
 }

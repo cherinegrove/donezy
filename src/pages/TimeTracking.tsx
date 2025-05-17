@@ -2,11 +2,12 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, startOfMonth, endOfMonth, differenceInDays, isWithinInterval, parseISO } from "date-fns";
-import { Play, Clock, Calendar, ChevronDown, ChevronRight } from "lucide-react";
+import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
+import { TimeEntry, TimeEntryStatus } from "@/types";
 import { 
   Table,
   TableHeader,
@@ -44,6 +45,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { EditTimeEntryDialog } from "@/components/time/EditTimeEntryDialog";
 
 const TimeTracking = () => {
   const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser } = useAppContext();

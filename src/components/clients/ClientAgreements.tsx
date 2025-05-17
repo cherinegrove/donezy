@@ -252,7 +252,7 @@ export function ClientAgreements({ clientId }: ClientAgreementsProps) {
         
         {clientFiles.length > 0 && (
           <div className="mt-6">
-            <h3 className="text-sm font-medium mb-3">Attached Files</h3>
+            <h3 className="text-sm font-medium mb-3">Client Files</h3>
             <div className="border rounded-md divide-y">
               {clientFiles.map(file => (
                 <div key={file.id} className="flex items-center justify-between p-3">
@@ -274,8 +274,8 @@ export function ClientAgreements({ clientId }: ClientAgreementsProps) {
       
       {/* Add Agreement Dialog */}
       <AddAgreementDialog 
-        open={isAddDialogOpen} 
-        onOpenChange={setIsAddDialogOpen} 
+        isOpen={isAddDialogOpen} 
+        onClose={() => setIsAddDialogOpen(false)} 
         clientId={clientId} 
       />
       
