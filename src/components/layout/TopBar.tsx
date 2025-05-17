@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 import { useNavigate } from "react-router-dom";
+import { UserProfileDialog } from "@/components/users/UserProfileDialog";
 
 export function TopBar() {
   const { currentUser } = useAppContext();
@@ -25,15 +26,12 @@ export function TopBar() {
   const { toggleSidebar } = useSidebar();
   const [isTimerDialogOpen, setIsTimerDialogOpen] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const navigate = useNavigate();
   
   // Toggle between light and dark mode
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
-  };
-  
-  const handleProfileClick = () => {
-    navigate('/settings?tab=profile');
   };
   
   return (
@@ -120,7 +118,7 @@ export function TopBar() {
                     </div>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleProfileClick}>
+                  <DropdownMenuItem onClick={() => setIsProfileDialogOpen(true)}>
                     <User className="mr-2 h-4 w-4" />
                     <span>My Profile</span>
                   </DropdownMenuItem>
@@ -144,6 +142,14 @@ export function TopBar() {
         open={isTaskDialogOpen}
         onOpenChange={setIsTaskDialogOpen}
       />
+
+      {currentUser && (
+        <UserProfileDialog
+          open={isProfileDialogOpen}
+          onOpenChange={setIsProfileDialogOpen}
+          userId={currentUser.id}
+        />
+      )}
     </header>
   );
 }

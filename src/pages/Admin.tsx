@@ -5,9 +5,13 @@ import { useAppContext } from "@/contexts/AppContext";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminActivity from "@/components/admin/AdminActivity";
 import AdminTeams from "@/components/admin/AdminTeams";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AreaChart, BarChart3, Box, Database, Download, Settings, ShieldAlert, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState("users");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const { currentUser } = useAppContext();
 
   // Only admin should access this page
@@ -26,17 +30,111 @@ export default function Admin() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Manage users, teams, and monitor activity</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Manage users, teams, and monitor system activity</p>
+        </div>
+        <Button variant="outline" className="gap-2">
+          <Download className="h-4 w-4" />
+          Export Data
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="activity">Activity Log</TabsTrigger>
+          <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
+
+        {/* Dashboard overview tab */}
+        <TabsContent value="dashboard" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="text-2xl font-bold">24</div>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">+12% from last month</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="text-2xl font-bold">18</div>
+                  <Box className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">+3 new this week</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">System Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">Healthy</Badge>
+                  </div>
+                  <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">100% uptime last 30 days</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Storage Used</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="text-2xl font-bold">68%</div>
+                  <Database className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">5.4GB of 8GB</p>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AreaChart className="h-5 w-5 text-primary" />
+                  User Activity
+                </CardTitle>
+                <CardDescription>User logins over the past 30 days</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px] flex items-center justify-center border rounded-md bg-muted/40">
+                  <p className="text-muted-foreground text-sm">User activity chart placeholder</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  Resource Usage
+                </CardTitle>
+                <CardDescription>System resource allocation</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px] flex items-center justify-center border rounded-md bg-muted/40">
+                  <p className="text-muted-foreground text-sm">Resource usage chart placeholder</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
         <TabsContent value="users" className="space-y-6">
           <AdminUsers />
@@ -48,6 +146,43 @@ export default function Admin() {
 
         <TabsContent value="activity" className="space-y-6">
           <AdminActivity />
+        </TabsContent>
+
+        <TabsContent value="system" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-primary" />
+                System Settings
+              </CardTitle>
+              <CardDescription>Configure global system settings</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <h3 className="font-medium">Maintenance Mode</h3>
+                  <p className="text-sm text-muted-foreground">When enabled, only administrators can access the system.</p>
+                  <div className="flex items-center justify-end">
+                    <Button variant="outline">Enable Maintenance Mode</Button>
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <h3 className="font-medium">Database Backup</h3>
+                  <p className="text-sm text-muted-foreground">Create a full backup of all system data.</p>
+                  <div className="flex items-center justify-end">
+                    <Button variant="outline">Generate Backup</Button>
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <h3 className="font-medium">System Cache</h3>
+                  <p className="text-sm text-muted-foreground">Clear system cache to resolve potential issues.</p>
+                  <div className="flex items-center justify-end">
+                    <Button variant="outline">Clear Cache</Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
