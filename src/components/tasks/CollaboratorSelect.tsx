@@ -1,3 +1,4 @@
+
 import React from "react";
 import { User } from "@/types";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -33,12 +34,17 @@ export function CollaboratorSelect({
   
   // Handle selection changes with limit
   const handleSelectionChange = (values: string[]) => {
+    if (!Array.isArray(values)) {
+      values = [];
+    }
+    
     // Limit the number of selections
     if (values.length > maxSelection) {
       // If trying to add beyond the limit, keep only the first maxSelection items
       onValueChange(values.slice(0, maxSelection));
       return;
     }
+    
     onValueChange(values);
   };
 

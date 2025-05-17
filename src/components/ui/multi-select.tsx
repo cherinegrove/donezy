@@ -73,10 +73,71 @@ export function MultiSelect({
   };
 
   const getSelectedItems = React.useCallback(() => {
+    if (!Array.isArray(safeSelectedValues) || !Array.isArray(safeOptions)) {
+      return [];
+    }
+    
     return safeSelectedValues
-      .map(value => safeOptions.find(option => option.value === value))
-      .filter((option): option is Option => !!option);
+      .map(value => safeOptions.find(option => option?.value === value))
+      .filter((option): option is Option => Boolean(option));
   }, [safeSelectedValues, safeOptions]);
+
+  // Create commandItems separately to ensure it's never undefined
+  const commandItems = React.useMemo(() => {
+    if (!Array.isArray(safeOptions)) {
+      return [];
+    }
+    
+    return safeOptions.map((option) => {
+      if (!option) return null;
+      
+      const isSelected = Array.isArray(safeSelectedValues) && safeSelectedValues.includes(option.value);
+      
+      return (
+        <CommandItem
+          key={option.value}
+          onSelect={() => handleSelect(option.value)}
+          className={cn("flex items-center gap-2", {
+            "bg-accent": isSelected,
+          })}
+        >
+          <div
+            className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", {
+              "bg-primary text-primary-foreground": isSelected,
+            })}
+          >
+            {isSelected && (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-3 w-3"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            )}
+          </div>
+          {option.avatar && (
+            <img 
+              src={option.avatar} 
+              alt={option.label} 
+              className="h-6 w-6 rounded-full mr-2" 
+            />
+          )}
+          {!option.avatar && option.initials && (
+            <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+              {option.initials}
+            </div>
+          )}
+          <span>{option.label}</span>
+        </CommandItem>
+      );
+    }).filter(Boolean);
+  }, [safeOptions, safeSelectedValues, handleSelect]);
 
   return (
     <>
@@ -121,52 +182,7 @@ export function MultiSelect({
             <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
             <CommandEmpty>No options found.</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
-              {safeOptions.map((option) => {
-                const isSelected = safeSelectedValues.includes(option.value);
-                return (
-                  <CommandItem
-                    key={option.value}
-                    onSelect={() => handleSelect(option.value)}
-                    className={cn("flex items-center gap-2", {
-                      "bg-accent": isSelected,
-                    })}
-                  >
-                    <div
-                      className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", {
-                        "bg-primary text-primary-foreground": isSelected,
-                      })}
-                    >
-                      {isSelected && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-3 w-3"
-                        >
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      )}
-                    </div>
-                    {option.avatar && (
-                      <img 
-                        src={option.avatar} 
-                        alt={option.label} 
-                        className="h-6 w-6 rounded-full mr-2" 
-                      />
-                    )}
-                    {!option.avatar && option.initials && (
-                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
-                        {option.initials}
-                      </div>
-                    )}
-                    <span>{option.label}</span>
-                  </CommandItem>
-                );
-              })}
+              {commandItems}
               {allowFileUpload && (
                 <CommandItem 
                   onSelect={() => {

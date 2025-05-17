@@ -9,7 +9,18 @@ interface FileSectionProps {
 }
 
 export function FileSection({ taskId }: FileSectionProps) {
-  // This is a placeholder component
+  const { tasks } = useAppContext();
+  const task = tasks.find(t => t.id === taskId);
+  
+  // Fallback if task not found
+  if (!task) {
+    return (
+      <div className="text-center py-4 text-muted-foreground">
+        Task not found
+      </div>
+    );
+  }
+  
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
