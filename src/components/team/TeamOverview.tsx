@@ -1,341 +1,130 @@
-
-import { useState } from "react";
-import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAppContext } from "@/contexts/AppContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from "recharts";
+import { Progress } from "@/components/ui/progress";
+import { Task } from "@/types";
+import { format } from "date-fns";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { format, parseISO, startOfWeek, endOfWeek, isAfter, isBefore, isThisWeek } from "date-fns";
-import { Task, User } from "@/types";
-import { toast } from "@/components/ui/use-toast";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
+import { ArrowRight } from "lucide-react";
 
-export const TeamOverview = () => {
-  const { users, tasks, teams, currentUser } = useAppContext();
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+export function TeamOverview() {
+  const { users, tasks, currentUser } = useAppContext();
   
-  // Filter to only show team members for teams the current user manages
-  const managedTeamIds = currentUser?.role === "admin" || currentUser?.role === "manager" 
-    ? teams.map(team => team.id) 
-    : [];
-    
-  const teamMembers = users.filter(user => 
-    user.teamIds.some(teamId => managedTeamIds.includes(teamId)) &&
-    (currentUser?.id !== user.id) && // Exclude current user
-    user.role !== "client" // Exclude client users
-  );
-
-  // Get tasks assigned to selected user or all team members if none selected
-  const getRelevantTasks = (): Task[] => {
-    if (selectedUserId) {
-      return tasks.filter(task => task.assigneeIds.includes(selectedUserId));
-    } else {
-      // Get all tasks assigned to team members
-      return tasks.filter(task => 
-        task.assigneeIds.some(assigneeId => 
-          teamMembers.some(member => member.id === assigneeId)
-        )
-      );
+  // Only show team members that the current user manages or all users for admins
+  const teamMembers = users.filter(user => {
+    if (currentUser?.role === "admin") return true;
+    if (currentUser?.role === "manager") {
+      return user.managerId === currentUser.id || user.id === currentUser.id;
     }
-  };
-
-  // Calculate the relevant tasks whenever needed
-  const relevantTasks = getRelevantTasks();
-
-  // Get tasks by status
-  const getTasksByStatus = () => {
-    const statusCounts = {
-      backlog: 0,
-      todo: 0,
-      "in-progress": 0,
-      review: 0,
-      done: 0
-    };
-    
-    relevantTasks.forEach(task => {
-      if (statusCounts.hasOwnProperty(task.status)) {
-        statusCounts[task.status as keyof typeof statusCounts]++;
-      }
-    });
-    
-    return Object.entries(statusCounts).map(([status, count]) => ({
-      name: status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' '),
-      count
-    }));
-  };
+    return false;
+  });
   
-  // Calculate weekly productivity (tasks completed per week)
-  const getWeeklyProductivity = () => {
-    const now = new Date();
-    const startOfCurrentWeek = startOfWeek(now);
-    const endOfCurrentWeek = endOfWeek(now);
+  // Calculate task statistics for each team member
+  const teamMemberStats = teamMembers.map(user => {
+    // Get tasks assigned to this user
+    const assignedTasks = tasks.filter(task => task.assigneeId === user.id);
     
-    // Instead of using completedAt, we'll use createdAt and check if status is "done"
-    // and if the created date is within this week (as an approximation)
-    const completedTasksThisWeek = relevantTasks.filter(task => 
-      task.status === "done" && 
-      isThisWeek(parseISO(task.createdAt))
-    );
+    // Calculate completion percentage
+    const totalTasks = assignedTasks.length;
+    const completedTasks = assignedTasks.filter(task => task.status === "done").length;
+    const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
     
-    return completedTasksThisWeek.length;
-  };
-
-  // Calculate overdue tasks
-  const getOverdueTasks = () => {
-    const now = new Date();
-    
-    return relevantTasks.filter(task => 
+    // Get overdue tasks
+    const today = new Date();
+    const overdueTasks = assignedTasks.filter(task => 
       task.status !== "done" && 
       task.dueDate && 
-      parseISO(task.dueDate) < now
-    ).length;
-  };
-  
-  // Calculate total hours tracked for the selected user or team
-  const getTotalHoursTracked = () => {
-    let totalMinutes = 0;
+      new Date(task.dueDate) < today
+    );
     
-    relevantTasks.forEach(task => {
-      task.timeEntries.forEach(entry => {
-        if (!selectedUserId || entry.userId === selectedUserId) {
-          totalMinutes += entry.duration;
-        }
-      });
-    });
+    // Get tasks due soon (next 3 days)
+    const threeDaysFromNow = new Date();
+    threeDaysFromNow.setDate(today.getDate() + 3);
     
-    return Math.round(totalMinutes / 60);
-  };
-  
-  // For the pie chart colors
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-
-  // Handle user selection with toast notification
-  const handleUserSelect = (userId: string) => {
-    // If "all" is selected, set selectedUserId to null to show all team members
-    if (userId === "all") {
-      setSelectedUserId(null);
-      toast({
-        title: "Team Selection",
-        description: "Now showing data for all team members",
-      });
-    } else {
-      setSelectedUserId(userId);
-      const userName = users.find(u => u.id === userId)?.name || 'Unknown';
-      toast({
-        title: "Team Member Selected",
-        description: `Now showing data for ${userName}`,
-      });
-    }
-  };
+    const tasksDueSoon = assignedTasks.filter(task => 
+      task.status !== "done" && 
+      task.dueDate && 
+      new Date(task.dueDate) >= today && 
+      new Date(task.dueDate) <= threeDaysFromNow
+    );
+    
+    // Get current task (in progress)
+    const currentTask = assignedTasks.find(task => task.status === "in-progress");
+    
+    return {
+      user,
+      totalTasks,
+      completedTasks,
+      completionPercentage,
+      overdueTasks,
+      tasksDueSoon,
+      currentTask
+    };
+  });
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">
-          {selectedUserId 
-            ? `Team Member: ${users.find(u => u.id === selectedUserId)?.name || 'Unknown'}`
-            : "Team Overview"
-          }
-        </h2>
-        
-        {selectedUserId && (
-          <Button variant="outline" onClick={() => handleUserSelect("all")}>
-            View All Team
-          </Button>
-        )}
+        <h2 className="text-xl font-semibold">Team Overview</h2>
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/team">
+            View Team <ArrowRight className="h-4 w-4 ml-1" />
+          </Link>
+        </Button>
       </div>
       
-      {/* Team member dropdown selector */}
-      <div className="w-full max-w-xs">
-        <Select
-          value={selectedUserId || "all"}
-          onValueChange={handleUserSelect}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select team member" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Team Members</SelectItem>
-            {teamMembers.map(member => (
-              <SelectItem key={member.id} value={member.id}>
-                <div className="flex items-center gap-2">
-                  <span>{member.name}</span>
-                  <span className="text-xs text-muted-foreground capitalize">({member.role})</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {teamMemberStats.map(({ user, totalTasks, completedTasks, completionPercentage, overdueTasks, tasksDueSoon, currentTask }) => (
+          <Card key={user.id}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center space-x-2">
+                <Avatar>
+                  <AvatarImage src={user.avatar} />
+                  <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <CardTitle className="text-base">{user.name}</CardTitle>
+                  <p className="text-sm text-muted-foreground">{user.role}</p>
                 </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      {/* Key metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Assigned Tasks</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{relevantTasks.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Completed Tasks</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {relevantTasks.filter(task => task.status === "done").length}
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{getOverdueTasks()}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Hours Tracked</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{getTotalHoursTracked()}</div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Task status distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Task Status Distribution</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={getTasksByStatus()}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="hsl(var(--primary))" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        
-        {/* Team productivity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Team Efficiency</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: "Completed", value: relevantTasks.filter(t => t.status === "done").length },
-                    { name: "In Progress", value: relevantTasks.filter(t => t.status === "in-progress").length },
-                    { name: "To Do", value: relevantTasks.filter(t => t.status === "todo").length },
-                    { name: "Review", value: relevantTasks.filter(t => t.status === "review").length },
-                    { name: "Backlog", value: relevantTasks.filter(t => t.status === "backlog").length }
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  nameKey="name"
-                  label={({name, value}) => `${name}: ${value}`}
-                >
-                  {getTasksByStatus().map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* User-specific stats when a user is selected */}
-      {selectedUserId && (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Member Details: {users.find(u => u.id === selectedUserId)?.name}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex flex-col p-4 bg-muted/20 rounded-lg">
-                <span className="text-sm text-muted-foreground">Weekly Completed</span>
-                <span className="text-2xl font-bold">{getWeeklyProductivity()}</span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Task Completion</span>
+                  <span>{completionPercentage}%</span>
+                </div>
+                <Progress value={completionPercentage} className="h-2" />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {completedTasks} of {totalTasks} tasks completed
+                </p>
               </div>
               
-              <div className="flex flex-col p-4 bg-muted/20 rounded-lg">
-                <span className="text-sm text-muted-foreground">Hours Tracked</span>
-                <span className="text-2xl font-bold">{getTotalHoursTracked()}</span>
-              </div>
+              {currentTask && (
+                <div>
+                  <p className="text-sm font-medium">Current Task:</p>
+                  <p className="text-sm truncate">{currentTask.title}</p>
+                  {currentTask.dueDate && (
+                    <p className="text-xs text-muted-foreground">
+                      Due: {format(new Date(currentTask.dueDate), "MMM d")}
+                    </p>
+                  )}
+                </div>
+              )}
               
-              <div className="flex flex-col p-4 bg-muted/20 rounded-lg">
-                <span className="text-sm text-muted-foreground">Overdue Tasks</span>
-                <span className="text-2xl font-bold">{getOverdueTasks()}</span>
+              <div className="flex justify-between text-sm">
+                <span className={overdueTasks.length > 0 ? "text-destructive" : ""}>
+                  {overdueTasks.length} overdue
+                </span>
+                <span className={tasksDueSoon.length > 0 ? "text-amber-500" : ""}>
+                  {tasksDueSoon.length} due soon
+                </span>
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium">Recent Activity</h3>
-              <div className="space-y-2">
-                {relevantTasks.slice(0, 5).map(task => (
-                  <div 
-                    key={task.id}
-                    className="flex items-center justify-between p-3 bg-muted/20 rounded-md"
-                  >
-                    <div>
-                      <p className="font-medium">{task.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Status: <span className="capitalize">{task.status.replace('-', ' ')}</span>
-                      </p>
-                    </div>
-                    <div className="text-right text-sm text-muted-foreground">
-                      {task.dueDate ? format(parseISO(task.dueDate), "MMM d, yyyy") : "No due date"}
-                    </div>
-                  </div>
-                ))}
-                
-                {relevantTasks.length === 0 && (
-                  <p className="text-center py-4 text-muted-foreground">
-                    No tasks assigned
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
-};
+}

@@ -47,7 +47,7 @@ const Dashboard = () => {
 
   // Tasks assigned to me
   const myTasks = tasks.filter((task) => 
-    task.assigneeIds.includes(currentUser?.id || "") && 
+    task.assigneeId === currentUser?.id && 
     task.status !== "done"
   );
 

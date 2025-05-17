@@ -539,7 +539,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         title: templateTask.title,
         description: templateTask.description,
         projectId: projectId,
-        assigneeIds: [],
+        assigneeId: taskIdMap.get(index) || `user-${uuidv4()}`, // Use assigneeId instead of assigneeIds
         status: templateTask.status,
         priority: templateTask.priority,
         customFields: {},
@@ -576,7 +576,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           description: subtask.description,
           projectId: projectId,
           parentTaskId: parentTaskId,
-          assigneeIds: [],
+          assigneeId: subtaskId, // Use assigneeId instead of assigneeIds
           status: "todo",
           priority: "medium",
           createdAt: new Date().toISOString(),
@@ -1001,7 +1001,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const getTasksByUser = (userId: string) => {
-    return tasks.filter(task => task.assigneeIds.includes(userId));
+    return tasks.filter(task => task.assigneeId === userId); // Use assigneeId instead of task.assigneeIds.includes(userId)
   };
   
   const getUnreadMessageCount = (userId: string) => {
