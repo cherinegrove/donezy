@@ -174,6 +174,11 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
     setIsNestedDialogOpen(true);
   };
   
+  const handleNestedTaskClose = () => {
+    setNestedSelectedTask(null);
+    setIsNestedDialogOpen(false);
+  };
+  
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
@@ -631,7 +636,7 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                   />
                 </div>
                 
-                <TaskWatchButton taskId={task.id} />
+                <TaskWatchButton task={task} />
               </CardContent>
             </Card>
           </div>
@@ -642,7 +647,7 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
         <EditTaskDialog
           task={nestedSelectedTask}
           open={isNestedDialogOpen}
-          onOpenChange={setIsNestedDialogOpen}
+          onOpenChange={handleNestedTaskClose}
         />
       )}
     </Sheet>

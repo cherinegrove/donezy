@@ -6,3 +6,7 @@
 // With:
 // assigneeId: "user-X",
 // Where "user-X" is the first user in the original assigneeIds array
+
+// Also add:
+// collaboratorIds: [],
+// To each task definition

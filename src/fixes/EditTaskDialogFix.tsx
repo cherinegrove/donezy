@@ -6,3 +6,8 @@
 // With
 // setNestedSelectedTask(null);
 // setIsNestedDialogOpen(false);
+
+// Also replace
+// <TaskWatchButton taskId={task.id} />
+// With
+// <TaskWatchButton task={task} />

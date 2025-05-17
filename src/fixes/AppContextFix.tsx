@@ -4,6 +4,7 @@
 // assigneeIds: [],
 // With
 // assigneeId: undefined,
+// collaboratorIds: [],
 
 // Also replace 
 // const getTasksByUser = (userId: string) => {
@@ -13,3 +14,17 @@
 // const getTasksByUser = (userId: string) => {
 //   return tasks.filter(task => task.assigneeId === userId);
 // };
+
+// Make sure to add collaboratorIds to all Task objects
+// Example:
+// {
+//   id: generateId(),
+//   title,
+//   description,
+//   projectId,
+//   assigneeId,
+//   collaboratorIds: [], // Add this line
+//   status,
+//   priority,
+//   ...rest
+// }
