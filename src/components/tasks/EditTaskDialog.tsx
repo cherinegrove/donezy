@@ -62,7 +62,7 @@ const taskSchema = z.object({
     message: "Please select a project.",
   }),
   assigneeId: z.string().optional(),
-  collaboratorIds: z.string().array().optional(),
+  collaboratorIds: z.array(z.string()).optional(),
   status: z.enum(["backlog", "todo", "in-progress", "review", "done"]),
   priority: z.enum(["low", "medium", "high"]),
   dueDate: z.date().optional(),
@@ -84,19 +84,22 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   const project = projects.find(p => p.id === task.projectId);
   const assignee = task.assigneeId ? users.find(user => user.id === task.assigneeId) : null;
   
+  // Ensure collaboratorIds is always an array
+  const safeCollaboratorIds = Array.isArray(task.collaboratorIds) ? task.collaboratorIds : [];
+  
   const form = useForm<z.infer<typeof taskSchema>>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
-      title: task.title,
-      description: task.description,
+      title: task.title || "",
+      description: task.description || "",
       projectId: task.projectId,
       assigneeId: task.assigneeId,
-      collaboratorIds: task.collaboratorIds,
+      collaboratorIds: safeCollaboratorIds,
       status: task.status,
       priority: task.priority,
       dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
       startDate: task.startDate ? new Date(task.startDate) : undefined,
-      customFields: task.customFields,
+      customFields: task.customFields || {},
     },
   });
   
@@ -105,6 +108,7 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
       ...values,
       dueDate: values.dueDate?.toISOString(),
       startDate: values.startDate?.toISOString(),
+      collaboratorIds: values.collaboratorIds || [], // Ensure collaboratorIds is always an array
     });
     onOpenChange(false);
   };

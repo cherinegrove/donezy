@@ -12,8 +12,8 @@ interface CollaboratorSelectProps {
 }
 
 export function CollaboratorSelect({
-  users,
-  selectedValues,
+  users = [],
+  selectedValues = [],
   onValueChange,
   placeholder = "Select collaborators",
   maxSelection = 10,
@@ -21,13 +21,15 @@ export function CollaboratorSelect({
   // Ensure users is always an array
   const safeUsers = Array.isArray(users) ? users : [];
   
-  // Format users data for the multi-select
-  const options = safeUsers.map(user => ({
-    label: user.name,
-    value: user.id,
-    avatar: user.avatar,
-    initials: user.name.substring(0, 2),
-  }));
+  // Format users data for the multi-select and ensure no undefined objects
+  const options = safeUsers
+    .filter(Boolean) // Filter out any undefined or null users
+    .map(user => ({
+      label: user.name || "Unknown",
+      value: user.id,
+      avatar: user.avatar,
+      initials: user.name ? user.name.substring(0, 2) : "??",
+    }));
 
   // Ensure selectedValues is always an array
   const safeSelectedValues = Array.isArray(selectedValues) ? selectedValues : [];

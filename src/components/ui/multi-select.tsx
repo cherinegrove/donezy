@@ -41,7 +41,7 @@ export function MultiSelect({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
   // Ensure options and selectedValues are always arrays
-  const safeOptions = Array.isArray(options) ? options : [];
+  const safeOptions = Array.isArray(options) ? options.filter(Boolean) : [];
   const safeSelectedValues = Array.isArray(selectedValues) ? selectedValues : [];
 
   const handleSelect = React.useCallback(
@@ -84,16 +84,15 @@ export function MultiSelect({
 
   // Create commandItems separately to ensure it's never undefined
   const commandItems = React.useMemo(() => {
-    if (!Array.isArray(safeOptions)) {
+    // Ensure safeOptions is defined and filtered before mapping
+    if (!safeOptions || !Array.isArray(safeOptions)) {
       return [];
     }
     
     return safeOptions
-      .filter(Boolean) // Filter out any null/undefined options
+      .filter(option => option && option.value) // Filter out any null/undefined options or ones without values
       .map((option) => {
-        if (!option) return null;
-        
-        const isSelected = Array.isArray(safeSelectedValues) && safeSelectedValues.includes(option.value);
+        const isSelected = safeSelectedValues.includes(option.value);
         
         return (
           <CommandItem
@@ -138,7 +137,7 @@ export function MultiSelect({
             <span>{option.label}</span>
           </CommandItem>
         );
-      }).filter(Boolean);
+      });
   }, [safeOptions, safeSelectedValues, handleSelect]);
 
   return (
@@ -184,8 +183,8 @@ export function MultiSelect({
             <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
             <CommandEmpty>No options found.</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
-              {/* We pass the array directly, not a function that returns an array */}
-              {commandItems}
+              {/* Ensure commandItems is a valid array */}
+              {commandItems && commandItems.length > 0 ? commandItems : null}
               {allowFileUpload && (
                 <CommandItem 
                   onSelect={() => {
