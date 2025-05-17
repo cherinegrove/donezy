@@ -4,7 +4,7 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/components/ui/sidebar";
-import { Menu, Moon, Plus, Search, Sun, Timer } from "lucide-react";
+import { Menu, Moon, Plus, Search, Sun, Timer, Settings, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { StartTimerDialog } from "@/components/time/StartTimerDialog";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
@@ -14,8 +14,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
+import { useNavigate } from "react-router-dom";
 
 export function TopBar() {
   const { currentUser } = useAppContext();
@@ -23,10 +25,15 @@ export function TopBar() {
   const { toggleSidebar } = useSidebar();
   const [isTimerDialogOpen, setIsTimerDialogOpen] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const navigate = useNavigate();
   
   // Toggle between light and dark mode
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
+  };
+  
+  const handleProfileClick = () => {
+    navigate('/settings?tab=profile');
   };
   
   return (
@@ -96,10 +103,31 @@ export function TopBar() {
                 <p className="text-sm font-medium leading-none">{currentUser.name}</p>
                 <p className="text-xs text-muted-foreground">{currentUser.role}</p>
               </div>
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
-                {currentUser.name.charAt(0)}
-              </div>
-              <LogoutButton />
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 rounded-full p-0">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                      {currentUser.name.charAt(0)}
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="flex items-center justify-start p-2">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{currentUser.name}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{currentUser.email}</p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleProfileClick}>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>My Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <LogoutButton variant="menuItem" />
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
         </div>

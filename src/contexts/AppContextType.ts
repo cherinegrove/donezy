@@ -97,9 +97,9 @@ export interface AppContextType {
   startTimeTracking: (taskId?: string, projectId?: string, clientId?: string) => void;
   stopTimeTracking: (notes?: string) => void;
   addTimeEntry: (entry: Omit<TimeEntry, "id">) => void;
-  updateTimeEntry: (id: string, updates: Partial<TimeEntry>) => void; // Added for updating time entries
-  deleteTimeEntry: (id: string) => void; // Added for deleting time entries
-  updateTimeEntryStatus: (id: string, status: TimeEntryStatus, approvedBy: string) => void; // Added for approving/declining time entries
+  updateTimeEntry: (id: string, updates: Partial<TimeEntry>) => void;
+  deleteTimeEntry: (id: string) => void;
+  updateTimeEntryStatus: (id: string, status: TimeEntryStatus, approvedBy: string) => void;
   
   // Message operations
   sendMessage: (message: Omit<Message, "id" | "timestamp" | "read">) => void;

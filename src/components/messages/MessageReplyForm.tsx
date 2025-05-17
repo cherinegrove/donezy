@@ -1,240 +1,176 @@
 
-import React, { useState, useCallback, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useRef, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { useAppContext } from "@/contexts/AppContext";
-import { Send, AlertCircle } from "lucide-react";
-import { MentionDropdown } from "./MentionDropdown";
+import { Button } from "@/components/ui/button";
 import { User } from "@/types";
+import { MentionDropdown } from "./MentionDropdown";
 
-interface MessageReplyFormProps {
-  commentId: string;
-  taskId: string;
-  projectId?: string;
-  clientId?: string;
-  onReplySent?: () => void;
+export interface MessageReplyFormProps {
+  onCancel: () => void;
+  onSend: () => void;
+  users: User[];
+  replyContent: string;
+  setReplyContent: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export function MessageReplyForm({
-  commentId,
-  taskId,
-  projectId,
-  clientId,
-  onReplySent,
+export function MessageReplyForm({ 
+  onCancel, 
+  onSend, 
+  users, 
+  replyContent, 
+  setReplyContent 
 }: MessageReplyFormProps) {
-  const { sendMessage, currentUser, users } = useAppContext();
-  const [content, setContent] = useState("");
-  const [mentionDropdownOpen, setMentionDropdownOpen] = useState(false);
-  const [mentionSearchQuery, setMentionSearchQuery] = useState("");
-  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
-  const [lastCursorPosition, setLastCursorPosition] = useState(0);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Ensure users is an array to prevent TypeScript errors
+  const usersList = Array.isArray(users) ? users : [];
   
-  // Ensure we've imported the correct User type
-  const filteredUsers = users.filter(user => {
-    if (!mentionSearchQuery) return true;
-    
-    const query = mentionSearchQuery.toLowerCase();
-    const name = user.name?.toLowerCase();
-    const firstName = user.name?.split(' ')[0]?.toLowerCase();
-    
-    return name?.includes(query) || firstName?.includes(query);
-  });
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionStartPos, setMentionStartPos] = useState(0);
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Track cursor position
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
-    setContent(value);
+    setReplyContent(value);
+    setCursorPosition(e.target.selectionStart || 0);
     
-    // Find if user is typing a mention
-    const cursorPosition = e.target.selectionStart;
-    const textBeforeCursor = value.substring(0, cursorPosition);
-    
-    // Find the last @ symbol before cursor
-    const lastAtSymbol = textBeforeCursor.lastIndexOf('@');
-    
-    if (lastAtSymbol !== -1) {
-      const textAfterAtSymbol = textBeforeCursor.substring(lastAtSymbol + 1);
+    // Check for mention symbol (@)
+    const lastAtPos = value.lastIndexOf('@', e.target.selectionStart || 0);
+    if (lastAtPos !== -1) {
+      const textBetweenAtAndCursor = value.substring(
+        lastAtPos + 1, 
+        e.target.selectionStart || 0
+      );
       
-      // Check if the @ is preceded by a space or is at the beginning of the text
-      const isValidMention = lastAtSymbol === 0 || 
-                             textBeforeCursor[lastAtSymbol - 1] === ' ' || 
-                             textBeforeCursor[lastAtSymbol - 1] === '\n';
-                             
-      // If there's no space in the mention query, it's a valid query
-      const hasNoSpace = !textAfterAtSymbol.includes(' ');
-      
-      if (isValidMention && hasNoSpace) {
-        setMentionSearchQuery(textAfterAtSymbol);
-        setLastCursorPosition(lastAtSymbol);
-        
-        if (!mentionDropdownOpen) {
-          setMentionDropdownOpen(true);
-          calculateMentionDropdownPosition(lastAtSymbol);
-        } else {
-          // Update position if already open
-          calculateMentionDropdownPosition(lastAtSymbol);
-        }
+      // If there's no space in this text, it's a potential mention
+      if (!textBetweenAtAndCursor.includes(' ') && textBetweenAtAndCursor.length <= 20) {
+        setMentionStartPos(lastAtPos);
+        setMentionQuery(textBetweenAtAndCursor);
+        setShowMentions(true);
         return;
       }
     }
     
-    // If we're here, there's no valid @ mention being typed
-    setMentionDropdownOpen(false);
+    // No @ found, or @ followed by space, hide mentions
+    setShowMentions(false);
   };
-  
-  const calculateMentionDropdownPosition = (atSymbolIndex: number) => {
+
+  // When textarea loses focus, hide mentions dropdown after a short delay
+  // This allows clicks on the mention dropdown to register
+  const handleBlur = () => {
+    setTimeout(() => {
+      setShowMentions(false);
+    }, 150);
+  };
+
+  // Get position for mention dropdown
+  const getMentionDropdownPosition = () => {
+    if (!textareaRef.current) return { top: 0, left: 0 };
+    
+    const textarea = textareaRef.current;
+    const text = textarea.value.substring(0, mentionStartPos);
+    
+    // Create a temporary element to measure text dimensions
+    const mirror = document.createElement('div');
+    mirror.style.position = 'absolute';
+    mirror.style.visibility = 'hidden';
+    mirror.style.whiteSpace = 'pre-wrap';
+    mirror.style.wordWrap = 'break-word';
+    mirror.style.width = `${textarea.offsetWidth}px`;
+    mirror.style.fontSize = window.getComputedStyle(textarea).fontSize;
+    mirror.style.lineHeight = window.getComputedStyle(textarea).lineHeight;
+    mirror.style.padding = window.getComputedStyle(textarea).padding;
+    mirror.textContent = text;
+    
+    document.body.appendChild(mirror);
+    
+    // Calculate cursor position
+    const textBeforeCursor = document.createTextNode(text);
+    mirror.appendChild(textBeforeCursor);
+    const span = document.createElement('span');
+    span.textContent = '|';
+    mirror.appendChild(span);
+    
+    const coords = span.getBoundingClientRect();
+    const textareaCoords = textarea.getBoundingClientRect();
+    
+    document.body.removeChild(mirror);
+    
+    return {
+      top: coords.top - textareaCoords.top + 20, // add some extra pixels for better positioning
+      left: coords.left - textareaCoords.left
+    };
+  };
+
+  const handleSelectMention = (user: User) => {
     if (!textareaRef.current) return;
     
-    // Create a temporary hidden div to calculate position
-    const tempDiv = document.createElement('div');
-    tempDiv.style.position = 'absolute';
-    tempDiv.style.visibility = 'hidden';
-    tempDiv.style.whiteSpace = 'pre-wrap';
-    tempDiv.style.wordBreak = 'break-word';
+    const beforeMention = replyContent.substring(0, mentionStartPos);
+    const afterMention = replyContent.substring(cursorPosition);
+    const newContent = `${beforeMention}@${user.name} ${afterMention}`;
     
-    // Copy textarea styles to ensure exact text rendering
-    const styles = window.getComputedStyle(textareaRef.current);
-    tempDiv.style.width = styles.width;
-    tempDiv.style.padding = styles.padding;
-    tempDiv.style.fontFamily = styles.fontFamily;
-    tempDiv.style.fontSize = styles.fontSize;
-    tempDiv.style.lineHeight = styles.lineHeight;
-    
-    // Get text before the @ symbol
-    const textBeforeAt = content.substring(0, atSymbolIndex);
-    
-    // Create text node for content before @ symbol
-    const textNode = document.createTextNode(textBeforeAt);
-    tempDiv.appendChild(textNode);
-    
-    // Add span for @ symbol
-    const atSpan = document.createElement('span');
-    atSpan.id = 'at-symbol';
-    atSpan.textContent = '@';
-    tempDiv.appendChild(atSpan);
-    
-    // Append to body temporarily
-    document.body.appendChild(tempDiv);
-    
-    // Get position of @ symbol
-    const atSymbolElem = tempDiv.querySelector('#at-symbol');
-    if (atSymbolElem) {
-      const rect = atSymbolElem.getBoundingClientRect();
-      const textareaRect = textareaRef.current.getBoundingClientRect();
-      
-      // Calculate position relative to textarea
-      const top = rect.bottom - textareaRect.top;
-      const left = rect.left - textareaRect.left;
-      
-      setMentionPosition({ 
-        top: top + 5, // Add some padding
-        left: left
-      });
-    }
-    
-    // Remove the temporary div
-    document.body.removeChild(tempDiv);
-  };
-  
-  const handleSelectUser = useCallback((user: User) => {
-    if (!textareaRef.current) return;
-    
-    // Replace the @searchQuery with @username
-    const newContent = 
-      content.substring(0, lastCursorPosition) + 
-      `@${user.name.split(' ')[0]}` + // Just use first name
-      content.substring(lastCursorPosition + mentionSearchQuery.length + 1); // +1 for the @ symbol
-      
-    setContent(newContent);
-    setMentionDropdownOpen(false);
+    setReplyContent(newContent);
+    setShowMentions(false);
     
     // Focus back on textarea after selection
     textareaRef.current.focus();
-  }, [content, lastCursorPosition, mentionSearchQuery]);
-  
-  const handleSendMessage = () => {
-    if (!content.trim() || !currentUser) return;
     
-    // Get all mentioned user IDs
-    const mentionRegex = /@(\w+)/g;
-    const mentionedNames = Array.from(content.matchAll(mentionRegex)).map(match => match[1]);
-    
-    // Find user IDs from names (first name only for simplicity)
-    const mentionedUserIds = users
-      .filter(user => {
-        const firstName = user.name.split(' ')[0];
-        return mentionedNames.some(name => firstName === name);
-      })
-      .map(user => user.id);
-    
-    sendMessage({
-      senderId: currentUser.id,
-      recipientIds: mentionedUserIds,
-      content,
-      read: false,
-      commentId,
-      taskId,
-      projectId,
-      clientId,
-    });
-    
-    setContent("");
-    
-    if (onReplySent) {
-      onReplySent();
-    }
+    // Set cursor position after the inserted mention
+    const newCursorPos = mentionStartPos + user.name.length + 2; // +2 for @ and space
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.selectionStart = newCursorPos;
+        textareaRef.current.selectionEnd = newCursorPos;
+      }
+    }, 0);
   };
   
+  const filteredUsers = usersList.filter(
+    user => user.name.toLowerCase().includes(mentionQuery.toLowerCase())
+  );
+
+  // Position dropdown
   useEffect(() => {
-    // Close mention dropdown when clicking outside
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        textareaRef.current &&
-        !textareaRef.current.contains(e.target as Node)
-      ) {
-        setMentionDropdownOpen(false);
+    if (showMentions && textareaRef.current) {
+      const { top, left } = getMentionDropdownPosition();
+      const dropdown = document.getElementById('mention-dropdown');
+      if (dropdown) {
+        dropdown.style.top = `${top}px`;
+        dropdown.style.left = `${left}px`;
       }
-    };
-    
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+    }
+  }, [showMentions, mentionQuery, replyContent]);
   
   return (
-    <div className="relative">
-      <div className="flex items-start gap-2">
-        <div className="flex-1">
-          <Textarea
-            ref={textareaRef}
-            value={content}
-            onChange={handleTextareaChange}
-            className="w-full focus-visible:ring-1 focus-visible:ring-primary resize-none"
-            placeholder="Type your reply... Use @ to mention users"
-            rows={3}
+    <div className="space-y-4">
+      <div className="relative">
+        <Textarea
+          ref={textareaRef}
+          value={replyContent}
+          onChange={handleTextareaChange}
+          onBlur={handleBlur}
+          placeholder="Write your reply..."
+          className="min-h-[100px] resize-none p-3"
+        />
+        
+        {showMentions && filteredUsers.length > 0 && (
+          <MentionDropdown 
+            users={filteredUsers} 
+            onSelect={handleSelectMention}
+            id="mention-dropdown"
+            className="absolute z-50 w-[200px]"
+            style={{
+              position: 'absolute',
+              zIndex: 50
+            }}
           />
-          {mentionDropdownOpen && (
-            <MentionDropdown 
-              users={filteredUsers}
-              isOpen={mentionDropdownOpen}
-              position={mentionPosition}
-              onSelectUser={handleSelectUser}
-              searchQuery={mentionSearchQuery}
-            />
-          )}
-        </div>
-        <Button
-          onClick={handleSendMessage}
-          className="mt-1"
-          disabled={!content.trim()}
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+        )}
       </div>
-      <div className="mt-2 text-xs text-muted-foreground">
-        <AlertCircle className="h-3 w-3 inline mr-1" />
-        Mention users with @username
+      
+      <div className="flex justify-end space-x-2">
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button onClick={onSend}>Send Reply</Button>
       </div>
     </div>
   );

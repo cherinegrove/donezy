@@ -10,9 +10,10 @@ import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppContext } from "@/contexts/AppContext";
 import { formatDistanceToNow } from "date-fns";
+import { Check } from "lucide-react";
 
 export function NotificationsPopover({ children }: { children?: React.ReactNode }) {
-  const { messages, currentUser } = useAppContext();
+  const { messages, currentUser, markMessageAsRead } = useAppContext();
   
   // Get unread notifications for current user
   const unreadNotifications = currentUser 
@@ -21,6 +22,11 @@ export function NotificationsPopover({ children }: { children?: React.ReactNode 
         !msg.read
       )
     : [];
+    
+  const handleMarkAsRead = (messageId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent popover from closing
+    markMessageAsRead(messageId);
+  };
   
   return (
     <Popover>
@@ -44,10 +50,23 @@ export function NotificationsPopover({ children }: { children?: React.ReactNode 
             <div className="space-y-1">
               {unreadNotifications.map(notification => (
                 <div key={notification.id} className="p-4 border-b last:border-0 hover:bg-muted/50">
-                  <p className="text-sm">{notification.content}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
-                  </p>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <p className="text-sm">{notification.content}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                      </p>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => handleMarkAsRead(notification.id, e)}
+                      className="ml-2 h-8"
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      <span>Read</span>
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
