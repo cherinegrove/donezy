@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -34,9 +33,11 @@ const createTaskSchema = (isSubtask: boolean) => {
     description: z.string(),
     clientId: z.string().min(1, { message: "Client is required" }),
     projectId: z.string().min(1, { message: "Project is required" }),
-    assigneeIds: z.array(z.string()),
+    assigneeId: z.string().optional(), // Changed to single assigneeId
+    collaboratorIds: z.array(z.string()), // Added collaboratorIds
     status: z.string().min(1, { message: "Status is required" }),
     priority: z.string().min(1, { message: "Priority is required" }),
+    startDate: z.string().optional(), // Added start date
     dueDate: z.string().optional(),
     customFields: z.record(z.string(), z.any()),
   };
@@ -74,7 +75,7 @@ export function CreateTaskDialog({
   defaultParentTaskId,
 }: CreateTaskDialogProps) {
   const { projects, users, tasks, customFields, addTask, clients } = useAppContext();
-  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [selectedCollaborators, setSelectedCollaborators] = useState<string[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [clientProjects, setClientProjects] = useState<typeof projects>([]);
   
@@ -89,9 +90,12 @@ export function CreateTaskDialog({
       clientId: "",
       projectId: defaultProjectId || "",
       parentTaskId: defaultParentTaskId || "",
+      assigneeId: "", // Changed to single assigneeId
+      collaboratorIds: [], // Added collaboratorIds
       status: "todo",
       priority: "medium",
-      assigneeIds: [],
+      startDate: "", // Added startDate
+      dueDate: "",
       customFields: {},
     },
   });
@@ -120,12 +124,14 @@ export function CreateTaskDialog({
       description: data.description,
       projectId: data.projectId,
       parentTaskId: data.parentTaskId,
-      assigneeIds: data.assigneeIds,
+      assigneeId: data.assigneeId, // Changed to single assigneeId
+      collaboratorIds: data.collaboratorIds, // Added collaboratorIds
       status: data.status as TaskStatus,
       priority: data.priority as "low" | "medium" | "high",
+      startDate: data.startDate, // Added startDate
       dueDate: data.dueDate,
       customFields: data.customFields || {},
-      subtasks: [],
+      subtasks: [], // Added empty subtasks array
     });
     
     toast.success("Task created successfully");
@@ -267,7 +273,7 @@ export function CreateTaskDialog({
                       </SelectTrigger>
                       <SelectContent>
                         {!isSubtask && (
-                          <SelectItem key="no-parent" value="none">No parent task</SelectItem>
+                          <SelectItem key="no-parent" value="">No parent task</SelectItem>
                         )}
                         {projectTasks.map((task) => (
                           <SelectItem key={task.id} value={task.id}>
@@ -281,9 +287,98 @@ export function CreateTaskDialog({
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Status and Priority fields - keep existing code */}
+              <FormField
+                control={form.control}
+                name="assigneeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assignee (Owner)</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value || ""}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an assignee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No assignee</SelectItem>
+                          {users.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="collaboratorIds"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Collaborators</FormLabel>
+                    <FormControl>
+                      <Select
+                        value=""
+                        onValueChange={(value) => {
+                          const newCollaborators = [...field.value, value];
+                          field.onChange(newCollaborators);
+                          setSelectedCollaborators(newCollaborators);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Add collaborator" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users
+                            .filter((user) => !field.value.includes(user.id))
+                            .map((user) => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {user.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    
+                    {field.value.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {field.value.map((userId) => {
+                          const user = users.find((u) => u.id === userId);
+                          return (
+                            <Button
+                              key={userId}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-7"
+                              onClick={() => {
+                                const newCollaborators = field.value.filter((id) => id !== userId);
+                                field.onChange(newCollaborators);
+                                setSelectedCollaborators(newCollaborators);
+                              }}
+                            >
+                              {user?.name} ✕
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="status"
@@ -337,15 +432,13 @@ export function CreateTaskDialog({
                   </FormItem>
                 )}
               />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
               <FormField
                 control={form.control}
-                name="dueDate"
+                name="startDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Due Date</FormLabel>
+                    <FormLabel>Start Date</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -353,68 +446,23 @@ export function CreateTaskDialog({
                   </FormItem>
                 )}
               />
-              
-              <FormField
-                control={form.control}
-                name="assigneeIds"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Assignees</FormLabel>
-                    <FormControl>
-                      <Select
-                        value=""
-                        onValueChange={(value) => {
-                          const newAssignees = [...field.value, value];
-                          field.onChange(newAssignees);
-                          setSelectedAssignees(newAssignees);
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Add assignee" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {users
-                            .filter((user) => !field.value.includes(user.id))
-                            .map((user) => (
-                              <SelectItem key={user.id} value={user.id}>
-                                {user.name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    
-                    {field.value.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {field.value.map((userId) => {
-                          const user = users.find((u) => u.id === userId);
-                          return (
-                            <Button
-                              key={userId}
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-7"
-                              onClick={() => {
-                                const newAssignees = field.value.filter((id) => id !== userId);
-                                field.onChange(newAssignees);
-                                setSelectedAssignees(newAssignees);
-                              }}
-                            >
-                              {user?.name} ✕
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    )}
-                    
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
+
+            <FormField
+              control={form.control}
+              name="dueDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Due Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
-            {/* Custom Fields - keep existing code */}
+            {/* Custom Fields */}
             {customFields.length > 0 && (
               <div className="space-y-4">
                 <Label>Custom Fields</Label>

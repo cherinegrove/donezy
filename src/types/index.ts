@@ -1,3 +1,4 @@
+
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
@@ -216,10 +217,12 @@ export interface Task {
   description: string;
   projectId: string;
   parentTaskId?: string;
-  assigneeIds: string[];
+  assigneeId?: string;  // Single assignee (owner)
+  collaboratorIds: string[]; // Multiple collaborators
   status: TaskStatus;
   priority: 'low' | 'medium' | 'high';
   dueDate?: string;
+  startDate?: string;
   createdAt: string;
   customFields: Record<string, any>;
   subtasks: string[]; // Task IDs

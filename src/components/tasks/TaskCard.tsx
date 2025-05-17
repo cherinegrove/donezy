@@ -21,7 +21,7 @@ export function TaskCard({ task, onClick, displayOptions = ["project", "client",
   const { projects, users, startTimeTracking, tasks } = useAppContext();
   
   const project = projects.find(p => p.id === task.projectId);
-  const assignee = task.assigneeId ? users.find(user => user.assigneeId === task.assigneeId) : null;
+  const assignee = task.assigneeId ? users.find(user => user.id === task.assigneeId) : null;
   const collaborators = users.filter(user => task.collaboratorIds?.includes(user.id));
   const parentTask = task.parentTaskId ? tasks.find(t => t.id === task.parentTaskId) : null;
   const client = project ? projects.find(p => p.id === task.projectId)?.clientId : null;
