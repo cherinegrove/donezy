@@ -26,6 +26,14 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { useAppContext } from "@/contexts/AppContext";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
 
 interface GanttChartProps {
   tasks: Task[];
@@ -36,6 +44,8 @@ type ViewScale = "day" | "week" | "month";
 interface TaskWithDetails {
   id: string;
   name: string;
+  projectName: string;
+  parentTaskName: string;
   status: string;
   start: number;
   duration: number;
@@ -99,46 +109,80 @@ export function GanttChart({ tasks }: GanttChartProps) {
     }
   }
 
-  // Group tasks by project and organize hierarchically
-  const projectTasks = projects
-    .filter(project => tasks.some(task => task.projectId === project.id))
-    .map(project => {
-      const projectTasks = tasks.filter(task => task.projectId === project.id);
-      
-      // Get parent tasks (those without a parent)
-      const parentTasks = projectTasks.filter(task => !task.parentTaskId);
-      
-      // Get child tasks
-      const childTasks = projectTasks.filter(task => task.parentTaskId);
-      
-      return {
-        project,
-        parentTasks,
-        childTasks
-      };
-    });
-
-  // Calculate total days based on view scale
-  let totalDays = differenceInDays(projectEndDate, projectStartDate) + 1;
-  
-  // Prepare data for the chart with hierarchy
+  // Group tasks by project, parent task, and child tasks
   const chartData: TaskWithDetails[] = [];
   
-  projectTasks.forEach(({ project, parentTasks, childTasks }) => {
-    // Add project as header
-    chartData.push({
-      id: `project-${project.id}`,
-      name: project.name,
-      status: "project",
-      start: 0,
-      duration: totalDays,
-      level: 0,
-      color: "#6E59A5", // Project color
-      task: {} as Task // Empty placeholder
+  // Get all tasks by project
+  const tasksByProject = new Map<string, Task[]>();
+  tasksWithDates.forEach(task => {
+    const projectTasks = tasksByProject.get(task.projectId) || [];
+    projectTasks.push(task);
+    tasksByProject.set(task.projectId, projectTasks);
+  });
+  
+  // Process projects
+  projects.forEach(project => {
+    const projectTasks = tasksByProject.get(project.id);
+    if (!projectTasks || projectTasks.length === 0) return;
+    
+    // Get parent tasks (those without a parent)
+    const parentTasks = projectTasks.filter(task => !task.parentTaskId);
+    
+    // Process each parent task
+    parentTasks.forEach(parentTask => {
+      if (parentTask.createdAt && parentTask.dueDate) {
+        const taskStartDate = parseISO(parentTask.createdAt);
+        const taskEndDate = parseISO(parentTask.dueDate);
+        
+        const startDayOffset = differenceInDays(taskStartDate, projectStartDate);
+        const duration = differenceInDays(taskEndDate, taskStartDate) + 1;
+        
+        chartData.push({
+          id: parentTask.id,
+          name: parentTask.title,
+          projectName: project.name,
+          parentTaskName: "", // This is a parent task
+          status: parentTask.status,
+          start: startDayOffset,
+          duration: duration > 0 ? duration : 1,
+          level: 0, // Parent task
+          color: getColorForStatus(parentTask.status),
+          task: parentTask
+        });
+        
+        // Add child tasks
+        const childTasks = projectTasks.filter(task => task.parentTaskId === parentTask.id);
+        childTasks.forEach(childTask => {
+          if (childTask.createdAt && childTask.dueDate) {
+            const childStartDate = parseISO(childTask.createdAt);
+            const childEndDate = parseISO(childTask.dueDate);
+            
+            const childStartDayOffset = differenceInDays(childStartDate, projectStartDate);
+            const childDuration = differenceInDays(childEndDate, childStartDate) + 1;
+            
+            chartData.push({
+              id: childTask.id,
+              name: childTask.title,
+              projectName: project.name,
+              parentTaskName: parentTask.title,
+              status: childTask.status,
+              start: childStartDayOffset,
+              duration: childDuration > 0 ? childDuration : 1,
+              level: 1, // Child task
+              color: getColorForStatus(childTask.status),
+              task: childTask
+            });
+          }
+        });
+      }
     });
     
-    // Add parent tasks
-    parentTasks.forEach(task => {
+    // Process orphan tasks (those without parent-child relationship)
+    const orphanTasks = projectTasks.filter(task => 
+      !task.parentTaskId && !parentTasks.includes(task)
+    );
+    
+    orphanTasks.forEach(task => {
       if (task.createdAt && task.dueDate) {
         const taskStartDate = parseISO(task.createdAt);
         const taskEndDate = parseISO(task.dueDate);
@@ -149,35 +193,14 @@ export function GanttChart({ tasks }: GanttChartProps) {
         chartData.push({
           id: task.id,
           name: task.title,
+          projectName: project.name,
+          parentTaskName: "", // No parent
           status: task.status,
           start: startDayOffset,
           duration: duration > 0 ? duration : 1,
-          level: 1,
+          level: 0, // Treat as parent
           color: getColorForStatus(task.status),
           task: task
-        });
-        
-        // Add child tasks of this parent
-        const children = childTasks.filter(child => child.parentTaskId === task.id);
-        children.forEach(childTask => {
-          if (childTask.createdAt && childTask.dueDate) {
-            const childStartDate = parseISO(childTask.createdAt);
-            const childEndDate = parseISO(childTask.dueDate);
-            
-            const childStartDayOffset = differenceInDays(childStartDate, projectStartDate);
-            const childDuration = differenceInDays(childEndDate, childStartDate) + 1;
-            
-            chartData.push({
-              id: childTask.id,
-              name: `↳ ${childTask.title}`,
-              status: childTask.status,
-              start: childStartDayOffset,
-              duration: childDuration > 0 ? childDuration : 1,
-              level: 2,
-              color: getColorForStatus(childTask.status),
-              task: childTask
-            });
-          }
         });
       }
     });
@@ -199,15 +222,15 @@ export function GanttChart({ tasks }: GanttChartProps) {
       break;
   }
   
+  const totalDays = differenceInDays(projectEndDate, projectStartDate) + 1;
   for (let i = 0; i <= totalDays; i += tickInterval) {
     dateTicks.push(i);
   }
   
   // Handle task click to edit
-  const handleTaskClick = (taskData: any) => {
-    const task = taskData.task;
-    if (task && task.id) {
-      setSelectedTask(task);
+  const handleTaskClick = (taskData: TaskWithDetails) => {
+    if (taskData && taskData.task && taskData.task.id) {
+      setSelectedTask(taskData.task);
       setIsEditDialogOpen(true);
     }
   };
@@ -227,7 +250,6 @@ export function GanttChart({ tasks }: GanttChartProps) {
   
   // Status legend items
   const legendItems = [
-    { status: "project", color: "#6E59A5", label: "Project" },
     { status: "backlog", color: "#9CA3AF", label: "Backlog" },
     { status: "todo", color: "#60A5FA", label: "To Do" },
     { status: "in-progress", color: "#F59E0B", label: "In Progress" },
@@ -235,8 +257,22 @@ export function GanttChart({ tasks }: GanttChartProps) {
     { status: "done", color: "#10B981", label: "Done" }
   ];
 
+  // Sort chart data for better display
+  const sortedChartData = [...chartData].sort((a, b) => {
+    // First sort by project name
+    if (a.projectName !== b.projectName) {
+      return a.projectName.localeCompare(b.projectName);
+    }
+    // Then by parent task name
+    if (a.level === 0 && b.level === 1) return -1;
+    if (a.level === 1 && b.level === 0) return 1;
+    
+    // Then by task start date
+    return a.start - b.start;
+  });
+
   return (
-    <div className="w-full h-[600px] mt-4">
+    <div className="w-full mt-4 overflow-hidden">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-4">
           <div className="text-sm font-medium">View Scale:</div>
@@ -268,124 +304,70 @@ export function GanttChart({ tasks }: GanttChartProps) {
         </div>
       </div>
 
-      <ChartContainer 
-        className="h-full w-full"
-        config={{
-          tasks: {
-            theme: {
-              light: "#60A5FA",
-              dark: "#3B82F6"
-            }
-          }
-        }}
-      >
-        <BarChart
-          data={chartData}
-          layout="vertical"
-          barGap={0}
-          barSize={20}
-          margin={{ top: 20, right: 30, left: 150, bottom: 20 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-          <XAxis
-            type="number"
-            domain={[0, totalDays]}
-            ticks={dateTicks}
-            tickFormatter={formatXAxis}
-            padding={{ left: 0, right: 0 }}
-          />
-          <YAxis
-            dataKey="name"
-            type="category"
-            width={140}
-          />
-          <Tooltip 
-            content={({ active, payload }) => {
-              if (active && payload && payload.length) {
-                const data = payload[0].payload as TaskWithDetails;
-                
-                // Don't show tooltip for project headers
-                if (data.status === "project") {
-                  return null;
-                }
-                
-                const startDate = addDays(projectStartDate, data.start);
-                const endDate = addDays(startDate, data.duration - 1);
-                
-                return (
-                  <div className="bg-background border rounded-md p-3 shadow-lg">
-                    <p className="font-medium">{data.name}</p>
-                    <p className="text-muted-foreground capitalize">Status: {data.status.replace("-", " ")}</p>
-                    <p className="text-muted-foreground">
-                      {format(startDate, "MMM d")} - {format(endDate, "MMM d")}
-                    </p>
-                    <p className="text-muted-foreground">Duration: {data.duration} day(s)</p>
-                    {data.level !== 0 && (
-                      <p className="text-xs text-blue-500 mt-1">Click to edit</p>
-                    )}
+      <div className="w-full border rounded-md overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[200px]">Project</TableHead>
+              <TableHead className="w-[200px]">Parent Task</TableHead>
+              <TableHead className="w-[200px]">Task</TableHead>
+              <TableHead className="w-full">Timeline</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedChartData.map((task, index) => (
+              <TableRow 
+                key={`${task.id}-${index}`}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => handleTaskClick(task)}
+              >
+                <TableCell>{task.projectName}</TableCell>
+                <TableCell>
+                  {task.level === 1 ? task.parentTaskName : ""}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center">
+                    <div 
+                      className="w-2 h-2 rounded-full mr-2" 
+                      style={{ backgroundColor: task.color }}
+                    ></div>
+                    {task.name}
                   </div>
-                );
-              }
-              return null;
-            }}
-          />
-          <Bar 
-            dataKey="duration" 
-            name="Duration" 
-            stackId="a" 
-            fill="#60A5FA" 
-            radius={[4, 4, 4, 4]} 
-            minPointSize={3}
-            background={{ fill: "#f3f4f6" }}
-            fillOpacity={0.8}
-            onClick={handleTaskClick}
-            className="cursor-pointer"
-            shape={(props: any) => {
-              const { x, y, width, height, fill, payload } = props;
-              const { id, start, duration, level, color, status } = payload;
-              
-              // Adjust the x position based on the start value
-              const adjustedX = x + (start * (width / totalDays));
-              const adjustedWidth = (duration / totalDays) * width;
-              
-              // Adjust height and y based on level (indent child tasks)
-              const finalHeight = level === 0 ? height / 2 : height;
-              const finalY = level === 0 ? y + height / 4 : y;
-              
-              // For project headers, show a different style
-              if (status === "project") {
-                return (
-                  <g>
-                    <rect
-                      x={x}
-                      y={finalY}
-                      width={width}
-                      height={finalHeight}
-                      fill="#F3F4F6"
-                      rx={0}
-                      ry={0}
-                      className="opacity-50"
-                    />
-                  </g>
-                );
-              }
-              
-              return (
-                <rect
-                  x={adjustedX}
-                  y={finalY}
-                  width={adjustedWidth}
-                  height={finalHeight}
-                  fill={color}
-                  rx={4}
-                  ry={4}
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
-                />
-              );
-            }}
-          />
-        </BarChart>
-      </ChartContainer>
+                </TableCell>
+                <TableCell className="p-0">
+                  <div className="w-full h-[40px] relative">
+                    <div 
+                      className="absolute h-[20px] rounded-md top-[10px]"
+                      style={{
+                        left: `${(task.start / totalDays) * 100}%`,
+                        width: `${(task.duration / totalDays) * 100}%`,
+                        backgroundColor: task.color,
+                        minWidth: '10px'
+                      }}
+                    >
+                      {task.duration > 5 && (
+                        <span className="text-xs text-white px-2 overflow-hidden whitespace-nowrap">
+                          {task.duration}d
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      
+      <div className="mt-2 border-t pt-2">
+        <div className="flex justify-between overflow-x-auto">
+          {dateTicks.map((tick, index) => (
+            <div key={index} className="text-xs text-muted-foreground px-1">
+              {formatXAxis(tick)}
+            </div>
+          ))}
+        </div>
+      </div>
       
       {/* Add edit dialog for Gantt chart task */}
       {selectedTask && (

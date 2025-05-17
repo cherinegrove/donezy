@@ -1,3 +1,5 @@
+
+// First part stays the same
 import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, CustomField, ProjectTemplate, CustomRole } from "@/types";
 
 export const mockUsers: User[] = [
@@ -155,6 +157,7 @@ export const mockTasks: Task[] = [
     description: "Create wireframes and design for the new homepage",
     projectId: "project-1",
     assigneeId: "user-2",
+    collaboratorIds: ["user-1", "user-3"],
     status: "in-progress",
     priority: "high",
     dueDate: "2025-05-20",
@@ -195,6 +198,7 @@ export const mockTasks: Task[] = [
     projectId: "project-1",
     parentTaskId: "task-1",
     assigneeId: "user-3",
+    collaboratorIds: [],
     status: "todo",
     priority: "medium",
     dueDate: "2025-05-25",
@@ -214,6 +218,7 @@ export const mockTasks: Task[] = [
     projectId: "project-1",
     parentTaskId: "task-1",
     assigneeId: "user-3",
+    collaboratorIds: [],
     status: "todo",
     priority: "low",
     dueDate: "2025-05-22",
@@ -232,6 +237,7 @@ export const mockTasks: Task[] = [
     description: "Define the app architecture and technology stack",
     projectId: "project-2",
     assigneeId: "user-1",
+    collaboratorIds: ["user-2"],
     status: "todo",
     priority: "high",
     dueDate: "2025-05-30",
@@ -251,6 +257,7 @@ export const mockTasks: Task[] = [
     projectId: "project-2",
     parentTaskId: "task-4",
     assigneeId: "user-2",
+    collaboratorIds: [],
     status: "todo",
     priority: "medium",
     dueDate: "2025-06-15",
@@ -269,6 +276,7 @@ export const mockTasks: Task[] = [
     description: "Task for Initech Project",
     projectId: "project-3",
     assigneeId: "user-1",
+    collaboratorIds: [],
     status: "in-progress",
     priority: "high",
     dueDate: "2025-06-15",
@@ -287,6 +295,7 @@ export const mockTasks: Task[] = [
     description: "Task for Globex Project",
     projectId: "project-4",
     assigneeId: "user-2",
+    collaboratorIds: [],
     status: "todo",
     priority: "medium",
     dueDate: "2025-07-15",

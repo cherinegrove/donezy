@@ -12,7 +12,7 @@
 // };
 // With
 // const getTasksByUser = (userId: string) => {
-//   return tasks.filter(task => task.assigneeId === userId);
+//   return tasks.filter(task => task.assigneeId === userId || task.collaboratorIds.includes(userId));
 // };
 
 // Make sure to add collaboratorIds to all Task objects
