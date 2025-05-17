@@ -73,10 +73,6 @@ export function MultiSelect({
   };
 
   const getSelectedItems = React.useCallback(() => {
-    if (!Array.isArray(safeOptions) || !Array.isArray(safeSelectedValues)) {
-      return [];
-    }
-    
     return safeSelectedValues
       .map(value => safeOptions.find(option => option.value === value))
       .filter((option): option is Option => !!option);

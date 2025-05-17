@@ -17,8 +17,11 @@ export function CollaboratorSelect({
   placeholder = "Select collaborators",
   maxSelection = 10,
 }: CollaboratorSelectProps) {
+  // Ensure users is always an array
+  const safeUsers = Array.isArray(users) ? users : [];
+  
   // Format users data for the multi-select
-  const options = users.map(user => ({
+  const options = safeUsers.map(user => ({
     label: user.name,
     value: user.id,
     avatar: user.avatar,
