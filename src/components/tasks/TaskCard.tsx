@@ -3,10 +3,8 @@ import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Clock, Play } from "lucide-react";
+import { Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export type DisplayOption = "project" | "client" | "assignee" | "parentTask" | "dueDate" | "priority" | "status" | "collaborators";
 
@@ -17,7 +15,7 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onClick, displayOptions = ["project", "client", "assignee", "parentTask"] }: TaskCardProps) {
-  const { projects, users, tasks, startTimeTracking } = useAppContext();
+  const { projects, users, tasks } = useAppContext();
   
   const project = projects.find(p => p.id === task.projectId);
   const assignee = task.assigneeId ? users.find(user => user.id === task.assigneeId) : null;
@@ -27,7 +25,6 @@ export function TaskCard({ task, onClick, displayOptions = ["project", "client",
   const parentTask = task.parentTaskId ? tasks.find(t => t.id === task.parentTaskId) : null;
   
   const client = project ? projects.find(p => p.id === task.projectId)?.clientId : null;
-  const clientId = client ? useAppContext().clients.find(c => c.id === client)?.id : null;
   const clientName = client ? useAppContext().clients.find(c => c.id === client)?.name : null;
   
   const getBadgeColor = () => {
@@ -55,41 +52,15 @@ export function TaskCard({ task, onClick, displayOptions = ["project", "client",
         return "bg-gray-100 text-gray-800";
     }
   };
-  
-  const handleStartTimer = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent the card click event
-    if (clientId) {
-      startTimeTracking(task.id, project?.id, clientId);
-    }
-  };
 
   return (
     <div 
       className="border rounded-md p-4 bg-card shadow-sm hover:shadow transition-all cursor-pointer relative group"
       onClick={onClick}
     >
-      <div className="absolute top-2 right-2 flex gap-1">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleStartTimer}
-                className="h-7 w-7 text-green-500 hover:text-green-600 hover:bg-green-100"
-                disabled={!clientId}
-              >
-                <Play className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Start timer for this task</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-      
       <div className="space-y-3">
         <div className="flex items-start justify-between">
-          <h3 className="font-medium text-base line-clamp-2 pr-6">{task.title}</h3>
+          <h3 className="font-medium text-base line-clamp-2">{task.title}</h3>
         </div>
         
         <div className="flex flex-wrap items-center gap-2">

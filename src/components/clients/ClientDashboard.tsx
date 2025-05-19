@@ -3,15 +3,13 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Play, Pause } from "lucide-react";
 
 interface ClientDashboardProps {
   clientId: string;
 }
 
 export const ClientDashboard = ({ clientId }: ClientDashboardProps) => {
-  const { projects, getClientById, activeTimeEntry, startTimeTracking, stopTimeTracking } = useAppContext();
+  const { projects, getClientById } = useAppContext();
   
   const client = getClientById(clientId);
   const clientProjects = projects.filter(project => project.clientId === clientId);
@@ -24,22 +22,6 @@ export const ClientDashboard = ({ clientId }: ClientDashboardProps) => {
   
   // Get current month for billing period display
   const currentMonth = format(new Date(), "MMMM yyyy");
-
-  // Check if timer is running for a specific project
-  const isProjectTimerRunning = (projectId: string) => {
-    return activeTimeEntry && 
-           activeTimeEntry.projectId === projectId && 
-           (!activeTimeEntry.taskId || activeTimeEntry.taskId === "");
-  };
-  
-  // Handle timer toggle for a project
-  const handleTimerToggle = (projectId: string) => {
-    if (isProjectTimerRunning(projectId)) {
-      stopTimeTracking("Project time tracking stopped");
-    } else {
-      startTimeTracking(undefined, projectId);
-    }
-  };
   
   return (
     <div className="space-y-6">
@@ -96,28 +78,10 @@ export const ClientDashboard = ({ clientId }: ClientDashboardProps) => {
                   ? (project.usedHours / project.allocatedHours) * 100
                   : 0;
                 
-                const timerRunning = isProjectTimerRunning(project.id);
-                
                 return (
                   <div key={project.id} className="space-y-2">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                        <Button 
-                          size="sm" 
-                          variant={timerRunning ? "destructive" : "outline"} 
-                          className="h-8 w-8 rounded-full p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            handleTimerToggle(project.id);
-                          }}
-                        >
-                          {timerRunning ? (
-                            <Pause className="h-3.5 w-3.5" />
-                          ) : (
-                            <Play className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
                         <a 
                           href={`/projects/${project.id}`} 
                           className="font-medium hover:underline"

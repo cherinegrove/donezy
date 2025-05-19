@@ -2,7 +2,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Play, Pause } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
@@ -17,7 +17,7 @@ import { TemplatesList } from "@/components/projects/TemplatesList";
 import { RecordActions } from "@/components/common/RecordActions";
 
 const Projects = () => {
-  const { projects, tasks, clients, teams, activeTimeEntry, startTimeTracking, stopTimeTracking } = useAppContext();
+  const { projects, tasks, clients, teams } = useAppContext();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreateTemplateDialogOpen, setIsCreateTemplateDialogOpen] = useState(false);
   const [isUseTemplateDialogOpen, setIsUseTemplateDialogOpen] = useState(false);
@@ -56,25 +56,6 @@ const Projects = () => {
       ],
     },
   ];
-
-  // Check if timer is running for a specific project
-  const isProjectTimerRunning = (projectId: string) => {
-    return activeTimeEntry && 
-           activeTimeEntry.projectId === projectId && 
-           (!activeTimeEntry.taskId || activeTimeEntry.taskId === "");
-  };
-  
-  // Handle timer toggle for a project
-  const handleTimerToggle = (projectId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    event.preventDefault();
-    
-    if (isProjectTimerRunning(projectId)) {
-      stopTimeTracking("Project time tracking stopped");
-    } else {
-      startTimeTracking(undefined, projectId);
-    }
-  };
 
   const getProjectProgress = (projectId: string) => {
     const projectTasks = tasks.filter(task => task.projectId === projectId);
@@ -169,7 +150,6 @@ const Projects = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
             {filteredProjects.map((project) => {
               const progress = getProjectProgress(project.id);
-              const timerRunning = isProjectTimerRunning(project.id);
               
               return (
                 <Card 
@@ -183,18 +163,6 @@ const Projects = () => {
                       <CardDescription>{project.description}</CardDescription>
                     </div>
                     <div className="flex items-center">
-                      <Button 
-                        size="sm" 
-                        variant={timerRunning ? "destructive" : "outline"} 
-                        className="h-8 w-8 rounded-full p-0 mr-2 flex-shrink-0"
-                        onClick={(e) => handleTimerToggle(project.id, e)}
-                      >
-                        {timerRunning ? (
-                          <Pause className="h-3.5 w-3.5" />
-                        ) : (
-                          <Play className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
                       <RecordActions
                         recordId={project.id}
                         recordType="Project"

@@ -3,8 +3,7 @@ import { Project } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Calendar, Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Calendar } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ProjectWatchButton } from "./ProjectWatchButton";
 
@@ -14,16 +13,9 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, onClick }: ProjectCardProps) {
-  const { clients, startTimeTracking } = useAppContext();
+  const { clients } = useAppContext();
   
   const client = clients.find(c => c.id === project.clientId);
-  
-  const handleStartTimer = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent the card click event
-    if (client) {
-      startTimeTracking(undefined, project.id, client.id);
-    }
-  };
   
   const getStatusBadgeClass = () => {
     switch (project.status) {
@@ -45,23 +37,6 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
     >
       <div className="absolute top-2 right-2 flex gap-1">
         <ProjectWatchButton project={project} variant="ghost" size="icon" />
-        
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleStartTimer}
-                className="h-7 w-7 text-green-500 hover:text-green-600 hover:bg-green-100"
-                disabled={!client}
-              >
-                <Play className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Start timer for this project</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </div>
       
       <div className="space-y-3">
