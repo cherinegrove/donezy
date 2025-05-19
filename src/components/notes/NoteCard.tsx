@@ -1,5 +1,4 @@
-
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Note } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,22 +35,13 @@ const NOTE_COLORS = [
 
 interface NoteCardProps {
   note: Note;
-  onMove: (id: string, position: { x: number; y: number }) => void;
 }
 
-export function NoteCard({ note, onMove }: NoteCardProps) {
+export function NoteCard({ note }: NoteCardProps) {
   const { updateNote, archiveNote, unarchiveNote, deleteNote } = useAppContext();
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(note.content);
-  const [isDragging, setIsDragging] = useState(false);
-  const [currentPosition, setCurrentPosition] = useState(note.position);
-  const nodeRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
-  // Update the card position when the note position changes from props
-  useEffect(() => {
-    setCurrentPosition(note.position);
-  }, [note.position]);
   
   const handleEdit = () => {
     setIsEditing(true);
@@ -175,87 +165,13 @@ export function NoteCard({ note, onMove }: NoteCardProps) {
     return { __html: formattedText };
   };
   
-  // Handle mouse down for dragging - with improved behavior
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Don't allow dragging when editing or clicking on buttons
-    if (isEditing || 
-        e.target instanceof HTMLButtonElement || 
-        (e.target as HTMLElement).closest('button') || 
-        (e.target as HTMLElement).closest('.dropdown-menu') ||
-        (e.target as HTMLElement).closest('input[type="checkbox"]')) {
-      return;
-    }
-    
-    e.preventDefault();
-    setIsDragging(true);
-    
-    // Calculate offset of mouse position relative to the note card
-    const rect = nodeRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    
-    const offsetX = e.clientX - rect.left;
-    const offsetY = e.clientY - rect.top;
-    
-    // Apply styles immediately for better visual feedback
-    if (nodeRef.current) {
-      nodeRef.current.style.zIndex = '50';
-      nodeRef.current.style.opacity = '0.8';
-      nodeRef.current.style.transition = 'none'; // Remove transition during drag for instant response
-    }
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      
-      // Calculate new position based on mouse coordinates and offset
-      const newX = e.clientX - offsetX;
-      const newY = e.clientY - offsetY;
-      
-      // Update the current position state
-      setCurrentPosition({ x: newX, y: newY });
-      
-      if (nodeRef.current) {
-        // Apply the transform directly for immediate visual feedback
-        nodeRef.current.style.transform = `translate(${newX}px, ${newY}px)`;
-      }
-    };
-    
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      
-      if (nodeRef.current) {
-        nodeRef.current.style.zIndex = '';
-        nodeRef.current.style.opacity = '';
-        nodeRef.current.style.transition = ''; // Restore transition
-      }
-      
-      // Only update position in the context if it has changed
-      if (currentPosition.x !== note.position.x || currentPosition.y !== note.position.y) {
-        onMove(note.id, currentPosition);
-      }
-      
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-    
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-  
   return (
     <Card 
-      ref={nodeRef}
       className={cn(
-        "w-[250px] shadow-md",
+        "w-full h-full shadow-md",
         note.color,
-        isDragging ? "z-50 opacity-80 shadow-lg cursor-grabbing" : "z-10 cursor-grab hover:shadow-lg",
         note.archived ? "opacity-60" : "",
-        "absolute select-none"
       )}
-      style={{ 
-        transform: `translate(${currentPosition.x}px, ${currentPosition.y}px)`,
-        transition: isDragging ? 'none' : 'box-shadow 0.2s ease, opacity 0.2s ease',
-      }}
-      onMouseDown={handleMouseDown}
     >
       <CardContent className="p-3">
         {isEditing ? (
