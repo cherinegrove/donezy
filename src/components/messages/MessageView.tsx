@@ -213,40 +213,42 @@ export function MessageView({ message, onReply }: MessageViewProps) {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-4 py-4">
-              {comments && comments.length > 0 ? (
-                comments.map((comment) => {
-                  const commentUser = getUserById(comment.userId);
-                  
-                  return (
-                    <div key={comment.id} className="flex gap-3">
-                      <Avatar className="h-10 w-10 flex-shrink-0">
-                        <AvatarImage src={commentUser?.avatar} />
-                        <AvatarFallback>
-                          {commentUser?.name?.substring(0, 2) || 'UN'}
-                        </AvatarFallback>
-                      </Avatar>
-                      
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{commentUser?.name || 'Unknown'}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true })}
-                          </span>
+          <div className="flex-1 overflow-hidden mt-4">
+            <ScrollArea className="h-[calc(50vh-100px)] pr-4">
+              <div className="space-y-4 pb-4">
+                {comments && comments.length > 0 ? (
+                  comments.map((comment) => {
+                    const commentUser = getUserById(comment.userId);
+                    
+                    return (
+                      <div key={comment.id} className="flex gap-3">
+                        <Avatar className="h-10 w-10 flex-shrink-0">
+                          <AvatarImage src={commentUser?.avatar} />
+                          <AvatarFallback>
+                            {commentUser?.name?.substring(0, 2) || 'UN'}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{commentUser?.name || 'Unknown'}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true })}
+                            </span>
+                          </div>
+                          <p className="text-sm">{comment.content}</p>
                         </div>
-                        <p className="text-sm">{comment.content}</p>
                       </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <p className="text-center text-muted-foreground py-4">No comments in this thread</p>
-              )}
-            </div>
-          </ScrollArea>
+                    );
+                  })
+                ) : (
+                  <p className="text-center text-muted-foreground py-4">No comments in this thread</p>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
           
-          <DialogFooter className="flex-col items-stretch gap-2 sm:gap-0">
+          <DialogFooter className="flex-col items-stretch gap-2 sm:gap-0 mt-4">
             {!isThreadReplying ? (
               <Button onClick={handleThreadStartReply} className="mt-4">
                 Reply to Thread
