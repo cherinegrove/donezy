@@ -151,23 +151,25 @@ export default function Tasks() {
       <div className="flex flex-wrap gap-2">
         <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
         
-        {/* Status Filter */}
-        <Select
-          value={statusFilter}
-          onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}
-        >
-          <SelectTrigger className="w-[180px] h-9">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="backlog">Backlog</SelectItem>
-            <SelectItem value="todo">To Do</SelectItem>
-            <SelectItem value="in-progress">In Progress</SelectItem>
-            <SelectItem value="review">Review</SelectItem>
-            <SelectItem value="done">Done</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Status Filter - Only show in List and Gantt views */}
+        {viewMode !== "kanban" && (
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}
+          >
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="backlog">Backlog</SelectItem>
+              <SelectItem value="todo">To Do</SelectItem>
+              <SelectItem value="in-progress">In Progress</SelectItem>
+              <SelectItem value="review">Review</SelectItem>
+              <SelectItem value="done">Done</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
         
         {/* Start Date Filter */}
         <Popover>
