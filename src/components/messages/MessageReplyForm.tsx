@@ -143,15 +143,15 @@ export function MessageReplyForm({
   }, [showMentions, mentionQuery, replyContent]);
   
   return (
-    <div className="space-y-4">
-      <div className="relative">
+    <div className="space-y-4 w-full">
+      <div className="relative w-full">
         <Textarea
           ref={textareaRef}
           value={replyContent}
           onChange={handleTextareaChange}
           onBlur={handleBlur}
           placeholder="Write your reply..."
-          className="min-h-[100px] resize-none p-3"
+          className="min-h-[100px] resize-none p-3 w-full"
         />
         
         {showMentions && filteredUsers.length > 0 && (

@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { formatDistanceToNow } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -186,16 +187,18 @@ export function MessageView({ message, onReply }: MessageViewProps) {
             </div>
             
             {isReplying && (
-              <MessageReplyForm
-                onCancel={handleCancelReply}
-                onSend={() => handleSendReply(replyContent, () => {
-                  setIsReplying(false);
-                  setReplyContent("");
-                })}
-                users={mentionableUsers || []}
-                replyContent={replyContent}
-                setReplyContent={setReplyContent}
-              />
+              <div className="w-full">
+                <MessageReplyForm
+                  onCancel={handleCancelReply}
+                  onSend={() => handleSendReply(replyContent, () => {
+                    setIsReplying(false);
+                    setReplyContent("");
+                  })}
+                  users={mentionableUsers || []}
+                  replyContent={replyContent}
+                  setReplyContent={setReplyContent}
+                />
+              </div>
             )}
           </div>
         </CardContent>
@@ -205,6 +208,9 @@ export function MessageView({ message, onReply }: MessageViewProps) {
         <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Comment Thread</DialogTitle>
+            <DialogDescription>
+              View and reply to all comments in this thread
+            </DialogDescription>
           </DialogHeader>
           
           <ScrollArea className="flex-1 pr-4">
@@ -246,7 +252,7 @@ export function MessageView({ message, onReply }: MessageViewProps) {
                 Reply to Thread
               </Button>
             ) : (
-              <div className="space-y-4 mt-4">
+              <div className="space-y-4 mt-4 w-full">
                 <MessageReplyForm
                   onCancel={handleThreadCancelReply}
                   onSend={() => handleSendReply(threadReplyContent, () => {
