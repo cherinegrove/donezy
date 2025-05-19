@@ -82,7 +82,7 @@ export const EditClientDialog = ({ client, isOpen, onClose }: EditClientDialogPr
     
     toast({
       title: "Client Deleted",
-      description: "The client has been deleted successfully",
+      description: "The client has been deleted successfully including projects, tasks, and time entries.",
     });
     
     // Close the delete confirmation dialog
@@ -218,7 +218,7 @@ export const EditClientDialog = ({ client, isOpen, onClose }: EditClientDialogPr
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the client
-              and all associated data.
+              and all associated data including projects, tasks, and time entries.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

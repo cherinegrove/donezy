@@ -262,7 +262,32 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
   };
   
   const deleteClient = (id: string) => {
+    // Delete client
     setClients(prevClients => prevClients.filter(client => client.id !== id));
+    
+    // Delete all projects associated with this client
+    const clientProjects = projects.filter(project => project.clientId === id);
+    const clientProjectIds = clientProjects.map(project => project.id);
+    setProjects(prevProjects => prevProjects.filter(project => project.clientId !== id));
+    
+    // Delete all tasks associated with the client's projects
+    setTasks(prevTasks => prevTasks.filter(task => !clientProjectIds.includes(task.projectId)));
+    
+    // Delete all time entries related to this client
+    setTimeEntries(prevEntries => prevEntries.filter(entry => entry.clientId !== id));
+    
+    // Delete all client agreements
+    setClientAgreements(prevAgreements => prevAgreements.filter(agreement => agreement.clientId !== id));
+    
+    // Update users who were associated with this client (remove clientId)
+    setUsers(prevUsers => prevUsers.map(user => 
+      user.clientId === id ? { ...user, clientId: undefined, clientRole: undefined } : user
+    ));
+    
+    // If user is viewing a deleted client, navigate away
+    if (window.location.pathname.includes(`/clients/${id}`)) {
+      navigate('/clients');
+    }
   };
   
   // Client agreement operations
