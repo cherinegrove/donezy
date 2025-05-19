@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom';
 import {
-  User, Team, Client, Project, Task, TimeEntry, Comment, Message, Purchase, CustomField, ProjectTemplate, CustomRole, ClientFile, ClientAgreement, TimeEntryStatus, TaskLog
+  User, Team, Client, Project, Task, TimeEntry, Comment, Message, Purchase, CustomField, ProjectTemplate, CustomRole, ClientFile, ClientAgreement, TimeEntryStatus, TaskLog, Note
 } from "@/types";
 import { mockUsers, mockTeams, mockClients, mockProjects, mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockCustomFields, mockProjectTemplates, mockCustomRoles } from "@/data/mockData";
 import { AppContextType } from "./AppContextType";
@@ -78,6 +78,12 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     return storedTaskLogs ? JSON.parse(storedTaskLogs) : [];
   });
   
+  // Add notes state
+  const [notes, setNotes] = useState<Note[]>(() => {
+    const storedNotes = localStorage.getItem('notes');
+    return storedNotes ? JSON.parse(storedNotes) : [];
+  });
+  
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem('currentUser');
     return storedUser ? JSON.parse(storedUser) : null;
@@ -109,6 +115,51 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     };
   };
   
+  // Note operations
+  const addNote = (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => {
+    const now = new Date().toISOString();
+    const newNote: Note = {
+      id: uuidv4(),
+      createdAt: now,
+      updatedAt: now,
+      ...note
+    };
+    setNotes(prevNotes => [...prevNotes, newNote]);
+    return newNote.id;
+  };
+  
+  const updateNote = (id: string, updates: Partial<Note>) => {
+    setNotes(prevNotes =>
+      prevNotes.map(note => 
+        note.id === id 
+          ? { ...note, ...updates, updatedAt: new Date().toISOString() } 
+          : note
+      )
+    );
+  };
+  
+  const archiveNote = (id: string) => {
+    updateNote(id, { archived: true });
+  };
+  
+  const unarchiveNote = (id: string) => {
+    updateNote(id, { archived: false });
+  };
+  
+  const deleteNote = (id: string) => {
+    setNotes(prevNotes => prevNotes.filter(note => note.id !== id));
+  };
+  
+  const updateNotePosition = (id: string, position: { x: number, y: number }) => {
+    updateNote(id, { position });
+  };
+  
+  const getNotesByUser = (userId: string, includeArchived = false) => {
+    return notes.filter(note => 
+      note.userId === userId && (includeArchived || !note.archived)
+    );
+  };
+  
   // Update localStorage on state change
   useEffect(() => {
     localStorage.setItem('users', JSON.stringify(users));
@@ -125,7 +176,8 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     localStorage.setItem('clientAgreements', JSON.stringify(clientAgreements));
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
     localStorage.setItem('taskLogs', JSON.stringify(taskLogs));
-  }, [users, teams, clients, projects, tasks, timeEntries, messages, purchases, customFields, projectTemplates, customRoles, clientAgreements, currentUser, taskLogs]);
+    localStorage.setItem('notes', JSON.stringify(notes)); // Add notes to localStorage
+  }, [users, teams, clients, projects, tasks, timeEntries, messages, purchases, customFields, projectTemplates, customRoles, clientAgreements, currentUser, taskLogs, notes]);
   
   // Authentication functions
   const login = async (email: string, password: string) => {
@@ -938,6 +990,7 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     customRoles,
     clientAgreements,
     taskLogs,
+    notes,
     currentUser,
     activeTimeEntry,
     login,
@@ -1007,6 +1060,13 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     getClientFiles,
     uploadClientFile,
     deleteClientFile,
+    addNote,
+    updateNote,
+    archiveNote,
+    unarchiveNote,
+    deleteNote,
+    updateNotePosition,
+    getNotesByUser,
   };
   
   return (
