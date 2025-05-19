@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -43,6 +44,19 @@ export const EditClientDialog = ({ client, isOpen, onClose }: EditClientDialogPr
   const [status, setStatus] = useState<'active' | 'inactive'>(client.status);
   const [selectedMembers, setSelectedMembers] = useState<string[]>(client.memberIds || []);
   
+  // Reset form fields when client changes
+  useEffect(() => {
+    setName(client.name);
+    setContactName(client.contactName);
+    setEmail(client.email);
+    setPhone(client.phone);
+    setAddress(client.address || "");
+    setWebsite(client.website || "");
+    setNotes(client.notes || "");
+    setStatus(client.status);
+    setSelectedMembers(client.memberIds || []);
+  }, [client]);
+  
   // Filter to only get team members (non-client users)
   const teamMembers = users.filter(user => user.clientId === undefined);
 
@@ -82,7 +96,7 @@ export const EditClientDialog = ({ client, isOpen, onClose }: EditClientDialogPr
     
     toast({
       title: "Client Deleted",
-      description: "The client has been deleted successfully including projects, tasks, and time entries.",
+      description: "The client and all associated projects, tasks, and time entries have been permanently deleted.",
     });
     
     // Close the delete confirmation dialog
@@ -90,6 +104,9 @@ export const EditClientDialog = ({ client, isOpen, onClose }: EditClientDialogPr
     
     // Close the edit dialog
     onClose();
+    
+    // Log the deletion for debugging
+    console.log(`Client ${client.id} (${client.name}) deleted`);
   };
 
   return (

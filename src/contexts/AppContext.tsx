@@ -262,30 +262,55 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
   };
   
   const deleteClient = (id: string) => {
-    // Delete client
-    setClients(prevClients => prevClients.filter(client => client.id !== id));
+    // First, check if the client exists
+    const clientToDelete = clients.find(client => client.id === id);
+    if (!clientToDelete) {
+      console.error(`Client with ID ${id} not found`);
+      return;
+    }
+    
+    console.log(`Deleting client: ${clientToDelete.name} (${id})`);
     
     // Delete all projects associated with this client
     const clientProjects = projects.filter(project => project.clientId === id);
     const clientProjectIds = clientProjects.map(project => project.id);
+    console.log(`Deleting ${clientProjects.length} projects associated with client`);
+    
     setProjects(prevProjects => prevProjects.filter(project => project.clientId !== id));
     
     // Delete all tasks associated with the client's projects
+    const tasksToDelete = tasks.filter(task => clientProjectIds.includes(task.projectId));
+    console.log(`Deleting ${tasksToDelete.length} tasks associated with client projects`);
+    
     setTasks(prevTasks => prevTasks.filter(task => !clientProjectIds.includes(task.projectId)));
     
     // Delete all time entries related to this client
+    const timeEntriesToDelete = timeEntries.filter(entry => entry.clientId === id);
+    console.log(`Deleting ${timeEntriesToDelete.length} time entries associated with client`);
+    
     setTimeEntries(prevEntries => prevEntries.filter(entry => entry.clientId !== id));
     
     // Delete all client agreements
+    const agreementsToDelete = clientAgreements.filter(agreement => agreement.clientId === id);
+    console.log(`Deleting ${agreementsToDelete.length} agreements associated with client`);
+    
     setClientAgreements(prevAgreements => prevAgreements.filter(agreement => agreement.clientId !== id));
     
     // Update users who were associated with this client (remove clientId)
+    const usersToUpdate = users.filter(user => user.clientId === id);
+    console.log(`Updating ${usersToUpdate.length} users associated with client`);
+    
     setUsers(prevUsers => prevUsers.map(user => 
       user.clientId === id ? { ...user, clientId: undefined, clientRole: undefined } : user
     ));
     
+    // Finally delete the client itself
+    console.log(`Removing client from clients array`);
+    setClients(prevClients => prevClients.filter(client => client.id !== id));
+    
     // If user is viewing a deleted client, navigate away
     if (window.location.pathname.includes(`/clients/${id}`)) {
+      console.log(`Navigating away from deleted client page`);
       navigate('/clients');
     }
   };
