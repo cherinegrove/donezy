@@ -214,8 +214,8 @@ export function MessageView({ message, onReply }: MessageViewProps) {
           </DialogHeader>
           
           <div className="flex-1 overflow-hidden mt-4">
-            <ScrollArea className="h-[calc(50vh-100px)] pr-4">
-              <div className="space-y-4 pb-4">
+            <ScrollArea className="h-[calc(60vh-100px)] pr-4">
+              <div className="space-y-4 pb-6">
                 {comments && comments.length > 0 ? (
                   comments.map((comment) => {
                     const commentUser = getUserById(comment.userId);
@@ -248,7 +248,7 @@ export function MessageView({ message, onReply }: MessageViewProps) {
             </ScrollArea>
           </div>
           
-          <DialogFooter className="flex-col items-stretch gap-2 sm:gap-0 mt-4">
+          <DialogFooter className="flex-col items-stretch gap-2 sm:gap-0 mt-6">
             {!isThreadReplying ? (
               <Button onClick={handleThreadStartReply} className="mt-4">
                 Reply to Thread
