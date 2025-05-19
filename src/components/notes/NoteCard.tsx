@@ -1,5 +1,4 @@
-
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Note } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,7 +33,13 @@ export function NoteCard({ note, onMove }: NoteCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(note.content);
   const [isDragging, setIsDragging] = useState(false);
+  const [currentPosition, setCurrentPosition] = useState(note.position);
   const nodeRef = useRef<HTMLDivElement>(null);
+  
+  // Update the card position when the note position changes from props
+  useEffect(() => {
+    setCurrentPosition(note.position);
+  }, [note.position]);
   
   const handleEdit = () => {
     setIsEditing(true);
@@ -68,10 +73,11 @@ export function NoteCard({ note, onMove }: NoteCardProps) {
     updateNote(note.id, { color });
   };
   
-  // Improved drag handling for more immediate response
+  // Improved drag handling for smoother response
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Don't allow dragging when editing
-    if (isEditing || e.target instanceof HTMLButtonElement || 
+    // Don't allow dragging when editing or clicking on buttons
+    if (isEditing || 
+        e.target instanceof HTMLButtonElement || 
         (e.target as HTMLElement).closest('button') || 
         (e.target as HTMLElement).closest('.dropdown-menu')) {
       return;
@@ -80,37 +86,49 @@ export function NoteCard({ note, onMove }: NoteCardProps) {
     e.preventDefault();
     setIsDragging(true);
     
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startLeft = note.position.x;
-    const startTop = note.position.y;
+    // Calculate offset of mouse position relative to the note card
+    const rect = nodeRef.current?.getBoundingClientRect();
+    if (!rect) return;
     
-    // Apply a transform immediately on mousedown for instant feedback
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+    
+    // Apply styles immediately for better visual feedback
     if (nodeRef.current) {
       nodeRef.current.style.zIndex = '50';
       nodeRef.current.style.opacity = '0.8';
+      nodeRef.current.style.transition = 'none'; // Remove transition during drag for instant response
     }
     
     const handleMouseMove = (e: MouseEvent) => {
-      const newX = startLeft + (e.clientX - startX);
-      const newY = startTop + (e.clientY - startY);
+      if (!isDragging) return;
+      
+      // Calculate new position based on mouse coordinates and offset
+      const newX = e.clientX - offsetX;
+      const newY = e.clientY - offsetY;
+      
+      // Update the current position state
+      setCurrentPosition({ x: newX, y: newY });
       
       if (nodeRef.current) {
+        // Apply the transform directly for immediate visual feedback
         nodeRef.current.style.transform = `translate(${newX}px, ${newY}px)`;
       }
     };
     
-    const handleMouseUp = (e: MouseEvent) => {
+    const handleMouseUp = () => {
       setIsDragging(false);
       
       if (nodeRef.current) {
         nodeRef.current.style.zIndex = '';
         nodeRef.current.style.opacity = '';
+        nodeRef.current.style.transition = ''; // Restore transition
       }
       
-      const finalX = startLeft + (e.clientX - startX);
-      const finalY = startTop + (e.clientY - startY);
-      onMove(note.id, { x: finalX, y: finalY });
+      // Only update position in the context if it has changed
+      if (currentPosition.x !== note.position.x || currentPosition.y !== note.position.y) {
+        onMove(note.id, currentPosition);
+      }
       
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
@@ -124,14 +142,15 @@ export function NoteCard({ note, onMove }: NoteCardProps) {
     <Card 
       ref={nodeRef}
       className={cn(
-        "w-[250px] shadow-md transition-all duration-200",
+        "w-[250px] shadow-md",
         note.color,
-        isDragging ? "z-50 opacity-80" : "z-10",
+        isDragging ? "z-50 opacity-80 shadow-lg cursor-grabbing" : "z-10 cursor-grab hover:shadow-lg",
         note.archived ? "opacity-60" : "",
-        "absolute cursor-move"
+        "absolute select-none"
       )}
       style={{ 
-        transform: `translate(${note.position.x}px, ${note.position.y}px)` 
+        transform: `translate(${currentPosition.x}px, ${currentPosition.y}px)`,
+        transition: isDragging ? 'none' : 'box-shadow 0.2s ease, opacity 0.2s ease',
       }}
       onMouseDown={handleMouseDown}
     >
