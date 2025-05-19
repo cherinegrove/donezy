@@ -82,11 +82,6 @@ export function TopBar() {
                 <StickyNote className="mr-2 h-4 w-4" />
                 <span>Create Note</span>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/notes")}>
-                <StickyNote className="mr-2 h-4 w-4" />
-                <span>View All Notes</span>
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

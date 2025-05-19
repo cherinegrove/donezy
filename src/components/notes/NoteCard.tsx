@@ -68,39 +68,56 @@ export function NoteCard({ note, onMove }: NoteCardProps) {
     updateNote(note.id, { color });
   };
   
+  // Improved drag handling for more immediate response
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (nodeRef.current && !isEditing) {
-      setIsDragging(true);
-      
-      const startX = e.clientX;
-      const startY = e.clientY;
-      const startLeft = note.position.x;
-      const startTop = note.position.y;
-      
-      const handleMouseMove = (e: MouseEvent) => {
-        if (isDragging) {
-          const newX = startLeft + (e.clientX - startX);
-          const newY = startTop + (e.clientY - startY);
-          
-          if (nodeRef.current) {
-            nodeRef.current.style.transform = `translate(${newX}px, ${newY}px)`;
-          }
-        }
-      };
-      
-      const handleMouseUp = (e: MouseEvent) => {
-        setIsDragging(false);
-        const finalX = startLeft + (e.clientX - startX);
-        const finalY = startTop + (e.clientY - startY);
-        onMove(note.id, { x: finalX, y: finalY });
-        
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-      
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+    // Don't allow dragging when editing
+    if (isEditing || e.target instanceof HTMLButtonElement || 
+        (e.target as HTMLElement).closest('button') || 
+        (e.target as HTMLElement).closest('.dropdown-menu')) {
+      return;
     }
+    
+    e.preventDefault();
+    setIsDragging(true);
+    
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startLeft = note.position.x;
+    const startTop = note.position.y;
+    
+    // Apply a transform immediately on mousedown for instant feedback
+    if (nodeRef.current) {
+      nodeRef.current.style.zIndex = '50';
+      nodeRef.current.style.opacity = '0.8';
+    }
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const newX = startLeft + (e.clientX - startX);
+      const newY = startTop + (e.clientY - startY);
+      
+      if (nodeRef.current) {
+        nodeRef.current.style.transform = `translate(${newX}px, ${newY}px)`;
+      }
+    };
+    
+    const handleMouseUp = (e: MouseEvent) => {
+      setIsDragging(false);
+      
+      if (nodeRef.current) {
+        nodeRef.current.style.zIndex = '';
+        nodeRef.current.style.opacity = '';
+      }
+      
+      const finalX = startLeft + (e.clientX - startX);
+      const finalY = startTop + (e.clientY - startY);
+      onMove(note.id, { x: finalX, y: finalY });
+      
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
   
   return (
@@ -162,14 +179,14 @@ export function NoteCard({ note, onMove }: NoteCardProps) {
                     <Button 
                       variant="ghost" 
                       size="icon"
-                      className="h-7 w-7"
+                      className="h-7 w-7 dropdown-menu"
                     >
                       <span className="sr-only">Open menu</span>
                       <div className="h-3 w-3 rounded-full bg-primary/80" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem onClick={handleArchive}>
+                  <DropdownMenuContent align="end" className="w-40 dropdown-menu">
+                    <DropdownMenuItem onClick={handleArchive} className="dropdown-menu">
                       <Archive className="mr-2 h-4 w-4" />
                       {note.archived ? "Unarchive" : "Archive"}
                     </DropdownMenuItem>
@@ -178,6 +195,7 @@ export function NoteCard({ note, onMove }: NoteCardProps) {
                       <DropdownMenuItem 
                         key={color.value}
                         onClick={() => handleChangeColor(color.value)}
+                        className="dropdown-menu"
                       >
                         <div className={`h-4 w-4 rounded-full mr-2 ${color.value}`} />
                         {color.label}
@@ -185,7 +203,7 @@ export function NoteCard({ note, onMove }: NoteCardProps) {
                     ))}
                     
                     <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
+                      className="text-destructive focus:text-destructive dropdown-menu"
                       onClick={() => deleteNote(note.id)}
                     >
                       <Trash className="mr-2 h-4 w-4" />

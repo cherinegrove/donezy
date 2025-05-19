@@ -14,6 +14,7 @@ import {
   ListTodo,
   Settings,
   ShieldAlert,
+  StickyNote,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -110,6 +111,23 @@ export function AppSidebar() {
             >
               <ListTodo className="h-4 w-4" />
               {!collapsed && <span>Tasks</span>}
+            </NavLink>
+            
+            {/* Notes */}
+            <NavLink
+              to="/notes"
+              onClick={handleNavClick}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted"
+                )
+              }
+            >
+              <StickyNote className="h-4 w-4" />
+              {!collapsed && <span>Notes</span>}
             </NavLink>
             
             {/* Clients - not shown to client users */}
