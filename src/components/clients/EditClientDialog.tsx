@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -78,12 +77,18 @@ export const EditClientDialog = ({ client, isOpen, onClose }: EditClientDialogPr
   };
 
   const handleDelete = () => {
+    // Call deleteClient with the client ID
     deleteClient(client.id);
+    
     toast({
       title: "Client Deleted",
       description: "The client has been deleted successfully",
     });
+    
+    // Close the delete confirmation dialog
     setDeleteDialogOpen(false);
+    
+    // Close the edit dialog
     onClose();
   };
 
