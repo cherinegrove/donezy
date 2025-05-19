@@ -32,7 +32,12 @@ const Clients = () => {
     setEditingClient(clientId);
   };
   
-  const handleCardClick = (clientId: string) => {
+  const handleCardClick = (clientId: string, e: React.MouseEvent) => {
+    // Don't navigate if the click was on the RecordActions component
+    if ((e.target as HTMLElement).closest('.record-actions')) {
+      e.stopPropagation();
+      return;
+    }
     navigate(`/clients/${clientId}`);
   };
 
@@ -67,7 +72,7 @@ const Clients = () => {
           <Card 
             key={client.id} 
             className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => handleCardClick(client.id)}
+            onClick={(e) => handleCardClick(client.id, e)}
           >
             <CardHeader>
               <div className="flex justify-between items-center">
@@ -80,12 +85,14 @@ const Clients = () => {
                       <><X className="h-3 w-3 mr-1" /> Inactive</>
                     )}
                   </Badge>
-                  <RecordActions
-                    recordId={client.id}
-                    recordType="Client"
-                    recordName={client.name}
-                    onEdit={() => handleEditClient(client.id)}
-                  />
+                  <div className="record-actions" onClick={(e) => e.stopPropagation()}>
+                    <RecordActions
+                      recordId={client.id}
+                      recordType="Client"
+                      recordName={client.name}
+                      onEdit={() => handleEditClient(client.id)}
+                    />
+                  </div>
                 </div>
               </div>
               <CardDescription>{client.contactName}</CardDescription>
