@@ -1,5 +1,5 @@
 import {
-  User, Team, Client, Project, Task, TimeEntry, Comment, Message, Purchase, CustomField, ProjectTemplate, CustomRole, ClientFile, ClientAgreement, TimeEntryStatus, TaskLog
+  User, Team, Client, Project, Task, TimeEntry, Comment, Message, Purchase, CustomField, ProjectTemplate, CustomRole, ClientFile, ClientAgreement, TimeEntryStatus, TaskLog, Note
 } from "@/types";
 
 export interface AppContextType {
@@ -16,7 +16,8 @@ export interface AppContextType {
   projectTemplates: ProjectTemplate[];
   customRoles: CustomRole[];
   clientAgreements: ClientAgreement[];
-  taskLogs: TaskLog[];  // Added task logs
+  taskLogs: TaskLog[];
+  notes: Note[];  // Added notes
   
   // Current user and active states
   currentUser: User | null;
@@ -25,6 +26,15 @@ export interface AppContextType {
   // Authentication
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  
+  // Note operations
+  addNote: (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => string;
+  updateNote: (id: string, updates: Partial<Note>) => void;
+  archiveNote: (id: string) => void;
+  unarchiveNote: (id: string) => void;
+  deleteNote: (id: string) => void;
+  updateNotePosition: (id: string, position: { x: number, y: number }) => void;
+  getNotesByUser: (userId: string, includeArchived?: boolean) => Note[];
   
   // Role management operations
   addCustomRole: (role: Omit<CustomRole, "id">) => void;

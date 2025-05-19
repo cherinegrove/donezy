@@ -315,3 +315,17 @@ export interface ProjectNote {
   timestamp: string;
   mentionedUserIds: string[];
 }
+
+export interface Note {
+  id: string;
+  userId: string;
+  content: string;
+  color: string;
+  position: {
+    x: number;
+    y: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+  archived: boolean;
+}

@@ -4,10 +4,11 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/components/ui/sidebar";
-import { Menu, Moon, Plus, Search, Sun, Timer, Settings, User } from "lucide-react";
+import { Menu, Moon, Plus, Search, Sun, Timer, Settings, User, StickyNote } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { StartTimerDialog } from "@/components/time/StartTimerDialog";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
+import { CreateNoteDialog } from "@/components/notes/CreateNoteDialog";
 import { useState } from "react";
 import {
   DropdownMenu,
@@ -26,6 +27,7 @@ export function TopBar() {
   const { toggleSidebar } = useSidebar();
   const [isTimerDialogOpen, setIsTimerDialogOpen] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const navigate = useNavigate();
   
@@ -75,6 +77,15 @@ export function TopBar() {
               <DropdownMenuItem onClick={() => setIsTaskDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 <span>Create Task</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsNoteDialogOpen(true)}>
+                <StickyNote className="mr-2 h-4 w-4" />
+                <span>Create Note</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate("/notes")}>
+                <StickyNote className="mr-2 h-4 w-4" />
+                <span>View All Notes</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -141,6 +152,11 @@ export function TopBar() {
       <CreateTaskDialog
         open={isTaskDialogOpen}
         onOpenChange={setIsTaskDialogOpen}
+      />
+
+      <CreateNoteDialog
+        open={isNoteDialogOpen}
+        onOpenChange={setIsNoteDialogOpen}
       />
 
       {currentUser && (

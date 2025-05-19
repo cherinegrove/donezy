@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +18,7 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Tasks from "./pages/Tasks";
+import Notes from "./pages/Notes";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Admin from "./pages/Admin"; 
@@ -75,6 +77,8 @@ const AppRoutes = () => {
         <Route path="/projects/:projectId" element={<ProjectDetails />} />
         
         <Route path="/tasks" element={<Tasks />} />
+        
+        <Route path="/notes" element={<Notes />} />
         
         {/* Client routes are restricted for client users */}
         <Route 
