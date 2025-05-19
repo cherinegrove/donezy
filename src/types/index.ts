@@ -1,4 +1,3 @@
-
 // Define all the types and enums without importing from the same file
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 
@@ -262,6 +261,7 @@ export interface TimeEntry {
   edited?: boolean;
   approvedBy?: string;
   approvedDate?: string;
+  declineReason?: string; // Added this property
 }
 
 export interface Comment {
