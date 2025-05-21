@@ -263,10 +263,8 @@ const Projects = () => {
       {editingProject && (
         <EditProjectDialog
           project={projects.find(p => p.id === editingProject)!}
-          isOpen={!!editingProject}
-          onOpenChange={(open) => {
-            if (!open) setEditingProject(null);
-          }}
+          open={!!editingProject}
+          onClose={() => setEditingProject(null)}
         />
       )}
     </div>

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -20,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Project } from "@/types";
+import { Project, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 
 const formSchema = z.object({
@@ -28,11 +29,9 @@ const formSchema = z.object({
     message: "Project name must be at least 2 characters.",
   }),
   description: z.string().optional(),
-  clientName: z.string().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
   status: z.string().optional(),
-  budget: z.string().optional(),
+  startDate: z.string().optional(),
+  dueDate: z.string().optional(),
   allocatedHours: z.string().optional(),
 });
 
@@ -51,11 +50,9 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
     defaultValues: {
       name: project.name,
       description: project.description || "",
-      clientName: project.clientName || "",
-      startDate: project.startDate || "",
-      endDate: project.endDate || "",
       status: project.status || "",
-      budget: project.budget ? project.budget.toString() : "",
+      startDate: project.startDate || "",
+      dueDate: project.dueDate || "",
       allocatedHours: project.allocatedHours ? project.allocatedHours.toString() : "",
     },
   });
@@ -63,12 +60,19 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       // Convert allocatedHours from string to number
-      const allocatedHoursNumber = values.allocatedHours ? Number(values.allocatedHours) : 0;
+      const allocatedHoursNumber = values.allocatedHours ? Number(values.allocatedHours) : undefined;
+      
+      // Convert status string to TaskStatus
+      const status = values.status as TaskStatus;
       
       // Update the project with the new values
       updateProject(project.id, {
-        ...values,
-        allocatedHours: allocatedHoursNumber, // Convert to number here
+        name: values.name,
+        description: values.description,
+        status,
+        startDate: values.startDate,
+        dueDate: values.dueDate,
+        allocatedHours: allocatedHoursNumber,
       });
       
       toast({
@@ -123,12 +127,12 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
             />
             <FormField
               control={form.control}
-              name="clientName"
+              name="startDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Client Name</FormLabel>
+                  <FormLabel>Start Date</FormLabel>
                   <FormControl>
-                    <Input placeholder="Client Name" {...field} />
+                    <Input type="date" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -136,12 +140,12 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
             />
             <FormField
               control={form.control}
-              name="budget"
+              name="dueDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Budget</FormLabel>
+                  <FormLabel>Due Date</FormLabel>
                   <FormControl>
-                    <Input placeholder="Budget" type="number" {...field} />
+                    <Input type="date" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
