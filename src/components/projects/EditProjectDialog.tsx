@@ -1,377 +1,171 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { useAppContext } from "@/contexts/AppContext";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
-import { Switch } from "@/components/ui/switch";
-import { Project, TaskStatus } from "@/types";
-import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { MultiSelect } from "@/components/ui/multi-select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Project } from "@/types";
+import { useAppContext } from "@/contexts/AppContext";
 
-const projectSchema = z.object({
-  name: z.string().min(1, { message: "Name is required" }),
-  description: z.string(),
-  clientId: z.string().min(1, { message: "Client is required" }),
-  startDate: z.string().min(1, { message: "Start date is required" }),
-  dueDate: z.string().optional(),
-  hasHourLimit: z.boolean().default(false),
-  allocatedHours: z.string().optional()
-    .transform(val => val && val.length > 0 ? Number(val) : undefined),
-  status: z.enum(["backlog", "todo", "in-progress", "review", "done"]),
+const formSchema = z.object({
+  name: z.string().min(2, {
+    message: "Project name must be at least 2 characters.",
+  }),
+  description: z.string().optional(),
+  clientName: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  status: z.string().optional(),
+  budget: z.string().optional(),
+  allocatedHours: z.string().optional(),
 });
-
-type ProjectFormData = z.infer<typeof projectSchema>;
 
 interface EditProjectDialogProps {
   project: Project;
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  onClose: () => void;
 }
 
-export function EditProjectDialog({ project, isOpen, onOpenChange }: EditProjectDialogProps) {
-  const { clients, users, updateProject, deleteProject, currentUser } = useAppContext();
+export function EditProjectDialog({ project, open, onClose }: EditProjectDialogProps) {
+  const { updateProject } = useAppContext();
   const { toast } = useToast();
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  
-  // Filter to only active clients
-  const activeClients = clients.filter(client => client.status === 'active');
-  
-  // Filter to only get team members (non-client users)
-  const teamMembers = users.filter(user => user.clientId === undefined);
-  
-  const form = useForm<ProjectFormData>({
-    resolver: zodResolver(projectSchema),
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: project.name,
       description: project.description || "",
-      clientId: project.clientId,
-      startDate: project.startDate ? project.startDate.split("T")[0] : new Date().toISOString().split("T")[0],
-      dueDate: project.dueDate ? project.dueDate.split("T")[0] : undefined,
-      hasHourLimit: !!project.allocatedHours,
-      allocatedHours: project.allocatedHours?.toString() || "",
-      status: project.status || "todo",
+      clientName: project.clientName || "",
+      startDate: project.startDate || "",
+      endDate: project.endDate || "",
+      status: project.status || "",
+      budget: project.budget ? project.budget.toString() : "",
+      allocatedHours: project.allocatedHours ? project.allocatedHours.toString() : "",
     },
   });
-  
-  // Initialize selected members - ensure we handle undefined memberIds
-  useEffect(() => {
-    if (project.memberIds && Array.isArray(project.memberIds)) {
-      setSelectedMembers(project.memberIds);
-    } else {
-      // Initialize with empty array if memberIds is undefined
-      setSelectedMembers([]);
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      // Convert allocatedHours from string to number
+      const allocatedHoursNumber = values.allocatedHours ? Number(values.allocatedHours) : 0;
+      
+      // Update the project with the new values
+      updateProject(project.id, {
+        ...values,
+        allocatedHours: allocatedHoursNumber, // Convert to number here
+      });
+      
+      toast({
+        title: "Project updated",
+        description: "Project has been updated successfully",
+      });
+      
+      if (onClose) onClose();
+    } catch (error) {
+      console.error("Failed to update project:", error);
+      toast({
+        title: "Failed to update project",
+        description: "There was an error updating the project",
+        variant: "destructive",
+      });
     }
-  }, [project]);
-
-  const onSubmit = (data: ProjectFormData) => {
-    // Convert allocatedHours from string to number if hasHourLimit is true
-    // Fix type error: explicitly convert allocatedHours to number or undefined
-    const allocatedHours = data.hasHourLimit && data.allocatedHours 
-      ? Number(data.allocatedHours) 
-      : undefined;
-
-    updateProject(project.id, {
-      ...data,
-      name: data.name,
-      description: data.description,
-      clientId: data.clientId,
-      memberIds: selectedMembers, 
-      startDate: data.startDate,
-      dueDate: data.dueDate,
-      allocatedHours, // Fixed: Now properly passing a number or undefined
-      status: data.status as TaskStatus,
-    });
-    
-    toast({
-      title: "Project updated",
-      description: "The project has been successfully updated.",
-    });
-    
-    onOpenChange(false);
   };
-  
-  const hasHourLimit = form.watch("hasHourLimit");
-  
-  // Check if current user is admin
-  const isAdmin = currentUser?.role === 'admin';
-  
-  // Convert users to options for MultiSelect
-  const memberOptions = teamMembers.map(member => ({
-    value: member.id,
-    label: member.name
-  }));
-  
-  const handleDelete = () => {
-    deleteProject(project.id);
-    
-    toast({
-      title: "Project deleted",
-      description: "The project has been permanently deleted.",
-      variant: "destructive",
-    });
-    
-    setShowDeleteDialog(false);
-    onOpenChange(false);
-  };
-  
+
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Edit Project</DialogTitle>
-            <DialogDescription>Make changes to your project here. Click save when you're done.</DialogDescription>
-          </DialogHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Project Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter project name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Project description"
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="clientId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Client <span className="text-destructive">*</span></FormLabel>
-                      <FormControl>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          required
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select client" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {activeClients.length > 0 ? (
-                              activeClients.map((client) => (
-                                <SelectItem key={client.id} value={client.id}>
-                                  {client.name}
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <SelectItem value="no-clients" disabled>
-                                No active clients available
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="space-y-2">
-                  <Label>Assign Team Members</Label>
-                  <MultiSelect
-                    options={memberOptions}
-                    selectedValues={selectedMembers}
-                    onValueChange={setSelectedMembers}
-                    placeholder="Select team members"
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="startDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Start Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="dueDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Due Date (Optional)</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Project Status</FormLabel>
-                    <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="backlog">Backlog</SelectItem>
-                          <SelectItem value="todo">Todo</SelectItem>
-                          <SelectItem value="in-progress">In Progress</SelectItem>
-                          <SelectItem value="review">Review</SelectItem>
-                          <SelectItem value="done">Done</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="hasHourLimit"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">Hour Limit</FormLabel>
-                      <FormDescription>
-                        Set a limit on the number of hours that can be used for this project.
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              
-              {hasHourLimit && (
-                <FormField
-                  control={form.control}
-                  name="allocatedHours"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Allocated Hours</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Enter hours"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Edit Project</DialogTitle>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Project Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Project Name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-              
-              <DialogFooter className="flex items-center justify-between">
-                <div>
-                  {isAdmin && (
-                    <Button 
-                      variant="destructive" 
-                      onClick={() => setShowDeleteDialog(true)}
-                      type="button"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Project
-                    </Button>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => onOpenChange(false)} type="button">Cancel</Button>
-                  <Button type="submit">Save Changes</Button>
-                </div>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the project
-              and all associated tasks and time entries.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+            />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Description" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="clientName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Client Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Client Name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="budget"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Budget</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Budget" type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="allocatedHours"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Allocated Hours</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Allocated Hours" type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <Button type="submit">Update Project</Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }

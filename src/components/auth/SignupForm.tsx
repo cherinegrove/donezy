@@ -72,24 +72,16 @@ export function SignupForm() {
           currency: "USD",
         });
         
-        // Store any additional user metadata in Supabase
+        // Update the profiles table in Supabase (already created by a trigger)
         const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert([
-            { 
-              user_id: authData.user.id,
-              name: values.name,
-              email: values.email,
-              role: "developer",
-              employment_type: "full-time",
-              billing_type: "hourly",
-              hourly_rate: 50,
-              currency: "USD"
-            }
-          ]);
+          .from('profiles')
+          .update({ 
+            display_name: values.name
+          })
+          .eq('id', authData.user.id);
         
         if (profileError) {
-          console.error("Error saving user profile:", profileError);
+          console.error("Error updating user profile:", profileError);
         }
 
         // Show success message
