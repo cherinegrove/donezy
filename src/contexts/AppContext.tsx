@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom';
@@ -7,14 +6,7 @@ import {
 } from "@/types";
 import { mockUsers, mockTeams, mockClients, mockProjects, mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockCustomFields, mockProjectTemplates, mockCustomRoles } from "@/data/mockData";
 import { AppContextType } from "./AppContextType";
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client with fallback values
-// You should set these environment variables in your Supabase integration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from '@/integrations/supabase/client';
 
 interface AppContextProps {
   children: React.ReactNode;

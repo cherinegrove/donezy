@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,14 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client with fallback values
-// You should set these environment variables in your Supabase integration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from "@/integrations/supabase/client";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -73,7 +65,7 @@ export function LoginForm() {
     setLoginError(null);
     
     try {
-      // Authenticate with Supabase
+      // Authenticate with Supabase using the imported client
       const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
@@ -111,7 +103,7 @@ export function LoginForm() {
     setIsLoading(true);
     
     try {
-      // Use Supabase's password reset functionality
+      // Use Supabase's password reset functionality with the imported client
       const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
         redirectTo: window.location.origin + '/reset-password',
       });

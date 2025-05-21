@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -48,7 +49,7 @@ export function SignupForm() {
     setIsLoading(true);
     
     try {
-      // First, create the user in Supabase auth
+      // First, create the user in Supabase auth using the imported client
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
