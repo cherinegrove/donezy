@@ -39,45 +39,26 @@ export function MultiSelect({
   const [open, setOpen] = React.useState(false);
   const [fileDialogOpen, setFileDialogOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  
-  // Defensive programming: ensure we always have valid arrays
-  const safeOptions = React.useMemo(() => {
-    return Array.isArray(options) ? options.filter(Boolean) : [];
-  }, [options]);
-  
-  const safeSelectedValues = React.useMemo(() => {
-    return Array.isArray(selectedValues) ? selectedValues : [];
-  }, [selectedValues]);
-
-  // Log warning if we received invalid data
-  React.useEffect(() => {
-    if (!Array.isArray(options)) {
-      console.warn("MultiSelect expected options to be array, got:", options);
-    }
-    if (!Array.isArray(selectedValues)) {
-      console.warn("MultiSelect expected selectedValues to be array, got:", selectedValues);
-    }
-  }, [options, selectedValues]);
 
   const handleSelect = React.useCallback(
     (value: string) => {
       if (!value) return;
       
-      const updatedValues = safeSelectedValues.includes(value) 
-        ? safeSelectedValues.filter((item) => item !== value)
-        : [...safeSelectedValues, value];
+      const updatedValues = selectedValues.includes(value) 
+        ? selectedValues.filter((item) => item !== value)
+        : [...selectedValues, value];
         
       onValueChange(updatedValues);
     },
-    [safeSelectedValues, onValueChange]
+    [selectedValues, onValueChange]
   );
 
   const handleRemove = React.useCallback(
     (value: string) => {
       if (!value) return;
-      onValueChange(safeSelectedValues.filter((item) => item !== value));
+      onValueChange(selectedValues.filter((item) => item !== value));
     },
-    [safeSelectedValues, onValueChange]
+    [selectedValues, onValueChange]
   );
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,77 +68,16 @@ export function MultiSelect({
     }
   };
 
-  // Get selected items safely using useMemo to prevent recalculations
+  // Get selected items with proper null checking
   const selectedItems = React.useMemo(() => {
-    if (!Array.isArray(safeOptions) || !Array.isArray(safeSelectedValues)) {
+    if (!Array.isArray(options) || !Array.isArray(selectedValues)) {
       return [];
     }
     
-    return safeSelectedValues
-      .map(value => safeOptions.find(option => 
-        option && typeof option === 'object' && 'value' in option && option.value === value
-      ))
-      .filter((option): option is Option => Boolean(option));
-  }, [safeSelectedValues, safeOptions]);
-
-  // The key issue is here - we need to ensure commandItems is always a valid array
-  // and that all the properties we're accessing exist
-  const commandItems = React.useMemo(() => {
-    // Extra safety check - only proceed if we have valid options
-    if (!Array.isArray(safeOptions)) {
-      return [];
-    }
-    
-    return safeOptions
-      .filter(option => option && typeof option === 'object' && 'value' in option) // Strict filtering
-      .map((option) => {
-        const isSelected = safeSelectedValues.includes(option.value);
-        
-        return (
-          <CommandItem
-            key={option.value}
-            onSelect={() => handleSelect(option.value)}
-            className={cn("flex items-center gap-2", {
-              "bg-accent": isSelected,
-            })}
-          >
-            <div
-              className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", {
-                "bg-primary text-primary-foreground": isSelected,
-              })}
-            >
-              {isSelected && (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-3 w-3"
-                >
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              )}
-            </div>
-            {option.avatar && (
-              <img 
-                src={option.avatar} 
-                alt={option.label} 
-                className="h-6 w-6 rounded-full mr-2" 
-              />
-            )}
-            {!option.avatar && option.initials && (
-              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
-                {option.initials}
-              </div>
-            )}
-            <span>{option.label}</span>
-          </CommandItem>
-        );
-      });
-  }, [safeOptions, safeSelectedValues, handleSelect]);
+    return selectedValues
+      .map(value => options.find(option => option && option.value === value))
+      .filter(Boolean) as Option[];
+  }, [selectedValues, options]);
 
   return (
     <>
@@ -171,25 +91,27 @@ export function MultiSelect({
             disabled={disabled}
           >
             <div className="flex flex-wrap gap-1">
-              {safeSelectedValues.length > 0 ? (
+              {selectedValues.length > 0 && Array.isArray(selectedItems) ? (
                 selectedItems.map((option) => (
-                  <Badge
-                    key={option.value}
-                    variant="secondary"
-                    className="mr-1 mb-1"
-                  >
-                    {option.label}
-                    <button
-                      className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-offset-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemove(option.value);
-                      }}
+                  option && (
+                    <Badge
+                      key={option.value}
+                      variant="secondary"
+                      className="mr-1 mb-1"
                     >
-                      <X className="h-3 w-3" />
-                      <span className="sr-only">Remove {option.label}</span>
-                    </button>
-                  </Badge>
+                      {option.label}
+                      <button
+                        className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-offset-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemove(option.value);
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                        <span className="sr-only">Remove {option.label}</span>
+                      </button>
+                    </Badge>
+                  )
                 ))
               ) : (
                 <span className="text-muted-foreground">{placeholder}</span>
@@ -202,8 +124,54 @@ export function MultiSelect({
             <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
             <CommandEmpty>No options found.</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
-              {/* Important fix: Always render an empty array when commandItems is undefined */}
-              {Array.isArray(commandItems) ? commandItems : []}
+              {Array.isArray(options) && options.map((option) => {
+                if (!option) return null;
+                const isSelected = selectedValues.includes(option.value);
+                
+                return (
+                  <CommandItem
+                    key={option.value}
+                    onSelect={() => handleSelect(option.value)}
+                    className={cn("flex items-center gap-2", {
+                      "bg-accent": isSelected,
+                    })}
+                  >
+                    <div
+                      className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", {
+                        "bg-primary text-primary-foreground": isSelected,
+                      })}
+                    >
+                      {isSelected && (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-3 w-3"
+                        >
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      )}
+                    </div>
+                    {option.avatar && (
+                      <img 
+                        src={option.avatar} 
+                        alt={option.label} 
+                        className="h-6 w-6 rounded-full mr-2" 
+                      />
+                    )}
+                    {!option.avatar && option.initials && (
+                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                        {option.initials}
+                      </div>
+                    )}
+                    <span>{option.label}</span>
+                  </CommandItem>
+                );
+              })}
               {allowFileUpload && (
                 <CommandItem 
                   onSelect={() => {

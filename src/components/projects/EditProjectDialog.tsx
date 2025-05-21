@@ -47,7 +47,8 @@ const projectSchema = z.object({
   startDate: z.string().min(1, { message: "Start date is required" }),
   dueDate: z.string().optional(),
   hasHourLimit: z.boolean().default(false),
-  allocatedHours: z.string().optional().transform(val => val ? Number(val) : undefined),
+  allocatedHours: z.string().optional()
+    .transform(val => val && val.length > 0 ? Number(val) : undefined),
   status: z.enum(["backlog", "todo", "in-progress", "review", "done"]),
 });
 
