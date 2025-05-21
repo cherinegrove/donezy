@@ -102,9 +102,9 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
       if (session?.user) {
         // Fetch user data from Supabase
         const { data: profileData } = await supabase
-          .from('user_profiles')
+          .from('profiles')
           .select('*')
-          .eq('user_id', session.user.id)
+          .eq('id', session.user.id)
           .single();
         
         // If we have profile data, set the current user accordingly
@@ -117,17 +117,18 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
             // Create a new user based on Supabase data
             user = {
               id: profileData.id || uuidv4(),
-              name: profileData.name || session.user.email?.split('@')[0] || 'User',
+              name: profileData.display_name || session.user.email?.split('@')[0] || 'User',
               email: session.user.email || '',
-              role: profileData.role || 'developer',
-              teamIds: profileData.team_ids || [],
-              avatar: profileData.avatar || generateRandomAvatar(),
-              employmentType: profileData.employment_type,
-              billingType: profileData.billing_type,
-              billingRate: profileData.billing_rate,
-              hourlyRate: profileData.hourly_rate,
-              monthlyRate: profileData.monthly_rate,
-              currency: profileData.currency,
+              role: 'developer', // Default role as profile doesn't contain role
+              teamIds: [], // No team_ids in profile
+              avatar: profileData.avatar_url || generateRandomAvatar(),
+              // These fields don't exist in the profiles table, so using defaults
+              employmentType: "full-time",
+              billingType: "hourly",
+              billingRate: 0,
+              hourlyRate: 50,
+              monthlyRate: 0,
+              currency: "USD",
             };
             
             // Add the user to the users state
@@ -160,12 +161,11 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
               
               // Create their profile in Supabase
               await supabase
-                .from('user_profiles')
+                .from('profiles')
                 .insert([{
-                  user_id: session.user.id,
-                  name: newUser.name,
-                  email: newUser.email,
-                  role: newUser.role,
+                  id: session.user.id,
+                  display_name: newUser.name,
+                  avatar_url: newUser.avatar
                 }]);
             }
           }
@@ -218,70 +218,6 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     };
   };
   
-  // Note operations
-  const addNote = (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => {
-    const now = new Date().toISOString();
-    const newNote: Note = {
-      id: uuidv4(),
-      createdAt: now,
-      updatedAt: now,
-      ...note
-    };
-    setNotes(prevNotes => [...prevNotes, newNote]);
-    return newNote.id;
-  };
-  
-  const updateNote = (id: string, updates: Partial<Note>) => {
-    setNotes(prevNotes =>
-      prevNotes.map(note => 
-        note.id === id 
-          ? { ...note, ...updates, updatedAt: new Date().toISOString() } 
-          : note
-      )
-    );
-  };
-  
-  const archiveNote = (id: string) => {
-    updateNote(id, { archived: true });
-  };
-  
-  const unarchiveNote = (id: string) => {
-    updateNote(id, { archived: false });
-  };
-  
-  const deleteNote = (id: string) => {
-    setNotes(prevNotes => prevNotes.filter(note => note.id !== id));
-  };
-  
-  const updateNotePosition = (id: string, position: { x: number, y: number }) => {
-    updateNote(id, { position });
-  };
-  
-  const getNotesByUser = (userId: string, includeArchived = false) => {
-    return notes.filter(note => 
-      note.userId === userId && (includeArchived || !note.archived)
-    );
-  };
-  
-  // Update localStorage on state change
-  useEffect(() => {
-    localStorage.setItem('users', JSON.stringify(users));
-    localStorage.setItem('teams', JSON.stringify(teams));
-    localStorage.setItem('clients', JSON.stringify(clients));
-    localStorage.setItem('projects', JSON.stringify(projects));
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-    localStorage.setItem('timeEntries', JSON.stringify(timeEntries));
-    localStorage.setItem('messages', JSON.stringify(messages));
-    localStorage.setItem('purchases', JSON.stringify(purchases));
-    localStorage.setItem('customFields', JSON.stringify(customFields));
-    localStorage.setItem('projectTemplates', JSON.stringify(projectTemplates));
-    localStorage.setItem('customRoles', JSON.stringify(customRoles));
-    localStorage.setItem('clientAgreements', JSON.stringify(clientAgreements));
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    localStorage.setItem('taskLogs', JSON.stringify(taskLogs));
-    localStorage.setItem('notes', JSON.stringify(notes)); // Add notes to localStorage
-  }, [users, teams, clients, projects, tasks, timeEntries, messages, purchases, customFields, projectTemplates, customRoles, clientAgreements, currentUser, taskLogs, notes]);
-  
   // Helper function to generate a random avatar URL
   const generateRandomAvatar = () => {
     const randomNumber = Math.floor(Math.random() * 70);
@@ -310,26 +246,26 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
         } else {
           // If user exists in Supabase but not in our local state, create them
           const { data: profileData } = await supabase
-            .from('user_profiles')
+            .from('profiles')
             .select('*')
-            .eq('user_id', data.user.id)
+            .eq('id', data.user.id)
             .single();
           
           if (profileData) {
             // Create a new user based on profile data
             const newUser: User = {
               id: uuidv4(),
-              name: profileData.name || email.split('@')[0],
+              name: profileData.display_name || email.split('@')[0],
               email: email,
-              role: profileData.role || 'developer',
-              teamIds: profileData.team_ids || [],
-              avatar: profileData.avatar || generateRandomAvatar(),
-              employmentType: profileData.employment_type,
-              billingType: profileData.billing_type,
-              billingRate: profileData.billing_rate,
-              hourlyRate: profileData.hourly_rate,
-              monthlyRate: profileData.monthly_rate,
-              currency: profileData.currency,
+              role: 'developer', // Default role
+              teamIds: [],
+              avatar: profileData.avatar_url || generateRandomAvatar(),
+              employmentType: "full-time", // Default values
+              billingType: "hourly",
+              billingRate: 0,
+              hourlyRate: 50,
+              monthlyRate: 0,
+              currency: "USD",
             };
             
             setUsers(prevUsers => [...prevUsers, newUser]);
@@ -352,12 +288,11 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
             
             // Create their profile in Supabase
             await supabase
-              .from('user_profiles')
+              .from('profiles')
               .insert([{
-                user_id: data.user.id,
-                name: newUser.name,
-                email: newUser.email,
-                role: newUser.role,
+                id: data.user.id,
+                display_name: newUser.name,
+                avatar_url: newUser.avatar
               }]);
             
             navigate('/');
@@ -421,27 +356,63 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session) {
-        // Create user profile in Supabase
-        await supabase.from('user_profiles').insert([{
-          name,
-          email,
-          role,
-          phone: options?.phone,
-          employment_type: options?.employmentType,
-          billing_type: options?.billingType,
-          billing_rate: options?.billingRate,
-          hourly_rate: options?.hourlyRate,
-          monthly_rate: options?.monthlyRate,
-          currency: options?.currency,
-          team_ids: options?.teamIds,
-          client_id: options?.clientId,
-          client_role: options?.clientRole,
+        // Create user profile in Supabase (using the correct profile structure)
+        await supabase.from('profiles').insert([{
+          // We can't actually set the ID here because that will be generated
+          // when the user signs up, but we can set display_name and avatar_url
+          display_name: name,
+          avatar_url: newUser.avatar
         }]);
       }
     } catch (error) {
       console.error("Error syncing user to Supabase:", error);
       // We'll keep the user in local state even if Supabase sync fails
     }
+  };
+  
+  // Note operations
+  const addNote = (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => {
+    const now = new Date().toISOString();
+    const newNote: Note = {
+      id: uuidv4(),
+      createdAt: now,
+      updatedAt: now,
+      ...note
+    };
+    setNotes(prevNotes => [...prevNotes, newNote]);
+    return newNote.id;
+  };
+  
+  const updateNote = (id: string, updates: Partial<Note>) => {
+    setNotes(prevNotes =>
+      prevNotes.map(note => 
+        note.id === id 
+          ? { ...note, ...updates, updatedAt: new Date().toISOString() } 
+          : note
+      )
+    );
+  };
+  
+  const archiveNote = (id: string) => {
+    updateNote(id, { archived: true });
+  };
+  
+  const unarchiveNote = (id: string) => {
+    updateNote(id, { archived: false });
+  };
+  
+  const deleteNote = (id: string) => {
+    setNotes(prevNotes => prevNotes.filter(note => note.id !== id));
+  };
+  
+  const updateNotePosition = (id: string, position: { x: number, y: number }) => {
+    updateNote(id, { position });
+  };
+  
+  const getNotesByUser = (userId: string, includeArchived = false) => {
+    return notes.filter(note => 
+      note.userId === userId && (includeArchived || !note.archived)
+    );
   };
   
   // Role management operations
@@ -704,7 +675,7 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     clientId: string;
     startDate: string;
     dueDate?: string;
-    memberIds?: string[];  // Added memberIds parameter
+    memberIds?: string[];  
   }) => {
     const template = projectTemplates.find(t => t.id === templateId);
     if (template) {
@@ -1185,6 +1156,25 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     console.log(`Deleting file ${fileId} for client ${clientId}`);
     return Promise.resolve();
   };
+  
+  // Update localStorage on state change
+  useEffect(() => {
+    localStorage.setItem('users', JSON.stringify(users));
+    localStorage.setItem('teams', JSON.stringify(teams));
+    localStorage.setItem('clients', JSON.stringify(clients));
+    localStorage.setItem('projects', JSON.stringify(projects));
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+    localStorage.setItem('timeEntries', JSON.stringify(timeEntries));
+    localStorage.setItem('messages', JSON.stringify(messages));
+    localStorage.setItem('purchases', JSON.stringify(purchases));
+    localStorage.setItem('customFields', JSON.stringify(customFields));
+    localStorage.setItem('projectTemplates', JSON.stringify(projectTemplates));
+    localStorage.setItem('customRoles', JSON.stringify(customRoles));
+    localStorage.setItem('clientAgreements', JSON.stringify(clientAgreements));
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    localStorage.setItem('taskLogs', JSON.stringify(taskLogs));
+    localStorage.setItem('notes', JSON.stringify(notes)); // Add notes to localStorage
+  }, [users, teams, clients, projects, tasks, timeEntries, messages, purchases, customFields, projectTemplates, customRoles, clientAgreements, currentUser, taskLogs, notes]);
   
   const contextValue: AppContextType = {
     users,
