@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,11 +26,12 @@ import Signup from "./pages/Signup";
 import Admin from "./pages/Admin"; 
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 
-// Initialize Supabase client
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL || '',
-  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-);
+// Initialize Supabase client with fallback values
+// You should set these environment variables in your Supabase integration
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Protected route component to handle role-based access and authentication
 const ProtectedRoute = ({ 

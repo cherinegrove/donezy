@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -97,6 +98,7 @@ export function EditProjectDialog({ project, isOpen, onOpenChange }: EditProject
 
   const onSubmit = (data: ProjectFormData) => {
     // Convert allocatedHours from string to number if hasHourLimit is true
+    // Fix type error: explicitly convert allocatedHours to number or undefined
     const allocatedHours = data.hasHourLimit && data.allocatedHours 
       ? Number(data.allocatedHours) 
       : undefined;
