@@ -24,7 +24,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
-import { Project } from "@/types";
+import { Project, TaskStatus } from "@/types";
 import { Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -47,7 +47,7 @@ const projectSchema = z.object({
   dueDate: z.string().optional(),
   hasHourLimit: z.boolean().default(false),
   allocatedHours: z.string().optional().transform(val => val ? Number(val) : undefined),
-  status: z.string(),
+  status: z.enum(["backlog", "todo", "in-progress", "review", "done"]),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -100,8 +100,8 @@ export function EditProjectDialog({ project, isOpen, onOpenChange }: EditProject
       memberIds: selectedMembers, 
       startDate: data.startDate,
       dueDate: data.dueDate,
-      allocatedHours: data.hasHourLimit ? data.allocatedHours : undefined,
-      status: data.status,
+      allocatedHours: data.hasHourLimit ? Number(data.allocatedHours) : undefined,
+      status: data.status as TaskStatus,
     });
     
     toast({
@@ -267,10 +267,11 @@ export function EditProjectDialog({ project, isOpen, onOpenChange }: EditProject
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="planning">Planning</SelectItem>
+                          <SelectItem value="backlog">Backlog</SelectItem>
+                          <SelectItem value="todo">Todo</SelectItem>
                           <SelectItem value="in-progress">In Progress</SelectItem>
-                          <SelectItem value="on-hold">On Hold</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="review">Review</SelectItem>
+                          <SelectItem value="done">Done</SelectItem>
                         </SelectContent>
                       </Select>
                     </FormControl>
