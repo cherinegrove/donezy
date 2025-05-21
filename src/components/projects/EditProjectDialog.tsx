@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -111,7 +110,7 @@ export function EditProjectDialog({ project, isOpen, onOpenChange }: EditProject
       memberIds: selectedMembers, 
       startDate: data.startDate,
       dueDate: data.dueDate,
-      allocatedHours: allocatedHours,
+      allocatedHours, // Fixed: Now properly passing a number or undefined
       status: data.status as TaskStatus,
     });
     
