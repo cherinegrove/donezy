@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, UserPlus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, cleanupAuthState } from "@/integrations/supabase/client";
 
 const signupSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -49,6 +48,19 @@ export function SignupForm() {
     setIsLoading(true);
     
     try {
+      console.log("Signup attempt for:", values.email);
+      
+      // Clean up any existing auth state to prevent issues
+      cleanupAuthState();
+      
+      try {
+        // Try a global sign out just in case
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+        console.log("Global sign out during signup failed, continuing:", err);
+      }
+      
       // First, create the user in Supabase auth using the imported client
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email,
@@ -64,6 +76,7 @@ export function SignupForm() {
       if (authError) throw authError;
       
       if (authData.user) {
+        console.log("Supabase signup success for:", authData.user.email);
         // Create the user in our app context as well to keep local functionality
         inviteUser(values.email, values.name, "developer", {
           // Default options for new users
@@ -73,13 +86,14 @@ export function SignupForm() {
           currency: "USD",
         });
         
-        // Update the profiles table in Supabase (already created by a trigger)
+        // Update the profiles table in Supabase
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ 
-            display_name: values.name
-          })
-          .eq('id', authData.user.id);
+          .insert({
+            id: authData.user.id,
+            display_name: values.name,
+            avatar_url: `https://i.pravatar.cc/300?img=${Math.floor(Math.random() * 70)}`
+          });
         
         if (profileError) {
           console.error("Error updating user profile:", profileError);

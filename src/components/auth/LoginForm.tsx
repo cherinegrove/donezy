@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,6 +66,8 @@ export function LoginForm() {
     setLoginError(null);
     
     try {
+      console.log("Attempting to login with email:", values.email);
+      
       // Authenticate with Supabase using the imported client
       const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email,
@@ -74,6 +77,8 @@ export function LoginForm() {
       if (error) throw error;
       
       if (data.user) {
+        console.log("Login successful for user:", data.user.email);
+        
         // Also login with our app context to maintain local functionality
         await login(values.email, values.password);
         
@@ -187,13 +192,6 @@ export function LoginForm() {
         >
           Forgot password?
         </button>
-        
-        <div className="text-muted-foreground">
-          Don't have an account?{" "}
-          <Link to="/signup" className="text-primary hover:underline font-medium">
-            Sign up
-          </Link>
-        </div>
       </div>
 
       {/* Forgot Password Dialog */}

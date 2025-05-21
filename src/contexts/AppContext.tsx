@@ -6,7 +6,7 @@ import {
 } from "@/types";
 import { mockUsers, mockTeams, mockClients, mockProjects, mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockCustomFields, mockProjectTemplates, mockCustomRoles } from "@/data/mockData";
 import { AppContextType } from "./AppContextType";
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, cleanupAuthState } from '@/integrations/supabase/client';
 
 interface AppContextProps {
   children: React.ReactNode;
@@ -227,6 +227,10 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
   // Authentication functions
   const login = async (email: string, password: string) => {
     try {
+      console.log("AppContext login attempt for:", email);
+      // Clean up any existing auth state to prevent issues
+      cleanupAuthState();
+      
       // Authenticate with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -236,6 +240,7 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
       if (error) throw error;
       
       if (data.user) {
+        console.log("AppContext login success for:", data.user.email);
         // Fetch user data from our local state
         const user = users.find(user => user.email === email);
         
@@ -254,7 +259,7 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
           if (profileData) {
             // Create a new user based on profile data
             const newUser: User = {
-              id: uuidv4(),
+              id: data.user.id,
               name: profileData.display_name || email.split('@')[0],
               email: email,
               role: 'developer', // Default role
@@ -275,7 +280,7 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
           } else {
             // Create a basic user
             const newUser: User = {
-              id: uuidv4(),
+              id: data.user.id,
               name: email.split('@')[0],
               email: email,
               role: 'developer',
@@ -289,11 +294,11 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
             // Create their profile in Supabase
             await supabase
               .from('profiles')
-              .insert([{
+              .insert({
                 id: data.user.id,
                 display_name: newUser.name,
                 avatar_url: newUser.avatar
-              }]);
+              });
             
             navigate('/');
             return true;
@@ -309,6 +314,9 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
   };
   
   const logout = async () => {
+    // Clean up auth state
+    cleanupAuthState();
+    
     // Sign out from Supabase
     await supabase.auth.signOut();
     
@@ -357,12 +365,11 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
       
       if (session) {
         // Create user profile in Supabase (using the correct profile structure)
-        await supabase.from('profiles').insert([{
-          // We can't actually set the ID here because that will be generated
-          // when the user signs up, but we can set display_name and avatar_url
+        await supabase.from('profiles').insert({
+          // We don't set the ID here because it will be generated on signup
           display_name: name,
           avatar_url: newUser.avatar
-        }]);
+        });
       }
     } catch (error) {
       console.error("Error syncing user to Supabase:", error);
