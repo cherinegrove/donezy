@@ -1,4 +1,3 @@
-
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -83,8 +82,12 @@ const Projects = () => {
           }
           break;
         case "teams":
-          if (!project.teamIds || !project.teamIds.some(id => values.includes(id))) {
-            return false;
+          // Handle potentially undefined teamIds
+          if (values.length > 0) {
+            const projectTeamIds = project.teamIds || [];
+            if (!projectTeamIds.some(id => values.includes(id))) {
+              return false;
+            }
           }
           break;
         case "status":
@@ -205,7 +208,7 @@ const Projects = () => {
                     </div>
                     
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Hours: {project.usedHours}h</span>
+                      <span className="text-muted-foreground">Hours: {project.usedHours || 0}h</span>
                       {project.allocatedHours && (
                         <span className="text-muted-foreground">/ {project.allocatedHours}h</span>
                       )}

@@ -6,6 +6,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,10 +85,13 @@ export function EditProjectDialog({ project, isOpen, onOpenChange }: EditProject
     },
   });
   
-  // Initialize selected members
+  // Initialize selected members - ensure we handle undefined memberIds
   useEffect(() => {
-    if (project.memberIds) {
+    if (project.memberIds && Array.isArray(project.memberIds)) {
       setSelectedMembers(project.memberIds);
+    } else {
+      // Initialize with empty array if memberIds is undefined
+      setSelectedMembers([]);
     }
   }, [project]);
 
@@ -147,6 +151,7 @@ export function EditProjectDialog({ project, isOpen, onOpenChange }: EditProject
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Edit Project</DialogTitle>
+            <DialogDescription>Make changes to your project here. Click save when you're done.</DialogDescription>
           </DialogHeader>
           
           <Form {...form}>
