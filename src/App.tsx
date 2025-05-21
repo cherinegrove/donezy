@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { createClient } from '@supabase/supabase-js';
 
 import { AppLayout } from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
@@ -24,6 +26,9 @@ import Signup from "./pages/Signup";
 import Admin from "./pages/Admin"; 
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 
+// Initialize Supabase client
+const supabase = createClient();
+
 // Protected route component to handle role-based access and authentication
 const ProtectedRoute = ({ 
   element, 
@@ -33,13 +38,36 @@ const ProtectedRoute = ({
   allowedRoles?: Array<'admin' | 'manager' | 'developer' | 'client'>;
 }) => {
   const { currentUser } = useAppContext();
+  const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
   
-  // Redirect to login if not authenticated
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setAuthenticated(!!session);
+      setLoading(false);
+    };
+    
+    checkAuth();
+  }, []);
+  
+  // Show loading state
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+    </div>;
+  }
+  
+  // Redirect to login if not authenticated with Supabase
+  if (!authenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // Check if user has permission based on app context
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
   
-  // Check if user has permission
   const hasPermission = allowedRoles.includes(currentUser.role);
   
   return hasPermission ? element : <Navigate to="/" replace />;
@@ -47,10 +75,28 @@ const ProtectedRoute = ({
 
 // Public route component to handle already authenticated users
 const PublicRoute = ({ element }: { element: React.ReactNode }) => {
-  const { currentUser } = useAppContext();
+  const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
   
-  // Redirect to dashboard if already authenticated
-  if (currentUser) {
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setAuthenticated(!!session);
+      setLoading(false);
+    };
+    
+    checkAuth();
+  }, []);
+  
+  // Show loading state
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+    </div>;
+  }
+  
+  // Redirect to dashboard if already authenticated with Supabase
+  if (authenticated) {
     return <Navigate to="/" replace />;
   }
   

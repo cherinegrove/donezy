@@ -6,6 +6,10 @@ import {
 } from "@/types";
 import { mockUsers, mockTeams, mockClients, mockProjects, mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockCustomFields, mockProjectTemplates, mockCustomRoles } from "@/data/mockData";
 import { AppContextType } from "./AppContextType";
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client - this will use the environment variables set by the Supabase integration
+const supabase = createClient();
 
 interface AppContextProps {
   children: React.ReactNode;
@@ -91,6 +95,108 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
   
   const navigate = useNavigate();
+  
+  // Check for active Supabase session on load
+  useEffect(() => {
+    // Get the current session and user
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        // Fetch user data from Supabase
+        const { data: profileData } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        // If we have profile data, set the current user accordingly
+        if (profileData) {
+          // Check if this user exists in our local state
+          let user = users.find(u => u.email === session.user.email);
+          
+          // If not, create a new user record
+          if (!user) {
+            // Create a new user based on Supabase data
+            user = {
+              id: profileData.id || uuidv4(),
+              name: profileData.name || session.user.email?.split('@')[0] || 'User',
+              email: session.user.email || '',
+              role: profileData.role || 'developer',
+              teamIds: profileData.team_ids || [],
+              avatar: profileData.avatar || generateRandomAvatar(),
+              employmentType: profileData.employment_type,
+              billingType: profileData.billing_type,
+              billingRate: profileData.billing_rate,
+              hourlyRate: profileData.hourly_rate,
+              monthlyRate: profileData.monthly_rate,
+              currency: profileData.currency,
+            };
+            
+            // Add the user to the users state
+            setUsers(prevUsers => [...prevUsers, user as User]);
+          }
+          
+          // Set as current user
+          setCurrentUser(user);
+        } else {
+          // If no profile exists yet but we have a session, try to find or create a user
+          const email = session.user.email;
+          if (email) {
+            let user = users.find(u => u.email === email);
+            
+            if (user) {
+              setCurrentUser(user);
+            } else {
+              // Create a basic user
+              const newUser: User = {
+                id: uuidv4(),
+                name: email.split('@')[0],
+                email,
+                role: 'developer',
+                teamIds: [],
+                avatar: generateRandomAvatar(),
+              };
+              
+              setUsers(prevUsers => [...prevUsers, newUser]);
+              setCurrentUser(newUser);
+              
+              // Create their profile in Supabase
+              await supabase
+                .from('user_profiles')
+                .insert([{
+                  user_id: session.user.id,
+                  name: newUser.name,
+                  email: newUser.email,
+                  role: newUser.role,
+                }]);
+            }
+          }
+        }
+      }
+    };
+    
+    checkSession();
+    
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          // Handle sign in
+          await checkSession();
+        } else if (event === 'SIGNED_OUT') {
+          // Handle sign out
+          setCurrentUser(null);
+          navigate('/login');
+        }
+      }
+    );
+    
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate, users]);
   
   // Helper function to add task logs
   const addTaskLog = (taskId: string, userId: string | undefined, action: string, details?: string) => {
@@ -179,27 +285,166 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     localStorage.setItem('notes', JSON.stringify(notes)); // Add notes to localStorage
   }, [users, teams, clients, projects, tasks, timeEntries, messages, purchases, customFields, projectTemplates, customRoles, clientAgreements, currentUser, taskLogs, notes]);
   
-  // Authentication functions
-  const login = async (email: string, password: string) => {
-    const user = users.find(user => user.email === email);
-    if (user) {
-      setCurrentUser(user);
-      navigate('/');
-      return true;
-    } else {
-      return false;
-    }
-  };
-  
-  const logout = () => {
-    setCurrentUser(null);
-    navigate('/login');
-  };
-  
   // Helper function to generate a random avatar URL
   const generateRandomAvatar = () => {
     const randomNumber = Math.floor(Math.random() * 70);
     return `https://i.pravatar.cc/300?img=${randomNumber}`;
+  };
+  
+  // Authentication functions
+  const login = async (email: string, password: string) => {
+    try {
+      // Authenticate with Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) throw error;
+      
+      if (data.user) {
+        // Fetch user data from our local state
+        const user = users.find(user => user.email === email);
+        
+        if (user) {
+          setCurrentUser(user);
+          navigate('/');
+          return true;
+        } else {
+          // If user exists in Supabase but not in our local state, create them
+          const { data: profileData } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('user_id', data.user.id)
+            .single();
+          
+          if (profileData) {
+            // Create a new user based on profile data
+            const newUser: User = {
+              id: uuidv4(),
+              name: profileData.name || email.split('@')[0],
+              email: email,
+              role: profileData.role || 'developer',
+              teamIds: profileData.team_ids || [],
+              avatar: profileData.avatar || generateRandomAvatar(),
+              employmentType: profileData.employment_type,
+              billingType: profileData.billing_type,
+              billingRate: profileData.billing_rate,
+              hourlyRate: profileData.hourly_rate,
+              monthlyRate: profileData.monthly_rate,
+              currency: profileData.currency,
+            };
+            
+            setUsers(prevUsers => [...prevUsers, newUser]);
+            setCurrentUser(newUser);
+            navigate('/');
+            return true;
+          } else {
+            // Create a basic user
+            const newUser: User = {
+              id: uuidv4(),
+              name: email.split('@')[0],
+              email: email,
+              role: 'developer',
+              teamIds: [],
+              avatar: generateRandomAvatar(),
+            };
+            
+            setUsers(prevUsers => [...prevUsers, newUser]);
+            setCurrentUser(newUser);
+            
+            // Create their profile in Supabase
+            await supabase
+              .from('user_profiles')
+              .insert([{
+                user_id: data.user.id,
+                name: newUser.name,
+                email: newUser.email,
+                role: newUser.role,
+              }]);
+            
+            navigate('/');
+            return true;
+          }
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("Login error:", error);
+      return false;
+    }
+  };
+  
+  const logout = async () => {
+    // Sign out from Supabase
+    await supabase.auth.signOut();
+    
+    // Clear local state
+    setCurrentUser(null);
+    navigate('/login');
+  };
+  
+  // For user invite functionality, sync with Supabase
+  const inviteUser = async (email: string, name: string, role: string, options?: {
+    phone?: string;
+    employmentType?: "full-time" | "part-time" | "contract";
+    billingType?: "hourly" | "monthly";
+    billingRate?: number;
+    hourlyRate?: number;
+    monthlyRate?: number;
+    currency?: string;
+    teamIds?: string[];
+    clientId?: string;
+    clientRole?: "admin" | "team";
+  }) => {
+    // Create the user in our local state first
+    const newUser: User = {
+      id: uuidv4(),
+      name,
+      email,
+      avatar: generateRandomAvatar(),
+      role: role as any,
+      teamIds: options?.teamIds || [],
+      phone: options?.phone,
+      employmentType: options?.employmentType,
+      billingType: options?.billingType,
+      billingRate: options?.billingRate,
+      hourlyRate: options?.hourlyRate,
+      monthlyRate: options?.monthlyRate,
+      currency: options?.currency,
+      clientId: options?.clientId,
+      clientRole: options?.clientRole,
+    };
+    
+    setUsers(prevUsers => [...prevUsers, newUser]);
+    
+    try {
+      // Check if we have an authenticated session to create the user in Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // Create user profile in Supabase
+        await supabase.from('user_profiles').insert([{
+          name,
+          email,
+          role,
+          phone: options?.phone,
+          employment_type: options?.employmentType,
+          billing_type: options?.billingType,
+          billing_rate: options?.billingRate,
+          hourly_rate: options?.hourlyRate,
+          monthly_rate: options?.monthlyRate,
+          currency: options?.currency,
+          team_ids: options?.teamIds,
+          client_id: options?.clientId,
+          client_role: options?.clientRole,
+        }]);
+      }
+    } catch (error) {
+      console.error("Error syncing user to Supabase:", error);
+      // We'll keep the user in local state even if Supabase sync fails
+    }
   };
   
   // Role management operations
@@ -245,38 +490,6 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
   
   const deleteUser = (id: string) => {
     setUsers(prevUsers => prevUsers.filter(user => user.id !== id));
-  };
-  
-  const inviteUser = (email: string, name: string, role: string, options?: {
-    phone?: string;
-    employmentType?: "full-time" | "part-time" | "contract";
-    billingType?: "hourly" | "monthly";
-    billingRate?: number;
-    hourlyRate?: number;
-    monthlyRate?: number;
-    currency?: string;
-    teamIds?: string[];
-    clientId?: string;
-    clientRole?: "admin" | "team";  // Added clientRole option
-  }) => {
-    const newUser: User = {
-      id: uuidv4(),
-      name,
-      email,
-      avatar: generateRandomAvatar(),
-      role: role as any,
-      teamIds: options?.teamIds || [],
-      phone: options?.phone,
-      employmentType: options?.employmentType,
-      billingType: options?.billingType,
-      billingRate: options?.billingRate,
-      hourlyRate: options?.hourlyRate,
-      monthlyRate: options?.monthlyRate,
-      currency: options?.currency,
-      clientId: options?.clientId,
-      clientRole: options?.clientRole,
-    };
-    setUsers(prevUsers => [...prevUsers, newUser]);
   };
   
   // CRUD operations for teams
@@ -995,6 +1208,7 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     activeTimeEntry,
     login,
     logout,
+    inviteUser,
     addCustomRole,
     updateCustomRole,
     deleteCustomRole,
@@ -1002,7 +1216,6 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
     addUser,
     updateUser,
     deleteUser,
-    inviteUser,
     addTeam,
     updateTeam,
     deleteTeam,

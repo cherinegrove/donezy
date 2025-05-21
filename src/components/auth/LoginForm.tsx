@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +26,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client - this will use the environment variables set by the Supabase integration
+const supabase = createClient();
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -64,20 +69,35 @@ export function LoginForm() {
     setLoginError(null);
     
     try {
-      const success = await login(values.email, values.password);
-      if (success) {
+      // Authenticate with Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      });
+      
+      if (error) throw error;
+      
+      if (data.user) {
+        // Also login with our app context to maintain local functionality
+        await login(values.email, values.password);
+        
         toast({
           title: "Login successful",
           description: "Welcome back!",
           variant: "default",
         });
+        
         navigate("/", { replace: true });
-      } else {
-        setLoginError("Invalid email or password");
       }
     } catch (error) {
-      setLoginError("An error occurred during login");
       console.error("Login error:", error);
+      setLoginError("Invalid email or password");
+      
+      toast({
+        title: "Login failed",
+        description: error instanceof Error ? error.message : "An error occurred during login. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -87,22 +107,24 @@ export function LoginForm() {
     setIsLoading(true);
     
     try {
-      // Simulated API call - in a real app, this would trigger a password reset email
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use Supabase's password reset functionality
+      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+        redirectTo: window.location.origin + '/reset-password',
+      });
+      
+      if (error) throw error;
       
       // Show success message
       setForgotPasswordSuccess(true);
+      
       toast({
         title: "Password reset email sent",
         description: `Instructions have been sent to ${values.email}`,
       });
-      
-      // In a real app, we would call an API endpoint to send the password reset email
-      console.log("Password reset requested for:", values.email);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to send password reset email",
+        description: error instanceof Error ? error.message : "Failed to send password reset email",
         variant: "destructive",
       });
     } finally {
@@ -156,6 +178,7 @@ export function LoginForm() {
           />
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Logging in..." : "Login"}
+            {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
           </Button>
         </form>
       </Form>

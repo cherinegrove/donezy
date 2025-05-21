@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +16,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, UserPlus } from "lucide-react";
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client - this will use the environment variables set by the Supabase integration
+const supabase = createClient();
 
 const signupSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -32,6 +35,7 @@ export function SignupForm() {
   const { inviteUser } = useAppContext();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const form = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
@@ -47,31 +51,69 @@ export function SignupForm() {
     setIsLoading(true);
     
     try {
-      // Create the new user account
-      inviteUser(values.email, values.name, "developer", {
-        // Default options for new users
-        employmentType: "full-time",
-        billingType: "hourly",
-        hourlyRate: 50,
-        currency: "USD",
+      // First, create the user in Supabase auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            name: values.name,
+            role: "developer", // Default role
+          }
+        }
       });
+      
+      if (authError) throw authError;
+      
+      if (authData.user) {
+        // Create the user in our app context as well to keep local functionality
+        inviteUser(values.email, values.name, "developer", {
+          // Default options for new users
+          employmentType: "full-time",
+          billingType: "hourly",
+          hourlyRate: 50,
+          currency: "USD",
+        });
+        
+        // Store any additional user metadata in Supabase
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .insert([
+            { 
+              user_id: authData.user.id,
+              name: values.name,
+              email: values.email,
+              role: "developer",
+              employment_type: "full-time",
+              billing_type: "hourly",
+              hourly_rate: 50,
+              currency: "USD"
+            }
+          ]);
+        
+        if (profileError) {
+          console.error("Error saving user profile:", profileError);
+        }
 
-      // Show success message
-      toast({
-        title: "Account created successfully",
-        description: "You can now log in with your credentials",
-      });
-      
-      // Reset the form
-      form.reset();
-      
+        // Show success message
+        toast({
+          title: "Account created successfully",
+          description: "You can now log in with your credentials",
+        });
+        
+        // Reset the form
+        form.reset();
+        
+        // Redirect to login page
+        navigate("/login");
+      }
     } catch (error) {
+      console.error("Signup error:", error);
       toast({
         title: "Error creating account",
-        description: "An error occurred during signup. Please try again.",
+        description: error instanceof Error ? error.message : "An error occurred during signup. Please try again.",
         variant: "destructive",
       });
-      console.error("Signup error:", error);
     } finally {
       setIsLoading(false);
     }

@@ -3,6 +3,10 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client - this will use the environment variables set by the Supabase integration
+const supabase = createClient();
 
 type LogoutButtonProps = {
   variant?: 'button' | 'menuItem';
@@ -11,7 +15,11 @@ type LogoutButtonProps = {
 export function LogoutButton({ variant = 'button' }: LogoutButtonProps) {
   const { logout } = useAppContext();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Sign out from Supabase
+    await supabase.auth.signOut();
+    
+    // Also log out locally to maintain compatibility with the existing app
     logout();
   };
 
