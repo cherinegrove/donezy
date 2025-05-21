@@ -92,6 +92,11 @@ export function EditProjectDialog({ project, isOpen, onOpenChange }: EditProject
   }, [project]);
 
   const onSubmit = (data: ProjectFormData) => {
+    // Convert allocatedHours from string to number if hasHourLimit is true
+    const allocatedHours = data.hasHourLimit && data.allocatedHours 
+      ? Number(data.allocatedHours) 
+      : undefined;
+
     updateProject(project.id, {
       ...data,
       name: data.name,
@@ -100,7 +105,7 @@ export function EditProjectDialog({ project, isOpen, onOpenChange }: EditProject
       memberIds: selectedMembers, 
       startDate: data.startDate,
       dueDate: data.dueDate,
-      allocatedHours: data.hasHourLimit ? Number(data.allocatedHours) : undefined,
+      allocatedHours: allocatedHours,
       status: data.status as TaskStatus,
     });
     
