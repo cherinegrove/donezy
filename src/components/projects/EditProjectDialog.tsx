@@ -1,19 +1,56 @@
 
 import React, { useState, useEffect } from "react";
-import { useAppContext } from "@/contexts/AppContext";
-import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Trash2 } from "lucide-react";
-import { format } from "date-fns";
+import { useAppContext } from "@/contexts/AppContext";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
 import { Project } from "@/types";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { MultiSelect } from "@/components/ui/multi-select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+const projectSchema = z.object({
+  name: z.string().min(1, { message: "Name is required" }),
+  description: z.string(),
+  clientId: z.string().min(1, { message: "Client is required" }),
+  startDate: z.string().min(1, { message: "Start date is required" }),
+  dueDate: z.string().optional(),
+  hasHourLimit: z.boolean().default(false),
+  allocatedHours: z.string().optional().transform(val => val ? Number(val) : undefined),
+  status: z.string(),
+});
+
+type ProjectFormData = z.infer<typeof projectSchema>;
 
 interface EditProjectDialogProps {
   project: Project;
@@ -22,41 +59,49 @@ interface EditProjectDialogProps {
 }
 
 export function EditProjectDialog({ project, isOpen, onOpenChange }: EditProjectDialogProps) {
-  const { clients, updateProject, deleteProject, currentUser } = useAppContext();
+  const { clients, users, updateProject, deleteProject, currentUser } = useAppContext();
   const { toast } = useToast();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   
-  // Project state
-  const [name, setName] = useState(project.name);
-  const [description, setDescription] = useState(project.description || "");
-  const [clientId, setClientId] = useState(project.clientId);
-  const [status, setStatus] = useState(project.status);
-  const [startDate, setStartDate] = useState<Date>(new Date(project.startDate));
-  const [dueDate, setDueDate] = useState<Date | undefined>(
-    project.dueDate ? new Date(project.dueDate) : undefined
-  );
-  const [allocatedHours, setAllocatedHours] = useState<number | undefined>(project.allocatedHours);
+  // Filter to only active clients
+  const activeClients = clients.filter(client => client.status === 'active');
   
-  // Reset form when project changes
+  // Filter to only get team members (non-client users)
+  const teamMembers = users.filter(user => user.clientId === undefined);
+  
+  const form = useForm<ProjectFormData>({
+    resolver: zodResolver(projectSchema),
+    defaultValues: {
+      name: project.name,
+      description: project.description || "",
+      clientId: project.clientId,
+      startDate: project.startDate ? project.startDate.split("T")[0] : new Date().toISOString().split("T")[0],
+      dueDate: project.dueDate ? project.dueDate.split("T")[0] : undefined,
+      hasHourLimit: !!project.allocatedHours,
+      allocatedHours: project.allocatedHours?.toString() || "",
+      status: project.status || "todo",
+    },
+  });
+  
+  // Initialize selected members
   useEffect(() => {
-    setName(project.name);
-    setDescription(project.description || "");
-    setClientId(project.clientId);
-    setStatus(project.status);
-    setStartDate(new Date(project.startDate));
-    setDueDate(project.dueDate ? new Date(project.dueDate) : undefined);
-    setAllocatedHours(project.allocatedHours);
+    if (project.memberIds) {
+      setSelectedMembers(project.memberIds);
+    }
   }, [project]);
-  
-  const handleSave = () => {
+
+  const onSubmit = (data: ProjectFormData) => {
     updateProject(project.id, {
-      name,
-      description,
-      clientId,
-      status,
-      startDate: startDate.toISOString(),
-      dueDate: dueDate ? dueDate.toISOString() : undefined,
-      allocatedHours
+      ...data,
+      name: data.name,
+      description: data.description,
+      clientId: data.clientId,
+      memberIds: selectedMembers, 
+      startDate: data.startDate,
+      dueDate: data.dueDate,
+      allocatedHours: data.hasHourLimit ? data.allocatedHours : undefined,
+      status: data.status,
     });
     
     toast({
@@ -66,6 +111,17 @@ export function EditProjectDialog({ project, isOpen, onOpenChange }: EditProject
     
     onOpenChange(false);
   };
+  
+  const hasHourLimit = form.watch("hasHourLimit");
+  
+  // Check if current user is admin
+  const isAdmin = currentUser?.role === 'admin';
+  
+  // Convert users to options for MultiSelect
+  const memberOptions = teamMembers.map(member => ({
+    value: member.id,
+    label: member.name
+  }));
   
   const handleDelete = () => {
     deleteProject(project.id);
@@ -80,9 +136,6 @@ export function EditProjectDialog({ project, isOpen, onOpenChange }: EditProject
     onOpenChange(false);
   };
   
-  // Check if current user is admin
-  const isAdmin = currentUser?.role === 'admin';
-  
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -90,137 +143,203 @@ export function EditProjectDialog({ project, isOpen, onOpenChange }: EditProject
           <DialogHeader>
             <DialogTitle>Edit Project</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Project Name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter project name"
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter project name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Enter project description"
-                rows={3}
+              
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Project description"
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="client">Client</Label>
-              <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger id="client">
-                  <SelectValue placeholder="Select client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Start Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, "PPP") : "Select date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={(date) => date && setStartDate(date)}
-                    />
-                  </PopoverContent>
-                </Popover>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="clientId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Client <span className="text-destructive">*</span></FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          required
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select client" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {activeClients.length > 0 ? (
+                              activeClients.map((client) => (
+                                <SelectItem key={client.id} value={client.id}>
+                                  {client.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="no-clients" disabled>
+                                No active clients available
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="space-y-2">
+                  <Label>Assign Team Members</Label>
+                  <MultiSelect
+                    options={memberOptions}
+                    selectedValues={selectedMembers}
+                    onValueChange={setSelectedMembers}
+                    placeholder="Select team members"
+                  />
+                </div>
               </div>
               
-              <div className="space-y-2">
-                <Label>Due Date (Optional)</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dueDate ? format(dueDate, "PPP") : "Select date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={dueDate}
-                      onSelect={setDueDate}
-                    />
-                  </PopoverContent>
-                </Popover>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="dueDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Due Date (Optional)</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="status">Project Status</Label>
-              <Select value={status} onValueChange={(value: any) => setStatus(value)}>
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="planning">Planning</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
-                  <SelectItem value="on-hold">On Hold</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="allocatedHours">Allocated Hours (Optional)</Label>
-              <Input
-                id="allocatedHours"
-                type="number"
-                value={allocatedHours || ""}
-                onChange={(e) => {
-                  const value = e.target.value ? Number(e.target.value) : undefined;
-                  setAllocatedHours(value);
-                }}
-                placeholder="Enter allocated hours"
+              
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project Status</FormLabel>
+                    <FormControl>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="planning">Planning</SelectItem>
+                          <SelectItem value="in-progress">In Progress</SelectItem>
+                          <SelectItem value="on-hold">On Hold</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-          </div>
-          <DialogFooter className="flex items-center justify-between">
-            <div>
-              {isAdmin && (
-                <Button 
-                  variant="destructive" 
-                  onClick={() => setShowDeleteDialog(true)}
-                  type="button"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Project
-                </Button>
+              
+              <FormField
+                control={form.control}
+                name="hasHourLimit"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Hour Limit</FormLabel>
+                      <FormDescription>
+                        Set a limit on the number of hours that can be used for this project.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              {hasHourLimit && (
+                <FormField
+                  control={form.control}
+                  name="allocatedHours"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Allocated Hours</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Enter hours"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               )}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={handleSave}>Save Changes</Button>
-            </div>
-          </DialogFooter>
+              
+              <DialogFooter className="flex items-center justify-between">
+                <div>
+                  {isAdmin && (
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => setShowDeleteDialog(true)}
+                      type="button"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Project
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => onOpenChange(false)} type="button">Cancel</Button>
+                  <Button type="submit">Save Changes</Button>
+                </div>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
