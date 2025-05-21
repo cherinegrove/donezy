@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,7 +28,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client - this will use the environment variables set by the Supabase integration
-const supabase = createClient();
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL || '',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+);
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),

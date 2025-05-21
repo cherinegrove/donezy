@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,7 +26,10 @@ import Admin from "./pages/Admin";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 
 // Initialize Supabase client
-const supabase = createClient();
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL || '',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+);
 
 // Protected route component to handle role-based access and authentication
 const ProtectedRoute = ({ 

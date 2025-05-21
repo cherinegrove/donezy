@@ -19,7 +19,10 @@ import { ArrowRight, UserPlus } from "lucide-react";
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client - this will use the environment variables set by the Supabase integration
-const supabase = createClient();
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL || '',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+);
 
 const signupSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),

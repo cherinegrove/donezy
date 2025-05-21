@@ -6,7 +6,10 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client - this will use the environment variables set by the Supabase integration
-const supabase = createClient();
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL || '',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+);
 
 type LogoutButtonProps = {
   variant?: 'button' | 'menuItem';
