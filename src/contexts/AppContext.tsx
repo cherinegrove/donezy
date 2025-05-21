@@ -366,7 +366,8 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
       if (session) {
         // Create user profile in Supabase (using the correct profile structure)
         await supabase.from('profiles').insert({
-          // We don't set the ID here because it will be generated on signup
+          // We MUST include the id field when inserting into profiles
+          id: newUser.id,
           display_name: name,
           avatar_url: newUser.avatar
         });

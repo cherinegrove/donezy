@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -86,7 +87,7 @@ export function SignupForm() {
           currency: "USD",
         });
         
-        // Update the profiles table in Supabase
+        // Update the profiles table in Supabase - make sure to include the ID
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
