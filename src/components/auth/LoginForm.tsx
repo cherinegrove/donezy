@@ -26,7 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, cleanupAuthState } from "@/integrations/supabase/client";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -68,6 +68,17 @@ export function LoginForm() {
     try {
       console.log("Attempting to login with email:", values.email);
       
+      // Clean up any existing auth state to prevent issues
+      cleanupAuthState();
+      
+      // Try a global sign out just in case
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+        console.log("Global sign out during login failed, continuing:", err);
+      }
+      
       // Authenticate with Supabase using the imported client
       const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email,
@@ -92,7 +103,7 @@ export function LoginForm() {
       }
     } catch (error) {
       console.error("Login error:", error);
-      setLoginError("Invalid email or password");
+      setLoginError("Invalid email or password. Make sure you've completed signup first.");
       
       toast({
         title: "Login failed",

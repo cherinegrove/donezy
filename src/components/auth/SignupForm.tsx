@@ -100,6 +100,13 @@ export function SignupForm() {
           console.error("Error updating user profile:", profileError);
         }
 
+        // Sign the user out completely after signup to ensure a clean login state
+        try {
+          await supabase.auth.signOut({ scope: 'global' });
+        } catch (err) {
+          console.log("Error signing out after signup:", err);
+        }
+
         // Show success message
         toast({
           title: "Account created successfully",

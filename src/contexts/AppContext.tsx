@@ -231,6 +231,14 @@ export const AppProvider: React.FC<AppContextProps> = ({ children }) => {
       // Clean up any existing auth state to prevent issues
       cleanupAuthState();
       
+      try {
+        // Try a global sign out just in case
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+        console.log("Global sign out during login failed, continuing:", err);
+      }
+      
       // Authenticate with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
