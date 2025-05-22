@@ -79,19 +79,30 @@ export function LoginForm() {
         console.log("Global sign out during login failed, continuing:", err);
       }
       
-      // Authenticate with Supabase using the imported client
+      // Authenticate with Supabase directly first
+      console.log("Calling supabase auth.signInWithPassword");
       const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase auth error:", error);
+        throw error;
+      }
+      
+      console.log("Supabase auth successful:", data);
       
       if (data.user) {
         console.log("Login successful for user:", data.user.email);
         
-        // Also login with our app context to maintain local functionality
-        await login(values.email, values.password);
+        // Now login with our app context to maintain local functionality
+        const appLoginSuccess = await login(values.email, values.password);
+        
+        if (!appLoginSuccess) {
+          console.error("App context login failed even though Supabase auth succeeded");
+          throw new Error("Failed to synchronize login state");
+        }
         
         toast({
           title: "Login successful",
@@ -103,7 +114,9 @@ export function LoginForm() {
       }
     } catch (error) {
       console.error("Login error:", error);
-      setLoginError("Invalid email or password. Make sure you've completed signup first.");
+      setLoginError(error instanceof Error 
+        ? error.message 
+        : "Invalid email or password. Make sure you've completed signup first.");
       
       toast({
         title: "Login failed",

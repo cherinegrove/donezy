@@ -38,4 +38,12 @@ export const cleanupAuthState = () => {
       sessionStorage.removeItem(key);
     }
   });
+  
+  // Also clear cookies by setting expiry to past date
+  document.cookie.split(";").forEach(function(c) {
+    if (c.trim().startsWith('sb-') || c.trim().startsWith('supabase.auth.')) {
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      console.log("Removed cookie:", c.trim());
+    }
+  });
 };

@@ -33,6 +33,7 @@ export function SignupForm() {
   const { inviteUser } = useAppContext();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [signupError, setSignupError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const form = useForm<z.infer<typeof signupSchema>>({
@@ -47,6 +48,7 @@ export function SignupForm() {
 
   async function onSubmit(values: z.infer<typeof signupSchema>) {
     setIsLoading(true);
+    setSignupError(null);
     
     try {
       console.log("Signup attempt for:", values.email);
@@ -90,11 +92,11 @@ export function SignupForm() {
         // Update the profiles table in Supabase - make sure to include the ID
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
+          .upsert({
             id: authData.user.id,
             display_name: values.name,
             avatar_url: `https://i.pravatar.cc/300?img=${Math.floor(Math.random() * 70)}`
-          });
+          }, { onConflict: 'id' });
         
         if (profileError) {
           console.error("Error updating user profile:", profileError);
@@ -121,6 +123,7 @@ export function SignupForm() {
       }
     } catch (error) {
       console.error("Signup error:", error);
+      setSignupError(error instanceof Error ? error.message : "An error occurred during signup. Please try again.");
       toast({
         title: "Error creating account",
         description: error instanceof Error ? error.message : "An error occurred during signup. Please try again.",
@@ -143,6 +146,12 @@ export function SignupForm() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {signupError && (
+            <div className="bg-destructive/10 text-destructive px-3 py-2 rounded-md text-sm">
+              {signupError}
+            </div>
+          )}
+          
           <FormField
             control={form.control}
             name="name"
