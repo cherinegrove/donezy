@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Lock, ArrowRight } from "lucide-react";
+import { Lock, ArrowRight, Mail } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +45,7 @@ export function LoginForm() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -114,9 +115,15 @@ export function LoginForm() {
       }
     } catch (error) {
       console.error("Login error:", error);
-      setLoginError(error instanceof Error 
-        ? error.message 
-        : "Invalid email or password. Make sure you've completed signup first.");
+      
+      // Special handling for unconfirmed email
+      if (error instanceof Error && error.message.includes("Email not confirmed")) {
+        setLoginError("Please verify your email before logging in. Check your inbox for a confirmation link.");
+      } else {
+        setLoginError(error instanceof Error 
+          ? error.message 
+          : "Invalid email or password. Make sure you've completed signup first.");
+      }
       
       toast({
         title: "Login failed",
@@ -130,6 +137,7 @@ export function LoginForm() {
 
   async function handleForgotPassword(values: z.infer<typeof forgotPasswordSchema>) {
     setIsLoading(true);
+    setResetEmail(values.email);
     
     try {
       // Use Supabase's password reset functionality with the imported client
@@ -229,18 +237,24 @@ export function LoginForm() {
           </DialogHeader>
           
           {forgotPasswordSuccess ? (
-            <Alert>
-              <AlertDescription className="text-center py-2">
-                Password reset instructions have been sent to your email address.
-                <br />
+            <Alert className="bg-primary/10 border-primary/20">
+              <AlertDescription className="text-center py-2 flex flex-col items-center gap-4">
+                <div className="rounded-full bg-primary/10 p-3">
+                  <Mail className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-base mb-2">Password reset email sent!</p>
+                  <p className="mb-2">We've sent reset instructions to:</p>
+                  <p className="font-medium">{resetEmail}</p>
+                </div>
                 <Button
-                  variant="link"
+                  variant="outline"
                   onClick={() => {
                     setShowForgotPassword(false);
                     setForgotPasswordSuccess(false);
                     forgotPasswordForm.reset();
                   }}
-                  className="mt-2 p-0"
+                  className="mt-2"
                 >
                   Return to login
                 </Button>

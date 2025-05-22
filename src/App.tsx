@@ -23,6 +23,7 @@ import Tasks from "./pages/Tasks";
 import Notes from "./pages/Notes";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin"; 
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 
@@ -111,6 +112,7 @@ const AppRoutes = () => {
       {/* Public routes */}
       <Route path="/login" element={<PublicRoute element={<Login />} />} />
       <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>

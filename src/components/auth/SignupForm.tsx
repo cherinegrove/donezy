@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,6 +17,10 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, UserPlus } from "lucide-react";
 import { supabase, cleanupAuthState } from "@/integrations/supabase/client";
+import {
+  Alert,
+  AlertDescription,
+} from "@/components/ui/alert";
 
 const signupSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -34,6 +37,8 @@ export function SignupForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [signupError, setSignupError] = useState<string | null>(null);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [userEmail, setUserEmail] = useState<string>("");
   const navigate = useNavigate();
 
   const form = useForm<z.infer<typeof signupSchema>>({
@@ -49,6 +54,8 @@ export function SignupForm() {
   async function onSubmit(values: z.infer<typeof signupSchema>) {
     setIsLoading(true);
     setSignupError(null);
+    setSignupSuccess(false);
+    setUserEmail(values.email);
     
     try {
       console.log("Signup attempt for:", values.email);
@@ -64,7 +71,7 @@ export function SignupForm() {
         console.log("Global sign out during signup failed, continuing:", err);
       }
       
-      // First, create the user in Supabase auth using the imported client
+      // Create the user in Supabase auth using the imported client with email confirmation enabled
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -72,17 +79,20 @@ export function SignupForm() {
           data: {
             name: values.name,
             role: "developer", // Default role
-          }
+          },
+          emailRedirectTo: window.location.origin + '/login'
         }
       });
       
       if (authError) throw authError;
+
+      console.log("Signup response:", authData);
       
       if (authData.user) {
         console.log("Supabase signup success for:", authData.user.email);
+        
         // Create the user in our app context as well to keep local functionality
         inviteUser(values.email, values.name, "developer", {
-          // Default options for new users
           employmentType: "full-time",
           billingType: "hourly",
           hourlyRate: 50,
@@ -102,24 +112,35 @@ export function SignupForm() {
           console.error("Error updating user profile:", profileError);
         }
 
-        // Sign the user out completely after signup to ensure a clean login state
-        try {
-          await supabase.auth.signOut({ scope: 'global' });
-        } catch (err) {
-          console.log("Error signing out after signup:", err);
+        // If the user requires confirmation, show the confirmation message
+        if (authData.session === null) {
+          console.log("Email verification required");
+          setSignupSuccess(true);
+          
+          toast({
+            title: "Verification email sent",
+            description: "Please check your email to complete signup",
+          });
+        } else {
+          // User is already confirmed or doesn't need confirmation
+          // Sign the user out completely after signup to ensure a clean login state
+          try {
+            await supabase.auth.signOut({ scope: 'global' });
+          } catch (err) {
+            console.log("Error signing out after signup:", err);
+          }
+          
+          toast({
+            title: "Account created successfully",
+            description: "You can now log in with your credentials",
+          });
+          
+          // Redirect to login page
+          navigate("/login");
         }
-
-        // Show success message
-        toast({
-          title: "Account created successfully",
-          description: "You can now log in with your credentials",
-        });
         
         // Reset the form
         form.reset();
-        
-        // Redirect to login page
-        navigate("/login");
       }
     } catch (error) {
       console.error("Signup error:", error);
@@ -132,6 +153,49 @@ export function SignupForm() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  if (signupSuccess) {
+    return (
+      <div className="w-full max-w-md space-y-6 rounded-lg border bg-card p-6 shadow-sm">
+        <div className="flex flex-col items-center space-y-2">
+          <div className="rounded-full bg-primary/10 p-3">
+            <UserPlus className="h-6 w-6 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold">Verify Your Email</h1>
+        </div>
+        
+        <Alert className="bg-primary/10 text-foreground border-primary/20">
+          <AlertDescription className="text-center py-4">
+            <p className="mb-4">We've sent a verification email to:</p>
+            <p className="font-medium text-lg mb-4">{userEmail}</p>
+            <p>Please check your inbox and click the verification link to complete your registration.</p>
+          </AlertDescription>
+        </Alert>
+        
+        <div className="text-center text-sm">
+          <p className="text-muted-foreground">
+            Didn't receive an email?{" "}
+            <Button 
+              variant="link" 
+              className="p-0 h-auto" 
+              onClick={() => setSignupSuccess(false)}
+            >
+              Try again
+            </Button>
+          </p>
+        </div>
+        
+        <div className="text-center text-sm">
+          <p className="text-muted-foreground">
+            Already have an account?{" "}
+            <Link to="/login" className="text-primary hover:underline">
+              Log in
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
