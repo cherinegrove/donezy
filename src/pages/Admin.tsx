@@ -5,6 +5,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminActivity from "@/components/admin/AdminActivity";
 import AdminTeams from "@/components/admin/AdminTeams";
+import AdminRoles from "@/components/admin/AdminRoles";
 import { TaskStatusManager } from "@/components/admin/TaskStatusManager";
 import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,6 +56,7 @@ export default function Admin() {
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
+          <TabsTrigger value="roles">Roles</TabsTrigger>
           <TabsTrigger value="activity">Activity Log</TabsTrigger>
           <TabsTrigger value="account-settings">Account Settings</TabsTrigger>
           <TabsTrigger value="subscription">Subscription</TabsTrigger>
@@ -161,6 +163,10 @@ export default function Admin() {
 
         <TabsContent value="teams" className="space-y-6">
           <AdminTeams />
+        </TabsContent>
+
+        <TabsContent value="roles" className="space-y-6">
+          <AdminRoles />
         </TabsContent>
 
         <TabsContent value="activity" className="space-y-6">
