@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { useToast } from "@/hooks/use-toast";
 
 const projectSchema = z.object({
@@ -42,6 +44,7 @@ const projectSchema = z.object({
     (val) => (val === "" || val === undefined) ? undefined : Number(val),
     z.number().min(0).optional()
   ),
+  teamIds: z.array(z.string()).optional(),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -52,7 +55,7 @@ interface CreateProjectDialogProps {
 }
 
 export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
-  const { clients, addProject } = useAppContext();
+  const { clients, users, addProject } = useAppContext();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,6 +70,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       startDate: "",
       dueDate: "",
       allocatedHours: undefined,
+      teamIds: [],
     },
   });
 
@@ -88,7 +92,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
         allocatedHours: data.allocatedHours || 0,
         status: "todo" as const,
         usedHours: 0,
-        teamIds: [],
+        teamIds: data.teamIds || [],
         watcherIds: [],
       };
 
@@ -122,10 +126,17 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
   };
 
   const activeClients = clients.filter(client => client.status === "active");
+  
+  // Convert users to options for MultiSelect
+  const userOptions = users.map(user => ({
+    value: user.id,
+    label: user.name,
+    initials: user.name?.charAt(0) || "?",
+  }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
@@ -187,6 +198,25 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                       )}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="teamIds"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Allocated Users</FormLabel>
+                  <FormControl>
+                    <MultiSelect
+                      options={userOptions}
+                      selectedValues={field.value || []}
+                      onValueChange={field.onChange}
+                      placeholder="Select team members"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
