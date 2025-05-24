@@ -54,7 +54,7 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold line-clamp-1">
-              {note.title}
+              {note.title || 'Untitled Note'}
             </CardTitle>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -93,7 +93,7 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Note</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{note.title}"? This action cannot be undone.
+              Are you sure you want to delete "{note.title || 'this note'}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
