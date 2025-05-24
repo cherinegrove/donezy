@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -74,6 +73,20 @@ export function NoteCard({ note, onEdit, showArchived = false }: NoteCardProps) 
     }
   };
 
+  const handleCheckboxToggle = (lineIndex: number) => {
+    const lines = note.content.split('\n');
+    const line = lines[lineIndex];
+    
+    if (line.includes('☐')) {
+      lines[lineIndex] = line.replace('☐', '☑');
+    } else if (line.includes('☑')) {
+      lines[lineIndex] = line.replace('☑', '☐');
+    }
+    
+    const newContent = lines.join('\n');
+    updateNote(note.id, { content: newContent });
+  };
+
   const renderContent = (content: string) => {
     return content.split('\n').map((line, index) => {
       // Handle checkboxes
@@ -82,8 +95,19 @@ export function NoteCard({ note, onEdit, showArchived = false }: NoteCardProps) 
         const text = line.replace(/[☐☑]\s*/, '');
         return (
           <div key={index} className="flex items-center gap-2 mb-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCheckboxToggle(index);
+              }}
+              className="text-sm hover:bg-gray-200 rounded px-1 transition-colors"
+            >
+              <span className={`${isChecked ? 'line-through text-muted-foreground' : ''}`}>
+                {isChecked ? '☑' : '☐'}
+              </span>
+            </button>
             <span className={`text-sm ${isChecked ? 'line-through text-muted-foreground' : ''}`}>
-              {isChecked ? '☑' : '☐'} {text}
+              {text}
             </span>
           </div>
         );

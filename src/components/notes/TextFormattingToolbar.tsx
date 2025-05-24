@@ -7,6 +7,33 @@ interface TextFormattingToolbarProps {
 }
 
 export function TextFormattingToolbar({ onFormat }: TextFormattingToolbarProps) {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      switch (e.key.toLowerCase()) {
+        case 'b':
+          e.preventDefault();
+          onFormat('bold');
+          break;
+        case 'i':
+          e.preventDefault();
+          onFormat('italic');
+          break;
+        case 'u':
+          e.preventDefault();
+          onFormat('underline');
+          break;
+      }
+    }
+  };
+
+  // Add keyboard listeners when component mounts
+  React.useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   return (
     <div className="flex gap-1 mb-2">
       <Button

@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -122,61 +121,56 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
     const currentValue = textarea.value;
     const selectedText = currentValue.substring(start, end);
     
+    let markers = { start: '', end: '' };
+    switch (type) {
+      case 'bold':
+        markers = { start: '**', end: '**' };
+        break;
+      case 'italic':
+        markers = { start: '*', end: '*' };
+        break;
+      case 'underline':
+        markers = { start: '__', end: '__' };
+        break;
+    }
+    
     if (selectedText) {
-      let formattedText = "";
-      let cursorOffset = 0;
+      // Check if text is already formatted
+      const beforeText = currentValue.substring(Math.max(0, start - markers.start.length), start);
+      const afterText = currentValue.substring(end, end + markers.end.length);
       
-      switch (type) {
-        case 'bold':
-          formattedText = `**${selectedText}**`;
-          cursorOffset = 2;
-          break;
-        case 'italic':
-          formattedText = `*${selectedText}*`;
-          cursorOffset = 1;
-          break;
-        case 'underline':
-          formattedText = `__${selectedText}__`;
-          cursorOffset = 2;
-          break;
+      if (beforeText === markers.start && afterText === markers.end) {
+        // Remove formatting
+        const newContent = 
+          currentValue.substring(0, start - markers.start.length) + 
+          selectedText + 
+          currentValue.substring(end + markers.end.length);
+        form.setValue("content", newContent);
+        
+        setTimeout(() => {
+          textarea.focus();
+          textarea.setSelectionRange(start - markers.start.length, end - markers.start.length);
+        }, 0);
+      } else {
+        // Add formatting
+        const formattedText = `${markers.start}${selectedText}${markers.end}`;
+        const newContent = currentValue.substring(0, start) + formattedText + currentValue.substring(end);
+        form.setValue("content", newContent);
+        
+        setTimeout(() => {
+          textarea.focus();
+          textarea.setSelectionRange(start + markers.start.length, end + markers.start.length);
+        }, 0);
       }
-      
-      const newContent = currentValue.substring(0, start) + formattedText + currentValue.substring(end);
-      form.setValue("content", newContent);
-      
-      // Set cursor position after the formatted text
-      setTimeout(() => {
-        textarea.focus();
-        const newCursorPosition = start + formattedText.length;
-        textarea.setSelectionRange(newCursorPosition, newCursorPosition);
-      }, 0);
     } else {
-      // If no text is selected, just insert the formatting markers
-      let formatMarkers = "";
-      let cursorOffset = 0;
-      
-      switch (type) {
-        case 'bold':
-          formatMarkers = "****";
-          cursorOffset = 2;
-          break;
-        case 'italic':
-          formatMarkers = "**";
-          cursorOffset = 1;
-          break;
-        case 'underline':
-          formatMarkers = "____";
-          cursorOffset = 2;
-          break;
-      }
-      
+      // No text selected, insert markers and position cursor between them
+      const formatMarkers = markers.start + markers.end;
       const newContent = currentValue.substring(0, start) + formatMarkers + currentValue.substring(end);
       form.setValue("content", newContent);
       
-      // Position cursor between the markers
       setTimeout(() => {
         textarea.focus();
-        const newCursorPosition = start + cursorOffset;
+        const newCursorPosition = start + markers.start.length;
         textarea.setSelectionRange(newCursorPosition, newCursorPosition);
       }, 0);
     }
@@ -258,7 +252,7 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
                   <FormControl>
                     <Textarea
                       ref={textareaRef}
-                      placeholder="Write your note here... Use **bold**, *italic*, __underline__, ☐ for checkboxes and • for bullet points"
+                      placeholder="Write your note here... Select text and use formatting buttons or Ctrl+B/I/U"
                       rows={8}
                       {...field}
                     />
