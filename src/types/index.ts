@@ -16,7 +16,16 @@ export interface User {
   billingRate?: number;
   currency?: string;
   clientRole?: string;
-  permissions?: string[];
+  permissions?: {
+    canViewClients?: boolean;
+    canEditClients?: boolean;
+    canViewProjects?: boolean;
+    canEditProjects?: boolean;
+    canViewTasks?: boolean;
+    canEditTasks?: boolean;
+    canViewReports?: boolean;
+    canManageUsers?: boolean;
+  };
   managerId?: string;
   notificationPreferences?: {
     taskDue?: NotificationTimeframe[];
@@ -91,6 +100,7 @@ export interface TaskFile {
   name: string;
   url: string;
   size: number;
+  sizeKb: number;
   uploadedAt: string;
 }
 
@@ -116,7 +126,7 @@ export interface Task {
   relatedTaskIds?: string[];
 }
 
-export type TimeEntryStatus = 'pending' | 'approved' | 'rejected';
+export type TimeEntryStatus = 'pending' | 'approved' | 'rejected' | 'approved-billable' | 'approved-non-billable' | 'declined';
 
 export interface TimeEntry {
   id: string;
@@ -132,6 +142,7 @@ export interface TimeEntry {
   status?: TimeEntryStatus;
   notes?: string;
   manuallyAdded?: boolean;
+  declineReason?: string;
 }
 
 export interface Message {

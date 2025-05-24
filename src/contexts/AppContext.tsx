@@ -215,6 +215,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return tasks.find(task => task.id === taskId);
   }, [tasks]);
 
+  const getProjectById = useCallback((projectId: string) => {
+    return projects.find(project => project.id === projectId);
+  }, [projects]);
+
   const getNotesByUser = useCallback((userId: string) => {
     return notes.filter(note => note.userId === userId);
   }, [notes]);
@@ -287,10 +291,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   }, []);
 
-  const getProjectById = useCallback((projectId: string) => {
-    return projects.find(project => project.id === projectId);
-  }, [projects]);
-
   const deleteProject = useCallback((projectId: string) => {
     console.log("Deleting project:", projectId);
     
@@ -326,6 +326,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       )
     );
   }, []);
+
+  const convertProjectToTemplate = useCallback((projectId: string, templateData: any) => {
+    const project = getProjectById(projectId);
+    if (project) {
+      addProjectTemplate({
+        ...templateData,
+        createdBy: currentUser?.id || '',
+        serviceType: project.serviceType,
+        defaultDuration: 30,
+        allocatedHours: project.allocatedHours || 0,
+        tasks: [],
+        teamIds: project.teamIds,
+      });
+    }
+  }, [getProjectById, currentUser]);
+
+  const createProjectFromTemplate = useCallback((templateId: string, projectData: any) => {
+    const template = projectTemplates.find(t => t.id === templateId);
+    if (template) {
+      addProject({
+        ...projectData,
+        templateId: templateId,
+        status: 'todo' as const,
+        usedHours: 0,
+        serviceType: template.serviceType,
+        allocatedHours: template.allocatedHours,
+        teamIds: projectData.memberIds || [],
+        watcherIds: [],
+      });
+      updateProjectTemplate(templateId, { usageCount: (template.usageCount || 0) + 1 });
+    }
+  }, [projectTemplates, addProject, updateProjectTemplate]);
 
   // Task functions
   const addTask = useCallback((task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>) => {
@@ -385,7 +417,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const uploadTaskFile = useCallback(async (taskId: string, file: File) => {
     console.log("Uploading task file:", taskId, file.name);
-    // Implementation would upload file and associate with task
+    // In a real implementation, this would upload to storage and return the URL
+    return Promise.resolve(`/uploads/${file.name}`);
   }, []);
 
   const deleteTaskFile = useCallback((taskId: string, fileId: string) => {
@@ -449,8 +482,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setActiveTimeEntry(null);
   }, [activeTimeEntry, updateTimeEntry]);
 
-  const updateTimeEntryStatus = useCallback((timeEntryId: string, status: string) => {
-    updateTimeEntry(timeEntryId, { status: status as any });
+  const updateTimeEntryStatus = useCallback((timeEntryId: string, status: string, reason?: string) => {
+    updateTimeEntry(timeEntryId, { 
+      status: status as any,
+      ...(reason && { declineReason: reason })
+    });
   }, [updateTimeEntry]);
 
   // Message functions
@@ -674,16 +710,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [projects, deleteProject]);
 
   // Client agreement functions
-  const addClientAgreement = useCallback((agreement: any) => {
-    const newAgreement = {
+  const addClientAgreement = useCallback((agreement: Omit<ClientAgreement, 'id'>) => {
+    const newAgreement: ClientAgreement = {
       id: Math.random().toString(36).substring(2, 15),
       ...agreement,
-      usedHours: 0,
+      usedHours: agreement.usedHours || 0,
     };
     setClientAgreements(prev => [...prev, newAgreement]);
   }, []);
 
-  const updateClientAgreement = useCallback((agreementId: string, updates: any) => {
+  const updateClientAgreement = useCallback((agreementId: string, updates: Partial<ClientAgreement>) => {
     setClientAgreements(prev =>
       prev.map(agreement => (agreement.id === agreementId ? { ...agreement, ...updates } : agreement))
     );
@@ -695,7 +731,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Client file functions
   const uploadClientFile = useCallback(async (clientId: string, file: File) => {
-    const newFile = {
+    const newFile: ClientFile = {
       id: Math.random().toString(36).substring(2, 15),
       clientId,
       name: file.name,

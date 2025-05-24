@@ -1,5 +1,5 @@
 
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, TaskFile } from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile } from "@/types";
 import { Session } from "@supabase/supabase-js";
 
 export interface AppContextType {
@@ -41,12 +41,17 @@ export interface AppContextType {
   addClient: (client: Omit<Client, 'id'>) => void;
   updateClient: (clientId: string, updates: Partial<Client>) => void;
   deleteClient: (clientId: string) => void;
+  getClientById: (clientId: string) => Client | undefined;
   
   // Project functions
   addProject: (project: Omit<Project, 'id'>) => void;
   updateProject: (projectId: string, updates: Partial<Project>) => void;
   deleteProject: (projectId: string) => void;
+  getProjectById: (projectId: string) => Project | undefined;
   convertProjectToTemplate: (projectId: string, templateData: { name: string; description: string }) => void;
+  watchProject: (projectId: string, userId: string) => void;
+  unwatchProject: (projectId: string, userId: string) => void;
+  createProjectFromTemplate: (templateId: string, projectData: any) => void;
   
   // Task functions
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>) => void;
@@ -67,7 +72,7 @@ export interface AppContextType {
   deleteTimeEntry: (timeEntryId: string) => void;
   startTimeTracking: (taskId: string, projectId?: string, clientId?: string) => void;
   stopTimeTracking: (notes?: string) => void;
-  updateTimeEntryStatus: (timeEntryId: string, status: string) => void;
+  updateTimeEntryStatus: (timeEntryId: string, status: string, reason?: string) => void;
   
   // Message functions
   addMessage: (message: Omit<Message, 'id'>) => void;
@@ -100,4 +105,19 @@ export interface AppContextType {
   addPurchase: (purchase: Omit<Purchase, 'id'>) => void;
   updatePurchase: (purchaseId: string, updates: Partial<Purchase>) => void;
   deletePurchase: (purchaseId: string) => void;
+  
+  // Client Agreement functions
+  addClientAgreement: (agreement: Omit<ClientAgreement, 'id'>) => void;
+  updateClientAgreement: (agreementId: string, updates: Partial<ClientAgreement>) => void;
+  deleteClientAgreement: (agreementId: string) => void;
+  getClientAgreements: (clientId: string) => ClientAgreement[];
+  
+  // Client File functions
+  uploadClientFile: (clientId: string, file: File) => Promise<void>;
+  deleteClientFile: (fileId: string) => void;
+  getClientFiles: (clientId: string) => ClientFile[];
+  
+  // Custom Field functions
+  addCustomField: (field: any) => void;
+  deleteCustomField: (fieldId: string) => void;
 }
