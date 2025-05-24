@@ -83,7 +83,7 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
   };
 
   // Filter out guest users and client users from team assignment options
-  const eligibleUsers = users.filter(user => user.role !== "client" && !user.isGuest);
+  const eligibleUsers = users.filter(user => user.role !== "client" && !user.is_guest);
   const userOptions = eligibleUsers.map(user => ({
     value: user.id,
     label: user.name
