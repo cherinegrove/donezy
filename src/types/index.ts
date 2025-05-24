@@ -4,8 +4,10 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
-  role: string;
+  role: 'admin' | 'manager' | 'developer' | 'client';
   teamIds?: string[];
+  jobTitle?: string;
+  clientId?: string;
 }
 
 export interface Team {
@@ -19,12 +21,20 @@ export interface Team {
 export interface Client {
   id: string;
   name: string;
+  contactName?: string;
   email: string;
   phone?: string;
   address?: string;
   company?: string;
+  website?: string;
   notes?: string;
   createdAt: string;
+  billableRate?: number;
+  currency?: string;
+  serviceType?: 'retainer' | 'payasyougo' | 'bank-hours';
+  allocatedHours?: number;
+  status?: 'active' | 'inactive';
+  memberIds?: string[];
 }
 
 export interface Project {
@@ -153,4 +163,26 @@ export interface TaskLog {
   action: string;
   details?: string;
   timestamp: string;
+}
+
+export interface ClientAgreement {
+  id: string;
+  clientId: string;
+  serviceType: 'retainer' | 'payasyougo' | 'bank-hours';
+  startDate: string;
+  endDate?: string;
+  allocatedHours?: number;
+  usedHours?: number;
+  rate: number;
+  currency: string;
+  description: string;
+  status: 'active' | 'completed' | 'cancelled';
+}
+
+export interface ClientFile {
+  id: string;
+  clientId: string;
+  name: string;
+  sizeKb: number;
+  uploadedAt: string;
 }

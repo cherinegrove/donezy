@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useContext,
@@ -98,7 +97,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           name: data.display_name || session?.user?.email?.split('@')[0] || 'User',
           email: session?.user?.email || '',
           avatar: data.avatar_url,
-          role: 'admin', // Default role for new users
+          role: 'admin' as const, // Default role for new users
           teamIds: [], // Add missing teamIds
         });
       }
@@ -247,8 +246,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUsers(prev => prev.filter(user => user.id !== userId));
   }, []);
 
-  const inviteUser = useCallback((email: string, name: string, role: string, additionalData?: any) => {
-    console.log("Inviting user:", email, name, role, additionalData);
+  const inviteUser = useCallback((email: string, name: string, role: string) => {
+    console.log("Inviting user:", email, name, role);
     // In a real app, this would send an invitation email
   }, []);
 
@@ -271,7 +270,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTeams(prev => prev.filter(team => team.id !== teamId));
   }, []);
 
-  // Project functions - declare before use
+  // Project functions
   const addProject = useCallback((project: Omit<Project, 'id'>) => {
     console.log("Adding project:", project);
     const newProject: Project = {
@@ -329,7 +328,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   // Task functions
-  const addTask = useCallback((task: Omit<Task, 'id'>) => {
+  const addTask = useCallback((task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>) => {
     const newTask: Task = {
       id: Math.random().toString(36).substring(2, 15),
       createdAt: new Date().toISOString(),
@@ -473,7 +472,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMessages(prev => prev.filter(message => message.id !== messageId));
   }, []);
 
-  const sendMessage = useCallback((message: Omit<Message, 'id'>) => {
+  const sendMessage = useCallback((message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
     const completeMessage = {
       ...message,
       timestamp: new Date().toISOString(),
@@ -482,7 +481,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addMessage(completeMessage);
   }, [addMessage]);
 
-  const createMessage = useCallback((message: Omit<Message, 'id'>) => {
+  const createMessage = useCallback((message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
     const completeMessage = {
       ...message,
       timestamp: message.timestamp || new Date().toISOString(),
@@ -515,7 +514,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   // ProjectTemplate functions
-  const addProjectTemplate = useCallback((projectTemplate: Omit<ProjectTemplate, 'id'>) => {
+  const addProjectTemplate = useCallback((projectTemplate: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => {
     const newTemplate: ProjectTemplate = {
       id: Math.random().toString(36).substring(2, 15),
       createdAt: new Date().toISOString(),
@@ -541,8 +540,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addProjectTemplate({
         ...templateData,
         createdBy: currentUser?.id || '',
-        createdAt: new Date().toISOString(),
-        usageCount: 0,
       });
     }
   }, [getProjectById, addProjectTemplate, currentUser]);
@@ -635,7 +632,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   // Client functions
-  const addClient = useCallback((client: Omit<Client, 'id'>) => {
+  const addClient = useCallback((client: Omit<Client, 'id' | 'createdAt'>) => {
     console.log("Adding client:", client);
     const newClient: Client = {
       id: Math.random().toString(36).substring(2, 15),
