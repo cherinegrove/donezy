@@ -1,3 +1,4 @@
+
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,6 +70,20 @@ const Projects = () => {
   const getClientName = (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
     return client?.name || "Unknown Client";
+  };
+
+  // Helper function to safely format dates
+  const formatDate = (dateString?: string) => {
+    if (!dateString || dateString.trim() === "") {
+      return null;
+    }
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+    
+    return format(date, "MMM d, yyyy");
   };
 
   // Apply filters to projects
@@ -166,6 +181,8 @@ const Projects = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
             {filteredProjects.map((project) => {
               const progress = getProjectProgress(project.id);
+              const formattedStartDate = formatDate(project.startDate);
+              const formattedDueDate = formatDate(project.dueDate);
               
               return (
                 <Card 
@@ -200,14 +217,16 @@ const Projects = () => {
                         <span>Status</span>
                         <span className="capitalize font-medium">{project.status.replace("-", " ")}</span>
                       </div>
-                      <div className="flex justify-between mb-1 text-sm">
-                        <span>Start Date</span>
-                        <span>{format(new Date(project.startDate), "MMM d, yyyy")}</span>
-                      </div>
-                      {project.dueDate && (
+                      {formattedStartDate && (
+                        <div className="flex justify-between mb-1 text-sm">
+                          <span>Start Date</span>
+                          <span>{formattedStartDate}</span>
+                        </div>
+                      )}
+                      {formattedDueDate && (
                         <div className="flex justify-between mb-1 text-sm">
                           <span>Due Date</span>
-                          <span>{format(new Date(project.dueDate), "MMM d, yyyy")}</span>
+                          <span>{formattedDueDate}</span>
                         </div>
                       )}
                     </div>
