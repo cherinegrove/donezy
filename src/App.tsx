@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { supabase } from './supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { useAppContext } from './contexts/AppContext';
@@ -21,7 +22,6 @@ import ClientDetails from './pages/ClientDetails';
 import ProjectTemplates from './pages/ProjectTemplates';
 import TemplateDetails from './pages/TemplateDetails';
 import ClientAgreements from './pages/ClientAgreements';
-import Settings from './pages/Settings';
 import { AppSidebar } from './components/layout/AppSidebar';
 
 function App() {
@@ -108,16 +108,15 @@ function App() {
               <Route path="/project-templates" element={<ProjectTemplates />} />
               <Route path="/project-templates/:templateId" element={<TemplateDetails />} />
               <Route path="/client-agreements" element={<ClientAgreements />} />
-              <Route path="/settings" element={<Settings />} />
               <Route path="/account" element={<Account />} />
               
               <Route 
                 path="/admin" 
                 element={
-                  currentUser?.role === 'admin' ? (
+                  currentUser?.permissions?.admin === 'admin' ? (
                     <Admin />
                   ) : (
-                    <Navigate to="/login" />
+                    <Navigate to="/" />
                   )
                 } 
               />
