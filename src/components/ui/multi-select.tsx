@@ -27,8 +27,8 @@ interface MultiSelectProps {
 }
 
 export function MultiSelect({
-  options = [], // Default to empty array
-  selectedValues = [], // Default to empty array
+  options = [],
+  selectedValues = [],
   onValueChange,
   placeholder = "Select options",
   disabled = false,
@@ -40,25 +40,34 @@ export function MultiSelect({
   const [fileDialogOpen, setFileDialogOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  // Ensure we always have valid arrays
+  const safeOptions = React.useMemo(() => {
+    return Array.isArray(options) ? options.filter(Boolean) : [];
+  }, [options]);
+
+  const safeSelectedValues = React.useMemo(() => {
+    return Array.isArray(selectedValues) ? selectedValues.filter(Boolean) : [];
+  }, [selectedValues]);
+
   const handleSelect = React.useCallback(
     (value: string) => {
       if (!value) return;
       
-      const updatedValues = selectedValues.includes(value) 
-        ? selectedValues.filter((item) => item !== value)
-        : [...selectedValues, value];
+      const updatedValues = safeSelectedValues.includes(value) 
+        ? safeSelectedValues.filter((item) => item !== value)
+        : [...safeSelectedValues, value];
         
       onValueChange(updatedValues);
     },
-    [selectedValues, onValueChange]
+    [safeSelectedValues, onValueChange]
   );
 
   const handleRemove = React.useCallback(
     (value: string) => {
       if (!value) return;
-      onValueChange(selectedValues.filter((item) => item !== value));
+      onValueChange(safeSelectedValues.filter((item) => item !== value));
     },
-    [selectedValues, onValueChange]
+    [safeSelectedValues, onValueChange]
   );
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,16 +77,12 @@ export function MultiSelect({
     }
   };
 
-  // Get selected items with proper null checking
+  // Get selected items with proper safety checks
   const selectedItems = React.useMemo(() => {
-    if (!Array.isArray(options) || !Array.isArray(selectedValues)) {
-      return [];
-    }
-    
-    return selectedValues
-      .map(value => options.find(option => option && option.value === value))
+    return safeSelectedValues
+      .map(value => safeOptions.find(option => option?.value === value))
       .filter(Boolean) as Option[];
-  }, [selectedValues, options]);
+  }, [safeSelectedValues, safeOptions]);
 
   return (
     <>
@@ -91,27 +96,25 @@ export function MultiSelect({
             disabled={disabled}
           >
             <div className="flex flex-wrap gap-1">
-              {selectedValues.length > 0 && Array.isArray(selectedItems) ? (
+              {safeSelectedValues.length > 0 ? (
                 selectedItems.map((option) => (
-                  option && (
-                    <Badge
-                      key={option.value}
-                      variant="secondary"
-                      className="mr-1 mb-1"
+                  <Badge
+                    key={option.value}
+                    variant="secondary"
+                    className="mr-1 mb-1"
+                  >
+                    {option.label}
+                    <button
+                      className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-offset-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemove(option.value);
+                      }}
                     >
-                      {option.label}
-                      <button
-                        className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-offset-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemove(option.value);
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                        <span className="sr-only">Remove {option.label}</span>
-                      </button>
-                    </Badge>
-                  )
+                      <X className="h-3 w-3" />
+                      <span className="sr-only">Remove {option.label}</span>
+                    </button>
+                  </Badge>
                 ))
               ) : (
                 <span className="text-muted-foreground">{placeholder}</span>
@@ -124,9 +127,8 @@ export function MultiSelect({
             <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
             <CommandEmpty>No options found.</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">
-              {Array.isArray(options) && options.map((option) => {
-                if (!option) return null;
-                const isSelected = selectedValues.includes(option.value);
+              {safeOptions.map((option) => {
+                const isSelected = safeSelectedValues.includes(option.value);
                 
                 return (
                   <CommandItem
