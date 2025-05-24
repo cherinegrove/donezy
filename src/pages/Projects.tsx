@@ -15,10 +15,11 @@ import { UseTemplateDialog } from "@/components/projects/UseTemplateDialog";
 import { TemplatesList } from "@/components/projects/TemplatesList";
 import { RecordActions } from "@/components/common/RecordActions";
 import type { Project } from "@/types";
-import { toast } from "react-toastify";
+import { useToast } from "@/hooks/use-toast";
 
 const Projects = () => {
   const { projects, tasks, clients, teams } = useAppContext();
+  const { toast } = useToast();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreateTemplateDialogOpen, setIsCreateTemplateDialogOpen] = useState(false);
   const [isUseTemplateDialogOpen, setIsUseTemplateDialogOpen] = useState(false);
