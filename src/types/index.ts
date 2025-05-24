@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -214,6 +215,7 @@ export interface Note {
   createdAt: string;
   updatedAt: string;
   color?: string;
+  archived?: boolean;
 }
 
 export interface TaskLog {
