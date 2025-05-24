@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -57,7 +56,14 @@ const calculateProRatedCost = (
 
 const Reports = () => {
   const { toast } = useToast();
-  const { timeEntries, clients, projects, users, tasks, purchases, teams } = useAppContext();
+  const { 
+    projects, 
+    clients, 
+    timeEntries, 
+    users, 
+    teams, 
+    purchases 
+  } = useAppContext();
   const [reportType, setReportType] = useState("time");
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
@@ -680,6 +686,50 @@ const Reports = () => {
     
     return revenueByUser.sort((a, b) => b.totalRevenue - a.totalRevenue); // Sort by highest revenue first
   };
+
+  // Get team efficiency
+  const getTeamEfficiency = () => {
+    return teams.map(team => {
+      const teamMembers = users.filter(user => 
+        user.teamIds?.includes(team.id)
+      );
+      
+      const teamHours = timeEntries
+        .filter(entry => teamMembers.some(member => member.id === entry.userId))
+        .reduce((sum, entry) => sum + entry.duration, 0);
+
+      return {
+        name: team.name,
+        hours: teamHours / 60,
+        members: teamMembers.length,
+        efficiency: teamMembers.length > 0 ? (teamHours / 60) / teamMembers.length : 0
+      };
+    });
+  };
+
+  // Get projects by team
+  const getProjectsByTeam = () => {
+    return teams.map(team => {
+      const teamProjects = projects.filter(project => 
+        project.teamIds?.includes(team.id)
+      );
+      
+      return {
+        team: team.name,
+        projects: teamProjects.length,
+        members: users.filter(user => 
+          user.teamIds?.includes(team.id)
+        ).length
+      };
+    });
+  };
+
+  // Get expenses by category
+  const expensesByCategory = purchases.reduce((acc, purchase) => {
+    const category = purchase.category || 'Uncategorized';
+    acc[category] = (acc[category] || 0) + purchase.amount;
+    return acc;
+  }, {} as Record<string, number>);
 
   // Process all data
   const clientHoursData = getClientHoursData();

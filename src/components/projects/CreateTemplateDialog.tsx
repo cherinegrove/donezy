@@ -119,7 +119,11 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
     if (!currentUser) return;
 
     addProjectTemplate({
-      ...data,
+      name: data.name,
+      description: data.description,
+      serviceType: data.serviceType,
+      defaultDuration: data.defaultDuration,
+      allocatedHours: data.allocatedHours,
       tasks,
       createdBy: currentUser.id,
       teamIds: [],

@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAppContext } from "@/contexts/AppContext";
-import { Project, TaskStatus } from "@/types";
+import { Project } from "@/types";
 import {
   Dialog,
   DialogContent,
@@ -57,7 +57,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
     defaultValues: {
       name: project.name,
       description: project.description,
-      status: project.status === 'backlog' ? 'todo' : project.status,
+      status: project.status,
       startDate: project.startDate,
       dueDate: project.dueDate,
       allocatedHours: project.allocatedHours,
@@ -69,7 +69,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
       form.reset({
         name: project.name,
         description: project.description,
-        status: project.status === 'backlog' ? 'todo' : project.status,
+        status: project.status,
         startDate: project.startDate,
         dueDate: project.dueDate,
         allocatedHours: project.allocatedHours,

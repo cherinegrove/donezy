@@ -110,7 +110,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
       billingRate: user?.billingRate || 0,
       currency: user?.currency || "USD",
       clientId: user?.clientId || undefined,
-      clientRole: user?.clientRole || "team",
+      clientRole: (user?.clientRole as "admin" | "team") || "team",
       permissions: user?.permissions || {
         canViewClients: false,
         canEditClients: false,
@@ -144,7 +144,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
         billingRate: user.billingRate || 0,
         currency: user.currency || "USD",
         clientId: user.clientId,
-        clientRole: user.clientRole || "team",
+        clientRole: (user.clientRole as "admin" | "team") || "team",
         permissions: user.permissions || {
           canViewClients: false,
           canEditClients: false,
@@ -168,7 +168,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
         monthlyRate: 0,
         billingRate: 0,
         currency: "USD",
-        clientRole: "team",
+        clientRole: "team" as "admin" | "team",
         permissions: {
           canViewClients: false,
           canEditClients: false,

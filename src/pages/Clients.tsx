@@ -1,148 +1,101 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
+import { Client } from "@/types";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Check, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AddClientDialog } from "@/components/clients/AddClientDialog";
-import { EditClientDialog } from "@/components/clients/EditClientDialog";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { RecordActions } from "@/components/common/RecordActions";
 
-const Clients = () => {
-  const { clients, projects } = useAppContext();
-  const navigate = useNavigate();
-  const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [editingClient, setEditingClient] = useState<string | null>(null);
-  
-  const getProjectCount = (clientId: string) => {
-    return projects.filter(project => project.clientId === clientId).length;
-  };
+export default function Clients() {
+  const { clients } = useAppContext();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter<"all" | "active" | "inactive">("all");
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
-  // Filter clients based on status
-  const filteredClients = clients.filter(client => {
-    if (statusFilter === 'all') return true;
-    return client.status === statusFilter;
-  });
-  
-  const handleEditClient = (clientId: string) => {
-    setEditingClient(clientId);
-  };
-  
-  const handleCardClick = (clientId: string, e: React.MouseEvent) => {
-    // Don't navigate if the click was on the RecordActions component
-    if ((e.target as HTMLElement).closest('.record-actions')) {
-      e.stopPropagation();
-      return;
+  const filteredClients = clients.filter((client) => {
+    const searchRegex = new RegExp(searchTerm, "i");
+    const nameMatch = searchRegex.test(client.name);
+    const emailMatch = searchRegex.test(client.email);
+
+    let statusMatch = true;
+    if (statusFilter !== "all") {
+      statusMatch = client.status === statusFilter;
     }
-    navigate(`/clients/${clientId}`);
-  };
+
+    return (nameMatch || emailMatch) && statusMatch;
+  });
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Clients</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your client relationships
-          </p>
-        </div>
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Clients</h1>
+        <Button onClick={() => setAddDialogOpen(true)}>Add Client</Button>
       </div>
 
-      <div className="flex items-center justify-between">
-        <Tabs 
-          defaultValue="all" 
-          className="w-[300px]"
-          value={statusFilter}
-          onValueChange={(value) => setStatusFilter(value as 'all' | 'active' | 'inactive')}
-        >
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="inactive">Inactive</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <div className="flex items-center space-x-4 mb-4">
+        <Input
+          type="text"
+          placeholder="Search clients..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+
+        <Select onValueChange={(value) => setStatusFilter(value as "all" | "active" | "inactive")}>
+          <SelectTrigger>
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredClients.map((client) => (
-          <Card 
-            key={client.id} 
-            className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={(e) => handleCardClick(client.id, e)}
-          >
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>{client.name}</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Badge variant={client.status === 'active' ? 'default' : 'secondary'}>
-                    {client.status === 'active' ? (
-                      <><Check className="h-3 w-3 mr-1" /> Active</>
-                    ) : (
-                      <><X className="h-3 w-3 mr-1" /> Inactive</>
-                    )}
-                  </Badge>
-                  <div className="record-actions" onClick={(e) => e.stopPropagation()}>
-                    <RecordActions
-                      recordId={client.id}
-                      recordType="Client"
-                      recordName={client.name}
-                      onEdit={() => handleEditClient(client.id)}
-                    />
-                  </div>
-                </div>
-              </div>
-              <CardDescription>{client.contactName}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Email</span>
-                <span className="font-medium">{client.email}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Phone</span>
-                <span className="font-medium">{client.phone}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Projects</span>
-                <span className="font-medium">{getProjectCount(client.id)}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        
-        <Card
-          className="cursor-pointer hover:shadow-md transition-shadow border-dashed flex flex-col items-center justify-center min-h-[200px]"
-          onClick={() => setIsAddClientDialogOpen(true)}
-        >
-          <CardContent className="flex flex-col items-center justify-center h-full py-10">
-            <div className="rounded-full bg-muted p-3 mb-3">
-              <Plus className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-medium">Add New Client</h3>
-            <p className="text-sm text-muted-foreground mt-2 text-center max-w-[180px]">
-              Create a new client to manage projects and billing
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Table>
+        <TableCaption>A list of your clients.</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredClients.map((client) => (
+            <TableRow key={client.id}>
+              <TableCell>
+                <Link to={`/clients/${client.id}`} className="hover:underline">
+                  {client.name}
+                </Link>
+              </TableCell>
+              <TableCell>{client.email}</TableCell>
+              <TableCell>{client.status}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
       
       <AddClientDialog 
-        isOpen={isAddClientDialogOpen} 
-        onClose={() => setIsAddClientDialogOpen(false)}
+        open={addDialogOpen} 
+        onOpenChange={setAddDialogOpen} 
       />
-      
-      {editingClient && (
-        <EditClientDialog 
-          client={clients.find(c => c.id === editingClient)!} 
-          isOpen={!!editingClient}
-          onClose={() => setEditingClient(null)}
-        />
-      )}
     </div>
   );
-};
-
-export default Clients;
+}
