@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -31,6 +32,24 @@ export interface User {
     taskStatusChange?: boolean;
     newComments?: boolean;
     timeTracking?: boolean;
+    detailedSettings?: {
+      inApp: {
+        newTasks: boolean;
+        taskUpdates: boolean;
+        newComments: boolean;
+        mentions: boolean;
+        projectUpdates: boolean;
+        timeTracking: boolean;
+      };
+      email: {
+        newTasks: boolean;
+        taskUpdates: boolean;
+        newComments: boolean;
+        mentions: boolean;
+        projectUpdates: boolean;
+        timeTracking: boolean;
+      };
+    };
     notificationSettings?: {
       clients: { new: boolean; updated: boolean };
       projects: { new: boolean; updated: boolean };
