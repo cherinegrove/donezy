@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
@@ -8,24 +9,35 @@ import { useToast } from "@/hooks/use-toast";
 import { UserPlus } from "lucide-react";
 
 interface ClientUserInviteFormProps {
-  clientId: string;
+  clientId?: string;
   onSuccess?: () => void;
 }
 
 export function ClientUserInviteForm({ clientId, onSuccess }: ClientUserInviteFormProps) {
-  const { currentUser, addUser } = useAppContext();
+  const { currentUser, addUser, clients } = useAppContext();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     role: "client" as const,
-    clientRole: "primary" as const
+    clientRole: "primary" as const,
+    selectedClientId: clientId || ""
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
+
+    const targetClientId = clientId || formData.selectedClientId;
+    if (!targetClientId) {
+      toast({
+        title: "Error",
+        description: "Please select a client",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsLoading(true);
     
@@ -39,7 +51,7 @@ export function ClientUserInviteForm({ clientId, onSuccess }: ClientUserInviteFo
         avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${formData.name}`,
         teamIds: [],
         currency: "USD",
-        clientId: clientId,
+        clientId: targetClientId,
         is_guest: false,
         guest_of_user_id: currentUser.id,
         guest_permissions: {
@@ -61,7 +73,8 @@ export function ClientUserInviteForm({ clientId, onSuccess }: ClientUserInviteFo
         name: "",
         email: "",
         role: "client",
-        clientRole: "primary"
+        clientRole: "primary",
+        selectedClientId: clientId || ""
       });
 
       onSuccess?.();
@@ -83,6 +96,22 @@ export function ClientUserInviteForm({ clientId, onSuccess }: ClientUserInviteFo
         <UserPlus className="h-5 w-5" />
         <h3 className="text-lg font-semibold">Invite New Client User</h3>
       </div>
+      
+      {!clientId && (
+        <div>
+          <Label htmlFor="client">Client</Label>
+          <Select value={formData.selectedClientId} onValueChange={(value) => setFormData(prev => ({ ...prev, selectedClientId: value }))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a client" />
+            </SelectTrigger>
+            <SelectContent>
+              {clients.map(client => (
+                <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
