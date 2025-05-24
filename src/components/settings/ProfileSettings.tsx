@@ -31,7 +31,9 @@ export function ProfileSettings() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile">Profile Information</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="manager">Manager Settings</TabsTrigger>
+          {(currentUser.role === 'admin' || currentUser.role === 'manager') && (
+            <TabsTrigger value="manager">Manager Settings</TabsTrigger>
+          )}
         </TabsList>
         
         <TabsContent value="profile" className="space-y-6">
@@ -39,20 +41,26 @@ export function ProfileSettings() {
         </TabsContent>
         
         <TabsContent value="notifications" className="space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Notification Preferences</h3>
+            <p className="text-muted-foreground mb-6">
+              Configure how you want to receive notifications for different events. You can choose to receive notifications in the app, via email, or both.
+            </p>
+          </div>
           <GeneralNotificationSettings userId={currentUser.id} />
         </TabsContent>
         
-        <TabsContent value="manager" className="space-y-6">
-          {(currentUser.role === 'admin' || currentUser.role === 'manager') ? (
+        {(currentUser.role === 'admin' || currentUser.role === 'manager') && (
+          <TabsContent value="manager" className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Manager Notification Settings</h3>
+              <p className="text-muted-foreground mb-6">
+                Configure notifications for management activities such as client updates, project changes, and team activities.
+              </p>
+            </div>
             <ManagerNotificationSettings userId={currentUser.id} />
-          ) : (
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-muted-foreground">Manager settings are only available for admin and manager roles.</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
