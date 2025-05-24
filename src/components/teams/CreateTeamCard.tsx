@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/contexts/AppContext";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 interface CreateTeamCardProps {
   onTeamCreated?: () => void;
@@ -17,7 +18,9 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const { addTeam } = useAppContext();
+  const [memberIds, setMemberIds] = useState<string[]>([]);
+  const [leaderId, setLeaderId] = useState("");
+  const { addTeam, users } = useAppContext();
   const { toast } = useToast();
 
   const handleSave = () => {
@@ -34,7 +37,8 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
       addTeam({
         name,
         description,
-        memberIds: [],
+        memberIds,
+        leaderId: leaderId || undefined,
       });
 
       toast({
@@ -45,6 +49,8 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
       // Reset form
       setName("");
       setDescription("");
+      setMemberIds([]);
+      setLeaderId("");
       setIsCreating(false);
       
       if (onTeamCreated) {
@@ -62,8 +68,17 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
   const handleCancel = () => {
     setName("");
     setDescription("");
+    setMemberIds([]);
+    setLeaderId("");
     setIsCreating(false);
   };
+
+  // Filter out guest users and client users from team assignment options
+  const eligibleUsers = users.filter(user => user.role !== "client" && !user.isGuest);
+  const userOptions = eligibleUsers.map(user => ({
+    value: user.id,
+    label: user.name
+  }));
 
   if (isCreating) {
     return (
@@ -87,6 +102,24 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Team Members</Label>
+            <MultiSelect
+              options={userOptions}
+              selectedValues={memberIds}
+              onValueChange={setMemberIds}
+              placeholder="Select team members (guests excluded)"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="team-leader">Team Leader ID (Optional)</Label>
+            <Input
+              id="team-leader"
+              placeholder="Enter team leader's ID..."
+              value={leaderId}
+              onChange={(e) => setLeaderId(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
@@ -113,7 +146,7 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
         <Plus className="h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold mb-2">Create New Team</h3>
         <p className="text-sm text-muted-foreground text-center">
-          Click here to add a new team
+          Click here to add a new team and assign members
         </p>
       </CardContent>
     </Card>

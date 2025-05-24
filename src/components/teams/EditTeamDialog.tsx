@@ -82,7 +82,9 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
     onClose();
   };
 
-  const userOptions = users.map(user => ({
+  // Filter out guest users and client users from team assignment options
+  const eligibleUsers = users.filter(user => user.role !== "client" && !user.isGuest);
+  const userOptions = eligibleUsers.map(user => ({
     value: user.id,
     label: user.name
   }));
@@ -93,7 +95,7 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
         <DialogHeader>
           <DialogTitle>Edit Team</DialogTitle>
           <DialogDescription>
-            Update team information and member assignments.
+            Update team information and member assignments. Only team members and internal users can be added to teams.
           </DialogDescription>
         </DialogHeader>
         

@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Team } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EditTeamDialog } from "@/components/teams/EditTeamDialog";
+import { CreateTeamCard } from "@/components/teams/CreateTeamCard";
 
 export default function AdminTeams() {
   const { teams } = useAppContext();
@@ -17,6 +19,8 @@ export default function AdminTeams() {
 
   return (
     <div className="space-y-6">
+      <CreateTeamCard />
+      
       <Card>
         <CardHeader>
           <CardTitle>Teams</CardTitle>
