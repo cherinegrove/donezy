@@ -9,7 +9,7 @@ import { TaskStatusManager } from "@/components/admin/TaskStatusManager";
 import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AreaChart, BarChart3, Box, Database, Download, Settings, ShieldAlert, Users, Briefcase } from "lucide-react";
+import { AreaChart, BarChart3, Box, Database, Settings, ShieldAlert, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Clients from "@/pages/Clients";
 
@@ -38,15 +38,9 @@ export default function Admin() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Manage users, teams, and monitor system activity</p>
-        </div>
-        <Button variant="outline" className="gap-2">
-          <Download className="h-4 w-4" />
-          Export Data
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        <p className="text-muted-foreground">Manage users, teams, and monitor system activity</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
