@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -37,13 +38,16 @@ const projectSchema = z.object({
   status: z.enum(["todo", "in-progress", "done"]),
   startDate: z.string().optional(),
   dueDate: z.string().optional(),
-  allocatedHours: z.number().min(0).optional(),
+  allocatedHours: z.preprocess(
+    (val) => (val === "" || val === undefined) ? undefined : Number(val),
+    z.number().min(0).optional()
+  ),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
 
 interface EditProjectDialogProps {
-  project: Project;
+  project: Project | null;
   open: boolean;
   onClose: () => void;
 }
@@ -51,42 +55,83 @@ interface EditProjectDialogProps {
 export function EditProjectDialog({ project, open, onClose }: EditProjectDialogProps) {
   const { updateProject } = useAppContext();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
-      name: project.name,
-      description: project.description,
-      status: project.status,
-      startDate: project.startDate,
-      dueDate: project.dueDate,
-      allocatedHours: project.allocatedHours,
+      name: "",
+      description: "",
+      status: "todo",
+      startDate: "",
+      dueDate: "",
+      allocatedHours: undefined,
     },
   });
 
   useEffect(() => {
-    if (open) {
-      form.reset({
-        name: project.name,
-        description: project.description,
-        status: project.status,
-        startDate: project.startDate,
-        dueDate: project.dueDate,
-        allocatedHours: project.allocatedHours,
-      });
+    if (open && project) {
+      console.log("Initializing form with project data:", project);
+      try {
+        form.reset({
+          name: project.name || "",
+          description: project.description || "",
+          status: project.status || "todo",
+          startDate: project.startDate || "",
+          dueDate: project.dueDate || "",
+          allocatedHours: project.allocatedHours || undefined,
+        });
+      } catch (error) {
+        console.error("Error initializing form:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load project data. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
-  }, [form, open, project]);
+  }, [form, open, project, toast]);
 
-  const onSubmit = (data: ProjectFormData) => {
-    updateProject(project.id, data);
+  const onSubmit = async (data: ProjectFormData) => {
+    if (!project) {
+      console.error("No project to update");
+      toast({
+        title: "Error",
+        description: "No project selected for editing.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    toast({
-      title: "Project updated",
-      description: `${data.name} has been updated successfully.`,
-    });
+    console.log("Submitting project update:", data);
+    setIsSubmitting(true);
+    
+    try {
+      updateProject(project.id, data);
 
-    onClose();
+      toast({
+        title: "Project updated",
+        description: `${data.name} has been updated successfully.`,
+      });
+
+      onClose();
+    } catch (error) {
+      console.error("Error updating project:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update project. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  // Don't render anything if no project is provided
+  if (!project) {
+    console.warn("EditProjectDialog: No project provided");
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -105,7 +150,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Project Name</FormLabel>
+                  <FormLabel>Project Name *</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter project name" {...field} />
                   </FormControl>
@@ -119,7 +164,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Description *</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Enter project description" {...field} />
                   </FormControl>
@@ -151,33 +196,35 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="startDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Start Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="dueDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Due Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Start Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="dueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Due Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             <FormField
               control={form.control}
@@ -186,7 +233,12 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
                 <FormItem>
                   <FormLabel>Allocated Hours</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="Enter allocated hours" {...field} />
+                    <Input 
+                      type="number" 
+                      placeholder="Enter allocated hours"
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -194,10 +246,17 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
             />
             
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
-              <Button type="submit">Update Project</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Updating..." : "Update Project"}
+              </Button>
             </div>
           </form>
         </Form>

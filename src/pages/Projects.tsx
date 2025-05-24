@@ -22,7 +22,7 @@ const Projects = () => {
   const [isUseTemplateDialogOpen, setIsUseTemplateDialogOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
   const [activeTab, setActiveTab] = useState("projects");
-  const [editingProject, setEditingProject] = useState<string | null>(null);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const navigate = useNavigate();
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
 
@@ -111,9 +111,21 @@ const Projects = () => {
   };
   
   const handleEditProject = (projectId: string) => {
-    setEditingProject(projectId);
+    console.log("Editing project with ID:", projectId);
+    const projectToEdit = projects.find(p => p.id === projectId);
+    if (projectToEdit) {
+      console.log("Found project to edit:", projectToEdit);
+      setEditingProject(projectToEdit);
+    } else {
+      console.error("Project not found for editing:", projectId);
+    }
   };
-  
+
+  const handleCloseEditDialog = () => {
+    console.log("Closing edit dialog");
+    setEditingProject(null);
+  };
+
   const handleCardClick = (projectId: string) => {
     navigate(`/projects/${projectId}`);
   };
@@ -260,13 +272,11 @@ const Projects = () => {
         templateId={selectedTemplateId}
       />
       
-      {editingProject && (
-        <EditProjectDialog
-          project={projects.find(p => p.id === editingProject)!}
-          open={!!editingProject}
-          onClose={() => setEditingProject(null)}
-        />
-      )}
+      <EditProjectDialog
+        project={editingProject}
+        open={!!editingProject}
+        onClose={handleCloseEditDialog}
+      />
     </div>
   );
 }
