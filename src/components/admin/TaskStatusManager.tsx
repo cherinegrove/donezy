@@ -17,9 +17,15 @@ import {
   Trash2, 
   GripVertical, 
   Save, 
-  X 
+  X,
+  Palette
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface TaskStatus {
   id: string;
@@ -34,6 +40,24 @@ const defaultStatuses: TaskStatus[] = [
   { id: "3", label: "In Progress", value: "in-progress", color: "bg-yellow-500" },
   { id: "4", label: "Review", value: "review", color: "bg-purple-500" },
   { id: "5", label: "Done", value: "done", color: "bg-green-500" },
+];
+
+const colorOptions = [
+  "bg-red-500",
+  "bg-orange-500", 
+  "bg-amber-500",
+  "bg-yellow-500",
+  "bg-lime-500",
+  "bg-green-500",
+  "bg-emerald-500",
+  "bg-teal-500",
+  "bg-cyan-500",
+  "bg-sky-500",
+  "bg-blue-500",
+  "bg-indigo-500",
+  "bg-violet-500",
+  "bg-purple-500",
+  "bg-pink-500"
 ];
 
 export function TaskStatusManager() {
@@ -113,12 +137,26 @@ export function TaskStatusManager() {
     });
   };
 
+  const handleColorChange = (statusId: string, newColor: string) => {
+    setStatuses(prev => 
+      prev.map(status => 
+        status.id === statusId 
+          ? { ...status, color: newColor }
+          : status
+      )
+    );
+    toast({
+      title: "Success",
+      description: "Status color updated",
+    });
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Task Status Management</CardTitle>
         <CardDescription>
-          Manage task statuses for Kanban board. Drag to reorder, click to edit or delete.
+          Manage task statuses for Kanban board. Drag to reorder, click to edit or delete, and customize colors.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -145,7 +183,35 @@ export function TaskStatusManager() {
                           <GripVertical className="h-4 w-4" />
                         </div>
                         
-                        <div className={`w-3 h-3 rounded-full ${status.color}`} />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-12 h-8 p-0 hover:scale-105 transition-transform"
+                            >
+                              <div className={`w-6 h-6 rounded ${status.color}`} />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-64 p-3" align="start">
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Choose Color</Label>
+                              <div className="grid grid-cols-5 gap-2">
+                                {colorOptions.map((color) => (
+                                  <Button
+                                    key={color}
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-10 h-10 p-0 hover:scale-110 transition-transform"
+                                    onClick={() => handleColorChange(status.id, color)}
+                                  >
+                                    <div className={`w-6 h-6 rounded ${color}`} />
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                         
                         {editingId === status.id ? (
                           <div className="flex-1 flex items-center gap-2">
