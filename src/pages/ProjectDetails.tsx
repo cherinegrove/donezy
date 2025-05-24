@@ -6,18 +6,20 @@ import { Project } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
+import { Calendar, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TaskList } from "@/components/tasks/TaskList";
 import { ConvertToTemplateDialog } from "@/components/projects/ConvertToTemplateDialog";
+import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { projects, clients, tasks, users, timeEntries } = useAppContext();
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
   
   // Update project when projects state changes
@@ -63,6 +65,16 @@ export default function ProjectDetails() {
     );
   }
 
+  const handleEditProject = () => {
+    console.log("Opening edit dialog for project:", project);
+    setEditDialogOpen(true);
+  };
+
+  const handleCloseEditDialog = () => {
+    console.log("Closing edit dialog");
+    setEditDialogOpen(false);
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between">
@@ -71,6 +83,10 @@ export default function ProjectDetails() {
           <p className="text-muted-foreground">{project.description}</p>
         </div>
         <div className="space-x-2">
+          <Button variant="outline" onClick={handleEditProject}>
+            <Edit className="w-4 h-4 mr-2" />
+            Edit Project
+          </Button>
           <Button variant="outline">
             <Calendar className="w-4 h-4 mr-2" />
             {project.dueDate ? format(new Date(project.dueDate), "MMM dd, yyyy") : "No due date"}
@@ -147,6 +163,12 @@ export default function ProjectDetails() {
         project={project}
         open={convertDialogOpen}
         onOpenChange={setConvertDialogOpen}
+      />
+
+      <EditProjectDialog
+        project={project}
+        open={editDialogOpen}
+        onClose={handleCloseEditDialog}
       />
     </div>
   );

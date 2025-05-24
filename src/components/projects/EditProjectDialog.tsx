@@ -76,35 +76,19 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
   useEffect(() => {
     if (open && project) {
       console.log("Initializing form with project data:", project);
-      try {
-        form.reset({
-          name: project.name || "",
-          description: project.description || "",
-          clientId: project.clientId || "",
-          serviceType: project.serviceType || "project",
-          status: project.status || "todo",
-          startDate: project.startDate || "",
-          dueDate: project.dueDate || "",
-          allocatedHours: project.allocatedHours || undefined,
-        });
-      } catch (error) {
-        console.error("Error initializing form:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load project data. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } else if (open && !project) {
-      console.error("EditProjectDialog opened without project data");
-      toast({
-        title: "Error",
-        description: "No project data available for editing.",
-        variant: "destructive",
+      // Reset form with current project data
+      form.reset({
+        name: project.name || "",
+        description: project.description || "",
+        clientId: project.clientId || "",
+        serviceType: project.serviceType || "project",
+        status: project.status || "todo",
+        startDate: project.startDate || "",
+        dueDate: project.dueDate || "",
+        allocatedHours: project.allocatedHours || undefined,
       });
-      onClose();
     }
-  }, [form, open, project, toast, onClose]);
+  }, [form, open, project]);
 
   const onSubmit = async (data: ProjectFormData) => {
     if (!project) {
@@ -150,7 +134,6 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
     }
   };
 
-  // Don't render anything if no project is provided
   if (!project && open) {
     console.warn("EditProjectDialog: No project provided but dialog is open");
     return null;
