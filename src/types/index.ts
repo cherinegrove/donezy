@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -286,3 +285,33 @@ export interface AccountLimits {
   can_add_user: boolean;
   can_add_guest: boolean;
 }
+
+// Utility functions for permission checking
+export const hasPermission = (userRole: CustomRole | undefined, feature: string, requiredLevel: AccessLevel): boolean => {
+  if (!userRole) return false;
+  
+  const userLevel = userRole.permissions[feature];
+  if (!userLevel || userLevel === 'none') return false;
+  
+  const levels = ['none', 'view', 'create', 'edit', 'delete'];
+  const userLevelIndex = levels.indexOf(userLevel);
+  const requiredLevelIndex = levels.indexOf(requiredLevel);
+  
+  return userLevelIndex >= requiredLevelIndex;
+};
+
+export const getGuestPermissions = (): Record<string, AccessLevel> => {
+  return {
+    dashboard: 'none',
+    projects: 'view',
+    tasks: 'edit',
+    timeTracking: 'none',
+    clients: 'none',
+    teams: 'none',
+    users: 'none',
+    reports: 'none',
+    messages: 'none',
+    notes: 'none',
+    settings: 'none'
+  };
+};

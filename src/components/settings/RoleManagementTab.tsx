@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AccessLevel, CustomRole } from "@/types";
 import { useForm } from "react-hook-form";
-import { Shield, Pencil, X } from "lucide-react";
+import { Shield, Pencil, X, Info } from "lucide-react";
 
 type FormValues = {
   name: string;
@@ -91,7 +93,7 @@ export function RoleManagementTab() {
     deleteCustomRole(id);
   };
 
-  const permissionOptions: AccessLevel[] = ["none", "view", "create", "edit"];
+  const permissionOptions: AccessLevel[] = ["none", "view", "create", "edit", "delete"];
   const permissionKeys = Object.keys(defaultFormValues.permissions);
   
   // Function to handle permission change
@@ -102,6 +104,17 @@ export function RoleManagementTab() {
       [permission]: level
     });
   };
+
+  const getPermissionDescription = (level: AccessLevel): string => {
+    switch (level) {
+      case 'none': return 'No access';
+      case 'view': return 'View only';
+      case 'create': return 'View + Create';
+      case 'edit': return 'View + Create + Edit';
+      case 'delete': return 'Full access';
+      default: return 'Unknown';
+    }
+  };
   
   return (
     <div className="space-y-6">
@@ -109,7 +122,7 @@ export function RoleManagementTab() {
         <div>
           <h2 className="text-2xl font-bold">Role Management</h2>
           <p className="text-muted-foreground mt-1">
-            Create and manage custom roles with specific permissions
+            Create and manage custom roles with hierarchical permissions
           </p>
         </div>
         {!isEditing && (
@@ -119,6 +132,14 @@ export function RoleManagementTab() {
         )}
       </div>
 
+      {/* Permission Hierarchy Info */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Permission Hierarchy:</strong> Higher levels include all lower permissions. Delete → Edit → Create → View → None
+        </AlertDescription>
+      </Alert>
+
       {isEditing && (
         <Card>
           <CardHeader>
@@ -126,7 +147,7 @@ export function RoleManagementTab() {
             <CardDescription>
               {editingRoleId 
                 ? "Update role details and permissions" 
-                : "Define a new role with specific permissions"}
+                : "Define a new role with hierarchical permissions"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -163,6 +184,7 @@ export function RoleManagementTab() {
                         <TableHead>View Only</TableHead>
                         <TableHead>Create</TableHead>
                         <TableHead>Edit</TableHead>
+                        <TableHead>Delete</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -176,7 +198,7 @@ export function RoleManagementTab() {
                             </TableCell>
                             {permissionOptions.map((level) => (
                               <TableCell key={`${permission}-${level}`}>
-                                <div className="flex items-center justify-center">
+                                <div className="flex flex-col items-center justify-center">
                                   <input
                                     type="radio"
                                     id={`${permission}-${level}`}
@@ -185,6 +207,9 @@ export function RoleManagementTab() {
                                     checked={currentValue === level}
                                     onChange={() => handlePermissionChange(permission, level)}
                                   />
+                                  <span className="text-xs text-muted-foreground mt-1 text-center">
+                                    {getPermissionDescription(level)}
+                                  </span>
                                 </div>
                               </TableCell>
                             ))}
@@ -240,15 +265,19 @@ export function RoleManagementTab() {
                     {Object.entries(role.permissions).map(([key, value]) => (
                       <tr key={key}>
                         <td className="py-1 font-medium capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
-                        <td className="py-1 text-right capitalize">
+                        <td className="py-1 text-right">
                           <span className={
                             value === "none" 
                               ? "text-muted-foreground" 
                               : value === "view"
-                                ? "text-amber-500"
-                                : "text-primary"
+                                ? "text-blue-500"
+                                : value === "create"
+                                  ? "text-yellow-500"
+                                  : value === "edit"
+                                    ? "text-green-500"
+                                    : "text-red-500"
                           }>
-                            {value}
+                            {getPermissionDescription(value as AccessLevel)}
                           </span>
                         </td>
                       </tr>
@@ -266,7 +295,7 @@ export function RoleManagementTab() {
               <Shield className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground mb-2">No custom roles defined</p>
               <p className="text-sm text-muted-foreground text-center max-w-md">
-                Create custom roles to manage access permissions for different team members
+                Create custom roles to manage hierarchical access permissions for different team members
               </p>
             </CardContent>
           </Card>

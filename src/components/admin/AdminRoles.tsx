@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { CustomRole, AccessLevel } from "@/types";
-import { Shield, Plus, Edit, Trash2, Save, X } from "lucide-react";
+import { Shield, Plus, Edit, Trash2, Save, X, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface FeaturePermissions {
   dashboard: AccessLevel;
@@ -52,12 +54,12 @@ const featureLabels = {
   settings: 'Settings'
 };
 
-const accessLevels: { value: AccessLevel; label: string; color: string }[] = [
-  { value: 'none', label: 'No Access', color: 'bg-gray-100 text-gray-800' },
-  { value: 'view', label: 'View Only', color: 'bg-blue-100 text-blue-800' },
-  { value: 'create', label: 'Create', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'edit', label: 'Edit', color: 'bg-green-100 text-green-800' },
-  { value: 'delete', label: 'Delete', color: 'bg-red-100 text-red-800' }
+const accessLevels: { value: AccessLevel; label: string; color: string; description: string }[] = [
+  { value: 'none', label: 'No Access', color: 'bg-gray-100 text-gray-800', description: 'Cannot access this feature' },
+  { value: 'view', label: 'View Only', color: 'bg-blue-100 text-blue-800', description: 'Can only view data' },
+  { value: 'create', label: 'Create', color: 'bg-yellow-100 text-yellow-800', description: 'Can view and create new items' },
+  { value: 'edit', label: 'Edit', color: 'bg-green-100 text-green-800', description: 'Can view, create, and edit items' },
+  { value: 'delete', label: 'Delete', color: 'bg-red-100 text-red-800', description: 'Full access including delete' }
 ];
 
 export default function AdminRoles() {
@@ -181,7 +183,7 @@ export default function AdminRoles() {
         <div>
           <h2 className="text-2xl font-bold">Role Management</h2>
           <p className="text-muted-foreground mt-1">
-            Create and manage custom roles with granular permissions
+            Create and manage custom roles with hierarchical permissions
           </p>
         </div>
         {!isCreating && !editingRole && (
@@ -192,6 +194,14 @@ export default function AdminRoles() {
         )}
       </div>
 
+      {/* Permission Hierarchy Info */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Permission Hierarchy:</strong> Delete includes Edit, Create, and View • Edit includes Create and View • Create includes View • View is standalone • Guest users have fixed permissions: View Projects, Create/Edit Tasks only
+        </AlertDescription>
+      </Alert>
+
       {/* Create/Edit Role Form */}
       {(isCreating || editingRole) && (
         <Card>
@@ -200,7 +210,7 @@ export default function AdminRoles() {
               {editingRole ? 'Edit Role' : 'Create New Role'}
             </CardTitle>
             <CardDescription>
-              {editingRole ? 'Update role details and permissions' : 'Define a new role with specific access levels'}
+              {editingRole ? 'Update role details and permissions' : 'Define a new role with hierarchical access levels'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -322,7 +332,7 @@ export default function AdminRoles() {
               <Shield className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">No Custom Roles</h3>
               <p className="text-muted-foreground text-center max-w-md mb-4">
-                Create custom roles to manage granular permissions for different team members across all features.
+                Create custom roles to manage hierarchical permissions for different team members across all features.
               </p>
               <Button onClick={handleCreateRole}>
                 <Plus className="h-4 w-4 mr-2" />
