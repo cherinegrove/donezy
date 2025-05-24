@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAppContext } from "@/contexts/AppContext";
-import { Project } from "@/types";
+import { Note } from "@/types";
 import {
   Dialog,
   DialogContent,
@@ -24,47 +24,39 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
-const templateSchema = z.object({
-  name: z.string().min(1, "Template name is required"),
-  description: z.string().min(1, "Description is required"),
+const noteSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  content: z.string().min(1, "Content is required"),
 });
 
-type TemplateFormData = z.infer<typeof templateSchema>;
+type NoteFormData = z.infer<typeof noteSchema>;
 
-interface ConvertToTemplateDialogProps {
-  project: Project;
+interface EditNoteDialogProps {
+  note: Note;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function ConvertToTemplateDialog({ 
-  project, 
-  open, 
-  onOpenChange 
-}: ConvertToTemplateDialogProps) {
-  const { convertProjectToTemplate } = useAppContext();
+export function EditNoteDialog({ note, open, onOpenChange }: EditNoteDialogProps) {
+  const { updateNote } = useAppContext();
   const { toast } = useToast();
 
-  const form = useForm<TemplateFormData>({
-    resolver: zodResolver(templateSchema),
+  const form = useForm<NoteFormData>({
+    resolver: zodResolver(noteSchema),
     defaultValues: {
-      name: `${project.name} Template`,
-      description: `Template based on ${project.name}`,
+      title: note.title,
+      content: note.content,
     },
   });
 
-  const onSubmit = (data: TemplateFormData) => {
-    convertProjectToTemplate(project.id, {
-      name: data.name,
-      description: data.description,
-    });
+  const onSubmit = (data: NoteFormData) => {
+    updateNote(note.id, data);
 
     toast({
-      title: "Template created",
-      description: `Template "${data.name}" has been created from project "${project.name}".`,
+      title: "Note updated",
+      description: `${data.title} has been updated successfully.`,
     });
 
-    form.reset();
     onOpenChange(false);
   };
 
@@ -72,9 +64,9 @@ export function ConvertToTemplateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
-          <DialogTitle>Convert to Template</DialogTitle>
+          <DialogTitle>Edit Note</DialogTitle>
           <DialogDescription>
-            Create a reusable template from "{project.name}".
+            Update your note information.
           </DialogDescription>
         </DialogHeader>
         
@@ -82,12 +74,12 @@ export function ConvertToTemplateDialog({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="name"
+              name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Template name" {...field} />
+                    <Input placeholder="Note Title" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -96,12 +88,16 @@ export function ConvertToTemplateDialog({
             
             <FormField
               control={form.control}
-              name="description"
+              name="content"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Content</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Template description" {...field} />
+                    <Textarea
+                      placeholder="Write your note here..."
+                      rows={5}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -112,7 +108,7 @@ export function ConvertToTemplateDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Create Template</Button>
+              <Button type="submit">Update Note</Button>
             </div>
           </form>
         </Form>

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -70,7 +71,15 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
 
   const onSubmit = (data: ClientFormData) => {
     addClient({
-      ...data,
+      name: data.name,
+      contactName: data.contactName,
+      email: data.email,
+      phone: data.phone,
+      address: data.address,
+      website: data.website,
+      billableRate: data.billableRate,
+      currency: data.currency,
+      status: data.status,
       createdAt: new Date().toISOString(),
       memberIds: [],
     });
@@ -181,7 +190,12 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
                 <FormItem>
                   <FormLabel>Billable Rate</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="100" {...field} />
+                    <Input 
+                      type="number" 
+                      placeholder="100" 
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
