@@ -18,6 +18,7 @@ import {
   ProjectTemplate,
   CustomRole,
   Note,
+  TaskLog,
 } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { AppContextType } from "./AppContextType";
@@ -38,7 +39,8 @@ const getEmptyUserState = () => ({
   notes: [],
   customFields: [],
   clientAgreements: [],
-  clientFiles: []
+  clientFiles: [],
+  taskLogs: []
 });
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -64,6 +66,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
   const [clientAgreements, setClientAgreements] = useState<any[]>([]);
   const [clientFiles, setClientFiles] = useState<any[]>([]);
+  const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
 
   // Load session on mount
   useEffect(() => {
@@ -96,6 +99,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           email: session?.user?.email || '',
           avatar: data.avatar_url,
           role: 'admin', // Default role for new users
+          teamIds: [], // Add missing teamIds
         });
       }
     } catch (error: any) {
@@ -132,6 +136,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCustomFields(emptyState.customFields);
       setClientAgreements(emptyState.clientAgreements);
       setClientFiles(emptyState.clientFiles);
+      setTaskLogs(emptyState.taskLogs);
     }
   }, [currentUser, session]);
 
@@ -185,6 +190,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCustomFields(emptyState.customFields);
       setClientAgreements(emptyState.clientAgreements);
       setClientFiles(emptyState.clientFiles);
+      setTaskLogs(emptyState.taskLogs);
       setActiveTimeEntry(null);
       
       // Sign out from Supabase
@@ -205,10 +211,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const getClientById = useCallback((clientId: string) => {
     return clients.find(client => client.id === clientId);
   }, [clients]);
-
-  const getProjectById = useCallback((projectId: string) => {
-    return projects.find(project => project.id === projectId);
-  }, [projects]);
 
   const getTaskById = useCallback((taskId: string) => {
     return tasks.find(task => task.id === taskId);
@@ -269,10 +271,70 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTeams(prev => prev.filter(team => team.id !== teamId));
   }, []);
 
+  // Project functions - declare before use
+  const addProject = useCallback((project: Omit<Project, 'id'>) => {
+    console.log("Adding project:", project);
+    const newProject: Project = {
+      id: Math.random().toString(36).substring(2, 15),
+      ...project,
+    };
+    setProjects(prev => [...prev, newProject]);
+  }, []);
+
+  const updateProject = useCallback((projectId: string, updates: Partial<Project>) => {
+    console.log("Updating project:", projectId, updates);
+    setProjects(prev =>
+      prev.map(project => (project.id === projectId ? { ...project, ...updates } : project))
+    );
+  }, []);
+
+  const getProjectById = useCallback((projectId: string) => {
+    return projects.find(project => project.id === projectId);
+  }, [projects]);
+
+  const deleteProject = useCallback((projectId: string) => {
+    console.log("Deleting project:", projectId);
+    
+    // Delete all related tasks first
+    setTasks(prev => prev.filter(task => task.projectId !== projectId));
+    
+    // Delete all related time entries
+    setTimeEntries(prev => prev.filter(entry => entry.projectId !== projectId));
+    
+    // Delete all related messages
+    setMessages(prev => prev.filter(message => message.projectId !== projectId));
+    
+    // Finally delete the project
+    setProjects(prev => prev.filter(project => project.id !== projectId));
+  }, []);
+
+  const watchProject = useCallback((projectId: string, userId: string) => {
+    setProjects(prev =>
+      prev.map(project => 
+        project.id === projectId 
+          ? { ...project, watcherIds: [...(project.watcherIds || []), userId] }
+          : project
+      )
+    );
+  }, []);
+
+  const unwatchProject = useCallback((projectId: string, userId: string) => {
+    setProjects(prev =>
+      prev.map(project => 
+        project.id === projectId 
+          ? { ...project, watcherIds: (project.watcherIds || []).filter(id => id !== userId) }
+          : project
+      )
+    );
+  }, []);
+
   // Task functions
   const addTask = useCallback((task: Omit<Task, 'id'>) => {
     const newTask: Task = {
       id: Math.random().toString(36).substring(2, 15),
+      createdAt: new Date().toISOString(),
+      timeEntries: [],
+      comments: [],
       ...task,
     };
     setTasks(prev => [...prev, newTask]);
@@ -292,6 +354,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateTask(taskId, { status: newStatus as any });
   }, [updateTask]);
 
+  const watchTask = useCallback((taskId: string, userId: string) => {
+    setTasks(prev =>
+      prev.map(task => 
+        task.id === taskId 
+          ? { ...task, watcherIds: [...(task.watcherIds || []), userId] }
+          : task
+      )
+    );
+  }, []);
+
+  const unwatchTask = useCallback((taskId: string, userId: string) => {
+    setTasks(prev =>
+      prev.map(task => 
+        task.id === taskId 
+          ? { ...task, watcherIds: (task.watcherIds || []).filter(id => id !== userId) }
+          : task
+      )
+    );
+  }, []);
+
+  const linkTasks = useCallback((taskId: string, relatedTaskId: string) => {
+    console.log("Linking tasks:", taskId, relatedTaskId);
+    // Implementation would add relationship between tasks
+  }, []);
+
+  const unlinkTasks = useCallback((taskId: string, relatedTaskId: string) => {
+    console.log("Unlinking tasks:", taskId, relatedTaskId);
+    // Implementation would remove relationship between tasks
+  }, []);
+
+  const uploadTaskFile = useCallback(async (taskId: string, file: File) => {
+    console.log("Uploading task file:", taskId, file.name);
+    // Implementation would upload file and associate with task
+  }, []);
+
+  const deleteTaskFile = useCallback((taskId: string, fileId: string) => {
+    console.log("Deleting task file:", taskId, fileId);
+    // Implementation would delete file from task
+  }, []);
+
   // TimeEntry functions
   const addTimeEntry = useCallback((timeEntry: Omit<TimeEntry, 'id'>) => {
     const newTimeEntry: TimeEntry = {
@@ -309,7 +411,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteTimeEntry = useCallback((timeEntryId: string) => {
     setTimeEntries(prev => prev.filter(entry => entry.id !== timeEntryId));
-  }, []);
+    if (activeTimeEntry && activeTimeEntry.id === timeEntryId) {
+      setActiveTimeEntry(null);
+    }
+  }, [activeTimeEntry]);
+
+  const startTimeTracking = useCallback((taskId: string, projectId?: string, clientId?: string) => {
+    if (!currentUser) return;
+    
+    const newTimeEntry: TimeEntry = {
+      id: Math.random().toString(36).substring(2, 15),
+      userId: currentUser.id,
+      taskId,
+      projectId,
+      clientId,
+      startTime: new Date().toISOString(),
+      duration: 0,
+      billable: true,
+    };
+    
+    setActiveTimeEntry(newTimeEntry);
+    setTimeEntries(prev => [...prev, newTimeEntry]);
+  }, [currentUser]);
+
+  const stopTimeTracking = useCallback((notes?: string) => {
+    if (!activeTimeEntry) return;
+    
+    const endTime = new Date();
+    const startTime = new Date(activeTimeEntry.startTime);
+    const duration = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // minutes
+    
+    updateTimeEntry(activeTimeEntry.id, {
+      endTime: endTime.toISOString(),
+      duration,
+      description: notes,
+    });
+    
+    setActiveTimeEntry(null);
+  }, [activeTimeEntry, updateTimeEntry]);
+
+  const updateTimeEntryStatus = useCallback((timeEntryId: string, status: string) => {
+    updateTimeEntry(timeEntryId, { status: status as any });
+  }, [updateTimeEntry]);
 
   // Message functions
   const addMessage = useCallback((message: Omit<Message, 'id'>) => {
@@ -331,11 +474,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const sendMessage = useCallback((message: Omit<Message, 'id'>) => {
-    addMessage(message);
+    const completeMessage = {
+      ...message,
+      timestamp: new Date().toISOString(),
+      read: false,
+    };
+    addMessage(completeMessage);
   }, [addMessage]);
 
   const createMessage = useCallback((message: Omit<Message, 'id'>) => {
-    addMessage(message);
+    const completeMessage = {
+      ...message,
+      timestamp: message.timestamp || new Date().toISOString(),
+      read: false,
+    };
+    addMessage(completeMessage);
   }, [addMessage]);
 
   const markMessageAsRead = useCallback((messageId: string) => {
@@ -481,64 +634,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setNotes(prev => prev.filter(note => note.id !== noteId));
   }, []);
 
-  // Project functions
-  const addProject = useCallback((project: Omit<Project, 'id'>) => {
-    console.log("Adding project:", project);
-    const newProject: Project = {
-      id: Math.random().toString(36).substring(2, 15),
-      ...project,
-    };
-    setProjects(prev => [...prev, newProject]);
-  }, []);
-
-  const updateProject = useCallback((projectId: string, updates: Partial<Project>) => {
-    console.log("Updating project:", projectId, updates);
-    setProjects(prev =>
-      prev.map(project => (project.id === projectId ? { ...project, ...updates } : project))
-    );
-  }, []);
-
-  const deleteProject = useCallback((projectId: string) => {
-    console.log("Deleting project:", projectId);
-    
-    // Delete all related tasks first
-    setTasks(prev => prev.filter(task => task.projectId !== projectId));
-    
-    // Delete all related time entries
-    setTimeEntries(prev => prev.filter(entry => entry.projectId !== projectId));
-    
-    // Delete all related messages
-    setMessages(prev => prev.filter(message => message.projectId !== projectId));
-    
-    // Finally delete the project
-    setProjects(prev => prev.filter(project => project.id !== projectId));
-  }, []);
-
-  const watchProject = useCallback((projectId: string, userId: string) => {
-    setProjects(prev =>
-      prev.map(project => 
-        project.id === projectId 
-          ? { ...project, watcherIds: [...(project.watcherIds || []), userId] }
-          : project
-      )
-    );
-  }, []);
-
-  const unwatchProject = useCallback((projectId: string, userId: string) => {
-    setProjects(prev =>
-      prev.map(project => 
-        project.id === projectId 
-          ? { ...project, watcherIds: (project.watcherIds || []).filter(id => id !== userId) }
-          : project
-      )
-    );
-  }, []);
-
   // Client functions
   const addClient = useCallback((client: Omit<Client, 'id'>) => {
     console.log("Adding client:", client);
     const newClient: Client = {
       id: Math.random().toString(36).substring(2, 15),
+      createdAt: new Date().toISOString(),
       ...client,
     };
     setClients(prev => [...prev, newClient]);
@@ -646,6 +747,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     notes,
     customFields,
     activeTimeEntry,
+    taskLogs,
     login,
     logout,
     addUser,
@@ -661,9 +763,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     deleteTask,
     getTaskById,
     moveTask,
+    watchTask,
+    unwatchTask,
+    linkTasks,
+    unlinkTasks,
+    uploadTaskFile,
+    deleteTaskFile,
     addTimeEntry,
     updateTimeEntry,
     deleteTimeEntry,
+    startTimeTracking,
+    stopTimeTracking,
+    updateTimeEntryStatus,
     addMessage,
     updateMessage,
     deleteMessage,

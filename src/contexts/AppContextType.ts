@@ -1,5 +1,5 @@
 
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note } from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog } from "@/types";
 import { Session } from "@supabase/supabase-js";
 
 export interface AppContextType {
@@ -19,6 +19,7 @@ export interface AppContextType {
   notes: Note[];
   customFields: any[];
   activeTimeEntry: TimeEntry | null;
+  taskLogs: TaskLog[];
   
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<boolean>;
@@ -41,11 +42,20 @@ export interface AppContextType {
   deleteTask: (taskId: string) => void;
   getTaskById: (taskId: string) => Task | undefined;
   moveTask: (taskId: string, newStatus: string) => void;
+  watchTask: (taskId: string, userId: string) => void;
+  unwatchTask: (taskId: string, userId: string) => void;
+  linkTasks: (taskId: string, relatedTaskId: string) => void;
+  unlinkTasks: (taskId: string, relatedTaskId: string) => void;
+  uploadTaskFile: (taskId: string, file: File) => Promise<void>;
+  deleteTaskFile: (taskId: string, fileId: string) => void;
   
   // TimeEntry functions
   addTimeEntry: (timeEntry: Omit<TimeEntry, 'id'>) => void;
   updateTimeEntry: (timeEntryId: string, updates: Partial<TimeEntry>) => void;
   deleteTimeEntry: (timeEntryId: string) => void;
+  startTimeTracking: (taskId: string, projectId?: string, clientId?: string) => void;
+  stopTimeTracking: (notes?: string) => void;
+  updateTimeEntryStatus: (timeEntryId: string, status: string) => void;
   
   // Message functions
   addMessage: (message: Omit<Message, 'id'>) => void;
