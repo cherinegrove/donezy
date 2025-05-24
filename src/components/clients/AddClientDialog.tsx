@@ -38,7 +38,10 @@ const clientSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   website: z.string().optional(),
-  billableRate: z.number().min(0).optional(),
+  billableRate: z.preprocess(
+    (val) => (val === "" || val === undefined) ? undefined : Number(val),
+    z.number().min(0).optional()
+  ),
   currency: z.string().optional(),
   status: z.enum(["active", "inactive"]).default("active"),
 });
@@ -53,6 +56,7 @@ interface AddClientDialogProps {
 export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
   const { addClient } = useAppContext();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
@@ -63,34 +67,50 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
       phone: "",
       address: "",
       website: "",
-      billableRate: 0,
+      billableRate: undefined,
       currency: "USD",
       status: "active",
     },
   });
 
-  const onSubmit = (data: ClientFormData) => {
-    addClient({
-      name: data.name,
-      contactName: data.contactName,
-      email: data.email,
-      phone: data.phone,
-      address: data.address,
-      website: data.website,
-      billableRate: data.billableRate,
-      currency: data.currency,
-      status: data.status,
-      createdAt: new Date().toISOString(),
-      memberIds: [],
-    });
+  const onSubmit = async (data: ClientFormData) => {
+    console.log("Submitting client data:", data);
+    setIsSubmitting(true);
+    
+    try {
+      addClient({
+        name: data.name,
+        contactName: data.contactName || "",
+        email: data.email,
+        phone: data.phone || "",
+        address: data.address || "",
+        website: data.website || "",
+        billableRate: data.billableRate || 0,
+        currency: data.currency || "USD",
+        status: data.status,
+        createdAt: new Date().toISOString(),
+        memberIds: [],
+      });
 
-    toast({
-      title: "Client added",
-      description: `${data.name} has been added successfully.`,
-    });
+      console.log("Client added successfully");
+      
+      toast({
+        title: "Client added",
+        description: `${data.name} has been added successfully.`,
+      });
 
-    form.reset();
-    onOpenChange(false);
+      form.reset();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error adding client:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add client. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -110,7 +130,7 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Client Name</FormLabel>
+                  <FormLabel>Client Name *</FormLabel>
                   <FormControl>
                     <Input placeholder="Acme Corp" {...field} />
                   </FormControl>
@@ -118,45 +138,65 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="contactName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contact Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="john.doe@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone</FormLabel>
-                  <FormControl>
-                    <Input placeholder="555-123-4567" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="contactName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="john.doe@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl>
+                      <Input placeholder="555-123-4567" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="website"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Website</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://www.example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
             <FormField
               control={form.control}
               name="address"
@@ -164,65 +204,56 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
                 <FormItem>
                   <FormLabel>Address</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="123 Main St" {...field} />
+                    <Textarea placeholder="123 Main St, City, State" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="website"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Website</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://www.example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="billableRate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Billable Rate</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      placeholder="100" 
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="currency"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Currency</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="billableRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Billable Rate</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a currency" />
-                      </SelectTrigger>
+                      <Input 
+                        type="number" 
+                        placeholder="100" 
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                      />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="EUR">EUR</SelectItem>
-                      <SelectItem value="GBP">GBP</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="currency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Currency</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a currency" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="EUR">EUR</SelectItem>
+                        <SelectItem value="GBP">GBP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
             <FormField
               control={form.control}
               name="status"
@@ -246,10 +277,17 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
             />
             
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
-              <Button type="submit">Add Client</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Adding..." : "Add Client"}
+              </Button>
             </div>
           </form>
         </Form>

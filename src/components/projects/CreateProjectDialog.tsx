@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -37,7 +38,10 @@ const projectSchema = z.object({
   serviceType: z.enum(["project", "bank-hours", "pay-as-you-go"]),
   startDate: z.string().optional(),
   dueDate: z.string().optional(),
-  allocatedHours: z.number().min(0).optional(),
+  allocatedHours: z.preprocess(
+    (val) => (val === "" || val === undefined) ? undefined : Number(val),
+    z.number().min(0).optional()
+  ),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -50,6 +54,7 @@ interface CreateProjectDialogProps {
 export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
   const { clients, addProject } = useAppContext();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -60,33 +65,51 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       serviceType: "project",
       startDate: "",
       dueDate: "",
-      allocatedHours: 0,
+      allocatedHours: undefined,
     },
   });
 
-  const onSubmit = (data: ProjectFormData) => {
-    addProject({
-      name: data.name,
-      description: data.description,
-      clientId: data.clientId,
-      serviceType: data.serviceType,
-      startDate: data.startDate,
-      dueDate: data.dueDate,
-      allocatedHours: data.allocatedHours,
-      status: "todo",
-      usedHours: 0,
-      teamIds: [],
-      watcherIds: [],
-    });
+  const onSubmit = async (data: ProjectFormData) => {
+    console.log("Submitting project data:", data);
+    setIsSubmitting(true);
+    
+    try {
+      addProject({
+        name: data.name,
+        description: data.description,
+        clientId: data.clientId,
+        serviceType: data.serviceType,
+        startDate: data.startDate || "",
+        dueDate: data.dueDate || "",
+        allocatedHours: data.allocatedHours || 0,
+        status: "todo",
+        usedHours: 0,
+        teamIds: [],
+        watcherIds: [],
+      });
 
-    toast({
-      title: "Project created",
-      description: `${data.name} has been created successfully.`,
-    });
+      console.log("Project added successfully");
 
-    form.reset();
-    onOpenChange(false);
+      toast({
+        title: "Project created",
+        description: `${data.name} has been created successfully.`,
+      });
+
+      form.reset();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error creating project:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create project. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const activeClients = clients.filter(client => client.status === "active");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -105,7 +128,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Project Name</FormLabel>
+                  <FormLabel>Project Name *</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter project name" {...field} />
                   </FormControl>
@@ -119,7 +142,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Description *</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Enter project description" {...field} />
                   </FormControl>
@@ -133,7 +156,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
               name="clientId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Client</FormLabel>
+                  <FormLabel>Client *</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -141,11 +164,15 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {clients.filter(client => client.status === "active").map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name}
-                        </SelectItem>
-                      ))}
+                      {activeClients.length === 0 ? (
+                        <SelectItem value="" disabled>No active clients available</SelectItem>
+                      ) : (
+                        activeClients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -217,7 +244,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                       type="number" 
                       placeholder="Enter allocated hours"
                       {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -226,10 +253,17 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
             />
 
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
-              <Button type="submit">Create Project</Button>
+              <Button type="submit" disabled={isSubmitting || activeClients.length === 0}>
+                {isSubmitting ? "Creating..." : "Create Project"}
+              </Button>
             </div>
           </form>
         </Form>
