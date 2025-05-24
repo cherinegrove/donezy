@@ -35,6 +35,13 @@ export function TopBar() {
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
+
+  const handleProfileClick = () => {
+    console.log("Profile menu item clicked");
+    console.log("Current user:", currentUser);
+    console.log("Setting profile dialog open to true");
+    setIsProfileDialogOpen(true);
+  };
   
   return (
     <header className="border-b bg-background px-6 py-3">
@@ -124,7 +131,7 @@ export function TopBar() {
                     </div>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setIsProfileDialogOpen(true)}>
+                  <DropdownMenuItem onClick={handleProfileClick}>
                     <User className="mr-2 h-4 w-4" />
                     <span>My Profile</span>
                   </DropdownMenuItem>
@@ -157,7 +164,10 @@ export function TopBar() {
       {currentUser && (
         <UserProfileDialog
           open={isProfileDialogOpen}
-          onOpenChange={setIsProfileDialogOpen}
+          onOpenChange={(open) => {
+            console.log("Profile dialog onOpenChange called with:", open);
+            setIsProfileDialogOpen(open);
+          }}
           userId={currentUser.id}
         />
       )}
