@@ -1,164 +1,443 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useAppContext } from "@/contexts/AppContext";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { AccountSubscription, AccountLimits } from "@/types/subscription";
 import { 
   Users, 
   Plus, 
   Minus, 
   CreditCard, 
   AlertTriangle,
-  CheckCircle 
+  CheckCircle,
+  UserPlus
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
 export function SubscriptionManager() {
-  const { users } = useAppContext();
+  const { currentUser } = useAppContext();
   const { toast } = useToast();
   
-  // Mock subscription data - in real app this would come from your subscription service
-  const [subscriptionData, setSubscriptionData] = useState({
-    totalSeats: 10,
-    usedSeats: users.length,
-    plan: "Professional",
-    billing: "monthly",
-    nextBilling: "2024-02-15",
-    cost: 50, // $5 per seat * 10 seats
-  });
+  const [subscription, setSubscription] = useState<AccountSubscription | null>(null);
+  const [accountLimits, setAccountLimits] = useState<AccountLimits | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleAddSeat = () => {
-    setSubscriptionData(prev => ({
-      ...prev,
-      totalSeats: prev.totalSeats + 1,
-      cost: prev.cost + 5 // $5 per seat
-    }));
-    toast({
-      title: "Success",
-      description: "Seat added successfully. Changes will be reflected in your next billing cycle.",
-    });
+  useEffect(() => {
+    if (currentUser) {
+      fetchSubscriptionData();
+      fetchAccountLimits();
+    }
+  }, [currentUser]);
+
+  const fetchSubscriptionData = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('account_subscriptions')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .single();
+      
+      if (error) throw error;
+      
+      // Type cast the data to ensure plan_type and status are properly typed
+      const typedData: AccountSubscription = {
+        ...data,
+        plan_type: data.plan_type as 'free' | 'paid',
+        status: data.status as 'active' | 'cancelled' | 'past_due'
+      };
+      
+      setSubscription(typedData);
+    } catch (error) {
+      console.error('Error fetching subscription:', error);
+    }
   };
 
-  const handleRemoveSeat = () => {
-    if (subscriptionData.totalSeats <= subscriptionData.usedSeats) {
+  const fetchAccountLimits = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const { data, error } = await supabase.rpc('get_account_limits', {
+        account_user_id: currentUser.id
+      });
+      
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setAccountLimits(data[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching account limits:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddUserSeat = async () => {
+    if (!subscription || !currentUser) return;
+    
+    try {
+      setLoading(true);
+      
+      const newMaxUsers = subscription.max_users + 1;
+      const newCost = subscription.monthly_cost + 5.00; // $5 per user seat
+      
+      const { error } = await supabase
+        .from('account_subscriptions')
+        .update({
+          max_users: newMaxUsers,
+          monthly_cost: newCost,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', currentUser.id);
+
+      if (error) throw error;
+
       toast({
-        title: "Cannot Remove Seat",
-        description: "You cannot remove seats when all seats are currently in use.",
+        title: "User Seat Added",
+        description: `Added 1 user seat for $5.00/month. New total: $${newCost.toFixed(2)}/month`,
+      });
+
+      fetchSubscriptionData();
+      fetchAccountLimits();
+    } catch (error) {
+      console.error('Error adding user seat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add user seat",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveUserSeat = async () => {
+    if (!subscription || !currentUser || subscription.max_users <= 1) return;
+    
+    // Check if removing would go below current usage
+    if (accountLimits && accountLimits.current_users >= subscription.max_users - 1) {
+      toast({
+        title: "Cannot Remove User Seat",
+        description: "You have users using this seat. Remove users first.",
         variant: "destructive",
       });
       return;
     }
+    
+    try {
+      setLoading(true);
+      
+      const newMaxUsers = Math.max(1, subscription.max_users - 1);
+      const newCost = Math.max(0, subscription.monthly_cost - 5.00);
+      
+      const { error } = await supabase
+        .from('account_subscriptions')
+        .update({
+          max_users: newMaxUsers,
+          monthly_cost: newCost,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', currentUser.id);
 
-    setSubscriptionData(prev => ({
-      ...prev,
-      totalSeats: prev.totalSeats - 1,
-      cost: Math.max(0, prev.cost - 5) // $5 per seat
-    }));
-    toast({
-      title: "Success",
-      description: "Seat removed successfully. Changes will be reflected in your next billing cycle.",
-    });
+      if (error) throw error;
+
+      toast({
+        title: "User Seat Removed",
+        description: `Removed 1 user seat. Savings: $5.00/month. New total: $${newCost.toFixed(2)}/month`,
+      });
+
+      fetchSubscriptionData();
+      fetchAccountLimits();
+    } catch (error) {
+      console.error('Error removing user seat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove user seat",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const usagePercentage = (subscriptionData.usedSeats / subscriptionData.totalSeats) * 100;
-  const isNearLimit = usagePercentage >= 80;
-  const isAtLimit = usagePercentage >= 100;
+  const handleAddGuestSeat = async () => {
+    if (!subscription || !currentUser) return;
+    
+    try {
+      setLoading(true);
+      
+      const newCost = subscription.monthly_cost + 1.00;
+      const newAdditionalGuests = subscription.additional_guests + 1;
+      
+      const { error } = await supabase
+        .from('account_subscriptions')
+        .update({
+          additional_guests: newAdditionalGuests,
+          monthly_cost: newCost,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', currentUser.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Guest Seat Added",
+        description: `Added 1 guest seat for $1.00/month. New total: $${newCost.toFixed(2)}/month`,
+      });
+
+      fetchSubscriptionData();
+      fetchAccountLimits();
+    } catch (error) {
+      console.error('Error adding guest seat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add guest seat",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveGuestSeat = async () => {
+    if (!subscription || !currentUser || subscription.additional_guests <= 0) return;
+    
+    // Check if removing would go below current usage
+    const totalGuestSlots = subscription.max_guests + subscription.additional_guests;
+    if (accountLimits && accountLimits.current_guests >= totalGuestSlots - 1) {
+      toast({
+        title: "Cannot Remove Guest Seat",
+        description: "You have guests using this seat. Remove guests first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      const newCost = Math.max(0, subscription.monthly_cost - 1.00);
+      const newAdditionalGuests = Math.max(0, subscription.additional_guests - 1);
+      
+      const { error } = await supabase
+        .from('account_subscriptions')
+        .update({
+          additional_guests: newAdditionalGuests,
+          monthly_cost: newCost,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', currentUser.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Guest Seat Removed",
+        description: `Removed 1 guest seat. Savings: $1.00/month. New total: $${newCost.toFixed(2)}/month`,
+      });
+
+      fetchSubscriptionData();
+      fetchAccountLimits();
+    } catch (error) {
+      console.error('Error removing guest seat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove guest seat",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading || !subscription) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-10">
+          <div className="text-center">Loading subscription information...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const totalGuestSlots = subscription.max_guests + subscription.additional_guests;
+  const usedUsers = accountLimits?.current_users || 0;
+  const usedGuests = accountLimits?.current_guests || 0;
+  const userUsagePercentage = (usedUsers / subscription.max_users) * 100;
+  const guestUsagePercentage = (usedGuests / totalGuestSlots) * 100;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5" />
-          Subscription Management
-        </CardTitle>
-        <CardDescription>
-          Manage your team seats and subscription details
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Current Plan */}
-        <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
-          <div>
-            <h3 className="font-semibold">{subscriptionData.plan} Plan</h3>
-            <p className="text-sm text-muted-foreground">
-              Billed {subscriptionData.billing} • Next billing: {subscriptionData.nextBilling}
-            </p>
-          </div>
-          <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Active
-          </Badge>
-        </div>
+    <div className="space-y-6">
+      {/* Current Plan */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5 text-primary" />
+            Current Plan
+          </CardTitle>
+          <CardDescription>
+            Your subscription details and billing information
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div>
+                <h3 className="font-semibold capitalize">{subscription.plan_type} Plan</h3>
+                <p className="text-sm text-muted-foreground">
+                  {subscription.max_users} user seat{subscription.max_users !== 1 ? 's' : ''} + {totalGuestSlots} guest seat{totalGuestSlots !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold">${subscription.monthly_cost.toFixed(2)}</div>
+                <div className="text-sm text-muted-foreground">per month</div>
+              </div>
+            </div>
 
-        {/* Seat Usage */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Seat Usage
-            </h3>
-            {isNearLimit && (
-              <Badge variant="outline" className={isAtLimit ? "border-red-500 text-red-500" : "border-yellow-500 text-yellow-500"}>
-                <AlertTriangle className="h-3 w-3 mr-1" />
-                {isAtLimit ? "At Limit" : "Near Limit"}
-              </Badge>
-            )}
+            <Badge 
+              variant="outline" 
+              className={subscription.status === 'active' ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}
+            >
+              {subscription.status === 'active' ? (
+                <>
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Active
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  {subscription.status}
+                </>
+              )}
+            </Badge>
           </div>
-          
+        </CardContent>
+      </Card>
+
+      {/* User Seats Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            User Seats
+          </CardTitle>
+          <CardDescription>
+            Manage user seats ($5.00 per user per month)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>{subscriptionData.usedSeats} of {subscriptionData.totalSeats} seats used</span>
-              <span>{Math.round(usagePercentage)}%</span>
+              <span>{usedUsers} of {subscription.max_users} user seats used</span>
+              <span>{Math.round(userUsagePercentage)}%</span>
             </div>
             <Progress 
-              value={usagePercentage} 
-              className={`h-2 ${isAtLimit ? 'bg-red-100' : isNearLimit ? 'bg-yellow-100' : 'bg-green-100'}`}
+              value={userUsagePercentage} 
+              className={`h-2 ${userUsagePercentage >= 100 ? 'bg-red-100' : userUsagePercentage >= 80 ? 'bg-yellow-100' : 'bg-blue-100'}`}
             />
           </div>
-        </div>
 
-        {/* Seat Management */}
-        <div className="space-y-4">
-          <h3 className="font-semibold">Manage Seats</h3>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-center gap-4">
             <Button
               variant="outline"
               size="sm"
-              onClick={handleRemoveSeat}
-              disabled={subscriptionData.totalSeats <= subscriptionData.usedSeats}
+              onClick={handleRemoveUserSeat}
+              disabled={subscription.max_users <= 1 || usedUsers >= subscription.max_users || loading}
             >
               <Minus className="h-4 w-4 mr-2" />
-              Remove Seat
+              Remove User Seat
             </Button>
             <span className="text-sm text-muted-foreground">
-              {subscriptionData.totalSeats} seats
+              {subscription.max_users} user seats
             </span>
             <Button
               variant="outline"
               size="sm"
-              onClick={handleAddSeat}
+              onClick={handleAddUserSeat}
+              disabled={loading}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Seat
+              Add User Seat
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Current cost: ${subscriptionData.cost.toFixed(2)} per month (${5} per seat)
-          </p>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-4 border-t">
-          <Button variant="outline" className="flex-1">
-            View Billing History
-          </Button>
-          <Button variant="outline" className="flex-1">
-            Change Plan
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          <div className="text-center text-sm text-muted-foreground">
+            User seats: {subscription.max_users} × $5.00 = ${(subscription.max_users * 5).toFixed(2)}/month
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Guest Seats Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5 text-primary" />
+            Guest Seats
+          </CardTitle>
+          <CardDescription>
+            Manage guest seats ($1.00 per guest per month)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 border rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">{subscription.max_guests}</div>
+              <div className="text-sm text-muted-foreground">Free guest seats</div>
+            </div>
+            <div className="text-center p-4 border rounded-lg">
+              <div className="text-2xl font-bold text-green-600">{subscription.additional_guests}</div>
+              <div className="text-sm text-muted-foreground">Paid guest seats</div>
+            </div>
+            <div className="text-center p-4 border rounded-lg">
+              <div className="text-2xl font-bold">{usedGuests} / {totalGuestSlots}</div>
+              <div className="text-sm text-muted-foreground">Used guest seats</div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>{usedGuests} of {totalGuestSlots} guest seats used</span>
+              <span>{Math.round(guestUsagePercentage)}%</span>
+            </div>
+            <Progress 
+              value={guestUsagePercentage} 
+              className={`h-2 ${guestUsagePercentage >= 100 ? 'bg-red-100' : guestUsagePercentage >= 80 ? 'bg-yellow-100' : 'bg-green-100'}`}
+            />
+          </div>
+
+          <div className="flex items-center justify-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRemoveGuestSeat}
+              disabled={subscription.additional_guests <= 0 || loading}
+            >
+              <Minus className="h-4 w-4 mr-2" />
+              Remove Guest Seat
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {subscription.additional_guests} additional guest seats
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddGuestSeat}
+              disabled={loading}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Guest Seat
+            </Button>
+          </div>
+
+          <div className="text-center text-sm text-muted-foreground">
+            Additional guest seats: {subscription.additional_guests} × $1.00 = ${subscription.additional_guests.toFixed(2)}/month
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
