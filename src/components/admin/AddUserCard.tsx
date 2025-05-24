@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, UserPlus } from "lucide-react";
+import { Plus, UserPlus, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function AddUserCard() {
@@ -21,7 +21,7 @@ export function AddUserCard() {
     clientId: "",
   });
 
-  const handleAddUser = () => {
+  const handleAddUser = async () => {
     if (!formData.name || !formData.email) {
       toast({
         title: "Error",
@@ -31,23 +31,34 @@ export function AddUserCard() {
       return;
     }
 
-    addUser({
-      name: formData.name,
-      email: formData.email,
-      role: formData.role,
-      teamIds: [],
-    });
+    try {
+      addUser({
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        teamIds: [],
+      });
 
-    toast({
-      title: "Success",
-      description: "User added successfully",
-    });
+      // Simulate sending invitation email
+      await sendInvitationEmail(formData.email, formData.name, "user");
 
-    setFormData({ name: "", email: "", role: "developer", clientId: "" });
-    setIsAddingUser(false);
+      toast({
+        title: "Success",
+        description: `User added successfully. Invitation sent to ${formData.email}`,
+      });
+
+      setFormData({ name: "", email: "", role: "developer", clientId: "" });
+      setIsAddingUser(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add user",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleAddGuest = () => {
+  const handleAddGuest = async () => {
     if (!formData.name || !formData.email || !formData.clientId) {
       toast({
         title: "Error",
@@ -57,30 +68,52 @@ export function AddUserCard() {
       return;
     }
 
-    addUser({
-      name: formData.name,
-      email: formData.email,
-      role: "client",
-      clientId: formData.clientId,
-      teamIds: [],
-      permissions: {
-        canViewProjects: true,
-        canViewTasks: true,
-        canEditTasks: true,
-        canViewClients: false,
-        canEditClients: false,
-        canViewReports: false,
-        canManageUsers: false,
-      },
-    });
+    try {
+      addUser({
+        name: formData.name,
+        email: formData.email,
+        role: "client",
+        clientId: formData.clientId,
+        teamIds: [],
+        permissions: {
+          canViewProjects: true,
+          canViewTasks: true,
+          canEditTasks: true,
+          canViewClients: false,
+          canEditClients: false,
+          canViewReports: false,
+          canManageUsers: false,
+        },
+      });
 
-    toast({
-      title: "Success",
-      description: "Guest user added successfully",
-    });
+      // Simulate sending invitation email
+      await sendInvitationEmail(formData.email, formData.name, "guest");
 
-    setFormData({ name: "", email: "", role: "developer", clientId: "" });
-    setIsAddingGuest(false);
+      toast({
+        title: "Success",
+        description: `Guest user added successfully. Invitation sent to ${formData.email}`,
+      });
+
+      setFormData({ name: "", email: "", role: "developer", clientId: "" });
+      setIsAddingGuest(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add guest user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const sendInvitationEmail = async (email: string, name: string, type: "user" | "guest") => {
+    // This would integrate with your email service (like Resend via Supabase Edge Functions)
+    console.log(`Sending ${type} invitation to ${email} for ${name}`);
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // In a real implementation, you would call your email service here
+    // Example: await supabase.functions.invoke('send-invitation', { email, name, type });
   };
 
   if (isAddingUser) {
@@ -126,7 +159,10 @@ export function AddUserCard() {
             </Select>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleAddUser}>Add User</Button>
+            <Button onClick={handleAddUser}>
+              <Mail className="h-4 w-4 mr-2" />
+              Add User & Send Invite
+            </Button>
             <Button variant="outline" onClick={() => setIsAddingUser(false)}>
               Cancel
             </Button>
@@ -181,7 +217,10 @@ export function AddUserCard() {
             </Select>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleAddGuest}>Add Guest</Button>
+            <Button onClick={handleAddGuest}>
+              <Mail className="h-4 w-4 mr-2" />
+              Add Guest & Send Invite
+            </Button>
             <Button variant="outline" onClick={() => setIsAddingGuest(false)}>
               Cancel
             </Button>

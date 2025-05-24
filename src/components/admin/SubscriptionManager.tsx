@@ -26,14 +26,14 @@ export function SubscriptionManager() {
     plan: "Professional",
     billing: "monthly",
     nextBilling: "2024-02-15",
-    cost: 99,
+    cost: 50, // $5 per seat * 10 seats
   });
 
   const handleAddSeat = () => {
     setSubscriptionData(prev => ({
       ...prev,
       totalSeats: prev.totalSeats + 1,
-      cost: prev.cost + 9.99
+      cost: prev.cost + 5 // $5 per seat
     }));
     toast({
       title: "Success",
@@ -54,7 +54,7 @@ export function SubscriptionManager() {
     setSubscriptionData(prev => ({
       ...prev,
       totalSeats: prev.totalSeats - 1,
-      cost: Math.max(0, prev.cost - 9.99)
+      cost: Math.max(0, prev.cost - 5) // $5 per seat
     }));
     toast({
       title: "Success",
@@ -145,7 +145,7 @@ export function SubscriptionManager() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Current cost: ${subscriptionData.cost.toFixed(2)} per month
+            Current cost: ${subscriptionData.cost.toFixed(2)} per month (${5} per seat)
           </p>
         </div>
 

@@ -10,8 +10,9 @@ import { TaskStatusManager } from "@/components/admin/TaskStatusManager";
 import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AreaChart, BarChart3, Box, Database, Download, Settings, ShieldAlert, Users } from "lucide-react";
+import { AreaChart, BarChart3, Box, Database, Download, Settings, ShieldAlert, Users, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import Clients from "@/pages/Clients";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -53,9 +54,10 @@ export default function Admin() {
         <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="activity">Activity Log</TabsTrigger>
-          <TabsTrigger value="system">System</TabsTrigger>
+          <TabsTrigger value="account-settings">Account Settings</TabsTrigger>
           <TabsTrigger value="subscription">Subscription</TabsTrigger>
         </TabsList>
 
@@ -160,6 +162,10 @@ export default function Admin() {
           <AdminUsers />
         </TabsContent>
 
+        <TabsContent value="clients" className="space-y-6">
+          <Clients />
+        </TabsContent>
+
         <TabsContent value="teams" className="space-y-6">
           <AdminTeams />
         </TabsContent>
@@ -168,7 +174,7 @@ export default function Admin() {
           <AdminActivity />
         </TabsContent>
 
-        <TabsContent value="system" className="space-y-6">
+        <TabsContent value="account-settings" className="space-y-6">
           <div className="space-y-6">
             <TaskStatusManager />
             
@@ -176,9 +182,9 @@ export default function Admin() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings className="h-5 w-5 text-primary" />
-                  System Settings
+                  Account Settings
                 </CardTitle>
-                <CardDescription>Configure global system settings</CardDescription>
+                <CardDescription>Configure global account settings</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid gap-4">

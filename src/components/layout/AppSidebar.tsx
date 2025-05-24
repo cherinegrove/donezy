@@ -129,29 +129,10 @@ export function AppSidebar() {
               {!collapsed && <span>Notes</span>}
             </NavLink>
             
-            {/* Clients - not shown to client users */}
-            {currentUser && currentUser.role !== "client" && (
-              <NavLink
-                to="/clients"
-                onClick={handleNavClick}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  )
-                }
-              >
-                <Briefcase className="h-4 w-4" />
-                {!collapsed && <span>Clients</span>}
-              </NavLink>
-            )}
-            
-            {/* Team - only shown to admin and manager */}
+            {/* Users - only shown to admin and manager */}
             {currentUser && (currentUser.role === "admin" || currentUser.role === "manager") && (
               <NavLink
-                to="/team"
+                to="/users"
                 onClick={handleNavClick}
                 className={({ isActive }) =>
                   cn(
@@ -163,7 +144,7 @@ export function AppSidebar() {
                 }
               >
                 <Users className="h-4 w-4" />
-                {!collapsed && <span>Team</span>}
+                {!collapsed && <span>Users</span>}
               </NavLink>
             )}
             
