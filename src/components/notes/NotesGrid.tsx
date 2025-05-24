@@ -2,42 +2,8 @@
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import type { Note } from "@/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { NoteCard } from "./NoteCard";
 import { EditNoteDialog } from "./EditNoteDialog";
-
-interface NoteCardProps {
-  note: Note;
-  onEdit: (note: Note) => void;
-}
-
-function NoteCard({ note, onEdit }: NoteCardProps) {
-  return (
-    <Card className="bg-card text-card-foreground shadow-md hover:shadow-lg transition-shadow duration-200">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>{note.title}</CardTitle>
-          {note.color && (
-            <Badge variant="secondary" style={{ backgroundColor: note.color }}>
-              {note.color}
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{note.content}</p>
-      </CardContent>
-      <div className="p-4 flex justify-end">
-        <button
-          onClick={() => onEdit(note)}
-          className="text-blue-500 hover:text-blue-700 focus:outline-none"
-        >
-          Edit
-        </button>
-      </div>
-    </Card>
-  );
-}
 
 export function NotesGrid() {
   const { notes } = useAppContext();
@@ -49,11 +15,26 @@ export function NotesGrid() {
     setEditDialogOpen(true);
   };
 
+  // Filter out archived notes for main view
+  const activeNotes = notes.filter(note => !note.archived);
+
+  if (activeNotes.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium text-muted-foreground mb-2">No notes yet</h3>
+        <p className="text-sm text-muted-foreground">Create your first note to get started!</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {notes.map((note) => (
-        <NoteCard key={note.id} note={note} onEdit={handleEditNote} />
-      ))}
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {activeNotes.map((note) => (
+          <NoteCard key={note.id} note={note} onEdit={handleEditNote} />
+        ))}
+      </div>
+      
       {selectedNote && (
         <EditNoteDialog
           note={selectedNote}
@@ -64,6 +45,6 @@ export function NotesGrid() {
           }}
         />
       )}
-    </div>
+    </>
   );
 }

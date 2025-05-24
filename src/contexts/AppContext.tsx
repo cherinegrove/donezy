@@ -633,6 +633,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: Math.random().toString(36).substring(2, 15),
       ...note,
       title: note.title || 'Untitled Note',
+      color: note.color || 'yellow',
+      archived: note.archived || false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

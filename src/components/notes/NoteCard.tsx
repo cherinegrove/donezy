@@ -1,8 +1,8 @@
 
 import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit, MoreVertical } from "lucide-react";
+import { MoreVertical, Edit, Archive, Delete } from "lucide-react";
 import { Note } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
@@ -28,8 +28,17 @@ interface NoteCardProps {
   onEdit?: (note: Note) => void;
 }
 
+const NOTE_COLORS = {
+  yellow: "bg-yellow-100 border-yellow-200",
+  blue: "bg-blue-100 border-blue-200", 
+  green: "bg-green-100 border-green-200",
+  pink: "bg-pink-100 border-pink-200",
+  purple: "bg-purple-100 border-purple-200",
+  orange: "bg-orange-100 border-orange-200",
+};
+
 export function NoteCard({ note, onEdit }: NoteCardProps) {
-  const { deleteNote } = useAppContext();
+  const { updateNote, deleteNote } = useAppContext();
   const { toast } = useToast();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -42,47 +51,103 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
     setShowDeleteDialog(false);
   };
 
+  const handleArchive = () => {
+    updateNote(note.id, { archived: true });
+    toast({
+      title: "Note archived",
+      description: "The note has been archived.",
+    });
+  };
+
   const handleEdit = () => {
     if (onEdit) {
       onEdit(note);
     }
   };
 
+  const renderContent = (content: string) => {
+    return content.split('\n').map((line, index) => {
+      // Handle checkboxes
+      if (line.includes('☐') || line.includes('☑')) {
+        const isChecked = line.includes('☑');
+        const text = line.replace(/[☐☑]\s*/, '');
+        return (
+          <div key={index} className="flex items-center gap-2 mb-1">
+            <span className={`text-sm ${isChecked ? 'line-through text-muted-foreground' : ''}`}>
+              {isChecked ? '☑' : '☐'} {text}
+            </span>
+          </div>
+        );
+      }
+      
+      // Handle bullet points
+      if (line.trim().startsWith('•')) {
+        const text = line.replace('•', '').trim();
+        return (
+          <div key={index} className="flex items-start gap-2 mb-1">
+            <span className="text-sm mt-0.5">•</span>
+            <span className="text-sm">{text}</span>
+          </div>
+        );
+      }
+      
+      // Regular text
+      if (line.trim()) {
+        return (
+          <p key={index} className="text-sm mb-1">
+            {line}
+          </p>
+        );
+      }
+      
+      return <br key={index} />;
+    });
+  };
+
+  const colorClass = NOTE_COLORS[note.color as keyof typeof NOTE_COLORS] || NOTE_COLORS.yellow;
+
   return (
     <>
-      <Card className="h-fit">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold line-clamp-1">
+      <Card 
+        className={`h-fit min-h-[200px] max-h-[300px] transform rotate-0 hover:rotate-1 transition-all duration-200 hover:shadow-lg cursor-pointer ${colorClass} border-2`}
+        style={{ transform: `rotate(${Math.random() * 4 - 2}deg)` }}
+      >
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between">
+            <h3 className="font-semibold text-sm line-clamp-2 pr-2">
               {note.title || 'Untitled Note'}
-            </CardTitle>
+            </h3>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <MoreVertical className="h-4 w-4" />
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-70 hover:opacity-100">
+                  <MoreVertical className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={handleEdit}>
-                  <Edit className="h-4 w-4 mr-2" />
+                  <Edit className="h-3 w-3 mr-2" />
                   Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleArchive}>
+                  <Archive className="h-3 w-3 mr-2" />
+                  Archive
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => setShowDeleteDialog(true)}
                   className="text-destructive focus:text-destructive"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Delete className="h-3 w-3 mr-2" />
                   Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground line-clamp-3">
-            {note.content}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
+        <CardContent className="pt-0">
+          <div className="max-h-32 overflow-hidden">
+            {renderContent(note.content)}
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
             {new Date(note.createdAt).toLocaleDateString()}
           </p>
         </CardContent>
