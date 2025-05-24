@@ -32,7 +32,7 @@ const templateSchema = z.object({
 type TemplateFormData = z.infer<typeof templateSchema>;
 
 interface ConvertToTemplateDialogProps {
-  project: Project;
+  project?: Project | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -48,12 +48,21 @@ export function ConvertToTemplateDialog({
   const form = useForm<TemplateFormData>({
     resolver: zodResolver(templateSchema),
     defaultValues: {
-      name: `${project.name} Template`,
-      description: `Template based on ${project.name}`,
+      name: project?.name ? `${project.name} Template` : "New Template",
+      description: project?.name ? `Template based on ${project.name}` : "Template description",
     },
   });
 
   const onSubmit = (data: TemplateFormData) => {
+    if (!project) {
+      toast({
+        title: "Error",
+        description: "No project selected for template conversion.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     convertProjectToTemplate(project.id, {
       name: data.name,
       description: data.description,
@@ -67,6 +76,11 @@ export function ConvertToTemplateDialog({
     form.reset();
     onOpenChange(false);
   };
+
+  // Don't render if no project is provided
+  if (!project) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

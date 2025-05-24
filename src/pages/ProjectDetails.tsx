@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
@@ -26,17 +27,29 @@ export default function ProjectDetails() {
     .filter(entry => entry.projectId === id)
     .reduce((sum, entry) => sum + entry.duration, 0);
 
+  // Show loading or error state if project is not found
+  if (!project) {
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Project Not Found</h1>
+          <p className="text-muted-foreground">The requested project could not be found.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{project?.name}</h1>
-          <p className="text-muted-foreground">{project?.description}</p>
+          <h1 className="text-2xl font-bold">{project.name}</h1>
+          <p className="text-muted-foreground">{project.description}</p>
         </div>
         <div className="space-x-2">
           <Button variant="outline">
             <Calendar className="w-4 h-4 mr-2" />
-            {project?.dueDate ? format(new Date(project.dueDate), "MMM dd, yyyy") : "No due date"}
+            {project.dueDate ? format(new Date(project.dueDate), "MMM dd, yyyy") : "No due date"}
           </Button>
           <Button onClick={() => setConvertDialogOpen(true)}>
             Convert to Template
@@ -68,7 +81,7 @@ export default function ProjectDetails() {
             <CardTitle>Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <Badge variant="secondary">{project?.status}</Badge>
+            <Badge variant="secondary">{project.status}</Badge>
           </CardContent>
         </Card>
 
@@ -107,7 +120,7 @@ export default function ProjectDetails() {
       </div>
       
       <ConvertToTemplateDialog
-        project={project!}
+        project={project}
         open={convertDialogOpen}
         onOpenChange={setConvertDialogOpen}
       />
