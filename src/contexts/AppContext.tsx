@@ -80,6 +80,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, []);
 
+  // Load users from Supabase
+  const loadUsers = useCallback(async () => {
+    if (!session?.user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('auth_user_id', session.user.id);
+      
+      if (error) {
+        console.error("Error loading users:", error);
+        return;
+      }
+      
+      if (data) {
+        setUsers(data.map(user => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          avatar: user.avatar,
+          role: user.role as User['role'],
+          teamIds: user.team_ids || [],
+          clientId: user.client_id,
+          hourlyRate: user.hourly_rate,
+          monthlyRate: user.monthly_rate,
+          billingRate: user.billing_rate,
+          currency: user.currency,
+          jobTitle: user.job_title,
+          clientRole: user.client_role,
+          phone: user.phone,
+          employmentType: user.employment_type,
+          billingType: user.billing_type,
+          permissions: user.permissions,
+          managerId: user.manager_id,
+          notificationPreferences: user.notification_preferences,
+          is_guest: user.is_guest,
+          guestOfUserId: user.guest_of_user_id,
+          guestPermissions: user.guest_permissions
+        })));
+      }
+    } catch (error) {
+      console.error("Error loading users:", error);
+    }
+  }, [session?.user]);
+
   // Get current user function
   const getProfile = useCallback(async () => {
     try {
@@ -94,13 +140,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       if (data) {
+        // Load the user record from users table
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('auth_user_id', session?.user?.id)
+          .single();
+
+        if (userError && userError.code !== 'PGRST116') {
+          console.error("Error loading user data:", userError);
+        }
+
         setCurrentUser({
-          id: session?.user?.id,
-          name: data.display_name || session?.user?.email?.split('@')[0] || 'User',
-          email: session?.user?.email || '',
-          avatar: data.avatar_url,
-          role: 'admin' as const, // Default role for new users
-          teamIds: [], // Add missing teamIds
+          id: userData?.id || session?.user?.id,
+          name: userData?.name || data.display_name || session?.user?.email?.split('@')[0] || 'User',
+          email: userData?.email || session?.user?.email || '',
+          avatar: userData?.avatar || data.avatar_url,
+          role: (userData?.role as User['role']) || 'admin',
+          teamIds: userData?.team_ids || [],
+          clientId: userData?.client_id,
+          hourlyRate: userData?.hourly_rate,
+          monthlyRate: userData?.monthly_rate,
+          billingRate: userData?.billing_rate,
+          currency: userData?.currency,
+          jobTitle: userData?.job_title,
+          clientRole: userData?.client_role,
+          phone: userData?.phone,
+          employmentType: userData?.employment_type,
+          billingType: userData?.billing_type,
+          permissions: userData?.permissions,
+          managerId: userData?.manager_id,
+          notificationPreferences: userData?.notification_preferences,
+          is_guest: userData?.is_guest,
+          guestOfUserId: userData?.guest_of_user_id,
+          guestPermissions: userData?.guest_permissions
         });
       }
     } catch (error: any) {
@@ -115,31 +188,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [session, getProfile])
 
-  // Initialize user data - only load if user exists and is authenticated
+  // Load data when user is authenticated
   useEffect(() => {
     if (currentUser && session) {
-      console.log("Initializing empty state for user:", currentUser.email);
-      
-      // Set empty state for new user
-      const emptyState = getEmptyUserState();
-      setUsers(emptyState.users);
-      setTeams(emptyState.teams);
-      setClients(emptyState.clients);
-      setProjects(emptyState.projects);
-      setTasks(emptyState.tasks);
-      setTimeEntries(emptyState.timeEntries);
-      setMessages(emptyState.messages);
-      setPurchases(emptyState.purchases);
-      setProjectTemplates(emptyState.projectTemplates);
-      setCustomRoles(emptyState.customRoles);
-      setComments(emptyState.comments);
-      setNotes(emptyState.notes);
-      setCustomFields(emptyState.customFields);
-      setClientAgreements(emptyState.clientAgreements);
-      setClientFiles(emptyState.clientFiles);
-      setTaskLogs(emptyState.taskLogs);
+      console.log("Loading data for user:", currentUser.email);
+      loadUsers();
     }
-  }, [currentUser, session]);
+  }, [currentUser, session, loadUsers]);
 
   const login = useCallback(async (email, password) => {
     try {
@@ -233,15 +288,78 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return clientFiles.filter(file => file.clientId === clientId);
   }, [clientFiles]);
 
-  // User functions
-  const addUser = useCallback((user: Omit<User, 'id'>) => {
-    const newUser: User = {
-      id: Math.random().toString(36).substring(2, 15),
-      ...user,
-    };
-    setUsers(prev => [...prev, newUser]);
-  }, []);
+  // User functions - now with Supabase persistence
+  const addUser = useCallback(async (user: Omit<User, 'id'>) => {
+    if (!session?.user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .insert({
+          auth_user_id: session.user.id,
+          name: user.name,
+          email: user.email,
+          avatar: user.avatar,
+          role: user.role,
+          team_ids: user.teamIds || [],
+          client_id: user.clientId,
+          hourly_rate: user.hourlyRate,
+          monthly_rate: user.monthlyRate,
+          billing_rate: user.billingRate,
+          currency: user.currency || 'USD',
+          job_title: user.jobTitle,
+          client_role: user.clientRole,
+          phone: user.phone,
+          employment_type: user.employmentType,
+          billing_type: user.billingType,
+          permissions: user.permissions,
+          manager_id: user.managerId,
+          notification_preferences: user.notificationPreferences,
+          is_guest: user.is_guest,
+          guest_of_user_id: user.guestOfUserId,
+          guest_permissions: user.guestPermissions
+        })
+        .select()
+        .single();
 
+      if (error) {
+        console.error("Error adding user:", error);
+        return;
+      }
+
+      if (data) {
+        const newUser: User = {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          avatar: data.avatar,
+          role: data.role as User['role'],
+          teamIds: data.team_ids || [],
+          clientId: data.client_id,
+          hourlyRate: data.hourly_rate,
+          monthlyRate: data.monthly_rate,
+          billingRate: data.billing_rate,
+          currency: data.currency,
+          jobTitle: data.job_title,
+          clientRole: data.client_role,
+          phone: data.phone,
+          employmentType: data.employment_type,
+          billingType: data.billing_type,
+          permissions: data.permissions,
+          managerId: data.manager_id,
+          notificationPreferences: data.notification_preferences,
+          is_guest: data.is_guest,
+          guestOfUserId: data.guest_of_user_id,
+          guestPermissions: data.guest_permissions
+        };
+        setUsers(prev => [...prev, newUser]);
+      }
+    } catch (error) {
+      console.error("Error adding user:", error);
+    }
+  }, [session?.user]);
+
+  // ... keep existing code (other functions remain the same for now - they will use local state)
   const updateUser = useCallback((userId: string, updates: Partial<User>) => {
     setUsers(prev =>
       prev.map(user => (user.id === userId ? { ...user, ...updates } : user))

@@ -76,7 +76,7 @@ export function SignupForm() {
         options: {
           data: {
             name: values.name,
-            role: "developer", // Default role
+            role: "admin", // First user is admin
           },
           emailRedirectTo: `${window.location.origin}/confirm`
         }
@@ -100,6 +100,24 @@ export function SignupForm() {
         
         if (profileError) {
           console.error("Error updating user profile:", profileError);
+        }
+
+        // Create user record in the users table
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            auth_user_id: authData.user.id,
+            name: values.name,
+            email: values.email,
+            role: 'admin',
+            avatar: `https://i.pravatar.cc/300?img=${Math.floor(Math.random() * 70)}`,
+            team_ids: [],
+            currency: 'USD'
+          });
+
+        if (userError) {
+          console.error("Error creating user record:", userError);
+          // Don't throw here, as the auth user was created successfully
         }
 
         // If the user requires confirmation, show the confirmation message
