@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
@@ -7,10 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CustomRole } from "@/types";
+import { CustomRole, AccessLevel } from "@/types";
 import { Shield, Plus, Edit, Trash2, Save, X } from "lucide-react";
-
-type AccessLevel = 'none' | 'view' | 'edit' | 'delete';
 
 interface FeaturePermissions {
   dashboard: AccessLevel;
@@ -82,26 +81,56 @@ export default function AdminRoles() {
 
   const handleEditRole = (role: CustomRole) => {
     setEditingRole(role.id);
+    // Convert the role permissions to FeaturePermissions format
+    const rolePermissions: FeaturePermissions = {
+      dashboard: (role.permissions.dashboard as AccessLevel) || 'none',
+      projects: (role.permissions.projects as AccessLevel) || 'none',
+      tasks: (role.permissions.tasks as AccessLevel) || 'none',
+      timeTracking: (role.permissions.timeTracking as AccessLevel) || 'none',
+      clients: (role.permissions.clients as AccessLevel) || 'none',
+      teams: (role.permissions.teams as AccessLevel) || 'none',
+      users: (role.permissions.users as AccessLevel) || 'none',
+      reports: (role.permissions.reports as AccessLevel) || 'none',
+      messages: (role.permissions.messages as AccessLevel) || 'none',
+      notes: (role.permissions.notes as AccessLevel) || 'none',
+      settings: (role.permissions.settings as AccessLevel) || 'none'
+    };
+    
     setFormData({
       name: role.name,
       description: role.description || '',
-      permissions: role.permissions as FeaturePermissions
+      permissions: rolePermissions
     });
   };
 
   const handleSaveRole = () => {
+    // Convert FeaturePermissions to Record<string, AccessLevel> for storage
+    const permissionsRecord: Record<string, AccessLevel> = {
+      dashboard: formData.permissions.dashboard,
+      projects: formData.permissions.projects,
+      tasks: formData.permissions.tasks,
+      timeTracking: formData.permissions.timeTracking,
+      clients: formData.permissions.clients,
+      teams: formData.permissions.teams,
+      users: formData.permissions.users,
+      reports: formData.permissions.reports,
+      messages: formData.permissions.messages,
+      notes: formData.permissions.notes,
+      settings: formData.permissions.settings
+    };
+
     if (editingRole) {
       updateCustomRole(editingRole, {
         name: formData.name,
         description: formData.description,
-        permissions: formData.permissions
+        permissions: permissionsRecord
       });
       setEditingRole(null);
     } else {
       addCustomRole({
         name: formData.name,
         description: formData.description,
-        permissions: formData.permissions
+        permissions: permissionsRecord
       });
       setIsCreating(false);
     }
@@ -276,7 +305,7 @@ export default function AdminRoles() {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {Object.entries(role.permissions).map(([feature, level]) => (
                     <div key={feature} className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{featureLabels[feature as keyof typeof featureLabels]}</span>
+                      <span className="font-medium">{featureLabels[feature as keyof typeof featureLabels] || feature}</span>
                       {getAccessLevelBadge(level as AccessLevel)}
                     </div>
                   ))}
