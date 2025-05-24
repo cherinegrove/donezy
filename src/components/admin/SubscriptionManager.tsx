@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,24 +36,70 @@ export function SubscriptionManager() {
     if (!currentUser) return;
     
     try {
+      console.log('Fetching subscription for user:', currentUser.id);
+      
+      // First try to get existing subscription
       const { data, error } = await supabase
         .from('account_subscriptions')
         .select('*')
         .eq('user_id', currentUser.id)
-        .single();
+        .maybeSingle();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching subscription:', error);
+        throw error;
+      }
       
-      // Type cast the data to ensure plan_type and status are properly typed
-      const typedData: AccountSubscription = {
-        ...data,
-        plan_type: data.plan_type as 'free' | 'paid',
-        status: data.status as 'active' | 'cancelled' | 'past_due'
-      };
-      
-      setSubscription(typedData);
+      if (data) {
+        // Subscription exists, use it
+        const typedData: AccountSubscription = {
+          ...data,
+          plan_type: data.plan_type as 'free' | 'paid',
+          status: data.status as 'active' | 'cancelled' | 'past_due'
+        };
+        console.log('Found existing subscription:', typedData);
+        setSubscription(typedData);
+      } else {
+        // No subscription exists, create a default one
+        console.log('No subscription found, creating default subscription');
+        
+        const defaultSubscription = {
+          user_id: currentUser.id,
+          plan_type: 'free',
+          max_users: 1,
+          max_guests: 1,
+          additional_guests: 0,
+          monthly_cost: 0.00,
+          status: 'active'
+        };
+        
+        const { data: newData, error: insertError } = await supabase
+          .from('account_subscriptions')
+          .insert(defaultSubscription)
+          .select()
+          .single();
+        
+        if (insertError) {
+          console.error('Error creating default subscription:', insertError);
+          throw insertError;
+        }
+        
+        const typedNewData: AccountSubscription = {
+          ...newData,
+          plan_type: newData.plan_type as 'free' | 'paid',
+          status: newData.status as 'active' | 'cancelled' | 'past_due'
+        };
+        
+        console.log('Created default subscription:', typedNewData);
+        setSubscription(typedNewData);
+      }
     } catch (error) {
-      console.error('Error fetching subscription:', error);
+      console.error('Error in fetchSubscriptionData:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load subscription data",
+        variant: "destructive",
+      });
     }
   };
 
@@ -258,7 +303,10 @@ export function SubscriptionManager() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-10">
-          <div className="text-center">Loading subscription information...</div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading subscription information...</p>
+          </div>
         </CardContent>
       </Card>
     );
