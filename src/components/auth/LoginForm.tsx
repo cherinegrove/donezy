@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase, cleanupAuthState } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -74,74 +75,49 @@ export function LoginForm() {
   });
 
   async function onSubmit(values: z.infer<typeof loginSchema>) {
+    console.log("Starting login process...");
     setIsLoading(true);
     setLoginError(null);
     
     try {
-      console.log("Attempting to login with email:", values.email);
+      console.log("Attempting login with:", values.email);
       
-      // Clean up any existing auth state to prevent issues
-      cleanupAuthState();
+      // Use app context login method which should handle everything
+      const success = await login(values.email, values.password);
       
-      // Try a global sign out just in case
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        // Continue even if this fails
-        console.log("Global sign out during login failed, continuing:", err);
-      }
-      
-      // Authenticate with Supabase directly first
-      console.log("Calling supabase auth.signInWithPassword");
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
-      });
-      
-      if (error) {
-        console.error("Supabase auth error:", error);
-        throw error;
-      }
-      
-      console.log("Supabase auth successful:", data);
-      
-      if (data.user) {
-        console.log("Login successful for user:", data.user.email);
-        
-        // Now login with our app context to maintain local functionality
-        const appLoginSuccess = await login(values.email, values.password);
-        
-        if (!appLoginSuccess) {
-          console.error("App context login failed even though Supabase auth succeeded");
-          throw new Error("Failed to synchronize login state");
-        }
-        
+      if (success) {
+        console.log("Login successful, redirecting...");
         toast({
           title: "Login successful",
           description: "Welcome back!",
-          variant: "default",
         });
-        
         navigate("/", { replace: true });
+      } else {
+        throw new Error("Login failed - invalid credentials");
       }
     } catch (error) {
       console.error("Login error:", error);
       
-      // Special handling for unconfirmed email
-      if (error instanceof Error && error.message.includes("Email not confirmed")) {
-        setLoginError("Please verify your email before logging in. Check your inbox for a confirmation link.");
-      } else {
-        setLoginError(error instanceof Error 
-          ? error.message 
-          : "Invalid email or password. Make sure you've completed signup first.");
+      let errorMessage = "Invalid email or password. Please try again.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes("Email not confirmed")) {
+          errorMessage = "Please verify your email before logging in. Check your inbox for a confirmation link.";
+        } else if (error.message.includes("Invalid login credentials")) {
+          errorMessage = "Invalid email or password. Please check your credentials and try again.";
+        } else {
+          errorMessage = error.message;
+        }
       }
       
+      setLoginError(errorMessage);
       toast({
         title: "Login failed",
-        description: error instanceof Error ? error.message : "An error occurred during login. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
+      console.log("Login process completed, setting loading to false");
       setIsLoading(false);
     }
   }
@@ -151,14 +127,12 @@ export function LoginForm() {
     setResetEmail(values.email);
     
     try {
-      // Use Supabase's password reset functionality with the imported client
       const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
         redirectTo: window.location.origin + '/reset-password',
       });
       
       if (error) throw error;
       
-      // Show success message
       setForgotPasswordSuccess(true);
       
       toast({
@@ -166,6 +140,7 @@ export function LoginForm() {
         description: `Instructions have been sent to ${values.email}`,
       });
     } catch (error) {
+      console.error("Password reset error:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to send password reset email",
@@ -201,7 +176,13 @@ export function LoginForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="you@example.com" {...field} />
+                  <Input 
+                    placeholder="you@example.com" 
+                    type="email"
+                    autoComplete="email"
+                    disabled={isLoading}
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -214,7 +195,13 @@ export function LoginForm() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
+                  <Input 
+                    type="password" 
+                    placeholder="••••••••" 
+                    autoComplete="current-password"
+                    disabled={isLoading}
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -232,6 +219,7 @@ export function LoginForm() {
           type="button" 
           onClick={() => setShowForgotPassword(true)} 
           className="text-primary hover:underline focus:outline-none"
+          disabled={isLoading}
         >
           Forgot password?
         </button>
@@ -281,7 +269,12 @@ export function LoginForm() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input placeholder="you@example.com" autoComplete="email" {...field} />
+                        <Input 
+                          placeholder="you@example.com" 
+                          autoComplete="email" 
+                          disabled={isLoading}
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
