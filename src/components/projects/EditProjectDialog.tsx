@@ -35,6 +35,8 @@ import { useToast } from "@/hooks/use-toast";
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   description: z.string().min(1, "Description is required"),
+  clientId: z.string().min(1, "Client is required"),
+  serviceType: z.enum(["project", "bank-hours", "pay-as-you-go"]),
   status: z.enum(["todo", "in-progress", "done"]),
   startDate: z.string().optional(),
   dueDate: z.string().optional(),
@@ -53,7 +55,7 @@ interface EditProjectDialogProps {
 }
 
 export function EditProjectDialog({ project, open, onClose }: EditProjectDialogProps) {
-  const { updateProject } = useAppContext();
+  const { updateProject, clients } = useAppContext();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -62,6 +64,8 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
     defaultValues: {
       name: "",
       description: "",
+      clientId: "",
+      serviceType: "project",
       status: "todo",
       startDate: "",
       dueDate: "",
@@ -76,6 +80,8 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
         form.reset({
           name: project.name || "",
           description: project.description || "",
+          clientId: project.clientId || "",
+          serviceType: project.serviceType || "project",
           status: project.status || "todo",
           startDate: project.startDate || "",
           dueDate: project.dueDate || "",
@@ -115,7 +121,16 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
     setIsSubmitting(true);
     
     try {
-      updateProject(project.id, data);
+      updateProject(project.id, {
+        name: data.name,
+        description: data.description,
+        clientId: data.clientId,
+        serviceType: data.serviceType,
+        status: data.status,
+        startDate: data.startDate || "",
+        dueDate: data.dueDate || "",
+        allocatedHours: data.allocatedHours || 0,
+      });
 
       toast({
         title: "Project updated",
@@ -140,6 +155,8 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
     console.warn("EditProjectDialog: No project provided but dialog is open");
     return null;
   }
+
+  const activeClients = clients.filter(client => client.status === "active");
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -180,6 +197,58 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="clientId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Client *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a client" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {activeClients.length === 0 ? (
+                        <SelectItem value="" disabled>No active clients available</SelectItem>
+                      ) : (
+                        activeClients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="serviceType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Service Type</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select service type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="project">Project</SelectItem>
+                      <SelectItem value="bank-hours">Bank Hours</SelectItem>
+                      <SelectItem value="pay-as-you-go">Pay as You Go</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             <FormField
               control={form.control}
@@ -187,7 +256,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a status" />
