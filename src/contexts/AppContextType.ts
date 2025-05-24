@@ -1,9 +1,9 @@
-import {
-  User, Team, Client, Project, Task, TimeEntry, Comment, Message, Purchase, CustomField, ProjectTemplate, CustomRole, ClientFile, ClientAgreement, TimeEntryStatus, TaskLog, Note
-} from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note } from "@/types";
+import { Session } from "@supabase/supabase-js";
 
 export interface AppContextType {
-  // Data
+  currentUser: User | null;
+  session: Session | null;
   users: User[];
   teams: Team[];
   clients: Client[];
@@ -12,141 +12,71 @@ export interface AppContextType {
   timeEntries: TimeEntry[];
   messages: Message[];
   purchases: Purchase[];
-  customFields: CustomField[];
   projectTemplates: ProjectTemplate[];
   customRoles: CustomRole[];
-  clientAgreements: ClientAgreement[];
-  taskLogs: TaskLog[];
-  notes: Note[];  // Added notes
+  comments: any[];
+  notes: Note[];
   
-  // Current user and active states
-  currentUser: User | null;
-  activeTimeEntry: TimeEntry | null;
-  
-  // Authentication
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<boolean>;
   
-  // Note operations
-  addNote: (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => string;
-  updateNote: (id: string, updates: Partial<Note>) => void;
-  archiveNote: (id: string) => void;
-  unarchiveNote: (id: string) => void;
-  deleteNote: (id: string) => void;
-  updateNotePosition: (id: string, position: { x: number, y: number }) => void;
-  getNotesByUser: (userId: string, includeArchived?: boolean) => Note[];
+  // User functions
+  addUser: (user: Omit<User, 'id'>) => void;
+  updateUser: (userId: string, updates: Partial<User>) => void;
+  deleteUser: (userId: string) => void;
   
-  // Role management operations
-  addCustomRole: (role: Omit<CustomRole, "id">) => void;
-  updateCustomRole: (id: string, updates: Partial<CustomRole>) => void;
-  deleteCustomRole: (id: string) => void;
-  assignRoleToUser: (userId: string, roleId: string) => void;
+  // Team functions
+  addTeam: (team: Omit<Team, 'id'>) => void;
+  updateTeam: (teamId: string, updates: Partial<Team>) => void;
+  deleteTeam: (teamId: string) => void;
   
-  // CRUD operations for users
-  addUser: (user: Omit<User, "id">) => void;
-  updateUser: (id: string, updates: Partial<User>) => void;
-  deleteUser: (id: string) => void;
-  inviteUser: (email: string, name: string, role: string, options?: {
-    phone?: string;
-    employmentType?: "full-time" | "part-time" | "contract";
-    billingType?: "hourly" | "monthly";
-    billingRate?: number;
-    hourlyRate?: number;
-    monthlyRate?: number;
-    currency?: string;
-    teamIds?: string[];
-    clientId?: string;
-    clientRole?: "admin" | "team";
-  }) => void;
+  // Task functions
+  addTask: (task: Omit<Task, 'id'>) => void;
+  updateTask: (taskId: string, updates: Partial<Task>) => void;
+  deleteTask: (taskId: string) => void;
   
-  // CRUD operations for teams
-  addTeam: (team: Omit<Team, "id">) => void;
-  updateTeam: (id: string, updates: Partial<Team>) => void;
-  deleteTeam: (id: string) => void;
+  // TimeEntry functions
+  addTimeEntry: (timeEntry: Omit<TimeEntry, 'id'>) => void;
+  updateTimeEntry: (timeEntryId: string, updates: Partial<TimeEntry>) => void;
+  deleteTimeEntry: (timeEntryId: string) => void;
   
-  // CRUD operations for clients
-  addClient: (client: Omit<Client, "id">) => void;
-  updateClient: (id: string, updates: Partial<Client>) => void;
-  deleteClient: (id: string) => void;
+  // Message functions
+  addMessage: (message: Omit<Message, 'id'>) => void;
+  updateMessage: (messageId: string, updates: Partial<Message>) => void;
+  deleteMessage: (messageId: string) => void;
   
-  // Client agreement operations
-  addClientAgreement: (agreement: Omit<ClientAgreement, "id" | "createdAt">) => void;
-  updateClientAgreement: (id: string, updates: Partial<ClientAgreement>) => void;
-  deleteClientAgreement: (id: string) => void;
-  getClientAgreements: (clientId: string) => ClientAgreement[];
+  // Purchase functions
+  addPurchase: (purchase: Omit<Purchase, 'id'>) => void;
+  updatePurchase: (purchaseId: string, updates: Partial<Purchase>) => void;
+  deletePurchase: (purchaseId: string) => void;
   
-  // CRUD operations for projects
-  addProject: (project: Omit<Project, "id">) => void;
-  updateProject: (id: string, updates: Partial<Project>) => void;
-  deleteProject: (id: string) => void;
-  watchProject: (projectId: string, userId: string) => void;
-  unwatchProject: (projectId: string, userId: string) => void;
-  convertProjectToTemplate: (projectId: string, templateName: string, templateDescription: string) => void;
+  // ProjectTemplate functions
+  addProjectTemplate: (projectTemplate: Omit<ProjectTemplate, 'id'>) => void;
+  updateProjectTemplate: (projectTemplateId: string, updates: Partial<ProjectTemplate>) => void;
+  deleteProjectTemplate: (projectTemplateId: string) => void;
   
-  // Project template operations
-  addProjectTemplate: (template: Omit<ProjectTemplate, "id" | "usageCount" | "createdAt">) => void;
-  updateProjectTemplate: (id: string, updates: Partial<ProjectTemplate>) => void;
-  deleteProjectTemplate: (id: string) => void;
-  createProjectFromTemplate: (templateId: string, projectData: {
-    name: string;
-    clientId: string;
-    startDate: string;
-    dueDate?: string;
-    memberIds?: string[];
-  }) => void;
+  // CustomRole functions
+  addCustomRole: (customRole: Omit<CustomRole, 'id'>) => void;
+  updateCustomRole: (customRoleId: string, updates: Partial<CustomRole>) => void;
+  deleteCustomRole: (customRoleId: string) => void;
   
-  // CRUD operations for tasks
-  addTask: (task: Omit<Task, "id" | "createdAt" | "timeEntries" | "comments">) => void;
-  updateTask: (id: string, updates: Partial<Task>) => void;
-  deleteTask: (id: string) => void;
-  moveTask: (taskId: string, newStatus: Task["status"], newProjectId?: string) => void;
-  watchTask: (taskId: string, userId: string) => void;
-  unwatchTask: (taskId: string, userId: string) => void;
-  linkTasks: (taskId: string, relatedTaskId: string) => void; // Added for linking tasks
-  unlinkTasks: (taskId: string, relatedTaskId: string) => void; // Added for unlinking tasks
+  // Comment functions
+  addComment: (comment: Omit<any, 'id'>) => void;
+  updateComment: (commentId: string, updates: Partial<any>) => void;
+  deleteComment: (commentId: string) => void;
   
-  // File operations
-  uploadTaskFile: (taskId: string, file: File, userId: string) => Promise<any>; // Added for file uploads
-  deleteTaskFile: (taskId: string, fileId: string) => Promise<void>; // Added for file deletion
+  // Note functions
+  addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateNote: (noteId: string, updates: Partial<Note>) => void;
+  deleteNote: (noteId: string) => void;
   
-  // Time tracking operations
-  startTimeTracking: (taskId?: string, projectId?: string, clientId?: string) => void;
-  stopTimeTracking: (notes?: string) => void;
-  addTimeEntry: (entry: Omit<TimeEntry, "id">) => void;
-  updateTimeEntry: (id: string, updates: Partial<TimeEntry>) => void;
-  deleteTimeEntry: (id: string) => void;
-  updateTimeEntryStatus: (id: string, status: TimeEntryStatus, approvedBy: string, declineReason?: string) => void;
+  // Project functions
+  addProject: (project: Omit<Project, 'id'>) => void;
+  updateProject: (projectId: string, updates: Partial<Project>) => void;
+  deleteProject: (projectId: string) => void;
   
-  // Message operations
-  sendMessage: (message: Omit<Message, "id" | "timestamp" | "read">) => void;
-  markMessageAsRead: (id: string) => void;
-  addComment: (taskId: string, userId: string, content: string, mentionedUserIds?: string[]) => string; // Updated signature
-  createMessage: (message: Omit<Message, "id" | "read">) => void; // Added for creating messages
-  
-  // Purchase operations
-  addPurchase: (purchase: Omit<Purchase, "id">) => void;
-  
-  // Custom field operations
-  addCustomField: (field: Omit<CustomField, "id">) => void;
-  updateCustomField: (id: string, updates: Partial<CustomField>) => void;
-  deleteCustomField: (id: string) => void;
-  
-  // Manager operations
-  updateManagerNotificationPreferences: (userId: string, preferences: User['notificationPreferences']) => void;
-  getTasksDueWithinTimeframe: (timeframe: string) => Task[];
-  
-  // Filtering and retrieval
-  getTasksByProject: (projectId: string) => Task[];
-  getTasksByUser: (userId: string) => Task[];
-  getUnreadMessageCount: (userId: string) => number;
-  getUserById: (id: string) => User | undefined;
-  getProjectById: (id: string) => Project | undefined;
-  getClientById: (id: string) => Client | undefined;
-  getTaskById: (id: string) => Task | undefined;
-  getClientAgreementById: (id: string) => ClientAgreement | undefined;
-  
-  // Client file management
-  getClientFiles: (clientId: string) => ClientFile[];
-  uploadClientFile: (clientId: string, file: File) => Promise<ClientFile>;
-  deleteClientFile: (clientId: string, fileId: string) => Promise<void>;
+  // Client functions
+  addClient: (client: Omit<Client, 'id'>) => void;
+  updateClient: (clientId: string, updates: Partial<Client>) => void;
+  deleteClient: (clientId: string) => void;
 }
