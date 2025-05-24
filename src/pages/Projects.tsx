@@ -14,6 +14,7 @@ import { CreateTemplateDialog } from "@/components/projects/CreateTemplateDialog
 import { UseTemplateDialog } from "@/components/projects/UseTemplateDialog";
 import { TemplatesList } from "@/components/projects/TemplatesList";
 import { RecordActions } from "@/components/common/RecordActions";
+import type { Project } from "@/types";
 
 const Projects = () => {
   const { projects, tasks, clients, teams } = useAppContext();
