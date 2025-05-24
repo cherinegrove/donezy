@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      account_subscriptions: {
+        Row: {
+          additional_guests: number
+          created_at: string
+          id: string
+          max_guests: number
+          max_users: number
+          monthly_cost: number
+          plan_type: string
+          status: string
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          additional_guests?: number
+          created_at?: string
+          id?: string
+          max_guests?: number
+          max_users?: number
+          monthly_cost?: number
+          plan_type?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          additional_guests?: number
+          created_at?: string
+          id?: string
+          max_guests?: number
+          max_users?: number
+          monthly_cost?: number
+          plan_type?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -33,12 +75,106 @@ export type Database = {
         }
         Relationships: []
       }
+      users: {
+        Row: {
+          auth_user_id: string | null
+          avatar: string | null
+          billing_rate: number | null
+          billing_type: string | null
+          client_id: string | null
+          client_role: string | null
+          created_at: string
+          currency: string | null
+          email: string
+          employment_type: string | null
+          guest_of_user_id: string | null
+          guest_permissions: Json | null
+          hourly_rate: number | null
+          id: string
+          is_guest: boolean | null
+          job_title: string | null
+          manager_id: string | null
+          monthly_rate: number | null
+          name: string
+          notification_preferences: Json | null
+          permissions: Json | null
+          phone: string | null
+          role: string
+          team_ids: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          avatar?: string | null
+          billing_rate?: number | null
+          billing_type?: string | null
+          client_id?: string | null
+          client_role?: string | null
+          created_at?: string
+          currency?: string | null
+          email: string
+          employment_type?: string | null
+          guest_of_user_id?: string | null
+          guest_permissions?: Json | null
+          hourly_rate?: number | null
+          id?: string
+          is_guest?: boolean | null
+          job_title?: string | null
+          manager_id?: string | null
+          monthly_rate?: number | null
+          name: string
+          notification_preferences?: Json | null
+          permissions?: Json | null
+          phone?: string | null
+          role?: string
+          team_ids?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          avatar?: string | null
+          billing_rate?: number | null
+          billing_type?: string | null
+          client_id?: string | null
+          client_role?: string | null
+          created_at?: string
+          currency?: string | null
+          email?: string
+          employment_type?: string | null
+          guest_of_user_id?: string | null
+          guest_permissions?: Json | null
+          hourly_rate?: number | null
+          id?: string
+          is_guest?: boolean | null
+          job_title?: string | null
+          manager_id?: string | null
+          monthly_rate?: number | null
+          name?: string
+          notification_preferences?: Json | null
+          permissions?: Json | null
+          phone?: string | null
+          role?: string
+          team_ids?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_account_limits: {
+        Args: { account_user_id: string }
+        Returns: {
+          max_users: number
+          max_guests: number
+          current_users: number
+          current_guests: number
+          can_add_user: boolean
+          can_add_guest: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

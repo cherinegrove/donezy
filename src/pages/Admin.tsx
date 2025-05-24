@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAppContext } from "@/contexts/AppContext";
@@ -13,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { AreaChart, BarChart3, Box, Database, Download, Settings, ShieldAlert, Users, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Clients from "@/pages/Clients";
+import { GuestManagement } from "@/components/admin/GuestManagement";
+import { BillingManager } from "@/components/admin/BillingManager";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -54,6 +55,8 @@ export default function Admin() {
         <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="guests">Guest Management</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="roles">Roles</TabsTrigger>
@@ -155,6 +158,14 @@ export default function Admin() {
 
         <TabsContent value="users" className="space-y-6">
           <AdminUsers />
+        </TabsContent>
+
+        <TabsContent value="guests" className="space-y-6">
+          <GuestManagement />
+        </TabsContent>
+
+        <TabsContent value="billing" className="space-y-6">
+          <BillingManager />
         </TabsContent>
 
         <TabsContent value="clients" className="space-y-6">
