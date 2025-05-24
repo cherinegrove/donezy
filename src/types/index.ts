@@ -8,6 +8,20 @@ export interface User {
   teamIds?: string[];
   jobTitle?: string;
   clientId?: string;
+  phone?: string;
+  notificationPreferences?: {
+    taskDue?: NotificationTimeframe[];
+    taskStatusChange?: boolean;
+    newComments?: boolean;
+    timeTracking?: boolean;
+    notificationSettings?: {
+      clients: { new: boolean; updated: boolean };
+      projects: { new: boolean; updated: boolean };
+      tasks: { new: boolean; updated: boolean };
+      subtasks: { new: boolean; updated: boolean };
+      mentions: { new: boolean; updated: boolean };
+    };
+  };
 }
 
 export interface Team {
@@ -138,6 +152,7 @@ export interface TemplateTask {
   description: string;
   priority: 'low' | 'medium' | 'high';
   estimatedHours?: number;
+  subtasks?: TemplateTask[];
 }
 
 export interface CustomRole {
@@ -154,6 +169,7 @@ export interface Note {
   userId: string;
   createdAt: string;
   updatedAt: string;
+  color?: string;
 }
 
 export interface TaskLog {
@@ -186,3 +202,8 @@ export interface ClientFile {
   sizeKb: number;
   uploadedAt: string;
 }
+
+export type NotificationTimeframe = 'same-day' | '1-day' | '3-days' | '1-week';
+export type AccessLevel = 'none' | 'view' | 'edit';
+export type BillingType = 'hourly' | 'monthly';
+export type EmploymentType = 'full-time' | 'part-time' | 'contract';

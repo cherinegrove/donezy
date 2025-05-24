@@ -1,92 +1,47 @@
-
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { v4 as uuidv4 } from "uuid";
-import { useAppContext } from "@/contexts/AppContext";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  TemplateTask,
-  TemplateSubtask,
-  TaskStatus,
-} from "@/types";
-import { Plus, Trash2, FileText } from "lucide-react";
-
-const templateSchema = z.object({
-  name: z.string().min(1, "Template name is required"),
-  description: z.string().min(1, "Template description is required"),
-  serviceType: z.enum(["project", "bank-hours", "pay-as-you-go"]),
-  defaultDuration: z.number().optional(),
-  allocatedHours: z.number().optional(),
-});
-
-type TemplateFormData = z.infer<typeof templateSchema>;
+import { useAppContext } from "@/contexts/AppContext";
+import { useToast } from "@/hooks/use-toast";
+import { TemplateTask } from "@/types";
+import { Plus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface CreateTemplateDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export function CreateTemplateDialog({
-  open,
-  onOpenChange,
-}: CreateTemplateDialogProps) {
-  const { addProjectTemplate, currentUser, teams } = useAppContext();
-  const [tasks, setTasks] = useState<TemplateTask[]>([]);
-  const [currentTab, setCurrentTab] = useState("details");
-  const [subtasksMap, setSubtasksMap] = useState<Record<string, TemplateSubtask[]>>({});
+export function CreateTemplateDialog({ isOpen, onClose }: CreateTemplateDialogProps) {
+  const { addProjectTemplate, teams, currentUser } = useAppContext();
+  const { toast } = useToast();
 
-  const form = useForm<TemplateFormData>({
-    resolver: zodResolver(templateSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      serviceType: "project",
-      defaultDuration: undefined,
-      allocatedHours: undefined,
-    },
-  });
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [serviceType, setServiceType] = useState<'project' | 'bank-hours' | 'pay-as-you-go'>('project');
+  const [defaultDuration, setDefaultDuration] = useState(30);
+  const [allocatedHours, setAllocatedHours] = useState(0);
+  const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
+  const [tasks, setTasks] = useState<TemplateTask[]>([]);
 
   const addTask = () => {
-    const taskId = uuidv4();
     const newTask: TemplateTask = {
       title: "",
       description: "",
-      status: "todo",
       priority: "medium",
-      subtasks: [],
+      estimatedHours: 0,
+      subtasks: []
     };
     setTasks([...tasks, newTask]);
-    setSubtasksMap({...subtasksMap, [taskId]: []});
+  };
+
+  const removeTask = (index: number) => {
+    setTasks(tasks.filter((_, i) => i !== index));
   };
 
   const updateTask = (index: number, field: keyof TemplateTask, value: any) => {
@@ -95,383 +50,380 @@ export function CreateTemplateDialog({
     setTasks(updatedTasks);
   };
 
-  const removeTask = (index: number) => {
-    const updatedTasks = [...tasks];
-    updatedTasks.splice(index, 1);
-    setTasks(updatedTasks);
-  };
-
   const addSubtask = (taskIndex: number) => {
-    const taskId = uuidv4();
-    const newSubtask: TemplateSubtask = {
+    const newSubtask: TemplateTask = {
       title: "",
       description: "",
+      priority: "medium",
+      estimatedHours: 0
     };
     
-    const updatedSubtasks = [...(subtasksMap[taskId] || []), newSubtask];
-    setSubtasksMap({...subtasksMap, [taskId]: updatedSubtasks});
-    
-    // Update the task's subtasks
     const updatedTasks = [...tasks];
-    updatedTasks[taskIndex].subtasks = updatedSubtasks;
-    setTasks(updatedTasks);
-  };
-
-  const updateSubtask = (taskIndex: number, subtaskIndex: number, field: keyof TemplateSubtask, value: any) => {
-    const taskId = uuidv4();
-    const updatedSubtasks = [...(subtasksMap[taskId] || [])];
-    updatedSubtasks[subtaskIndex] = { ...updatedSubtasks[subtaskIndex], [field]: value };
-    setSubtasksMap({...subtasksMap, [taskId]: updatedSubtasks});
-    
-    // Update the task's subtasks
-    const updatedTasks = [...tasks];
-    updatedTasks[taskIndex].subtasks = updatedSubtasks;
+    if (!updatedTasks[taskIndex].subtasks) {
+      updatedTasks[taskIndex].subtasks = [];
+    }
+    updatedTasks[taskIndex].subtasks!.push(newSubtask);
     setTasks(updatedTasks);
   };
 
   const removeSubtask = (taskIndex: number, subtaskIndex: number) => {
-    const taskId = uuidv4();
-    const updatedSubtasks = [...(subtasksMap[taskId] || [])];
-    updatedSubtasks.splice(subtaskIndex, 1);
-    setSubtasksMap({...subtasksMap, [taskId]: updatedSubtasks});
-    
-    // Update the task's subtasks
     const updatedTasks = [...tasks];
-    updatedTasks[taskIndex].subtasks = updatedSubtasks;
+    updatedTasks[taskIndex].subtasks = updatedTasks[taskIndex].subtasks?.filter((_, i) => i !== subtaskIndex);
     setTasks(updatedTasks);
   };
 
-  const onSubmit = (data: TemplateFormData) => {
-    // Validate tasks
-    if (tasks.some(task => !task.title)) {
-      alert("All tasks must have titles");
+  const updateSubtask = (taskIndex: number, subtaskIndex: number, field: keyof TemplateTask, value: any) => {
+    const updatedTasks = [...tasks];
+    if (updatedTasks[taskIndex].subtasks) {
+      updatedTasks[taskIndex].subtasks![subtaskIndex] = {
+        ...updatedTasks[taskIndex].subtasks![subtaskIndex],
+        [field]: value
+      };
+      setTasks(updatedTasks);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!name.trim()) {
+      toast({
+        title: "Error",
+        description: "Template name is required",
+        variant: "destructive",
+      });
       return;
     }
 
-    // Create template
     addProjectTemplate({
-      name: data.name,
-      description: data.description,
-      serviceType: data.serviceType,
-      defaultDuration: data.defaultDuration,
-      allocatedHours: data.allocatedHours,
-      tasks: tasks,
-      createdBy: currentUser?.id || "",
-      teamIds: [],
+      name,
+      description,
+      serviceType,
+      defaultDuration,
+      allocatedHours,
+      tasks,
+      createdBy: currentUser?.id || '',
+      teamIds: selectedTeams
     });
 
-    // Reset form and close dialog
-    form.reset();
+    toast({
+      title: "Success",
+      description: "Template created successfully",
+    });
+
+    // Reset form
+    setName("");
+    setDescription("");
+    setServiceType('project');
+    setDefaultDuration(30);
+    setAllocatedHours(0);
+    setSelectedTeams([]);
     setTasks([]);
-    setSubtasksMap({});
-    onOpenChange(false);
+    onClose();
   };
 
-  const canGoToTasks = form.getValues("name") && form.getValues("description");
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[80%] sm:max-h-[90%]">
         <DialogHeader>
           <DialogTitle>Create Project Template</DialogTitle>
-          <DialogDescription>
-            Create reusable project templates for recurring projects
-          </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={currentTab} onValueChange={setCurrentTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="details">Template Details</TabsTrigger>
-            <TabsTrigger value="tasks" disabled={!canGoToTasks}>Tasks & Subtasks</TabsTrigger>
-          </TabsList>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="name">Template Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-              <TabsContent value="details" className="space-y-4 mt-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Template Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter template name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="serviceType">Service Type</Label>
+              <Select value={serviceType} onValueChange={(value: any) => setServiceType(value)}>
+                <SelectTrigger id="serviceType">
+                  <SelectValue placeholder="Select a service type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="project">Project</SelectItem>
+                  <SelectItem value="bank-hours">Bank of Hours</SelectItem>
+                  <SelectItem value="pay-as-you-go">Pay as you go</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="defaultDuration">Default Duration (days)</Label>
+                <Input
+                  id="defaultDuration"
+                  type="number"
+                  value={defaultDuration}
+                  onChange={(e) => setDefaultDuration(Number(e.target.value))}
                 />
+              </div>
 
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Template description"
-                          rows={3}
-                          {...field}
+              <div className="space-y-2">
+                <Label htmlFor="allocatedHours">Allocated Hours</Label>
+                <Input
+                  id="allocatedHours"
+                  type="number"
+                  value={allocatedHours}
+                  onChange={(e) => setAllocatedHours(Number(e.target.value))}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Teams (optional)</Label>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+              {teams.map((team) => (
+                <div key={team.id} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={`team-${team.id}`}
+                    checked={selectedTeams.includes(team.id)}
+                    onChange={() =>
+                      setSelectedTeams((prev) =>
+                        prev.includes(team.id)
+                          ? prev.filter((id) => id !== team.id)
+                          : [...prev, team.id]
+                      )
+                    }
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor={`team-${team.id}`} className="font-normal">
+                    {team.name}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Tasks</h3>
+              <Button type="button" size="sm" onClick={addTask}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Task
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {tasks.map((task, taskIndex) => (
+                <Card key={taskIndex}>
+                  <CardHeader>
+                    <div className="flex justify-between items-center">
+                      <CardTitle>Task {taskIndex + 1}</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeTask(taskIndex)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Delete</span>
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div>
+                        <Label htmlFor={`task-title-${taskIndex}`}>Title</Label>
+                        <Input
+                          type="text"
+                          id={`task-title-${taskIndex}`}
+                          value={task.title}
+                          onChange={(e) =>
+                            updateTask(taskIndex, "title", e.target.value)
+                          }
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="serviceType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Service Type</FormLabel>
+                      <div>
+                        <Label htmlFor={`task-priority-${taskIndex}`}>Priority</Label>
                         <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
+                          value={task.priority}
+                          onValueChange={(value: any) =>
+                            updateTask(taskIndex, "priority", value)
+                          }
                         >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select service type" />
-                            </SelectTrigger>
-                          </FormControl>
+                          <SelectTrigger id={`task-priority-${taskIndex}`}>
+                            <SelectValue placeholder="Select priority" />
+                          </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="project">Fixed Project</SelectItem>
-                            <SelectItem value="bank-hours">Bank of Hours</SelectItem>
-                            <SelectItem value="pay-as-you-go">Pay As You Go</SelectItem>
+                            <SelectItem value="low">Low</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </div>
+                    </div>
 
-                  <FormField
-                    control={form.control}
-                    name="defaultDuration"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Default Duration (days)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="Enter default duration"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Optional: Default project duration in days
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                    <div>
+                      <Label htmlFor={`task-description-${taskIndex}`}>Description</Label>
+                      <Textarea
+                        id={`task-description-${taskIndex}`}
+                        value={task.description}
+                        onChange={(e) =>
+                          updateTask(taskIndex, "description", e.target.value)
+                        }
+                      />
+                    </div>
 
-                <FormField
-                  control={form.control}
-                  name="allocatedHours"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Default Allocated Hours</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Enter allocated hours"
-                          {...field}
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Optional: Default hours allocated for this project type
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <div>
+                      <Label htmlFor={`task-estimated-hours-${taskIndex}`}>Estimated Hours</Label>
+                      <Input
+                        type="number"
+                        id={`task-estimated-hours-${taskIndex}`}
+                        value={task.estimatedHours}
+                        onChange={(e) =>
+                          updateTask(
+                            taskIndex,
+                            "estimatedHours",
+                            Number(e.target.value)
+                          )
+                        }
+                      />
+                    </div>
 
-                <DialogFooter className="mt-6">
-                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="button" onClick={() => setCurrentTab("tasks")}>
-                    Next: Define Tasks
-                  </Button>
-                </DialogFooter>
-              </TabsContent>
+                    <Collapsible>
+                      <CollapsibleTrigger className="w-full flex items-center justify-between py-2">
+                        Subtasks
+                        <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="space-y-2">
+                          {task.subtasks && task.subtasks.map((subtask, subtaskIndex) => (
+                            <Card key={subtaskIndex} className="ml-4">
+                              <CardHeader>
+                                <div className="flex justify-between items-center">
+                                  <CardTitle>Subtask {subtaskIndex + 1}</CardTitle>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeSubtask(taskIndex, subtaskIndex)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Delete</span>
+                                  </Button>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="space-y-2">
+                                <div>
+                                  <Label htmlFor={`subtask-title-${taskIndex}-${subtaskIndex}`}>Title</Label>
+                                  <Input
+                                    type="text"
+                                    id={`subtask-title-${taskIndex}-${subtaskIndex}`}
+                                    value={subtask.title}
+                                    onChange={(e) =>
+                                      updateSubtask(
+                                        taskIndex,
+                                        subtaskIndex,
+                                        "title",
+                                        e.target.value
+                                      )
+                                    }
+                                  />
+                                </div>
 
-              <TabsContent value="tasks" className="space-y-4 mt-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">Template Tasks</h3>
-                  <Button type="button" onClick={addTask} size="sm">
-                    <Plus className="h-4 w-4 mr-1" /> Add Task
-                  </Button>
-                </div>
+                                <div>
+                                  <Label htmlFor={`subtask-description-${taskIndex}-${subtaskIndex}`}>Description</Label>
+                                  <Textarea
+                                    id={`subtask-description-${taskIndex}-${subtaskIndex}`}
+                                    value={subtask.description}
+                                    onChange={(e) =>
+                                      updateSubtask(
+                                        taskIndex,
+                                        subtaskIndex,
+                                        "description",
+                                        e.target.value
+                                      )
+                                    }
+                                  />
+                                </div>
 
-                {tasks.length === 0 ? (
-                  <Card className="border border-dashed">
-                    <CardContent className="flex flex-col items-center justify-center py-8">
-                      <FileText className="h-10 w-10 text-muted-foreground/50 mb-2" />
-                      <p className="text-muted-foreground text-center">
-                        No tasks defined yet. Add tasks to your template.
-                      </p>
-                      <Button type="button" onClick={addTask} className="mt-4">
-                        <Plus className="h-4 w-4 mr-1" /> Add First Task
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="space-y-4">
-                    {tasks.map((task, taskIndex) => (
-                      <Card key={taskIndex}>
-                        <CardHeader className="pb-2">
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-base">Task {taskIndex + 1}</CardTitle>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeTask(taskIndex)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <div className="grid grid-cols-1 gap-3">
-                            <div>
-                              <FormLabel>Title</FormLabel>
-                              <Input
-                                value={task.title}
-                                onChange={(e) => updateTask(taskIndex, "title", e.target.value)}
-                                placeholder="Task title"
-                              />
-                            </div>
-                            
-                            <div>
-                              <FormLabel>Description</FormLabel>
-                              <Textarea
-                                value={task.description}
-                                onChange={(e) => updateTask(taskIndex, "description", e.target.value)}
-                                placeholder="Task description"
-                                rows={2}
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <FormLabel>Status</FormLabel>
-                              <Select
-                                value={task.status}
-                                onValueChange={(value) => updateTask(taskIndex, "status", value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="todo">To Do</SelectItem>
-                                  <SelectItem value="in-progress">In Progress</SelectItem>
-                                  <SelectItem value="review">Review</SelectItem>
-                                  <SelectItem value="backlog">Backlog</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div>
-                              <FormLabel>Priority</FormLabel>
-                              <Select
-                                value={task.priority}
-                                onValueChange={(value: any) => updateTask(taskIndex, "priority", value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="low">Low</SelectItem>
-                                  <SelectItem value="medium">Medium</SelectItem>
-                                  <SelectItem value="high">High</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <FormLabel>Estimated Hours</FormLabel>
-                            <Input
-                              type="number"
-                              value={task.estimatedHours || ""}
-                              onChange={(e) => updateTask(taskIndex, "estimatedHours", e.target.value ? Number(e.target.value) : undefined)}
-                              placeholder="Estimated hours"
-                            />
-                          </div>
-                          
-                          {/* Subtasks */}
-                          <div className="pt-2">
-                            <div className="flex justify-between items-center mb-2">
-                              <FormLabel>Subtasks</FormLabel>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => addSubtask(taskIndex)}
-                              >
-                                <Plus className="h-4 w-4 mr-1" /> Add Subtask
-                              </Button>
-                            </div>
-                            
-                            {task.subtasks.length === 0 ? (
-                              <p className="text-sm text-muted-foreground">No subtasks defined</p>
-                            ) : (
-                              <div className="space-y-3">
-                                {task.subtasks.map((subtask, subtaskIndex) => (
-                                  <div key={subtaskIndex} className="border p-3 rounded-md">
-                                    <div className="flex justify-between items-center mb-2">
-                                      <FormLabel className="mb-0">Subtask {subtaskIndex + 1}</FormLabel>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => removeSubtask(taskIndex, subtaskIndex)}
-                                      >
-                                        <Trash2 className="h-3 w-3 text-destructive" />
-                                      </Button>
-                                    </div>
-                                    <div className="space-y-2">
-                                      <Input
-                                        value={subtask.title}
-                                        onChange={(e) => updateSubtask(taskIndex, subtaskIndex, "title", e.target.value)}
-                                        placeholder="Subtask title"
-                                      />
-                                      <Textarea
-                                        value={subtask.description}
-                                        onChange={(e) => updateSubtask(taskIndex, subtaskIndex, "description", e.target.value)}
-                                        placeholder="Subtask description"
-                                        rows={1}
-                                      />
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+                                <div>
+                                  <Label htmlFor={`subtask-priority-${taskIndex}-${subtaskIndex}`}>Priority</Label>
+                                  <Select
+                                    value={subtask.priority}
+                                    onValueChange={(value: any) =>
+                                      updateSubtask(
+                                        taskIndex,
+                                        subtaskIndex,
+                                        "priority",
+                                        value
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger id={`subtask-priority-${taskIndex}-${subtaskIndex}`}>
+                                      <SelectValue placeholder="Select priority" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="low">Low</SelectItem>
+                                      <SelectItem value="medium">Medium</SelectItem>
+                                      <SelectItem value="high">High</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
 
-                <DialogFooter className="pt-4">
-                  <Button type="button" variant="outline" onClick={() => setCurrentTab("details")}>
-                    Back to Details
-                  </Button>
-                  <Button type="submit">Create Template</Button>
-                </DialogFooter>
-              </TabsContent>
-            </form>
-          </Form>
-        </Tabs>
+                                <div>
+                                  <Label htmlFor={`subtask-estimated-hours-${taskIndex}-${subtaskIndex}`}>Estimated Hours</Label>
+                                  <Input
+                                    type="number"
+                                    id={`subtask-estimated-hours-${taskIndex}-${subtaskIndex}`}
+                                    value={subtask.estimatedHours}
+                                    onChange={(e) =>
+                                      updateSubtask(
+                                        taskIndex,
+                                        subtaskIndex,
+                                        "estimatedHours",
+                                        Number(e.target.value)
+                                      )
+                                    }
+                                  />
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="ml-4"
+                            onClick={() => addSubtask(taskIndex)}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Subtask
+                          </Button>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" onClick={handleSubmit}>
+            Create Template
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

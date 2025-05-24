@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,7 +56,7 @@ export function ManagerNotificationSettings({ userId }: ManagerNotificationSetti
   };
   
   const handleSave = () => {
-    updateManagerNotificationPreferences(userId, settings);
+    updateManagerNotificationPreferences(settings);
     toast({ title: "Success", description: "Notification preferences saved successfully" });
   };
   

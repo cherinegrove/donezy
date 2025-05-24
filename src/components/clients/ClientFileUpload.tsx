@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,7 +101,7 @@ export const ClientFileUpload = ({ clientId }: ClientFileUploadProps) => {
   const handleDelete = async (fileId: string) => {
     try {
       if (deleteClientFile) {
-        await deleteClientFile(clientId, fileId);
+        await deleteClientFile(fileId);
         toast({
           title: "File deleted",
           description: "File was successfully deleted",

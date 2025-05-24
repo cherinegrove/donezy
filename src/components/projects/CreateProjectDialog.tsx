@@ -1,268 +1,185 @@
-
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { useAppContext } from "@/contexts/AppContext";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
-import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
-import { MultiSelect } from "@/components/ui/multi-select";
-
-const projectSchema = z.object({
-  name: z.string().min(1, { message: "Name is required" }),
-  description: z.string(),
-  clientId: z.string().min(1, { message: "Client is required" }),
-  startDate: z.string().min(1, { message: "Start date is required" }),
-  dueDate: z.string().optional(),
-  hasHourLimit: z.boolean().default(false),
-  allocatedHours: z.string().optional().transform(val => val ? Number(val) : undefined),
-});
-
-type ProjectFormData = z.infer<typeof projectSchema>;
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAppContext } from "@/contexts/AppContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface CreateProjectDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export function CreateProjectDialog({
-  open,
-  onOpenChange,
-}: CreateProjectDialogProps) {
-  const { clients, users, addProject } = useAppContext();
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  
-  // Filter to only active clients
-  const activeClients = clients.filter(client => client.status === 'active');
-  
-  // Filter to only get team members (non-client users)
-  const teamMembers = users.filter(user => user.clientId === undefined);
-  
-  const form = useForm<ProjectFormData>({
-    resolver: zodResolver(projectSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      clientId: "",
-      startDate: new Date().toISOString().split("T")[0],
-      hasHourLimit: false,
-    },
-  });
-  
-  const onSubmit = (data: ProjectFormData) => {
+interface FormValues {
+  name: string;
+  description: string;
+  clientId: string;
+  serviceType: 'project' | 'bank-hours' | 'pay-as-you-go';
+  startDate?: string;
+  dueDate?: string;
+  allocatedHours?: number;
+  teamIds?: string[];
+}
+
+export function CreateProjectDialog({ isOpen, onClose }: CreateProjectDialogProps) {
+  const { addProject, clients, teams } = useAppContext();
+  const { toast } = useToast();
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [clientId, setClientId] = useState("");
+  const [serviceType, setServiceType] = useState<'project' | 'bank-hours' | 'pay-as-you-go'>('project');
+  const [startDate, setStartDate] = useState<string | undefined>(undefined);
+  const [dueDate, setDueDate] = useState<string | undefined>(undefined);
+  const [allocatedHours, setAllocatedHours] = useState<number | undefined>(undefined);
+  const [teamIds, setTeamIds] = useState<string[]>([]);
+
+  const onSubmit = (data: FormValues) => {
     addProject({
-      ...data,
-      status: "todo",
-      taskIds: [],
-      usedHours: 0,
       name: data.name,
       description: data.description,
       clientId: data.clientId,
-      memberIds: selectedMembers,
-      teamIds: [], // Keep empty as we're using members directly
+      status: 'todo',
+      serviceType: data.serviceType,
       startDate: data.startDate,
-      serviceType: "project", // Set default service type
-      allocatedHours: data.hasHourLimit ? data.allocatedHours : undefined,
+      dueDate: data.dueDate,
+      allocatedHours: data.allocatedHours,
+      usedHours: 0,
+      teamIds: data.teamIds || [],
+      watcherIds: []
     });
     
     form.reset();
-    setSelectedMembers([]);
-    onOpenChange(false);
+    onClose();
   };
-  
-  const hasHourLimit = form.watch("hasHourLimit");
-  
-  // Convert users to options for MultiSelect
-  const memberOptions = teamMembers.map(member => ({
-    value: member.id,
-    label: member.name
-  }));
-  
+
+  const form = {
+    reset: () => {
+      setName("");
+      setDescription("");
+      setClientId("");
+      setServiceType('project');
+      setStartDate(undefined);
+      setDueDate(undefined);
+      setAllocatedHours(undefined);
+      setTeamIds([]);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
         </DialogHeader>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Project Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter project name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Project description"
-                      rows={3}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="clientId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Client <span className="text-destructive">*</span></FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select client" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {activeClients.length > 0 ? (
-                            activeClients.map((client) => (
-                              <SelectItem key={client.id} value={client.id}>
-                                {client.name}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="no-clients" disabled>
-                              No active clients available
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="space-y-2">
-                <Label>Assign Team Members</Label>
-                <MultiSelect
-                  options={memberOptions}
-                  selectedValues={selectedMembers}
-                  onValueChange={setSelectedMembers}
-                  placeholder="Select team members"
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="startDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="dueDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Due Date (Optional)</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Project Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
             </div>
-            
-            <FormField
-              control={form.control}
-              name="hasHourLimit"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Hour Limit</FormLabel>
-                    <FormDescription>
-                      Set a limit on the number of hours that can be used for this project.
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
+            <div className="space-y-2">
+              <Label htmlFor="client">Client</Label>
+              <Select value={clientId} onValueChange={setClientId}>
+                <SelectTrigger id="client">
+                  <SelectValue placeholder="Select a client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
             />
-            
-            {hasHourLimit && (
-              <FormField
-                control={form.control}
-                name="allocatedHours"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Allocated Hours</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Enter hours"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="serviceType">Service Type</Label>
+              <Select value={serviceType} onValueChange={setServiceType}>
+                <SelectTrigger id="serviceType">
+                  <SelectValue placeholder="Select service type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="project">Project</SelectItem>
+                  <SelectItem value="bank-hours">Bank of Hours</SelectItem>
+                  <SelectItem value="pay-as-you-go">Pay as you go</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="team">Team (Optional)</Label>
+              <Select value={teamIds ? teamIds[0] : undefined} onValueChange={(value) => setTeamIds([value])}>
+                <SelectTrigger id="team">
+                  <SelectValue placeholder="Select a team" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="startDate">Start Date (Optional)</Label>
+              <Input
+                type="date"
+                id="startDate"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
               />
-            )}
-            
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Create Project</Button>
-            </DialogFooter>
-          </form>
-        </Form>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dueDate">Due Date (Optional)</Label>
+              <Input
+                type="date"
+                id="dueDate"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="allocatedHours">Allocated Hours (Optional)</Label>
+            <Input
+              type="number"
+              id="allocatedHours"
+              value={allocatedHours}
+              onChange={(e) => setAllocatedHours(Number(e.target.value))}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={onSubmit}>Create</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

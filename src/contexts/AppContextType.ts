@@ -29,7 +29,7 @@ export interface AppContextType {
   updateUser: (userId: string, updates: Partial<User>) => void;
   deleteUser: (userId: string) => void;
   getUserById: (userId: string) => User | undefined;
-  inviteUser: (email: string, name: string, role: string, additionalData?: any) => void;
+  inviteUser: (email: string, name: string, role: string) => void;
   
   // Team functions
   addTeam: (team: Omit<Team, 'id'>) => void;
@@ -37,7 +37,7 @@ export interface AppContextType {
   deleteTeam: (teamId: string) => void;
   
   // Task functions
-  addTask: (task: Omit<Task, 'id'>) => void;
+  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>) => void;
   updateTask: (taskId: string, updates: Partial<Task>) => void;
   deleteTask: (taskId: string) => void;
   getTaskById: (taskId: string) => Task | undefined;
@@ -61,8 +61,8 @@ export interface AppContextType {
   addMessage: (message: Omit<Message, 'id'>) => void;
   updateMessage: (messageId: string, updates: Partial<Message>) => void;
   deleteMessage: (messageId: string) => void;
-  sendMessage: (message: Omit<Message, 'id'>) => void;
-  createMessage: (message: Omit<Message, 'id'>) => void;
+  sendMessage: (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => void;
+  createMessage: (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => void;
   markMessageAsRead: (messageId: string) => void;
   
   // Purchase functions
@@ -71,7 +71,7 @@ export interface AppContextType {
   deletePurchase: (purchaseId: string) => void;
   
   // ProjectTemplate functions
-  addProjectTemplate: (projectTemplate: Omit<ProjectTemplate, 'id'>) => void;
+  addProjectTemplate: (projectTemplate: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => void;
   updateProjectTemplate: (projectTemplateId: string, updates: Partial<ProjectTemplate>) => void;
   deleteProjectTemplate: (projectTemplateId: string) => void;
   convertProjectToTemplate: (projectId: string, templateData: any) => void;
@@ -102,7 +102,7 @@ export interface AppContextType {
   unwatchProject: (projectId: string, userId: string) => void;
   
   // Client functions
-  addClient: (client: Omit<Client, 'id'>) => void;
+  addClient: (client: Omit<Client, 'id' | 'createdAt'>) => void;
   updateClient: (clientId: string, updates: Partial<Client>) => void;
   deleteClient: (clientId: string) => void;
   getClientById: (clientId: string) => Client | undefined;

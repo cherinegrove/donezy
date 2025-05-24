@@ -64,7 +64,6 @@ export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
       billableRate: data.billableRate,
       currency: data.currency,
       status: data.status,
-      projectIds: [],
       // Instead of teamIds, use memberIds
       memberIds: selectedMembers.length > 0 ? selectedMembers : undefined
     });
