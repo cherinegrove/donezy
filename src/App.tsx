@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,7 +28,7 @@ import Admin from "./pages/Admin";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 
-// Protected route component to handle role-based access and authentication
+// Protected route component - simplified
 const ProtectedRoute = ({ 
   element, 
   allowedRoles = ['admin', 'manager', 'developer', 'client']
@@ -36,65 +37,66 @@ const ProtectedRoute = ({
   allowedRoles?: Array<'admin' | 'manager' | 'developer' | 'client'>;
 }) => {
   const { currentUser } = useAppContext();
+  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
   
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setAuthenticated(!!session);
+    // Get current session immediately
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
       setLoading(false);
-    };
-    
-    checkAuth();
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
   
-  // Show loading state
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-    </div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
   }
   
-  // Redirect to login if not authenticated with Supabase
-  if (!authenticated) {
+  if (!session) {
     return <Navigate to="/login" replace />;
   }
   
-  // Check if user has permission based on app context
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
   
   const hasPermission = allowedRoles.includes(currentUser.role);
-  
   return hasPermission ? element : <Navigate to="/" replace />;
 };
 
-// Public route component to handle already authenticated users
+// Public route component - simplified
 const PublicRoute = ({ element }: { element: React.ReactNode }) => {
+  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
   
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setAuthenticated(!!session);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
       setLoading(false);
-    };
-    
-    checkAuth();
+    });
   }, []);
   
-  // Show loading state
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-    </div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
   }
   
-  // Redirect to dashboard if already authenticated with Supabase
-  if (authenticated) {
+  if (session) {
     return <Navigate to="/" replace />;
   }
   
