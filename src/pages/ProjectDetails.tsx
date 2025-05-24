@@ -14,7 +14,7 @@ import { TaskList } from "@/components/tasks/TaskList";
 import { ConvertToTemplateDialog } from "@/components/projects/ConvertToTemplateDialog";
 
 export default function ProjectDetails() {
-  const { id } = useParams<{ id: string }>();
+  const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { projects, clients, tasks, users, timeEntries } = useAppContext();
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
@@ -23,17 +23,17 @@ export default function ProjectDetails() {
   // Update project when projects state changes
   useEffect(() => {
     console.log("Projects state updated:", projects.length);
-    const foundProject = projects.find(p => p.id === id);
-    console.log("Looking for project with ID:", id, "Found:", foundProject);
+    const foundProject = projects.find(p => p.id === projectId);
+    console.log("Looking for project with ID:", projectId, "Found:", foundProject);
     setProject(foundProject || null);
-  }, [projects, id]);
+  }, [projects, projectId]);
   
   const client = project ? clients.find(c => c.id === project.clientId) : null;
 
-  const projectTasks = tasks.filter(task => task.projectId === id);
+  const projectTasks = tasks.filter(task => task.projectId === projectId);
   const projectMembers = users.filter(user => project?.teamIds?.includes(user.id));
   const totalHours = timeEntries
-    .filter(entry => entry.projectId === id)
+    .filter(entry => entry.projectId === projectId)
     .reduce((sum, entry) => sum + entry.duration, 0);
 
   // Show loading state while searching for project
