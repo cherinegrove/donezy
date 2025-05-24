@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EditUserDialog } from "@/components/users/EditUserDialog";
+import { AddUserCard } from "@/components/admin/AddUserCard";
 import { User } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +54,13 @@ export default function AdminUsers() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Add User Cards */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Add Users</h2>
+        <AddUserCard />
+      </div>
+
       <div className="flex items-center justify-between">
         <div className="relative max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -64,10 +71,6 @@ export default function AdminUsers() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
       </div>
 
       <div className="rounded-md border">

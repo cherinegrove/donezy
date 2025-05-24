@@ -5,7 +5,6 @@ import { useAppContext } from "@/contexts/AppContext";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminActivity from "@/components/admin/AdminActivity";
 import AdminTeams from "@/components/admin/AdminTeams";
-import { AddUserCard } from "@/components/admin/AddUserCard";
 import { TaskStatusManager } from "@/components/admin/TaskStatusManager";
 import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -118,12 +117,6 @@ export default function Admin() {
                 <p className="text-xs text-muted-foreground mt-2">5.4GB of 8GB</p>
               </CardContent>
             </Card>
-          </div>
-          
-          {/* Add User Cards */}
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-            <AddUserCard />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
