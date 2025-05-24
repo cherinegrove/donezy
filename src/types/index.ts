@@ -1,9 +1,10 @@
+
 export interface User {
   id: string;
   name: string;
   email: string;
   avatar?: string;
-  role: 'admin' | 'manager' | 'developer' | 'client' | string;
+  role: 'admin' | 'manager' | 'developer' | 'client' | 'guest' | string;
   teamIds?: string[];
   jobTitle?: string;
   clientId?: string;

@@ -1,17 +1,9 @@
 
 import { useLocation, Link } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
-} from "@/components/ui/sidebar";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
   FolderOpen, 
@@ -87,33 +79,34 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar>
-      <SidebarHeader className="p-4">
-        <div className="font-bold text-lg">ProjectHub</div>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={location.pathname === item.url}>
-                    <Link to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter className="p-4">
+    <Card className="w-64 h-full border-r">
+      <div className="p-4">
+        <div className="font-bold text-lg mb-6">ProjectHub</div>
+        
+        <nav className="space-y-2">
+          {navigationItems.map((item) => (
+            <Link
+              key={item.title}
+              to={item.url}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                location.pathname === item.url
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+            >
+              <item.icon className="h-4 w-4" />
+              <span>{item.title}</span>
+            </Link>
+          ))}
+        </nav>
+      </div>
+      
+      <div className="mt-auto p-4 border-t">
         <div className="text-sm text-muted-foreground">
           {currentUser?.name || "User"}
         </div>
-      </SidebarFooter>
-    </Sidebar>
+      </div>
+    </Card>
   );
 }
