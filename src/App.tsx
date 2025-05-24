@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,6 +25,7 @@ import Signup from "./pages/Signup";
 import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin"; 
 import { AppProvider, useAppContext } from "./contexts/AppContext";
+import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 
 // Protected route component to handle role-based access and authentication
 const ProtectedRoute = ({ 
@@ -113,6 +113,7 @@ const AppRoutes = () => {
       <Route path="/login" element={<PublicRoute element={<Login />} />} />
       <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/confirm" element={<EmailConfirmation />} />
       
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
