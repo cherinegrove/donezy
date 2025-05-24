@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -106,10 +105,10 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       form.reset();
       onOpenChange(false);
 
-      // Navigate to the new project after a brief delay to ensure state is updated
+      // Navigate to the new project with a longer delay to ensure state is updated
       setTimeout(() => {
         navigate(`/projects/${projectId}`);
-      }, 100);
+      }, 200);
     } catch (error) {
       console.error("Error creating project:", error);
       toast({

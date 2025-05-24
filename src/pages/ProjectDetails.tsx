@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Project } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,10 +15,19 @@ import { ConvertToTemplateDialog } from "@/components/projects/ConvertToTemplate
 
 export default function ProjectDetails() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { projects, clients, tasks, users, timeEntries } = useAppContext();
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [project, setProject] = useState<Project | null>(null);
   
-  const project = projects.find(p => p.id === id);
+  // Update project when projects state changes
+  useEffect(() => {
+    console.log("Projects state updated:", projects.length);
+    const foundProject = projects.find(p => p.id === id);
+    console.log("Looking for project with ID:", id, "Found:", foundProject);
+    setProject(foundProject || null);
+  }, [projects, id]);
+  
   const client = project ? clients.find(c => c.id === project.clientId) : null;
 
   const projectTasks = tasks.filter(task => task.projectId === id);
@@ -27,13 +36,28 @@ export default function ProjectDetails() {
     .filter(entry => entry.projectId === id)
     .reduce((sum, entry) => sum + entry.duration, 0);
 
-  // Show loading or error state if project is not found
-  if (!project) {
+  // Show loading state while searching for project
+  if (!project && projects.length > 0) {
     return (
       <div className="p-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Project Not Found</h1>
-          <p className="text-muted-foreground">The requested project could not be found.</p>
+          <p className="text-muted-foreground mb-4">The requested project could not be found.</p>
+          <Button onClick={() => navigate('/projects')}>
+            Back to Projects
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state while projects are being loaded
+  if (!project && projects.length === 0) {
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Loading...</h1>
+          <p className="text-muted-foreground">Loading project details...</p>
         </div>
       </div>
     );
