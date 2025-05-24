@@ -5,6 +5,9 @@ import { useAppContext } from "@/contexts/AppContext";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminActivity from "@/components/admin/AdminActivity";
 import AdminTeams from "@/components/admin/AdminTeams";
+import { AddUserCard } from "@/components/admin/AddUserCard";
+import { TaskStatusManager } from "@/components/admin/TaskStatusManager";
+import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AreaChart, BarChart3, Box, Database, Download, Settings, ShieldAlert, Users } from "lucide-react";
@@ -12,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const { currentUser } = useAppContext();
+  const { currentUser, users } = useAppContext();
 
   // Only admin should access this page
   if (currentUser?.role !== "admin") {
@@ -27,6 +30,11 @@ export default function Admin() {
       </div>
     );
   }
+
+  // Calculate seat usage for dashboard
+  const totalSeats = 10; // This would come from subscription data
+  const usedSeats = users.length;
+  const seatUsagePercentage = (usedSeats / totalSeats) * 100;
 
   return (
     <div className="space-y-6">
@@ -48,6 +56,7 @@ export default function Admin() {
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="activity">Activity Log</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
+          <TabsTrigger value="subscription">Subscription</TabsTrigger>
         </TabsList>
 
         {/* Dashboard overview tab */}
@@ -59,22 +68,26 @@ export default function Admin() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <div className="text-2xl font-bold">24</div>
+                  <div className="text-2xl font-bold">{users.length}</div>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">+12% from last month</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {usedSeats} of {totalSeats} seats used
+                </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+                <CardTitle className="text-sm font-medium">Seat Usage</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <div className="text-2xl font-bold">18</div>
+                  <div className="text-2xl font-bold">{Math.round(seatUsagePercentage)}%</div>
                   <Box className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">+3 new this week</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {seatUsagePercentage >= 80 ? "Near capacity" : "Available capacity"}
+                </p>
               </CardContent>
             </Card>
             <Card>
@@ -104,6 +117,13 @@ export default function Admin() {
               </CardContent>
             </Card>
           </div>
+          
+          {/* Add User Cards */}
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+            <AddUserCard />
+          </div>
+
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
@@ -149,40 +169,48 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="system" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-primary" />
-                System Settings
-              </CardTitle>
-              <CardDescription>Configure global system settings</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <h3 className="font-medium">Maintenance Mode</h3>
-                  <p className="text-sm text-muted-foreground">When enabled, only administrators can access the system.</p>
-                  <div className="flex items-center justify-end">
-                    <Button variant="outline">Enable Maintenance Mode</Button>
+          <div className="space-y-6">
+            <TaskStatusManager />
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-primary" />
+                  System Settings
+                </CardTitle>
+                <CardDescription>Configure global system settings</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4">
+                  <div className="grid gap-2">
+                    <h3 className="font-medium">Maintenance Mode</h3>
+                    <p className="text-sm text-muted-foreground">When enabled, only administrators can access the system.</p>
+                    <div className="flex items-center justify-end">
+                      <Button variant="outline">Enable Maintenance Mode</Button>
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <h3 className="font-medium">Database Backup</h3>
+                    <p className="text-sm text-muted-foreground">Create a full backup of all system data.</p>
+                    <div className="flex items-center justify-end">
+                      <Button variant="outline">Generate Backup</Button>
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <h3 className="font-medium">System Cache</h3>
+                    <p className="text-sm text-muted-foreground">Clear system cache to resolve potential issues.</p>
+                    <div className="flex items-center justify-end">
+                      <Button variant="outline">Clear Cache</Button>
+                    </div>
                   </div>
                 </div>
-                <div className="grid gap-2">
-                  <h3 className="font-medium">Database Backup</h3>
-                  <p className="text-sm text-muted-foreground">Create a full backup of all system data.</p>
-                  <div className="flex items-center justify-end">
-                    <Button variant="outline">Generate Backup</Button>
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <h3 className="font-medium">System Cache</h3>
-                  <p className="text-sm text-muted-foreground">Clear system cache to resolve potential issues.</p>
-                  <div className="flex items-center justify-end">
-                    <Button variant="outline">Clear Cache</Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="subscription" className="space-y-6">
+          <SubscriptionManager />
         </TabsContent>
       </Tabs>
     </div>

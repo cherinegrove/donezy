@@ -12,7 +12,6 @@ import {
   Users,
   Briefcase,
   ListTodo,
-  Settings,
   ShieldAlert,
   StickyNote,
 } from "lucide-react";
@@ -217,23 +216,6 @@ export function AppSidebar() {
             >
               <BarChart className="h-4 w-4" />
               {!collapsed && <span>Reports</span>}
-            </NavLink>
-            
-            {/* Settings */}
-            <NavLink
-              to="/settings"
-              onClick={handleNavClick}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                )
-              }
-            >
-              <Settings className="h-4 w-4" />
-              {!collapsed && <span>Settings</span>}
             </NavLink>
             
             {/* Admin Dashboard - only shown to admin users */}
