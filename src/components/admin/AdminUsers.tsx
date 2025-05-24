@@ -16,7 +16,7 @@ import { AddUserCard } from "@/components/admin/AddUserCard";
 import { User } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Edit } from "lucide-react";
+import { Search, Edit } from "lucide-react";
 
 export default function AdminUsers() {
   const { users, clients } = useAppContext();
@@ -24,7 +24,7 @@ export default function AdminUsers() {
   const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  // Filter users based on search term
+  // Filter users based on search term (include both regular users and guests)
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -44,6 +44,13 @@ export default function AdminUsers() {
       case "client": return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
       default: return "bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-400";
     }
+  };
+
+  const getUserTypeBadge = (user: User) => {
+    if (user.is_guest) {
+      return <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">Guest</Badge>;
+    }
+    return <Badge className={getRoleBadgeColor(user.role)} variant="outline">{user.role}</Badge>;
   };
 
   // Find client name for user if they have a clientId
@@ -78,7 +85,7 @@ export default function AdminUsers() {
           <TableHeader>
             <TableRow>
               <TableHead>User</TableHead>
-              <TableHead>Role</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Client</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -99,13 +106,14 @@ export default function AdminUsers() {
                         {user.jobTitle && (
                           <p className="text-xs text-muted-foreground">{user.jobTitle}</p>
                         )}
+                        {user.is_guest && (
+                          <p className="text-xs text-purple-600">Guest User</p>
+                        )}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getRoleBadgeColor(user.role)} variant="outline">
-                      {user.role}
-                    </Badge>
+                    {getUserTypeBadge(user)}
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{getClientName(user.clientId)}</TableCell>

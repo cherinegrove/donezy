@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { AreaChart, BarChart3, Box, Database, Download, Settings, ShieldAlert, Users, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Clients from "@/pages/Clients";
-import { GuestManagement } from "@/components/admin/GuestManagement";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -154,20 +153,7 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="user-management" className="space-y-6">
-          <Tabs defaultValue="users" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="users">Users</TabsTrigger>
-              <TabsTrigger value="guests">Guest Management</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="users">
-              <AdminUsers />
-            </TabsContent>
-            
-            <TabsContent value="guests">
-              <GuestManagement />
-            </TabsContent>
-          </Tabs>
+          <AdminUsers />
         </TabsContent>
 
         <TabsContent value="subscription" className="space-y-6">
