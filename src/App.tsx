@@ -51,7 +51,7 @@ function App() {
             name: profileData.display_name || session.user.email?.split('@')[0] || 'User',
             email: session.user.email || '',
             avatar: profileData.avatar_url,
-            role: 'admin', // Default role, you can modify this based on your needs
+            role: 'admin',
             teamIds: [],
             permissions: {
               projects: 'admin',
@@ -115,7 +115,7 @@ function App() {
             name: profileData.display_name || session.user.email?.split('@')[0] || 'User',
             email: session.user.email || '',
             avatar: profileData.avatar_url,
-            role: 'admin', // Default role, you can modify this based on your needs
+            role: 'admin',
             teamIds: [],
             permissions: {
               projects: 'admin',
