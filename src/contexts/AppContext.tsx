@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useContext,
@@ -122,7 +121,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       
       if (data) {
-        setUsers(data.map(user => ({
+        const mappedUsers = data.map(user => ({
           id: user.id,
           name: user.name,
           email: user.email,
@@ -145,7 +144,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           is_guest: user.is_guest,
           guest_of_user_id: user.guest_of_user_id,
           guest_permissions: safeParseJson(user.guest_permissions, { canViewTasks: true, canViewProjects: true })
-        })));
+        }));
+        setUsers(mappedUsers);
       }
     } catch (error) {
       console.error("Error loading users:", error);
@@ -175,6 +175,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         if (userError && userError.code !== 'PGRST116') {
           console.error("Error loading user data:", userError);
+          
+          // If no user record exists, create one for the account owner
+          if (userError.code === 'PGRST116') {
+            console.log("Creating user record for account owner");
+            await addUser({
+              name: data.display_name || session?.user?.email?.split('@')[0] || 'Admin User',
+              email: session?.user?.email || '',
+              avatar: data.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${session?.user?.email}`,
+              role: 'admin',
+              teamIds: [],
+              currency: 'USD',
+              is_guest: false,
+              permissions: {
+                canViewClients: true,
+                canEditClients: true,
+                canViewProjects: true,
+                canEditProjects: true,
+                canViewTasks: true,
+                canEditTasks: true,
+                canViewReports: true,
+                canManageUsers: true
+              },
+              notificationPreferences: {
+                detailedSettings: {
+                  inApp: {
+                    newTasks: true,
+                    taskUpdates: true,
+                    newComments: true,
+                    mentions: true,
+                    projectUpdates: false,
+                    timeTracking: false
+                  },
+                  email: {
+                    newTasks: false,
+                    taskUpdates: false,
+                    newComments: true,
+                    mentions: true,
+                    projectUpdates: false,
+                    timeTracking: false
+                  }
+                }
+              }
+            });
+            
+            // Reload users after creating the account owner
+            setTimeout(() => loadUsers(), 1000);
+          }
         }
 
         setCurrentUser({
@@ -385,13 +432,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [session?.user]);
 
-  // ... keep existing code (other functions remain the same for now - they will use local state)
-  const updateUser = useCallback((userId: string, updates: Partial<User>) => {
-    setUsers(prev =>
-      prev.map(user => (user.id === userId ? { ...user, ...updates } : user))
-    );
-  }, []);
+  // Update user function - now with Supabase persistence
+  const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
+    if (!session?.user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          name: updates.name,
+          email: updates.email,
+          avatar: updates.avatar,
+          role: updates.role,
+          team_ids: updates.teamIds,
+          client_id: updates.clientId,
+          hourly_rate: updates.hourlyRate,
+          monthly_rate: updates.monthlyRate,
+          billing_rate: updates.billingRate,
+          currency: updates.currency,
+          job_title: updates.jobTitle,
+          client_role: updates.clientRole,
+          phone: updates.phone,
+          employment_type: updates.employmentType,
+          billing_type: updates.billingType,
+          permissions: updates.permissions,
+          manager_id: updates.managerId,
+          notification_preferences: updates.notificationPreferences,
+          is_guest: updates.is_guest,
+          guest_of_user_id: updates.guest_of_user_id,
+          guest_permissions: updates.guest_permissions
+        })
+        .eq('id', userId)
+        .eq('auth_user_id', session.user.id);
 
+      if (error) {
+        console.error("Error updating user:", error);
+        return;
+      }
+
+      // Update local state
+      setUsers(prev =>
+        prev.map(user => (user.id === userId ? { ...user, ...updates } : user))
+      );
+      
+      // Update current user if it's the same user
+      if (currentUser && currentUser.id === userId) {
+        setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
+      }
+    } catch (error) {
+      console.error("Error updating user:", error);
+    }
+  }, [session?.user, currentUser]);
+
+  // ... keep existing code (other functions remain the same for now - they will use local state)
   const deleteUser = useCallback((userId: string) => {
     setUsers(prev => prev.filter(user => user.id !== userId));
   }, []);
@@ -892,7 +985,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     console.log("Updating notification preferences:", preferences);
   }, []);
 
-  const contextValue: AppContextType = {
+  const value: AppContextType = {
     currentUser,
     session,
     users,
@@ -982,7 +1075,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={contextValue}>
+    <AppContext.Provider value={value}>
       {children}
     </AppContext.Provider>
   );

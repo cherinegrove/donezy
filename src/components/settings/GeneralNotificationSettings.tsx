@@ -4,179 +4,119 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table";
 
-interface NotificationSettingsProps {
+interface GeneralNotificationSettingsProps {
   userId: string;
 }
 
-export function GeneralNotificationSettings({ userId }: NotificationSettingsProps) {
+export function GeneralNotificationSettings({ userId }: GeneralNotificationSettingsProps) {
   const { getUserById, updateUser } = useAppContext();
   const { toast } = useToast();
   
   const user = getUserById(userId);
   
-  // Default notification preferences
   const defaultPreferences = {
-    clients: {
-      new: true,
-      updated: true
+    inApp: {
+      newTasks: true,
+      taskUpdates: true,
+      newComments: true,
+      mentions: true,
+      projectUpdates: false,
+      timeTracking: false
     },
-    projects: {
-      new: true,
-      updated: true
-    },
-    tasks: {
-      new: true,
-      updated: false
-    },
-    subtasks: {
-      new: true,
-      updated: false
-    },
-    mentions: {
-      new: true,
-      updated: false
+    email: {
+      newTasks: false,
+      taskUpdates: false,
+      newComments: true,
+      mentions: true,
+      projectUpdates: false,
+      timeTracking: false
     }
   };
   
-  const [settings, setSettings] = useState(
-    user?.notificationPreferences?.notificationSettings || defaultPreferences
+  const [preferences, setPreferences] = useState(
+    user?.notificationPreferences?.detailedSettings || defaultPreferences
   );
   
   if (!user) {
     return null;
   }
   
-  const handleToggleSetting = (category: string, action: 'new' | 'updated') => {
-    setSettings(prev => ({
+  const handlePreferenceChange = (type: 'inApp' | 'email', key: string) => {
+    setPreferences(prev => ({
       ...prev,
-      [category]: {
-        ...prev[category as keyof typeof prev],
-        [action]: !prev[category as keyof typeof prev][action]
+      [type]: {
+        ...prev[type],
+        [key]: !prev[type][key as keyof typeof prev.inApp]
       }
     }));
   };
   
-  const handleSave = () => {
-    updateUser(userId, {
+  const handleSave = async () => {
+    await updateUser(userId, {
       notificationPreferences: {
         ...user.notificationPreferences,
-        notificationSettings: settings
+        detailedSettings: preferences
       }
     });
     
     toast({
       title: "Success",
-      description: "Notification preferences saved successfully"
+      description: "Notification preferences updated successfully"
     });
   };
+  
+  const notificationTypes = [
+    { key: 'newTasks', label: 'New tasks assigned to me' },
+    { key: 'taskUpdates', label: 'Task status changes' },
+    { key: 'newComments', label: 'New comments on my tasks' },
+    { key: 'mentions', label: 'When I am mentioned' },
+    { key: 'projectUpdates', label: 'Project updates' },
+    { key: 'timeTracking', label: 'Time tracking reminders' }
+  ];
   
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Notification Settings</CardTitle>
+        <CardTitle>Notification Preferences</CardTitle>
         <CardDescription>
-          Configure when and how you receive notifications
+          Choose how you want to be notified about different events
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Category</TableHead>
-              <TableHead>New</TableHead>
-              <TableHead>Updated</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow>
-              <TableCell>Clients</TableCell>
-              <TableCell>
-                <Checkbox 
-                  checked={settings.clients.new} 
-                  onCheckedChange={() => handleToggleSetting('clients', 'new')}
-                />
-              </TableCell>
-              <TableCell>
-                <Checkbox 
-                  checked={settings.clients.updated} 
-                  onCheckedChange={() => handleToggleSetting('clients', 'updated')}
-                />
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Projects</TableCell>
-              <TableCell>
-                <Checkbox 
-                  checked={settings.projects.new} 
-                  onCheckedChange={() => handleToggleSetting('projects', 'new')}
-                />
-              </TableCell>
-              <TableCell>
-                <Checkbox 
-                  checked={settings.projects.updated} 
-                  onCheckedChange={() => handleToggleSetting('projects', 'updated')}
-                />
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Tasks</TableCell>
-              <TableCell>
-                <Checkbox 
-                  checked={settings.tasks.new} 
-                  onCheckedChange={() => handleToggleSetting('tasks', 'new')}
-                />
-              </TableCell>
-              <TableCell>
-                <Checkbox 
-                  checked={settings.tasks.updated} 
-                  onCheckedChange={() => handleToggleSetting('tasks', 'updated')}
-                />
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Subtasks</TableCell>
-              <TableCell>
-                <Checkbox 
-                  checked={settings.subtasks.new} 
-                  onCheckedChange={() => handleToggleSetting('subtasks', 'new')}
-                />
-              </TableCell>
-              <TableCell>
-                <Checkbox 
-                  checked={settings.subtasks.updated} 
-                  onCheckedChange={() => handleToggleSetting('subtasks', 'updated')}
-                />
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Mentions</TableCell>
-              <TableCell>
-                <Checkbox 
-                  checked={settings.mentions.new} 
-                  onCheckedChange={() => handleToggleSetting('mentions', 'new')}
-                />
-              </TableCell>
-              <TableCell>
-                <Checkbox 
-                  checked={settings.mentions.updated} 
-                  onCheckedChange={() => handleToggleSetting('mentions', 'updated')}
-                />
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="font-medium">Notification Type</div>
+          <div className="font-medium text-center">In-App</div>
+          <div className="font-medium text-center">Email</div>
+        </div>
         
-        <div>
+        <Separator />
+        
+        {notificationTypes.map((type, index) => (
+          <div key={type.key}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+              <Label className="text-sm">{type.label}</Label>
+              <div className="flex justify-center">
+                <Checkbox
+                  checked={preferences.inApp[type.key as keyof typeof preferences.inApp]}
+                  onCheckedChange={() => handlePreferenceChange('inApp', type.key)}
+                />
+              </div>
+              <div className="flex justify-center">
+                <Checkbox
+                  checked={preferences.email[type.key as keyof typeof preferences.email]}
+                  onCheckedChange={() => handlePreferenceChange('email', type.key)}
+                />
+              </div>
+            </div>
+            {index < notificationTypes.length - 1 && <Separator className="mt-4" />}
+          </div>
+        ))}
+        
+        <div className="pt-4">
           <Button onClick={handleSave}>Save Preferences</Button>
         </div>
       </CardContent>
