@@ -35,7 +35,6 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
         name,
         description,
         memberIds: [],
-        projectIds: [],
       });
 
       toast({
