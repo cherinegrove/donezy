@@ -1,7 +1,6 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { useAppContext } from "@/contexts/AppContext";
-import { format } from "date-fns";
 import {
   Table,
   TableBody,
@@ -10,207 +9,116 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { RecordActions } from "@/components/common/RecordActions";
-import { EditTimeEntryDialog } from "@/components/time/EditTimeEntryDialog";
-import { TimeEntryStatus } from "@/types";
-import { useToast } from "@/hooks/use-toast";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription,
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Edit, Trash2 } from "lucide-react";
+import { format } from "date-fns";
+import { TimeEntry, TimeEntryStatus } from "@/types";
 
 interface TimeEntryTableProps {
-  taskId: string;
+  taskId?: string;
+  projectId?: string;
+  userId?: string;
 }
 
-export function TimeEntryTable({ taskId }: TimeEntryTableProps) {
-  const { timeEntries, currentUser, updateTimeEntryStatus, deleteTimeEntry } = useAppContext();
-  const [selectedTimeEntry, setSelectedTimeEntry] = useState<string | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeclineDialogOpen, setIsDeclineDialogOpen] = useState(false);
-  const [declineReason, setDeclineReason] = useState("");
-  const [entryToDecline, setEntryToDecline] = useState<string | null>(null);
-  const { toast } = useToast();
+export function TimeEntryTable({ taskId, projectId, userId }: TimeEntryTableProps) {
+  const { timeEntries, deleteTimeEntry, updateTimeEntryStatus } = useAppContext();
+
+  let filteredEntries = timeEntries;
   
-  const taskTimeEntries = timeEntries.filter(entry => entry.taskId === taskId);
-  
-  const handleEditTimeEntry = (entryId: string) => {
-    setSelectedTimeEntry(entryId);
-    setIsEditDialogOpen(true);
-  };
-  
-  const handleApproveTimeEntry = (entryId: string, billable: boolean = true) => {
-    if (currentUser) {
-      const status = billable ? "approved-billable" : "approved-non-billable";
-      updateTimeEntryStatus(entryId, status, currentUser.id);
-      
-      toast({
-        title: "Time Entry Approved",
-        description: `The time entry has been marked as ${billable ? 'billable' : 'non-billable'}.`,
-      });
-    }
-  };
-  
-  const handleDeleteTimeEntry = (entryId: string) => {
-    deleteTimeEntry(entryId);
-    
-    toast({
-      title: "Time Entry Deleted",
-      description: "The time entry has been deleted.",
-      variant: "destructive",
-    });
-  };
-  
-  const openDeclineDialog = (entryId: string) => {
-    setEntryToDecline(entryId);
-    setIsDeclineDialogOpen(true);
-  };
-  
-  const handleDeclineTimeEntry = () => {
-    if (currentUser && entryToDecline) {
-      updateTimeEntryStatus(entryToDecline, "declined", currentUser.id, declineReason);
-      
-      toast({
-        title: "Time Entry Declined",
-        description: "The time entry has been declined.",
-      });
-      
-      setIsDeclineDialogOpen(false);
-      setDeclineReason("");
-      setEntryToDecline(null);
-    }
-  };
-  
-  const getStatusBadge = (status: TimeEntryStatus) => {
-    switch (status) {
-      case "approved-billable":
-        return <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Approved</Badge>;
-      case "approved-non-billable":
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">Approved (Non-billable)</Badge>;
-      case "declined":
-        return <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">Declined</Badge>;
-      case "pending":
-      default:
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">Pending</Badge>;
-    }
-  };
-  
-  const getSelectedTimeEntry = () => {
-    return timeEntries.find(entry => entry.id === selectedTimeEntry);
-  };
-  
-  if (taskTimeEntries.length === 0) {
-    return (
-      <div className="text-center py-6 text-muted-foreground">
-        No time entries for this task
-      </div>
-    );
+  if (taskId) {
+    filteredEntries = filteredEntries.filter(entry => entry.taskId === taskId);
   }
-  
-  const isAdminOrManager = currentUser?.role === 'admin' || currentUser?.role === 'manager';
-  
+  if (projectId) {
+    filteredEntries = filteredEntries.filter(entry => entry.projectId === projectId);
+  }
+  if (userId) {
+    filteredEntries = filteredEntries.filter(entry => entry.userId === userId);
+  }
+
+  const getStatusColor = (status: TimeEntryStatus) => {
+    switch (status) {
+      case 'approved':
+      case 'approved-billable':
+        return 'bg-green-100 text-green-800';
+      case 'approved-non-billable':
+        return 'bg-blue-100 text-blue-800';
+      case 'rejected':
+      case 'declined':
+        return 'bg-red-100 text-red-800';
+      case 'pending':
+      default:
+        return 'bg-yellow-100 text-yellow-800';
+    }
+  };
+
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  };
+
+  const handleStatusChange = (entryId: string, newStatus: TimeEntryStatus) => {
+    updateTimeEntryStatus(entryId, newStatus);
+  };
+
   return (
-    <>
+    <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Date</TableHead>
             <TableHead>Duration</TableHead>
-            <TableHead>Notes</TableHead>
+            <TableHead>Description</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="text-right">Billable</TableHead>
-            <TableHead className="w-[80px]"></TableHead>
+            <TableHead>Billable</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {taskTimeEntries.map(entry => {
-            const startDate = new Date(entry.startTime);
-            const durationHours = Math.floor(entry.duration / 60);
-            const durationMinutes = entry.duration % 60;
-            const canEdit = entry.userId === currentUser?.id || isAdminOrManager;
-            
-            return (
+          {filteredEntries.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                No time entries found
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredEntries.map((entry) => (
               <TableRow key={entry.id}>
-                <TableCell>{format(startDate, "MMM d, yyyy")}</TableCell>
-                <TableCell>{`${durationHours}h ${durationMinutes}m`}</TableCell>
-                <TableCell>{entry.notes || "-"}</TableCell>
                 <TableCell>
-                  {getStatusBadge(entry.status)}
-                  {entry.status === "declined" && entry.declineReason && (
-                    <div className="text-xs text-red-500 mt-1">
-                      Reason: {entry.declineReason}
-                    </div>
-                  )}
+                  {format(new Date(entry.startTime), "MMM d, yyyy")}
                 </TableCell>
-                <TableCell className="text-right">{entry.billable ? "Yes" : "No"}</TableCell>
+                <TableCell>{formatDuration(entry.duration)}</TableCell>
+                <TableCell>{entry.description || entry.notes || "-"}</TableCell>
                 <TableCell>
-                  <RecordActions
-                    recordId={entry.id}
-                    recordType="Time Entry"
-                    recordName={`${format(startDate, "MMM d, yyyy")} (${durationHours}h ${durationMinutes}m)`}
-                    onEdit={() => handleEditTimeEntry(entry.id)}
-                    onDelete={() => handleDeleteTimeEntry(entry.id)}
-                    onApproveBillable={() => handleApproveTimeEntry(entry.id, true)}
-                    onApproveNonBillable={() => handleApproveTimeEntry(entry.id, false)}
-                    onDecline={() => openDeclineDialog(entry.id)}
-                    disableEdit={!canEdit}
-                    disableDelete={!canEdit}
-                    showApproveDecline={isAdminOrManager && entry.status === "pending"}
-                  />
+                  <Badge className={getStatusColor(entry.status || 'pending')}>
+                    {entry.status || 'pending'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={entry.billable ? "default" : "secondary"}>
+                    {entry.billable ? "Billable" : "Non-billable"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => deleteTimeEntry(entry.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
-            );
-          })}
+            ))
+          )}
         </TableBody>
       </Table>
-      
-      <EditTimeEntryDialog
-        isOpen={isEditDialogOpen}
-        onClose={() => {
-          setIsEditDialogOpen(false);
-          setSelectedTimeEntry(null);
-        }}
-        timeEntry={getSelectedTimeEntry()}
-      />
-      
-      <Dialog open={isDeclineDialogOpen} onOpenChange={setIsDeclineDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Decline Time Entry</DialogTitle>
-            <DialogDescription>
-              Please provide a reason for declining this time entry.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Textarea
-              placeholder="Reason for declining"
-              value={declineReason}
-              onChange={(e) => setDeclineReason(e.target.value)}
-              className="min-h-[100px]"
-              required
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeclineDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDeclineTimeEntry}
-              disabled={!declineReason.trim()}
-            >
-              Decline Entry
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+    </div>
   );
 }

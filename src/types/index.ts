@@ -143,6 +143,7 @@ export interface TimeEntry {
   notes?: string;
   manuallyAdded?: boolean;
   declineReason?: string;
+  edited?: boolean;
 }
 
 export interface Message {
@@ -235,6 +236,14 @@ export interface ClientFile {
   name: string;
   sizeKb: number;
   uploadedAt: string;
+}
+
+export interface CustomField {
+  id: string;
+  name: string;
+  type: 'text' | 'number' | 'select' | 'date' | 'checkbox';
+  options?: string[];
+  required: boolean;
 }
 
 export type NotificationTimeframe = 'same-day' | '1-day' | '3-days' | '1-week';

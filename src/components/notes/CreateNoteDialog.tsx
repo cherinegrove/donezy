@@ -1,12 +1,33 @@
-
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useAppContext } from "@/contexts/AppContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
+
+const noteSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  content: z.string().min(1, "Content is required"),
+});
+
+type NoteFormData = z.infer<typeof noteSchema>;
 
 interface CreateNoteDialogProps {
   open: boolean;
@@ -17,70 +38,72 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
   const { addNote, currentUser } = useAppContext();
   const { toast } = useToast();
 
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const form = useForm<NoteFormData>({
+    resolver: zodResolver(noteSchema),
+    defaultValues: {
+      title: "",
+      content: "",
+    },
+  });
 
-  const handleSave = () => {
-    if (!title.trim() && !content.trim()) {
-      toast({
-        title: "Error",
-        description: "Please add a title or content to save the note",
-        variant: "destructive",
-      });
-      return;
-    }
+  const onSubmit = (data: NoteFormData) => {
+    if (!currentUser) return;
 
     addNote({
-      title: title || "Untitled Note",
-      content,
-      userId: currentUser?.id || ""
+      ...data,
+      userId: currentUser.id,
     });
 
     toast({
-      title: "Success",
-      description: "Note saved successfully",
+      title: "Note created",
+      description: `${data.title} has been created successfully.`,
     });
 
-    setTitle("");
-    setContent("");
+    form.reset();
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Create New Note</DialogTitle>
+          <DialogDescription>
+            Create a new personal note.
+          </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                placeholder="Note Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  placeholder="Note Title"
+                  value={form.watch("title")}
+                  onChange={(e) => form.setValue("title", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="content">Content</Label>
+                <Textarea
+                  id="content"
+                  placeholder="Write your note here..."
+                  value={form.watch("content")}
+                  onChange={(e) => form.setValue("content", e.target.value)}
+                  rows={5}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="content">Content</Label>
-              <Textarea
-                id="content"
-                placeholder="Write your note here..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={5}
-              />
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Create Note</Button>
             </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave}>Save Note</Button>
-        </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

@@ -1,43 +1,59 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
-import { useAppContext } from "@/contexts/AppContext";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { MultiSelect } from "@/components/ui/multi-select";
+import * as z from "zod";
+import { useAppContext } from "@/contexts/AppContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 const clientSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  contactName: z.string().min(2, { message: "Contact name must be at least 2 characters" }),
-  email: z.string().email({ message: "Invalid email address" }),
-  phone: z.string().min(5, { message: "Phone number is required" }),
+  name: z.string().min(1, "Client name is required"),
+  contactName: z.string().optional(),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().optional(),
   address: z.string().optional(),
   website: z.string().optional(),
-  billableRate: z.number().positive({ message: "Rate must be positive" }),
-  currency: z.string().min(1, { message: "Currency is required" }),
-  status: z.enum(['active', 'inactive']).default('active')
+  billableRate: z.number().min(0).optional(),
+  currency: z.string().optional(),
+  status: z.enum(["active", "inactive"]).default("active"),
 });
 
-type ClientFormValues = z.infer<typeof clientSchema>;
+type ClientFormData = z.infer<typeof clientSchema>;
 
 interface AddClientDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
-  const { addClient, users } = useAppContext();
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  
-  // Filter to only get team members (non-client users)
-  const teamMembers = users.filter(user => user.clientId === undefined);
+export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
+  const { addClient } = useAppContext();
+  const { toast } = useToast();
 
-  const form = useForm<ClientFormValues>({
+  const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
       name: "",
@@ -46,217 +62,177 @@ export function AddClientDialog({ isOpen, onClose }: AddClientDialogProps) {
       phone: "",
       address: "",
       website: "",
-      billableRate: 100,
+      billableRate: 0,
       currency: "USD",
-      status: "active"
-    }
+      status: "active",
+    },
   });
 
-  const onSubmit = (data: ClientFormValues) => {
-    // Make sure all required fields from the Client type are provided
+  const onSubmit = (data: ClientFormData) => {
     addClient({
-      name: data.name,
-      contactName: data.contactName,
-      email: data.email,
-      phone: data.phone,
-      address: data.address,
-      website: data.website,
-      billableRate: data.billableRate,
-      currency: data.currency,
-      status: data.status,
-      // Instead of teamIds, use memberIds
-      memberIds: selectedMembers.length > 0 ? selectedMembers : undefined
+      ...data,
+      createdAt: new Date().toISOString(),
+      memberIds: [],
     });
-    
+
+    toast({
+      title: "Client added",
+      description: `${data.name} has been added successfully.`,
+    });
+
     form.reset();
-    setSelectedMembers([]);
-    onClose();
+    onOpenChange(false);
   };
 
-  // Convert users to options for MultiSelect
-  const memberOptions = teamMembers.map(member => ({
-    value: member.id,
-    label: member.name
-  }));
-
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[550px]">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Add New Client</DialogTitle>
+          <DialogDescription>
+            Create a new client profile with contact and billing information.
+          </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Client Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter client name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="contactName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contact Person</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter contact name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="client@company.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="+1 (555) 123-4567" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
             <FormField
               control={form.control}
-              name="website"
+              name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Website (Optional)</FormLabel>
+                  <FormLabel>Client Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://company.com" {...field} />
+                    <Input placeholder="Acme Corp" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
+            <FormField
+              control={form.control}
+              name="contactName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input placeholder="john.doe@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input placeholder="555-123-4567" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address (Optional)</FormLabel>
+                  <FormLabel>Address</FormLabel>
                   <FormControl>
-                    <Input placeholder="123 Main St, City, State" {...field} />
+                    <Textarea placeholder="123 Main St" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="billableRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Billing Rate</FormLabel>
+            <FormField
+              control={form.control}
+              name="website"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Website</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://www.example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="billableRate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Billable Rate</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="100" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="currency"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Currency</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field}
-                        onChange={e => field.onChange(Number(e.target.value))}
-                      />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a currency" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="currency"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Currency</FormLabel>
-                    <FormControl>
-                      <Input placeholder="USD" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
+                    <SelectContent>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="status"
               render={({ field }) => (
-                <FormItem className="space-y-3">
+                <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex space-x-4"
-                    >
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="active" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Active
-                        </FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="inactive" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Inactive
-                        </FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
             
-            <div className="space-y-2">
-              <Label>Assign Team Members</Label>
-              <MultiSelect
-                options={memberOptions}
-                selectedValues={selectedMembers}
-                onValueChange={setSelectedMembers}
-                placeholder="Select team members"
-              />
-            </div>
-            
-            <div className="flex justify-end space-x-3 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
               <Button type="submit">Add Client</Button>

@@ -1,208 +1,206 @@
-
-import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { useAppContext } from "@/contexts/AppContext";
+import { Project, TaskStatus } from "@/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Project } from "@/types";
+
+const projectSchema = z.object({
+  name: z.string().min(1, "Project name is required"),
+  description: z.string().min(1, "Description is required"),
+  status: z.enum(["todo", "in-progress", "done"]),
+  startDate: z.string().optional(),
+  dueDate: z.string().optional(),
+  allocatedHours: z.number().min(0).optional(),
+});
+
+type ProjectFormData = z.infer<typeof projectSchema>;
 
 interface EditProjectDialogProps {
   project: Project;
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
 }
 
-export function EditProjectDialog({ project, isOpen, onClose }: EditProjectDialogProps) {
-  const { updateProject, clients, teams } = useAppContext();
+export function EditProjectDialog({ project, open, onClose }: EditProjectDialogProps) {
+  const { updateProject } = useAppContext();
   const { toast } = useToast();
 
-  const [name, setName] = useState(project.name);
-  const [description, setDescription] = useState(project.description);
-  const [status, setStatus] = useState<'todo' | 'in-progress' | 'done'>(
-    project.status === 'backlog' ? 'todo' : project.status as 'todo' | 'in-progress' | 'done'
-  );
-  const [serviceType, setServiceType] = useState(project.serviceType);
-  const [startDate, setStartDate] = useState(project.startDate || "");
-  const [dueDate, setDueDate] = useState(project.dueDate || "");
-  const [allocatedHours, setAllocatedHours] = useState(project.allocatedHours || 0);
-  const [selectedTeams, setSelectedTeams] = useState<string[]>(project.teamIds || []);
+  const form = useForm<ProjectFormData>({
+    resolver: zodResolver(projectSchema),
+    defaultValues: {
+      name: project.name,
+      description: project.description,
+      status: project.status === 'backlog' ? 'todo' : project.status,
+      startDate: project.startDate,
+      dueDate: project.dueDate,
+      allocatedHours: project.allocatedHours,
+    },
+  });
 
-  // Reset form when project changes
   useEffect(() => {
-    setName(project.name);
-    setDescription(project.description);
-    setStatus(project.status === 'backlog' ? 'todo' : project.status as 'todo' | 'in-progress' | 'done');
-    setServiceType(project.serviceType);
-    setStartDate(project.startDate || "");
-    setDueDate(project.dueDate || "");
-    setAllocatedHours(project.allocatedHours || 0);
-    setSelectedTeams(project.teamIds || []);
-  }, [project]);
+    if (open) {
+      form.reset({
+        name: project.name,
+        description: project.description,
+        status: project.status === 'backlog' ? 'todo' : project.status,
+        startDate: project.startDate,
+        dueDate: project.dueDate,
+        allocatedHours: project.allocatedHours,
+      });
+    }
+  }, [form, open, project]);
 
-  const handleSave = () => {
-    updateProject(project.id, {
-      name,
-      description,
-      status,
-      serviceType,
-      startDate,
-      dueDate,
-      allocatedHours,
-      teamIds: selectedTeams,
-    });
+  const onSubmit = (data: ProjectFormData) => {
+    updateProject(project.id, data);
 
     toast({
-      title: "Project Updated",
-      description: "Project has been updated successfully",
+      title: "Project updated",
+      description: `${data.name} has been updated successfully.`,
     });
 
     onClose();
   };
 
-  const handleTeamToggle = (teamId: string) => {
-    setSelectedTeams(prev => 
-      prev.includes(teamId) 
-        ? prev.filter(id => id !== teamId)
-        : [...prev, teamId]
-    );
-  };
-
-  const client = clients.find(c => c.id === project.clientId);
-
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Edit Project</DialogTitle>
+          <DialogDescription>
+            Update project information and settings.
+          </DialogDescription>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Project Name</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Project Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter project name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
+            
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Enter project description" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Client</Label>
-            <div className="p-2 bg-muted rounded-md">
-              {client?.name || "No client selected"}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select
-                value={status}
-                onValueChange={(value) => setStatus(value as 'todo' | 'in-progress' | 'done')}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todo">To Do</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
-                  <SelectItem value="done">Done</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Service Type</Label>
-              <Select
-                value={serviceType}
-                onValueChange={(value) => setServiceType(value as any)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="project">Project</SelectItem>
-                  <SelectItem value="bank-hours">Bank Hours</SelectItem>
-                  <SelectItem value="pay-as-you-go">Pay as You Go</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dueDate">Due Date</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="allocatedHours">Allocated Hours</Label>
-            <Input
-              id="allocatedHours"
-              type="number"
-              value={allocatedHours}
-              onChange={(e) => setAllocatedHours(Number(e.target.value))}
+            
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="todo">Todo</SelectItem>
+                      <SelectItem value="in-progress">In Progress</SelectItem>
+                      <SelectItem value="done">Done</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Teams</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {teams.map((team) => (
-                <div key={team.id} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id={`team-${team.id}`}
-                    checked={selectedTeams.includes(team.id)}
-                    onChange={() => handleTeamToggle(team.id)}
-                    className="h-4 w-4"
-                  />
-                  <Label htmlFor={`team-${team.id}`} className="text-sm font-normal">
-                    {team.name}
-                  </Label>
-                </div>
-              ))}
+            
+            <FormField
+              control={form.control}
+              name="startDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Start Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="dueDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Due Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="allocatedHours"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Allocated Hours</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="Enter allocated hours" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit">Update Project</Button>
             </div>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave}>
-            Save Changes
-          </Button>
-        </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

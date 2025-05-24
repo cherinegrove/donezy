@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useContext,
@@ -18,6 +19,8 @@ import {
   CustomRole,
   Note,
   TaskLog,
+  ClientAgreement,
+  ClientFile,
 } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { AppContextType } from "./AppContextType";
@@ -63,8 +66,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [notes, setNotes] = useState<Note[]>([]);
   const [customFields, setCustomFields] = useState<any[]>([]);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
-  const [clientAgreements, setClientAgreements] = useState<any[]>([]);
-  const [clientFiles, setClientFiles] = useState<any[]>([]);
+  const [clientAgreements, setClientAgreements] = useState<ClientAgreement[]>([]);
+  const [clientFiles, setClientFiles] = useState<ClientFile[]>([]);
   const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
 
   // Load session on mount
@@ -327,10 +330,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   }, []);
 
-  const convertProjectToTemplate = useCallback((projectId: string, templateData: any) => {
+  const convertProjectToTemplate = useCallback((projectId: string, templateData: { name: string; description: string }) => {
     const project = getProjectById(projectId);
     if (project) {
-      addProjectTemplate({
+      const newTemplate: ProjectTemplate = {
+        id: Math.random().toString(36).substring(2, 15),
         ...templateData,
         createdBy: currentUser?.id || '',
         serviceType: project.serviceType,
@@ -338,7 +342,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         allocatedHours: project.allocatedHours || 0,
         tasks: [],
         teamIds: project.teamIds,
-      });
+        createdAt: new Date().toISOString(),
+        usageCount: 0,
+      };
+      setProjectTemplates(prev => [...prev, newTemplate]);
     }
   }, [getProjectById, currentUser]);
 
@@ -357,7 +364,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       updateProjectTemplate(templateId, { usageCount: (template.usageCount || 0) + 1 });
     }
-  }, [projectTemplates, addProject, updateProjectTemplate]);
+  }, [projectTemplates, addProject]);
 
   // Task functions
   const addTask = useCallback((task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>) => {
@@ -520,7 +527,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const createMessage = useCallback((message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
     const completeMessage = {
       ...message,
-      timestamp: message.timestamp || new Date().toISOString(),
+      timestamp: new Date().toISOString(),
       read: false,
     };
     addMessage(completeMessage);
@@ -570,27 +577,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProjectTemplates(prev => prev.filter(template => template.id !== projectTemplateId));
   }, []);
 
-  const convertProjectToTemplate = useCallback((projectId: string, templateData: any) => {
-    const project = getProjectById(projectId);
-    if (project) {
-      addProjectTemplate({
-        ...templateData,
-        createdBy: currentUser?.id || '',
-      });
-    }
-  }, [getProjectById, addProjectTemplate, currentUser]);
-
-  const createProjectFromTemplate = useCallback((templateId: string, projectData: any) => {
-    const template = projectTemplates.find(t => t.id === templateId);
-    if (template) {
-      addProject({
-        ...projectData,
-        templateId: templateId,
-      });
-      updateProjectTemplate(templateId, { usageCount: (template.usageCount || 0) + 1 });
-    }
-  }, [projectTemplates, addProject, updateProjectTemplate]);
-
   // CustomRole functions
   const addCustomRole = useCallback((customRole: Omit<CustomRole, 'id'>) => {
     const newRole: CustomRole = {
@@ -632,16 +618,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return commentId;
   }, []);
 
-  const updateComment = useCallback((commentId: string, updates: Partial<any>) => {
-    setComments(prev =>
-      prev.map(comment => (comment.id === commentId ? { ...comment, ...updates } : comment))
-    );
-  }, []);
-
-  const deleteComment = useCallback((commentId: string) => {
-    setComments(prev => prev.filter(comment => comment.id !== commentId));
-  }, []);
-
   // Note functions
   const addNote = useCallback((note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
     console.log("Adding note:", note);
@@ -668,11 +644,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   // Client functions
-  const addClient = useCallback((client: Omit<Client, 'id' | 'createdAt'>) => {
+  const addClient = useCallback((client: Omit<Client, 'id'>) => {
     console.log("Adding client:", client);
     const newClient: Client = {
       id: Math.random().toString(36).substring(2, 15),
-      createdAt: new Date().toISOString(),
       ...client,
     };
     setClients(prev => [...prev, newClient]);
@@ -826,8 +801,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateCustomRole,
     deleteCustomRole,
     addComment,
-    updateComment,
-    deleteComment,
     addNote,
     updateNote,
     deleteNote,
