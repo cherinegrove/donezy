@@ -5,9 +5,10 @@ import { Bold, Italic, Underline } from "lucide-react";
 
 interface TextFormattingToolbarProps {
   onFormat: (type: 'bold' | 'italic' | 'underline') => void;
+  textareaRef?: React.RefObject<HTMLTextAreaElement>;
 }
 
-export function TextFormattingToolbar({ onFormat }: TextFormattingToolbarProps) {
+export function TextFormattingToolbar({ onFormat, textareaRef }: TextFormattingToolbarProps) {
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.ctrlKey || e.metaKey) {
       switch (e.key.toLowerCase()) {
@@ -35,13 +36,22 @@ export function TextFormattingToolbar({ onFormat }: TextFormattingToolbarProps) 
     };
   }, []);
 
+  const handleFormatClick = (type: 'bold' | 'italic' | 'underline') => {
+    // Prevent the default button behavior that might cause text deselection
+    if (textareaRef?.current) {
+      textareaRef.current.focus();
+    }
+    onFormat(type);
+  };
+
   return (
     <div className="flex gap-1 mb-2">
       <Button
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => onFormat('bold')}
+        onMouseDown={(e) => e.preventDefault()} // Prevent focus loss
+        onClick={() => handleFormatClick('bold')}
         title="Bold (Ctrl+B)"
       >
         <Bold className="h-4 w-4" />
@@ -50,7 +60,8 @@ export function TextFormattingToolbar({ onFormat }: TextFormattingToolbarProps) 
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => onFormat('italic')}
+        onMouseDown={(e) => e.preventDefault()} // Prevent focus loss
+        onClick={() => handleFormatClick('italic')}
         title="Italic (Ctrl+I)"
       >
         <Italic className="h-4 w-4" />
@@ -59,7 +70,8 @@ export function TextFormattingToolbar({ onFormat }: TextFormattingToolbarProps) 
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => onFormat('underline')}
+        onMouseDown={(e) => e.preventDefault()} // Prevent focus loss
+        onClick={() => handleFormatClick('underline')}
         title="Underline (Ctrl+U)"
       >
         <Underline className="h-4 w-4" />

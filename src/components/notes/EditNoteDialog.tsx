@@ -55,6 +55,8 @@ export function EditNoteDialog({ note, open, onOpenChange }: EditNoteDialogProps
   const { toast } = useToast();
   const [selectedColor, setSelectedColor] = useState(note.color || "yellow");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [selectionStart, setSelectionStart] = useState(0);
+  const [selectionEnd, setSelectionEnd] = useState(0);
 
   const form = useForm<NoteFormData>({
     resolver: zodResolver(noteSchema),
@@ -119,13 +121,21 @@ export function EditNoteDialog({ note, open, onOpenChange }: EditNoteDialogProps
     }, 0);
   };
 
+  // Store selection when textarea selection changes
+  const handleSelectionChange = () => {
+    if (textareaRef.current) {
+      setSelectionStart(textareaRef.current.selectionStart);
+      setSelectionEnd(textareaRef.current.selectionEnd);
+    }
+  };
+
   const handleTextFormat = (type: 'bold' | 'italic' | 'underline') => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
     const currentValue = textarea.value;
+    const start = selectionStart;
+    const end = selectionEnd;
     const selectedText = currentValue.substring(start, end);
     
     let markers = { start: '', end: '' };
@@ -254,7 +264,7 @@ export function EditNoteDialog({ note, open, onOpenChange }: EditNoteDialogProps
                         Bullet
                       </Button>
                     </div>
-                    <TextFormattingToolbar onFormat={handleTextFormat} />
+                    <TextFormattingToolbar onFormat={handleTextFormat} textareaRef={textareaRef} />
                   </div>
                   <FormControl>
                     <Textarea
@@ -262,6 +272,9 @@ export function EditNoteDialog({ note, open, onOpenChange }: EditNoteDialogProps
                       placeholder="Write your note here... Select text and use formatting buttons or Ctrl+B/I/U"
                       rows={8}
                       {...field}
+                      onSelect={handleSelectionChange}
+                      onKeyUp={handleSelectionChange}
+                      onMouseUp={handleSelectionChange}
                     />
                   </FormControl>
                   <FormMessage />
