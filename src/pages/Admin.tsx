@@ -13,7 +13,6 @@ import { AreaChart, BarChart3, Box, Database, Download, Settings, ShieldAlert, U
 import { Badge } from "@/components/ui/badge";
 import Clients from "@/pages/Clients";
 import { GuestManagement } from "@/components/admin/GuestManagement";
-import { BillingManager } from "@/components/admin/BillingManager";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -56,13 +55,12 @@ export default function Admin() {
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="guests">Guest Management</TabsTrigger>
-          <TabsTrigger value="billing">Billing</TabsTrigger>
+          <TabsTrigger value="subscription">Subscription & Billing</TabsTrigger>
           <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="roles">Roles</TabsTrigger>
           <TabsTrigger value="activity">Activity Log</TabsTrigger>
           <TabsTrigger value="account-settings">Account Settings</TabsTrigger>
-          <TabsTrigger value="subscription">Subscription</TabsTrigger>
         </TabsList>
 
         {/* Dashboard overview tab */}
@@ -164,8 +162,8 @@ export default function Admin() {
           <GuestManagement />
         </TabsContent>
 
-        <TabsContent value="billing" className="space-y-6">
-          <BillingManager />
+        <TabsContent value="subscription" className="space-y-6">
+          <SubscriptionManager />
         </TabsContent>
 
         <TabsContent value="clients" className="space-y-6">
@@ -223,10 +221,6 @@ export default function Admin() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-
-        <TabsContent value="subscription" className="space-y-6">
-          <SubscriptionManager />
         </TabsContent>
       </Tabs>
     </div>

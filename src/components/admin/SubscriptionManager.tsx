@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +15,10 @@ import {
   CreditCard, 
   AlertTriangle,
   CheckCircle,
-  UserPlus
+  UserPlus,
+  DollarSign,
+  Crown,
+  Zap
 } from "lucide-react";
 
 export function SubscriptionManager() {
@@ -24,6 +28,7 @@ export function SubscriptionManager() {
   const [subscription, setSubscription] = useState<AccountSubscription | null>(null);
   const [accountLimits, setAccountLimits] = useState<AccountLimits | null>(null);
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -119,6 +124,45 @@ export function SubscriptionManager() {
       console.error('Error fetching account limits:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpgradeToPaid = async () => {
+    if (!currentUser) return;
+    
+    try {
+      setCheckoutLoading(true);
+      
+      // This would typically call a Supabase edge function to create a Stripe checkout session
+      // For now, we'll simulate upgrading to paid plan directly
+      const { error } = await supabase
+        .from('account_subscriptions')
+        .update({
+          plan_type: 'paid',
+          max_users: 5, // Paid plan starts with 5 users
+          monthly_cost: 25.00, // Base paid plan cost
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', currentUser.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Plan Upgraded",
+        description: "Successfully upgraded to paid plan!",
+      });
+
+      fetchSubscriptionData();
+      fetchAccountLimits();
+    } catch (error) {
+      console.error('Error upgrading plan:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upgrade plan",
+        variant: "destructive",
+      });
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -320,7 +364,7 @@ export function SubscriptionManager() {
 
   return (
     <div className="space-y-6">
-      {/* Current Plan */}
+      {/* Current Plan Overview */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -335,7 +379,10 @@ export function SubscriptionManager() {
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div>
-                <h3 className="font-semibold capitalize">{subscription.plan_type} Plan</h3>
+                <h3 className="font-semibold capitalize flex items-center gap-2">
+                  {subscription.plan_type === 'paid' && <Crown className="h-4 w-4 text-yellow-500" />}
+                  {subscription.plan_type} Plan
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   {subscription.max_users} user seat{subscription.max_users !== 1 ? 's' : ''} + {totalGuestSlots} guest seat{totalGuestSlots !== 1 ? 's' : ''}
                 </p>
@@ -346,146 +393,256 @@ export function SubscriptionManager() {
               </div>
             </div>
 
-            <Badge 
-              variant="outline" 
-              className={subscription.status === 'active' ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}
-            >
-              {subscription.status === 'active' ? (
-                <>
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Active
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  {subscription.status}
-                </>
+            <div className="flex items-center justify-between">
+              <Badge 
+                variant="outline" 
+                className={subscription.status === 'active' ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}
+              >
+                {subscription.status === 'active' ? (
+                  <>
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Active
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    {subscription.status}
+                  </>
+                )}
+              </Badge>
+
+              {subscription.plan_type === 'free' && (
+                <Button 
+                  onClick={handleUpgradeToPaid}
+                  disabled={checkoutLoading}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  {checkoutLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                      Upgrading...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-4 w-4 mr-2" />
+                      Upgrade to Paid
+                    </>
+                  )}
+                </Button>
               )}
-            </Badge>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* User Seats Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            User Seats
-          </CardTitle>
-          <CardDescription>
-            Manage user seats ($5.00 per user per month)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>{usedUsers} of {subscription.max_users} user seats used</span>
-              <span>{Math.round(userUsagePercentage)}%</span>
-            </div>
-            <Progress 
-              value={userUsagePercentage} 
-              className={`h-2 ${userUsagePercentage >= 100 ? 'bg-red-100' : userUsagePercentage >= 80 ? 'bg-yellow-100' : 'bg-blue-100'}`}
-            />
-          </div>
+      {/* Tabs for Plan Management and Billing */}
+      <Tabs defaultValue="plan-management" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="plan-management">Plan Management</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
+        </TabsList>
 
-          <div className="flex items-center justify-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRemoveUserSeat}
-              disabled={subscription.max_users <= 1 || usedUsers >= subscription.max_users || loading}
-            >
-              <Minus className="h-4 w-4 mr-2" />
-              Remove User Seat
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {subscription.max_users} user seats
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddUserSeat}
-              disabled={loading}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add User Seat
-            </Button>
-          </div>
+        <TabsContent value="plan-management" className="space-y-6">
+          {/* User Seats Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                User Seats
+              </CardTitle>
+              <CardDescription>
+                Manage user seats ($5.00 per user per month)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>{usedUsers} of {subscription.max_users} user seats used</span>
+                  <span>{Math.round(userUsagePercentage)}%</span>
+                </div>
+                <Progress 
+                  value={userUsagePercentage} 
+                  className={`h-2 ${userUsagePercentage >= 100 ? 'bg-red-100' : userUsagePercentage >= 80 ? 'bg-yellow-100' : 'bg-blue-100'}`}
+                />
+              </div>
 
-          <div className="text-center text-sm text-muted-foreground">
-            User seats: {subscription.max_users} × $5.00 = ${(subscription.max_users * 5).toFixed(2)}/month
-          </div>
-        </CardContent>
-      </Card>
+              <div className="flex items-center justify-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRemoveUserSeat}
+                  disabled={subscription.max_users <= 1 || usedUsers >= subscription.max_users || loading || subscription.plan_type === 'free'}
+                >
+                  <Minus className="h-4 w-4 mr-2" />
+                  Remove User Seat
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {subscription.max_users} user seats
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddUserSeat}
+                  disabled={loading || subscription.plan_type === 'free'}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add User Seat
+                </Button>
+              </div>
 
-      {/* Guest Seats Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-primary" />
-            Guest Seats
-          </CardTitle>
-          <CardDescription>
-            Manage guest seats ($1.00 per guest per month)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{subscription.max_guests}</div>
-              <div className="text-sm text-muted-foreground">Free guest seats</div>
-            </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{subscription.additional_guests}</div>
-              <div className="text-sm text-muted-foreground">Paid guest seats</div>
-            </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold">{usedGuests} / {totalGuestSlots}</div>
-              <div className="text-sm text-muted-foreground">Used guest seats</div>
-            </div>
-          </div>
+              {subscription.plan_type === 'free' && (
+                <div className="text-center text-sm text-muted-foreground bg-blue-50 p-3 rounded-md">
+                  Upgrade to a paid plan to manage user seats
+                </div>
+              )}
 
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>{usedGuests} of {totalGuestSlots} guest seats used</span>
-              <span>{Math.round(guestUsagePercentage)}%</span>
-            </div>
-            <Progress 
-              value={guestUsagePercentage} 
-              className={`h-2 ${guestUsagePercentage >= 100 ? 'bg-red-100' : guestUsagePercentage >= 80 ? 'bg-yellow-100' : 'bg-green-100'}`}
-            />
-          </div>
+              {subscription.plan_type === 'paid' && (
+                <div className="text-center text-sm text-muted-foreground">
+                  User seats: {subscription.max_users} × $5.00 = ${(subscription.max_users * 5).toFixed(2)}/month
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-          <div className="flex items-center justify-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRemoveGuestSeat}
-              disabled={subscription.additional_guests <= 0 || loading}
-            >
-              <Minus className="h-4 w-4 mr-2" />
-              Remove Guest Seat
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {subscription.additional_guests} additional guest seats
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddGuestSeat}
-              disabled={loading}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Guest Seat
-            </Button>
-          </div>
+          {/* Guest Seats Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5 text-primary" />
+                Guest Seats
+              </CardTitle>
+              <CardDescription>
+                Manage guest seats ($1.00 per guest per month)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{subscription.max_guests}</div>
+                  <div className="text-sm text-muted-foreground">Free guest seats</div>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{subscription.additional_guests}</div>
+                  <div className="text-sm text-muted-foreground">Paid guest seats</div>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold">{usedGuests} / {totalGuestSlots}</div>
+                  <div className="text-sm text-muted-foreground">Used guest seats</div>
+                </div>
+              </div>
 
-          <div className="text-center text-sm text-muted-foreground">
-            Additional guest seats: {subscription.additional_guests} × $1.00 = ${subscription.additional_guests.toFixed(2)}/month
-          </div>
-        </CardContent>
-      </Card>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>{usedGuests} of {totalGuestSlots} guest seats used</span>
+                  <span>{Math.round(guestUsagePercentage)}%</span>
+                </div>
+                <Progress 
+                  value={guestUsagePercentage} 
+                  className={`h-2 ${guestUsagePercentage >= 100 ? 'bg-red-100' : guestUsagePercentage >= 80 ? 'bg-yellow-100' : 'bg-green-100'}`}
+                />
+              </div>
+
+              <div className="flex items-center justify-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRemoveGuestSeat}
+                  disabled={subscription.additional_guests <= 0 || loading}
+                >
+                  <Minus className="h-4 w-4 mr-2" />
+                  Remove Guest Seat
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {subscription.additional_guests} additional guest seats
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddGuestSeat}
+                  disabled={loading}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Guest Seat
+                </Button>
+              </div>
+
+              <div className="text-center text-sm text-muted-foreground">
+                Additional guest seats: {subscription.additional_guests} × $1.00 = ${subscription.additional_guests.toFixed(2)}/month
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="billing" className="space-y-6">
+          {/* Billing Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-primary" />
+                Billing Overview
+              </CardTitle>
+              <CardDescription>
+                Detailed breakdown of your monthly charges
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Base Plan ({subscription.plan_type})</span>
+                    <span className="font-mono">
+                      ${subscription.plan_type === 'free' ? '0.00' : '25.00'}
+                    </span>
+                  </div>
+                  
+                  {subscription.plan_type === 'paid' && subscription.max_users > 5 && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span>Additional User Seats ({subscription.max_users - 5} × $5.00)</span>
+                      <span className="font-mono">${((subscription.max_users - 5) * 5).toFixed(2)}</span>
+                    </div>
+                  )}
+                  
+                  {subscription.additional_guests > 0 && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span>Additional Guest Seats ({subscription.additional_guests} × $1.00)</span>
+                      <span className="font-mono">${subscription.additional_guests.toFixed(2)}</span>
+                    </div>
+                  )}
+                  
+                  <div className="border-t pt-3 flex justify-between items-center font-semibold">
+                    <span>Monthly Total</span>
+                    <span className="font-mono text-lg">${subscription.monthly_cost.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {subscription.plan_type === 'paid' && (
+                  <div className="text-sm text-muted-foreground bg-green-50 p-3 rounded-md">
+                    <p>✓ Your subscription includes:</p>
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>5 user seats (additional seats: $5/month each)</li>
+                      <li>1 guest seat (additional guests: $1/month each)</li>
+                      <li>Unlimited projects and tasks</li>
+                      <li>Premium support</li>
+                    </ul>
+                  </div>
+                )}
+
+                {subscription.plan_type === 'free' && (
+                  <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-md">
+                    <p>🚀 Upgrade to unlock:</p>
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>Up to 5 user seats included</li>
+                      <li>Additional user and guest seats</li>
+                      <li>Advanced project management features</li>
+                      <li>Priority support</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
