@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
@@ -25,7 +26,7 @@ import { AddClientDialog } from "@/components/clients/AddClientDialog";
 export default function Clients() {
   const { clients } = useAppContext();
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter<"all" | "active" | "inactive">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   const filteredClients = clients.filter((client) => {
