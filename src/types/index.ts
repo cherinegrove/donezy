@@ -9,6 +9,15 @@ export interface User {
   jobTitle?: string;
   clientId?: string;
   phone?: string;
+  employmentType?: 'full-time' | 'part-time' | 'contract';
+  billingType?: 'hourly' | 'monthly';
+  hourlyRate?: number;
+  monthlyRate?: number;
+  billingRate?: number;
+  currency?: string;
+  clientRole?: string;
+  permissions?: string[];
+  managerId?: string;
   notificationPreferences?: {
     taskDue?: NotificationTimeframe[];
     taskStatusChange?: boolean;
@@ -77,6 +86,14 @@ export interface Comment {
   mentionedUserIds?: string[];
 }
 
+export interface TaskFile {
+  id: string;
+  name: string;
+  url: string;
+  size: number;
+  uploadedAt: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -95,7 +112,11 @@ export interface Task {
   timeEntries?: TimeEntry[];
   comments?: Comment[];
   watcherIds?: string[];
+  files?: TaskFile[];
+  relatedTaskIds?: string[];
 }
+
+export type TimeEntryStatus = 'pending' | 'approved' | 'rejected';
 
 export interface TimeEntry {
   id: string;
@@ -108,7 +129,9 @@ export interface TimeEntry {
   duration: number; // in minutes
   description?: string;
   billable?: boolean;
-  status?: 'pending' | 'approved' | 'rejected';
+  status?: TimeEntryStatus;
+  notes?: string;
+  manuallyAdded?: boolean;
 }
 
 export interface Message {
@@ -158,7 +181,7 @@ export interface TemplateTask {
 export interface CustomRole {
   id: string;
   name: string;
-  permissions: string[];
+  permissions: Record<string, AccessLevel>;
   description?: string;
 }
 
@@ -207,3 +230,5 @@ export type NotificationTimeframe = 'same-day' | '1-day' | '3-days' | '1-week';
 export type AccessLevel = 'none' | 'view' | 'edit';
 export type BillingType = 'hourly' | 'monthly';
 export type EmploymentType = 'full-time' | 'part-time' | 'contract';
+export type Role = 'admin' | 'manager' | 'developer' | 'client';
+export type ClientRole = 'primary' | 'secondary' | 'viewer';

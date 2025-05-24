@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,11 +9,11 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
 
 interface CreateNoteDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function CreateNoteDialog({ isOpen, onClose }: CreateNoteDialogProps) {
+export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) {
   const { addNote, currentUser } = useAppContext();
   const { toast } = useToast();
 
@@ -42,11 +43,11 @@ export function CreateNoteDialog({ isOpen, onClose }: CreateNoteDialogProps) {
 
     setTitle("");
     setContent("");
-    onClose();
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Create New Note</DialogTitle>
@@ -75,7 +76,7 @@ export function CreateNoteDialog({ isOpen, onClose }: CreateNoteDialogProps) {
           </div>
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handleSave}>Save Note</Button>

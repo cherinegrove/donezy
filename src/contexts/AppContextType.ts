@@ -1,5 +1,5 @@
 
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog } from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, TaskFile } from "@/types";
 import { Session } from "@supabase/supabase-js";
 
 export interface AppContextType {
@@ -29,12 +29,24 @@ export interface AppContextType {
   updateUser: (userId: string, updates: Partial<User>) => void;
   deleteUser: (userId: string) => void;
   getUserById: (userId: string) => User | undefined;
-  inviteUser: (email: string, name: string, role: string) => void;
+  inviteUser: (email: string, name: string, role: string, options?: any) => void;
+  updateManagerNotificationPreferences: (preferences: any) => void;
   
   // Team functions
   addTeam: (team: Omit<Team, 'id'>) => void;
   updateTeam: (teamId: string, updates: Partial<Team>) => void;
   deleteTeam: (teamId: string) => void;
+  
+  // Client functions
+  addClient: (client: Omit<Client, 'id'>) => void;
+  updateClient: (clientId: string, updates: Partial<Client>) => void;
+  deleteClient: (clientId: string) => void;
+  
+  // Project functions
+  addProject: (project: Omit<Project, 'id'>) => void;
+  updateProject: (projectId: string, updates: Partial<Project>) => void;
+  deleteProject: (projectId: string) => void;
+  convertProjectToTemplate: (projectId: string, templateData: { name: string; description: string }) => void;
   
   // Task functions
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>) => void;
@@ -46,7 +58,7 @@ export interface AppContextType {
   unwatchTask: (taskId: string, userId: string) => void;
   linkTasks: (taskId: string, relatedTaskId: string) => void;
   unlinkTasks: (taskId: string, relatedTaskId: string) => void;
-  uploadTaskFile: (taskId: string, file: File) => Promise<void>;
+  uploadTaskFile: (taskId: string, file: File) => Promise<string>;
   deleteTaskFile: (taskId: string, fileId: string) => void;
   
   // TimeEntry functions
@@ -65,27 +77,8 @@ export interface AppContextType {
   createMessage: (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => void;
   markMessageAsRead: (messageId: string) => void;
   
-  // Purchase functions
-  addPurchase: (purchase: Omit<Purchase, 'id'>) => void;
-  updatePurchase: (purchaseId: string, updates: Partial<Purchase>) => void;
-  deletePurchase: (purchaseId: string) => void;
-  
-  // ProjectTemplate functions
-  addProjectTemplate: (projectTemplate: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => void;
-  updateProjectTemplate: (projectTemplateId: string, updates: Partial<ProjectTemplate>) => void;
-  deleteProjectTemplate: (projectTemplateId: string) => void;
-  convertProjectToTemplate: (projectId: string, templateData: any) => void;
-  createProjectFromTemplate: (templateId: string, projectData: any) => void;
-  
-  // CustomRole functions
-  addCustomRole: (customRole: Omit<CustomRole, 'id'>) => void;
-  updateCustomRole: (customRoleId: string, updates: Partial<CustomRole>) => void;
-  deleteCustomRole: (customRoleId: string) => void;
-  
   // Comment functions
   addComment: (taskId: string, userId: string, content: string, mentionedUserIds?: string[]) => string;
-  updateComment: (commentId: string, updates: Partial<any>) => void;
-  deleteComment: (commentId: string) => void;
   
   // Note functions
   addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -93,35 +86,18 @@ export interface AppContextType {
   deleteNote: (noteId: string) => void;
   getNotesByUser: (userId: string) => Note[];
   
-  // Project functions
-  addProject: (project: Omit<Project, 'id'>) => void;
-  updateProject: (projectId: string, updates: Partial<Project>) => void;
-  deleteProject: (projectId: string) => void;
-  getProjectById: (projectId: string) => Project | undefined;
-  watchProject: (projectId: string, userId: string) => void;
-  unwatchProject: (projectId: string, userId: string) => void;
+  // Custom Role functions
+  addCustomRole: (role: Omit<CustomRole, 'id'>) => void;
+  updateCustomRole: (roleId: string, updates: Partial<CustomRole>) => void;
+  deleteCustomRole: (roleId: string) => void;
   
-  // Client functions
-  addClient: (client: Omit<Client, 'id' | 'createdAt'>) => void;
-  updateClient: (clientId: string, updates: Partial<Client>) => void;
-  deleteClient: (clientId: string) => void;
-  getClientById: (clientId: string) => Client | undefined;
+  // Template functions
+  addProjectTemplate: (template: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => void;
+  updateProjectTemplate: (templateId: string, updates: Partial<ProjectTemplate>) => void;
+  deleteProjectTemplate: (templateId: string) => void;
   
-  // Client agreement functions
-  addClientAgreement: (agreement: any) => void;
-  updateClientAgreement: (agreementId: string, updates: any) => void;
-  deleteClientAgreement: (agreementId: string) => void;
-  getClientAgreements: (clientId: string) => any[];
-  
-  // Client file functions
-  uploadClientFile: (clientId: string, file: File) => Promise<void>;
-  getClientFiles: (clientId: string) => any[];
-  deleteClientFile: (fileId: string) => void;
-  
-  // Custom field functions
-  addCustomField: (field: any) => void;
-  deleteCustomField: (fieldId: string) => void;
-  
-  // Notification functions
-  updateManagerNotificationPreferences: (preferences: any) => void;
+  // Purchase functions
+  addPurchase: (purchase: Omit<Purchase, 'id'>) => void;
+  updatePurchase: (purchaseId: string, updates: Partial<Purchase>) => void;
+  deletePurchase: (purchaseId: string) => void;
 }

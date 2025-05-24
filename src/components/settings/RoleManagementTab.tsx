@@ -21,15 +21,7 @@ import { Shield, Pencil, X } from "lucide-react";
 type FormValues = {
   name: string;
   description: string;
-  permissions: {
-    accountSettings: AccessLevel;
-    reports: AccessLevel;
-    timeTracking: AccessLevel;
-    clients: AccessLevel;
-    projects: AccessLevel;
-    tasks: AccessLevel;
-    users: AccessLevel;
-  };
+  permissions: Record<string, AccessLevel>;
 }
 
 // Default form values for a new role
@@ -60,7 +52,7 @@ export function RoleManagementTab() {
     form.reset({
       name: role.name,
       description: role.description || "",
-      permissions: { ...role.permissions }
+      permissions: role.permissions
     });
     setEditingRoleId(role.id);
     setIsEditing(true);
@@ -73,17 +65,22 @@ export function RoleManagementTab() {
   };
 
   const handleCreateNewRole = () => {
-    // Reset the form with default values when creating a new role
     form.reset(defaultFormValues);
     setEditingRoleId(null);
     setIsEditing(true);
   };
 
   const onSubmit = (data: FormValues) => {
+    const roleData: Omit<CustomRole, "id"> = {
+      name: data.name,
+      description: data.description,
+      permissions: data.permissions
+    };
+
     if (editingRoleId) {
-      updateCustomRole(editingRoleId, data);
+      updateCustomRole(editingRoleId, roleData);
     } else {
-      addCustomRole(data);
+      addCustomRole(roleData);
     }
     
     form.reset(defaultFormValues);
@@ -96,10 +93,15 @@ export function RoleManagementTab() {
   };
 
   const permissionOptions: AccessLevel[] = ["none", "view", "edit"];
+  const permissionKeys = Object.keys(defaultFormValues.permissions);
   
   // Function to handle permission change
-  const handlePermissionChange = (permission: keyof FormValues["permissions"], level: AccessLevel) => {
-    form.setValue(`permissions.${permission}`, level);
+  const handlePermissionChange = (permission: string, level: AccessLevel) => {
+    const currentPermissions = form.getValues("permissions");
+    form.setValue("permissions", {
+      ...currentPermissions,
+      [permission]: level
+    });
   };
   
   return (
@@ -164,9 +166,8 @@ export function RoleManagementTab() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Object.keys(defaultFormValues.permissions).map((permission) => {
-                        const permKey = permission as keyof FormValues["permissions"];
-                        const currentValue = form.watch(`permissions.${permKey}`);
+                      {permissionKeys.map((permission) => {
+                        const currentValue = form.watch(`permissions.${permission}` as any);
                         
                         return (
                           <TableRow key={permission}>
@@ -179,10 +180,10 @@ export function RoleManagementTab() {
                                   <input
                                     type="radio"
                                     id={`${permission}-${level}`}
-                                    name={`permissions.${permKey}`}
+                                    name={`permissions.${permission}`}
                                     className="h-5 w-5 cursor-pointer"
                                     checked={currentValue === level}
-                                    onChange={() => handlePermissionChange(permKey, level)}
+                                    onChange={() => handlePermissionChange(permission, level)}
                                   />
                                 </div>
                               </TableCell>
