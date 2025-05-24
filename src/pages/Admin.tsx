@@ -53,8 +53,7 @@ export default function Admin() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="guests">Guest Management</TabsTrigger>
+          <TabsTrigger value="user-management">User Management</TabsTrigger>
           <TabsTrigger value="subscription">Subscription & Billing</TabsTrigger>
           <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
@@ -154,12 +153,21 @@ export default function Admin() {
           </div>
         </TabsContent>
 
-        <TabsContent value="users" className="space-y-6">
-          <AdminUsers />
-        </TabsContent>
-
-        <TabsContent value="guests" className="space-y-6">
-          <GuestManagement />
+        <TabsContent value="user-management" className="space-y-6">
+          <Tabs defaultValue="users" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="users">Users</TabsTrigger>
+              <TabsTrigger value="guests">Guest Management</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="users">
+              <AdminUsers />
+            </TabsContent>
+            
+            <TabsContent value="guests">
+              <GuestManagement />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="subscription" className="space-y-6">
