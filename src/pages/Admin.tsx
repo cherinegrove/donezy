@@ -5,12 +5,9 @@ import { useAppContext } from "@/contexts/AppContext";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminActivity from "@/components/admin/AdminActivity";
 import AdminTeams from "@/components/admin/AdminTeams";
-import { RoleManagementTab } from "@/components/settings/RoleManagementTab";
-import { UsersManagementTab } from "@/components/settings/UsersManagementTab";
-import { KanbanCustomizationCard } from "@/components/settings/KanbanCustomizationCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AreaChart, BarChart3, Box, Database, Download, Settings, ShieldAlert, Users, Palette, UserCog } from "lucide-react";
+import { AreaChart, BarChart3, Box, Database, Download, Settings, ShieldAlert, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function Admin() {
@@ -36,7 +33,7 @@ export default function Admin() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Manage users, teams, settings, and monitor system activity</p>
+          <p className="text-muted-foreground">Manage users, teams, and monitor system activity</p>
         </div>
         <Button variant="outline" className="gap-2">
           <Download className="h-4 w-4" />
@@ -45,12 +42,10 @@ export default function Admin() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
-          <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
-          <TabsTrigger value="kanban">Kanban Settings</TabsTrigger>
           <TabsTrigger value="activity">Activity Log</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
@@ -142,32 +137,11 @@ export default function Admin() {
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">
-          <UsersManagementTab />
+          <AdminUsers />
         </TabsContent>
 
         <TabsContent value="teams" className="space-y-6">
           <AdminTeams />
-        </TabsContent>
-
-        <TabsContent value="roles" className="space-y-6">
-          <RoleManagementTab />
-        </TabsContent>
-
-        <TabsContent value="kanban" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5 text-primary" />
-                Kanban Board Customization
-              </CardTitle>
-              <CardDescription>
-                Customize Kanban board statuses, colors, and workflow settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <KanbanCustomizationCard />
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="activity" className="space-y-6">

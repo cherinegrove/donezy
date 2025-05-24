@@ -2,276 +2,329 @@
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserInviteForm } from "./UserInviteForm";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Plus, Edit, Users, UserCheck, Mail } from "lucide-react";
+import { FilterBar, FilterOption } from "@/components/common/FilterBar";
+import { EditUserDialog } from "@/components/users/EditUserDialog";
 import { User } from "@/types";
-import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Building, Pencil, Plus, Users } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TeamMemberInviteForm } from "@/components/settings/TeamMemberInviteForm";
+import { ClientUserInviteForm } from "@/components/settings/ClientUserInviteForm";
 
-export function UsersManagementTab() {
-  const { users, projects, clients, customRoles } = useAppContext();
-  const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("account");
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
-  const [inviteType, setInviteType] = useState<"team-member" | "guest">("team-member");
+interface UsersManagementTabProps {
+  showTeamSection?: boolean;
+  showClientSection?: boolean;
+  defaultTab?: 'team' | 'client';
+}
 
-  // Filter users based on type and search term
-  const accountUsers = users.filter(user => 
-    (user.userType === 'account' || !user.userType) &&
-    (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     user.role.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+export function UsersManagementTab({ 
+  showTeamSection = true, 
+  showClientSection = true,
+  defaultTab = 'team'
+}: UsersManagementTabProps) {
+  const { teams, users, clients } = useAppContext();
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeTab, setActiveTab] = useState<'team' | 'client'>(defaultTab);
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
+  const [showTeamForm, setShowTeamForm] = useState(false);
+  const [showClientForm, setShowClientForm] = useState(false);
 
-  const guestUsers = users.filter(user => 
-    user.userType === 'guest' &&
-    (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     user.role.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Define filter options - create separate arrays for different tabs
+  const teamFilterOptions: FilterOption[] = [
+    {
+      id: "teams",
+      name: "Team",
+      options: teams.map(team => ({
+        id: team.id,
+        label: team.name,
+      })),
+    },
+    {
+      id: "roles",
+      name: "Role",
+      options: [
+        { id: "admin", label: "Admin" },
+        { id: "manager", label: "Manager" },
+        { id: "developer", label: "Developer" },
+      ],
+    },
+  ];
+  
+  const clientFilterOptions: FilterOption[] = [
+    {
+      id: "clients",
+      name: "Client",
+      options: clients.map(client => ({
+        id: client.id,
+        label: client.name,
+      })),
+    },
+  ];
 
-  const getRoleBadgeColor = (role: string) => {
-    switch(role) {
-      case "admin": return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-      case "manager": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
-      case "developer": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-      case "client": return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
-      default: return "bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-400";
+  const getUsersInTeam = (teamId: string) => {
+    const filteredUsers = users.filter(user => user.teamIds.includes(teamId));
+    
+    // Apply role filters if any
+    if (activeFilters.roles && activeFilters.roles.length > 0) {
+      return filteredUsers.filter(user => 
+        activeFilters.roles.includes(user.role)
+      );
     }
+    
+    return filteredUsers;
   };
 
-  const getClientName = (clientId?: string) => {
-    if (!clientId) return "-";
-    const client = clients.find(c => c.id === clientId);
-    return client ? client.name : "-";
+  // Filter users based on their type (internal or client)
+  const teamUsers = users.filter(user => user.role !== "client");
+  const clientUsers = users.filter(user => user.role === "client");
+
+  // Apply client filter for client users
+  const filteredClientUsers = activeFilters.clients && activeFilters.clients.length > 0
+    ? clientUsers.filter(user => {
+        return user.clientId && activeFilters.clients.includes(user.clientId);
+      })
+    : clientUsers;
+
+  const handleFilterChange = (filters: Record<string, string[]>) => {
+    setActiveFilters(filters);
   };
 
-  const getProjectNames = (projectIds?: string[]) => {
-    if (!projectIds || projectIds.length === 0) return "-";
-    const projectNames = projects
-      .filter(p => projectIds.includes(p.id))
-      .map(p => p.name)
-      .join(", ");
-    return projectNames || "-";
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setIsEditUserDialogOpen(true);
   };
 
-  const handleInviteUser = (type: "team-member" | "guest") => {
-    setInviteType(type);
-    setIsInviteDialogOpen(true);
-  };
+  // Filter teams based on team filter
+  const filteredTeams = teams.filter(team => {
+    if (activeFilters.teams && activeFilters.teams.length > 0) {
+      return activeFilters.teams.includes(team.id);
+    }
+    return true;
+  });
+
+  // If both sections are hidden, return nothing
+  if (!showTeamSection && !showClientSection) {
+    return null;
+  }
+
+  // If only one section is shown, don't show tabs
+  if (showTeamSection && !showClientSection) {
+    return renderTeamSection();
+  }
+
+  if (showClientSection && !showTeamSection) {
+    return renderClientSection();
+  }
+
+  function renderTeamSection() {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-end">
+          <Button onClick={() => setShowTeamForm(!showTeamForm)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Team Member
+          </Button>
+        </div>
+        
+        {showTeamForm && (
+          <Card>
+            <CardContent className="pt-6">
+              <TeamMemberInviteForm onSuccess={() => setShowTeamForm(false)} />
+            </CardContent>
+          </Card>
+        )}
+        
+        <FilterBar filters={teamFilterOptions} onFilterChange={handleFilterChange} />
+
+        <div className="space-y-6">
+          {filteredTeams.map((team) => {
+            const teamMembers = getUsersInTeam(team.id).filter(user => user.role !== "client");
+            
+            return (
+              <Card key={team.id}>
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">{team.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {team.description}
+                    </p>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">Team Members</h3>
+                      <div className="space-y-2">
+                        {teamMembers.map((member) => (
+                          <div 
+                            key={member.id} 
+                            className="flex items-center justify-between p-3 bg-muted/20 rounded-md"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarImage src={member.avatar} />
+                                <AvatarFallback>
+                                  {member.name.slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium">{member.name}</p>
+                                <p className="text-sm text-muted-foreground">{member.email}</p>
+                                {member.phone && (
+                                  <p className="text-xs text-muted-foreground">{member.phone}</p>
+                                )}
+                                {member.employmentType && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {member.employmentType} • 
+                                    {member.billingType === "hourly" 
+                                      ? ` ${member.billingRate || 0} ${member.currency || "USD"}/hr` 
+                                      : ` ${member.billingRate || 0} ${member.currency || "USD"}/month`}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full capitalize">
+                                {member.role}
+                              </span>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleEditUser(member)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                                <span className="sr-only">Edit</span>
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+
+                        {teamMembers.length === 0 && (
+                          <p className="text-center py-4 text-muted-foreground">
+                            No team members found with the selected filters
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+
+          {filteredTeams.length === 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-10">
+                <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No teams found</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function renderClientSection() {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-end">
+          <Button onClick={() => setShowClientForm(!showClientForm)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Client User
+          </Button>
+        </div>
+        
+        {showClientForm && (
+          <Card>
+            <CardContent className="pt-6">
+              <ClientUserInviteForm onSuccess={() => setShowClientForm(false)} />
+            </CardContent>
+          </Card>
+        )}
+        
+        <FilterBar filters={clientFilterOptions} onFilterChange={handleFilterChange} />
+
+        <div className="space-y-2">
+          {filteredClientUsers.map(user => {
+            const client = clients.find(c => c.id === user.clientId);
+            return (
+              <div 
+                key={user.id} 
+                className="flex items-center justify-between p-3 bg-muted/20 rounded-md"
+              >
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src={user.avatar} />
+                    <AvatarFallback>
+                      {user.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{user.name}</p>
+                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                    {client && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Associated with: {client.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                    Client
+                  </span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleEditUser(user)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                    <span className="sr-only">Edit</span>
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+
+          {filteredClientUsers.length === 0 && (
+            <div className="text-center py-10">
+              <Building className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">
+                No client users found with the selected filters
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">User Management</h2>
-          <p className="text-muted-foreground mt-1">
-            Manage account users and guest users with different access levels
-          </p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search users..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'team' | 'client')}>
         <TabsList>
-          <TabsTrigger value="account" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Account Users ({accountUsers.length})
-          </TabsTrigger>
-          <TabsTrigger value="guest" className="flex items-center gap-2">
-            <UserCheck className="h-4 w-4" />
-            Guest Users ({guestUsers.length})
-          </TabsTrigger>
+          {showTeamSection && <TabsTrigger value="team">Team Members</TabsTrigger>}
+          {showClientSection && <TabsTrigger value="client">Client Users</TabsTrigger>}
         </TabsList>
-
-        <TabsContent value="account" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-medium">Account Users</h3>
-              <p className="text-sm text-muted-foreground">
-                Team members with full or partial access to the system
-              </p>
-            </div>
-            <Button onClick={() => handleInviteUser("team-member")}>
-              <Plus className="mr-2 h-4 w-4" />
-              Invite Team Member
-            </Button>
-          </div>
-
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {accountUsers.length > 0 ? (
-                  accountUsers.map(user => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={user.avatar} alt={user.name} />
-                            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{user.name}</p>
-                            {user.jobTitle && (
-                              <p className="text-xs text-muted-foreground">{user.jobTitle}</p>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getRoleBadgeColor(user.role)} variant="outline">
-                          {user.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>{getClientName(user.clientId)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                          <span className="sr-only">Edit</span>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      No account users found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="guest" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-medium">Guest Users</h3>
-              <p className="text-sm text-muted-foreground">
-                External users with limited project access
-              </p>
-            </div>
-            <Button onClick={() => handleInviteUser("guest")}>
-              <Plus className="mr-2 h-4 w-4" />
-              Invite Guest User
-            </Button>
-          </div>
-
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Projects</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {guestUsers.length > 0 ? (
-                  guestUsers.map(user => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={user.avatar} alt={user.name} />
-                            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{user.name}</p>
-                            <Badge variant="outline" className="text-xs">Guest</Badge>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getRoleBadgeColor(user.role)} variant="outline">
-                          {user.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <div className="max-w-[200px] truncate">
-                          {getProjectNames(user.invitedToProjects)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                          <span className="sr-only">Edit</span>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      No guest users found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
+        
+        {showTeamSection && (
+          <TabsContent value="team" className="space-y-6">
+            {renderTeamSection()}
+          </TabsContent>
+        )}
+        
+        {showClientSection && (
+          <TabsContent value="client" className="space-y-6">
+            {renderClientSection()}
+          </TabsContent>
+        )}
       </Tabs>
 
-      <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>
-              {inviteType === "team-member" ? "Invite Team Member" : "Invite Guest User"}
-            </DialogTitle>
-            <DialogDescription>
-              {inviteType === "team-member" 
-                ? "Invite a new team member with full or partial system access"
-                : "Invite a guest user with limited project access"}
-            </DialogDescription>
-          </DialogHeader>
-          <UserInviteForm
-            defaultTab={inviteType === "team-member" ? "team-member" : "client-user"}
-            onSuccess={() => setIsInviteDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      <EditUserDialog
+        user={selectedUser}
+        isOpen={isEditUserDialogOpen}
+        onClose={() => setIsEditUserDialogOpen(false)}
+      />
     </div>
   );
 }

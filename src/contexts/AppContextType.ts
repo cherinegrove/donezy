@@ -21,10 +21,6 @@ export interface AppContextType {
   activeTimeEntry: TimeEntry | null;
   taskLogs: TaskLog[];
   
-  // Setters for currentUser and session
-  setCurrentUser: (user: User | null) => void;
-  setSession: (session: Session | null) => void;
-  
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<boolean>;
   

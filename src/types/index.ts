@@ -4,7 +4,7 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
-  role: 'admin' | 'manager' | 'developer' | 'client' | 'guest' | string;
+  role: 'admin' | 'manager' | 'developer' | 'client';
   teamIds?: string[];
   jobTitle?: string;
   clientId?: string;
@@ -16,10 +16,17 @@ export interface User {
   billingRate?: number;
   currency?: string;
   clientRole?: string;
-  userType?: 'account' | 'guest';
-  permissions?: UserPermissions;
+  permissions?: {
+    canViewClients?: boolean;
+    canEditClients?: boolean;
+    canViewProjects?: boolean;
+    canEditProjects?: boolean;
+    canViewTasks?: boolean;
+    canEditTasks?: boolean;
+    canViewReports?: boolean;
+    canManageUsers?: boolean;
+  };
   managerId?: string;
-  invitedToProjects?: string[]; // For guest users
   notificationPreferences?: {
     taskDue?: NotificationTimeframe[];
     taskStatusChange?: boolean;
@@ -33,19 +40,6 @@ export interface User {
       mentions: { new: boolean; updated: boolean };
     };
   };
-}
-
-export interface UserPermissions {
-  projects: AccessLevel;
-  clients: AccessLevel;
-  reports: AccessLevel;
-  templates: AccessLevel;
-  admin: AccessLevel;
-  timeTracking: AccessLevel;
-  tasks: AccessLevel;
-  users: AccessLevel;
-  teams: AccessLevel;
-  billing: AccessLevel;
 }
 
 export interface Team {
@@ -89,32 +83,9 @@ export interface Project {
   teamIds?: string[];
   watcherIds?: string[];
   templateId?: string;
-  guestUserIds?: string[]; // Guest users invited to this project
-  kanbanSettings?: KanbanSettings;
 }
 
-export interface KanbanSettings {
-  customStatuses?: CustomStatus[];
-  columnColors?: Record<string, string>;
-  workflowRules?: WorkflowRule[];
-}
-
-export interface CustomStatus {
-  id: string;
-  name: string;
-  color: string;
-  order: number;
-  type: 'backlog' | 'active' | 'review' | 'done';
-}
-
-export interface WorkflowRule {
-  fromStatus: string;
-  toStatus: string;
-  requiredRole?: string;
-  requiresApproval?: boolean;
-}
-
-export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done' | string;
+export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
 
 export interface Comment {
   id: string;
@@ -209,7 +180,6 @@ export interface ProjectTemplate {
   createdAt: string;
   usageCount: number;
   teamIds?: string[];
-  kanbanSettings?: KanbanSettings;
 }
 
 export interface TemplateTask {
@@ -223,9 +193,8 @@ export interface TemplateTask {
 export interface CustomRole {
   id: string;
   name: string;
-  permissions: UserPermissions;
+  permissions: Record<string, AccessLevel>;
   description?: string;
-  userType: 'account' | 'guest';
 }
 
 export interface Note {
@@ -278,9 +247,8 @@ export interface CustomField {
 }
 
 export type NotificationTimeframe = 'same-day' | '1-day' | '3-days' | '1-week';
-export type AccessLevel = 'none' | 'view' | 'edit' | 'admin';
+export type AccessLevel = 'none' | 'view' | 'edit';
 export type BillingType = 'hourly' | 'monthly';
 export type EmploymentType = 'full-time' | 'part-time' | 'contract';
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 export type ClientRole = 'primary' | 'secondary' | 'viewer';
-export type UserType = 'account' | 'guest';

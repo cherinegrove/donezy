@@ -764,11 +764,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     customFields,
     activeTimeEntry,
     taskLogs,
-    
-    // Add the missing setters
-    setCurrentUser,
-    setSession,
-    
     login,
     logout,
     addUser,

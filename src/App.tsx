@@ -1,224 +1,233 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Auth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { useAppContext } from './contexts/AppContext';
-import { Account } from './pages/Account';
-import Projects from './pages/Projects';
-import Tasks from './pages/Tasks';
-import TimeTracking from './pages/TimeTracking';
-import Team from './pages/Team';
-import Messages from './pages/Messages';
-import Clients from './pages/Clients';
-import Reports from './pages/Reports';
-import Notes from './pages/Notes';
-import Admin from './pages/Admin';
-import Users from './pages/Users';
-import ProjectDetails from './pages/ProjectDetails';
-import TaskDetails from './pages/TaskDetails';
-import ClientDetails from './pages/ClientDetails';
-import ProjectTemplates from './pages/ProjectTemplates';
-import TemplateDetails from './pages/TemplateDetails';
-import ClientAgreements from './pages/ClientAgreements';
-import { AppSidebar } from './components/layout/AppSidebar';
-import { User } from '@/types';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
-function App() {
-  const { setCurrentUser, setSession } = useAppContext();
+import { AppLayout } from "./components/layout/AppLayout";
+import Dashboard from "./pages/Dashboard";
+import Projects from "./pages/Projects";
+import ProjectDetails from "./pages/ProjectDetails";
+import Clients from "./pages/Clients";
+import ClientDetails from "./pages/ClientDetails";
+import Team from "./pages/Team";
+import TimeTracking from "./pages/TimeTracking";
+import Messages from "./pages/Messages";
+import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
+import NotFound from "./pages/NotFound";
+import Tasks from "./pages/Tasks";
+import Notes from "./pages/Notes";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import ResetPassword from "./pages/ResetPassword";
+import Admin from "./pages/Admin"; 
+import { AppProvider, useAppContext } from "./contexts/AppContext";
+import { EmailConfirmation } from "./components/auth/EmailConfirmation";
+
+// Protected route component - simplified and faster
+const ProtectedRoute = ({ 
+  element, 
+  allowedRoles = ['admin', 'manager', 'developer', 'client']
+}: {
+  element: React.ReactNode;
+  allowedRoles?: Array<'admin' | 'manager' | 'developer' | 'client'>;
+}) => {
+  const { currentUser } = useAppContext();
+  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-
+  
   useEffect(() => {
-    // Check active sessions and sets the current user.
-    async function getActiveSession() {
-      const { data: { session } } = await supabase.auth.getSession()
-
-      setSession(session)
-
-      if (session?.user) {
-        // Query the profiles table instead of users table
-        const { data: profileData, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-
-        if (profileData && !error) {
-          // Create a User object from the profile data and session user
-          const user: User = {
-            id: profileData.id,
-            name: profileData.display_name || session.user.email?.split('@')[0] || 'User',
-            email: session.user.email || '',
-            avatar: profileData.avatar_url,
-            role: 'admin',
-            teamIds: [],
-            permissions: {
-              projects: 'admin',
-              clients: 'admin',
-              reports: 'admin',
-              templates: 'admin',
-              admin: 'admin',
-              timeTracking: 'admin',
-              tasks: 'admin',
-              users: 'admin',
-              teams: 'admin',
-              billing: 'admin'
-            }
-          };
-          setCurrentUser(user);
-        } else {
-          // If no profile exists, create a basic user from session data
-          const user: User = {
-            id: session.user.id,
-            name: session.user.email?.split('@')[0] || 'User',
-            email: session.user.email || '',
-            role: 'admin',
-            teamIds: [],
-            permissions: {
-              projects: 'admin',
-              clients: 'admin',
-              reports: 'admin',
-              templates: 'admin',
-              admin: 'admin',
-              timeTracking: 'admin',
-              tasks: 'admin',
-              users: 'admin',
-              teams: 'admin',
-              billing: 'admin'
-            }
-          };
-          setCurrentUser(user);
+    let mounted = true;
+    
+    // Quick session check
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          setSession(session);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
+        if (mounted) {
+          setSession(null);
+          setLoading(false);
         }
       }
+    };
 
-      setLoading(false)
-    }
-
-    getActiveSession()
-
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session)
-      
-      if (session?.user) {
-        // Query the profiles table instead of users table
-        const { data: profileData, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-
-        if (profileData && !error) {
-          // Create a User object from the profile data and session user
-          const user: User = {
-            id: profileData.id,
-            name: profileData.display_name || session.user.email?.split('@')[0] || 'User',
-            email: session.user.email || '',
-            avatar: profileData.avatar_url,
-            role: 'admin',
-            teamIds: [],
-            permissions: {
-              projects: 'admin',
-              clients: 'admin',
-              reports: 'admin',
-              templates: 'admin',
-              admin: 'admin',
-              timeTracking: 'admin',
-              tasks: 'admin',
-              users: 'admin',
-              teams: 'admin',
-              billing: 'admin'
-            }
-          };
-          setCurrentUser(user);
-        } else {
-          // If no profile exists, create a basic user from session data
-          const user: User = {
-            id: session.user.id,
-            name: session.user.email?.split('@')[0] || 'User',
-            email: session.user.email || '',
-            role: 'admin',
-            teamIds: [],
-            permissions: {
-              projects: 'admin',
-              clients: 'admin',
-              reports: 'admin',
-              templates: 'admin',
-              admin: 'admin',
-              timeTracking: 'admin',
-              tasks: 'admin',
-              users: 'admin',
-              teams: 'admin',
-              billing: 'admin'
-            }
-          };
-          setCurrentUser(user);
-        }
-      } else {
-        setCurrentUser(null)
+    checkSession();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (mounted) {
+        setSession(session);
+        setLoading(false);
       }
-    })
-  }, [setCurrentUser, setSession])
+    });
 
-  const { currentUser, session } = useAppContext();
-
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+  
+  // Show minimal loading state
   if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>
-  }
-
-  if (!session) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Auth
-          supabaseClient={supabase}
-          appearance={{ theme: ThemeSupa }}
-          providers={['google', 'github']}
-        />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
       </div>
-    )
+    );
   }
+  
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  const hasPermission = allowedRoles.includes(currentUser.role);
+  return hasPermission ? element : <Navigate to="/" replace />;
+};
 
-  return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-background">
-        <div className="flex h-screen">
-          <AppSidebar />
+// Public route component - simplified and faster
+const PublicRoute = ({ element }: { element: React.ReactNode }) => {
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    let mounted = true;
+    
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          setSession(session);
+          setLoading(false);
+        }
+      } catch (error) {
+        if (mounted) {
+          setSession(null);
+          setLoading(false);
+        }
+      }
+    };
 
-          <div className="flex-1 p-6">
-            <Routes>
-              <Route path="/" element={<Projects />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/projects/:projectId" element={<ProjectDetails />} />
-              <Route path="/tasks" element={<Tasks />} />
-              <Route path="/tasks/:taskId" element={<TaskDetails />} />
-              <Route path="/time-tracking" element={<TimeTracking />} />
-              <Route path="/team" element={<Team />} />
-              <Route path="/messages" element={<Messages />} />
-              <Route path="/clients" element={<Clients />} />
-              <Route path="/clients/:clientId" element={<ClientDetails />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/notes" element={<Notes />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/project-templates" element={<ProjectTemplates />} />
-              <Route path="/project-templates/:templateId" element={<TemplateDetails />} />
-              <Route path="/client-agreements" element={<ClientAgreements />} />
-              <Route path="/account" element={<Account />} />
-              
-              <Route 
-                path="/admin" 
-                element={
-                  currentUser?.permissions?.admin === 'admin' ? (
-                    <Admin />
-                  ) : (
-                    <Navigate to="/" />
-                  )
-                } 
-              />
-            </Routes>
-          </div>
-        </div>
+    checkSession();
+    
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
       </div>
-    </BrowserRouter>
+    );
+  }
+  
+  if (session) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return element;
+};
+
+const queryClient = new QueryClient();
+
+// The AppRoutes component needs to be inside the AppProvider
+const AppRoutes = () => {
+  const { currentUser } = useAppContext();
+  
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<PublicRoute element={<Login />} />} />
+      <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/confirm" element={<EmailConfirmation />} />
+      
+      {/* Protected routes */}
+      <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
+        <Route index element={<Dashboard />} />
+        
+        <Route path="/projects" element={<Projects />} />
+        <Route path="/projects/:projectId" element={<ProjectDetails />} />
+        
+        <Route path="/tasks" element={<Tasks />} />
+        
+        <Route path="/notes" element={<Notes />} />
+        
+        {/* Client routes are restricted for client users */}
+        <Route 
+          path="/clients" 
+          element={
+            <ProtectedRoute 
+              element={<Clients />} 
+              allowedRoles={['admin', 'manager', 'developer']} 
+            />
+          } 
+        />
+        
+        <Route path="/clients/:clientId" element={<ClientDetails />} />
+        
+        {/* Team management */}
+        <Route 
+          path="/team" 
+          element={
+            <ProtectedRoute 
+              element={<Team />} 
+              allowedRoles={['admin', 'manager']} 
+            />
+          } 
+        />
+        
+        <Route path="/time" element={<TimeTracking />} />
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/messages/:messageId" element={<Messages />} />
+        
+        {/* Reports available to all but with different views */}
+        <Route path="/reports" element={<Reports />} />
+        
+        <Route path="/settings" element={<Settings />} />
+        
+        {/* Admin section - only accessible by admins */}
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute 
+              element={<Admin />} 
+              allowedRoles={['admin']} 
+            />
+          } 
+        />
+        
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
   );
-}
+};
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <BrowserRouter>
+        <AppProvider>
+          <Toaster />
+          <Sonner />
+          <AppRoutes />
+        </AppProvider>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;

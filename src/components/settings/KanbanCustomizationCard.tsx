@@ -1,282 +1,544 @@
-
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Palette, GripVertical } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { Palette, Plus, X, Save, Check } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAppContext } from "@/contexts/AppContext";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
-interface CustomStatus {
-  id: string;
+interface ColorOption {
   name: string;
-  color: string;
-  order: number;
-  type: 'backlog' | 'active' | 'review' | 'done';
+  value: string;
+  label: string;
 }
 
-const defaultStatuses: CustomStatus[] = [
-  { id: 'backlog', name: 'Backlog', color: '#6b7280', order: 0, type: 'backlog' },
-  { id: 'todo', name: 'To Do', color: '#3b82f6', order: 1, type: 'active' },
-  { id: 'in-progress', name: 'In Progress', color: '#f59e0b', order: 2, type: 'active' },
-  { id: 'review', name: 'Review', color: '#ec4899', order: 3, type: 'review' },
-  { id: 'done', name: 'Done', color: '#10b981', order: 4, type: 'done' },
+const defaultColors = [
+  { name: "backlog", value: "#F3F4F6", label: "Backlog" },
+  { name: "todo", value: "#DBEAFE", label: "To Do" },
+  { name: "in-progress", value: "#FEF3C7", label: "In Progress" },
+  { name: "review", value: "#FCE7F3", label: "Review" },
+  { name: "done", value: "#DCFCE7", label: "Done" }
 ];
 
-const statusColors = [
-  '#6b7280', '#3b82f6', '#f59e0b', '#ec4899', '#10b981',
-  '#8b5cf6', '#ef4444', '#06b6d4', '#84cc16', '#f97316'
+const predefinedPalettes = [
+  {
+    name: "Default",
+    colors: {
+      backlog: "#F3F4F6",
+      todo: "#DBEAFE", 
+      "in-progress": "#FEF3C7", 
+      review: "#FCE7F3", 
+      done: "#DCFCE7"
+    }
+  },
+  {
+    name: "Ocean",
+    colors: {
+      backlog: "#F0F9FF",
+      todo: "#CFFAFE", 
+      "in-progress": "#A5F3FC", 
+      review: "#67E8F9", 
+      done: "#0EA5E9"
+    }
+  },
+  {
+    name: "Forest",
+    colors: {
+      backlog: "#F0FDF4",
+      todo: "#DCFCE7", 
+      "in-progress": "#BBF7D0", 
+      review: "#86EFAC", 
+      done: "#15803D"
+    }
+  },
+  {
+    name: "Sunset",
+    colors: {
+      backlog: "#FFF7ED",
+      todo: "#FFEDD5", 
+      "in-progress": "#FED7AA", 
+      review: "#FB923C", 
+      done: "#EA580C"
+    }
+  }
 ];
 
-export function KanbanCustomizationCard() {
-  const { toast } = useToast();
-  const [customStatuses, setCustomStatuses] = useState<CustomStatus[]>(defaultStatuses);
-  const [globalSettings, setGlobalSettings] = useState(true);
+interface CustomFieldForm {
+  name: string;
+  type: string;
+  options: string;
+  required: boolean;
+}
+
+export const KanbanCustomizationCard = () => {
+  const [colors, setColors] = useState<ColorOption[]>(defaultColors);
   const [newStatusName, setNewStatusName] = useState('');
-  const [newStatusColor, setNewStatusColor] = useState('#6b7280');
-  const [newStatusType, setNewStatusType] = useState<'backlog' | 'active' | 'review' | 'done'>('active');
+  const [newStatusId, setNewStatusId] = useState('');
+  const [newStatusColor, setNewStatusColor] = useState('#EAEAEA');
+  const [isEditingNames, setIsEditingNames] = useState(false);
+  const { toast } = useToast();
+  const { customFields, addCustomField, deleteCustomField } = useAppContext();
+  const [addStatusDialogOpen, setAddStatusDialogOpen] = useState(false);
+  const [addFieldDialogOpen, setAddFieldDialogOpen] = useState(false);
+  
+  const [newField, setNewField] = useState<CustomFieldForm>({
+    name: "",
+    type: "text",
+    options: "",
+    required: false
+  });
+  
+  // Load saved kanban colors on mount
+  useEffect(() => {
+    const savedColors = localStorage.getItem('kanbanColors');
+    if (savedColors) {
+      try {
+        setColors(JSON.parse(savedColors));
+      } catch (e) {
+        console.error('Error parsing kanban colors from localStorage', e);
+      }
+    }
+  }, []);
+  
+  const handleColorChange = (name: string, value: string) => {
+    setColors(prev => 
+      prev.map(color => color.name === name ? { ...color, value } : color)
+    );
+  };
 
-  const addCustomStatus = () => {
-    if (!newStatusName.trim()) {
+  const handleLabelChange = (name: string, label: string) => {
+    setColors(prev => 
+      prev.map(color => color.name === name ? { ...color, label } : color)
+    );
+  };
+  
+  const applyPalette = (palette: typeof predefinedPalettes[number]) => {
+    const newColors = colors.map(color => ({
+      ...color,
+      value: palette.colors[color.name as keyof typeof palette.colors] || color.value
+    }));
+    
+    setColors(newColors);
+    toast({
+      title: "Palette Applied",
+      description: `${palette.name} palette has been applied to your task statuses`
+    });
+  };
+  
+  const saveChanges = () => {
+    // Save to localStorage
+    localStorage.setItem('kanbanColors', JSON.stringify(colors));
+    
+    // Apply CSS variables for the kanban colors
+    colors.forEach(color => {
+      document.documentElement.style.setProperty(`--kanban-${color.name}-color`, color.value);
+    });
+    
+    toast({
+      title: "Changes Saved",
+      description: "Your status color customizations have been saved"
+    });
+  };
+  
+  const handleFieldChange = (key: keyof CustomFieldForm, value: string | boolean) => {
+    setNewField(prev => ({ ...prev, [key]: value }));
+  };
+  
+  const handleAddField = () => {
+    if (!newField.name.trim()) {
       toast({
         title: "Error",
-        description: "Status name is required",
-        variant: "destructive",
+        description: "Field name is required",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Parse options for select and multiselect types
+    const options = newField.type === 'select' || newField.type === 'multiselect' || newField.type === 'dropdown' || newField.type === 'file-upload'
+      ? newField.options.split(',').map(opt => opt.trim()).filter(opt => opt)
+      : undefined;
+    
+    addCustomField({
+      name: newField.name,
+      type: newField.type as 'text' | 'number' | 'date' | 'select' | 'multiselect',
+      options,
+      required: newField.required
+    });
+    
+    // Reset form
+    setNewField({
+      name: "",
+      type: "text",
+      options: "",
+      required: false
+    });
+    
+    setAddFieldDialogOpen(false);
+    
+    toast({
+      title: "Custom Field Added",
+      description: `The field "${newField.name}" has been added`
+    });
+  };
+  
+  const handleDeleteField = (id: string, name: string) => {
+    if (window.confirm(`Are you sure you want to delete the field "${name}"?`)) {
+      deleteCustomField(id);
+      toast({
+        title: "Field Deleted",
+        description: `The field "${name}" has been removed`
+      });
+    }
+  };
+
+  const handleAddStatus = () => {
+    if (!newStatusName.trim() || !newStatusId.trim()) {
+      toast({
+        title: "Error",
+        description: "Status name and ID are required",
+        variant: "destructive"
       });
       return;
     }
 
-    const newStatus: CustomStatus = {
-      id: Date.now().toString(),
-      name: newStatusName.trim(),
-      color: newStatusColor,
-      order: customStatuses.length,
-      type: newStatusType,
+    // Check if status ID already exists
+    if (colors.some(color => color.name === newStatusId)) {
+      toast({
+        title: "Error",
+        description: "Status with this ID already exists",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newStatus: ColorOption = {
+      name: newStatusId.toLowerCase().replace(/\s+/g, '-'),
+      value: newStatusColor,
+      label: newStatusName
     };
 
-    setCustomStatuses([...customStatuses, newStatus]);
+    setColors(prev => [...prev, newStatus]);
+    
+    // Reset form
     setNewStatusName('');
-    setNewStatusColor('#6b7280');
-    setNewStatusType('active');
-
+    setNewStatusId('');
+    setNewStatusColor('#EAEAEA');
+    setAddStatusDialogOpen(false);
+    
     toast({
       title: "Status Added",
-      description: `"${newStatus.name}" has been added to the Kanban board`,
+      description: `The status "${newStatusName}" has been added`
     });
   };
-
-  const removeStatus = (statusId: string) => {
-    setCustomStatuses(customStatuses.filter(status => status.id !== statusId));
+  
+  const handleDeleteStatus = (name: string) => {
+    if (colors.length <= 1) {
+      toast({
+        title: "Error",
+        description: "Cannot delete the last status",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setColors(prev => prev.filter(color => color.name !== name));
     toast({
-      title: "Status Removed",
-      description: "The status has been removed from the Kanban board",
+      title: "Status Deleted",
+      description: "The status has been removed"
     });
   };
-
-  const updateStatusColor = (statusId: string, color: string) => {
-    setCustomStatuses(customStatuses.map(status => 
-      status.id === statusId ? { ...status, color } : status
-    ));
-  };
-
-  const updateStatusName = (statusId: string, name: string) => {
-    setCustomStatuses(customStatuses.map(status => 
-      status.id === statusId ? { ...status, name } : status
-    ));
-  };
-
-  const saveSettings = () => {
-    toast({
-      title: "Settings Saved",
-      description: "Kanban customization settings have been saved successfully",
-    });
-  };
-
-  const resetToDefaults = () => {
-    setCustomStatuses(defaultStatuses);
-    toast({
-      title: "Reset Complete",
-      description: "Kanban board has been reset to default settings",
-    });
-  };
-
+  
   return (
-    <div className="space-y-6">
-      {/* Global vs Project Settings */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-0.5">
-          <Label className="text-base">Global Settings</Label>
-          <p className="text-sm text-muted-foreground">
-            Apply these settings to all projects or allow per-project customization
-          </p>
-        </div>
-        <Switch
-          checked={globalSettings}
-          onCheckedChange={setGlobalSettings}
-        />
-      </div>
-
-      <Separator />
-
-      {/* Custom Statuses */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Palette className="h-5 w-5 text-primary" />
           <div>
-            <h3 className="text-lg font-medium">Custom Statuses</h3>
-            <p className="text-sm text-muted-foreground">
-              Create and manage custom statuses for your Kanban boards
-            </p>
+            <CardTitle className="text-lg">Task Status Customization</CardTitle>
+            <CardDescription>
+              Customize status names, colors, and add new statuses for tasks across the application
+            </CardDescription>
           </div>
         </div>
-
-        {/* Current Statuses */}
-        <div className="grid gap-3">
-          {customStatuses.map((status) => (
-            <Card key={status.id} className="p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
-                  <div
-                    className="w-6 h-6 rounded-full border-2 border-white shadow-sm"
-                    style={{ backgroundColor: status.color }}
-                  />
-                  <Input
-                    value={status.name}
-                    onChange={(e) => updateStatusName(status.id, e.target.value)}
-                    className="max-w-[200px]"
-                  />
-                  <Badge variant="outline" className="capitalize">
-                    {status.type}
-                  </Badge>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={status.color}
-                    onValueChange={(color) => updateStatusColor(status.id, color)}
-                  >
-                    <SelectTrigger className="w-[100px]">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: status.color }}
-                        />
-                        <Palette className="h-3 w-3" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statusColors.map((color) => (
-                        <SelectItem key={color} value={color}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-4 h-4 rounded-full"
-                              style={{ backgroundColor: color }}
-                            />
-                            {color}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeStatus(status.id)}
-                    disabled={defaultStatuses.some(ds => ds.id === status.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Add New Status */}
-        <Card className="p-4 border-dashed">
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {/* Status Management */}
           <div className="space-y-4">
-            <h4 className="font-medium">Add New Status</h4>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div>
-                <Label htmlFor="statusName">Name</Label>
-                <Input
-                  id="statusName"
-                  placeholder="Status name"
-                  value={newStatusName}
-                  onChange={(e) => setNewStatusName(e.target.value)}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="statusColor">Color</Label>
-                <Select value={newStatusColor} onValueChange={setNewStatusColor}>
-                  <SelectTrigger>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: newStatusColor }}
-                      />
-                      <Palette className="h-3 w-3" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusColors.map((color) => (
-                      <SelectItem key={color} value={color}>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: color }}
-                          />
-                          {color}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="statusType">Type</Label>
-                <Select value={newStatusType} onValueChange={(value: any) => setNewStatusType(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="backlog">Backlog</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="review">Review</SelectItem>
-                    <SelectItem value="done">Done</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-end">
-                <Button onClick={addCustomStatus} className="w-full">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Task Statuses</h3>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setIsEditingNames(!isEditingNames)}
+                >
+                  {isEditingNames ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Done Editing
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Edit Names
+                    </>
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setAddStatusDialogOpen(true)}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Status
                 </Button>
               </div>
             </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {colors.map(color => (
+                <div key={color.name} className="space-y-2 border rounded-md p-4">
+                  {isEditingNames ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={color.label}
+                        onChange={(e) => handleLabelChange(color.name, e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive"
+                        onClick={() => handleDeleteStatus(color.name)}
+                        disabled={color.name === 'todo' || color.name === 'in-progress' || color.name === 'done'}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Label htmlFor={`color-${color.name}`}>{color.label}</Label>
+                  )}
+                  <div className="flex gap-2">
+                    <div 
+                      className="w-10 h-10 rounded border"
+                      style={{ backgroundColor: color.value }}
+                    />
+                    <Input
+                      id={`color-${color.name}`}
+                      type="text"
+                      value={color.value}
+                      onChange={(e) => handleColorChange(color.name, e.target.value)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
           </div>
-        </Card>
-      </div>
 
-      <Separator />
+          <div className="space-y-3">
+            <Label>Color Presets</Label>
+            <div className="flex flex-wrap gap-2">
+              {predefinedPalettes.map(palette => (
+                <Button 
+                  key={palette.name}
+                  variant="outline"
+                  onClick={() => applyPalette(palette)}
+                >
+                  {palette.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="pt-4 flex justify-end">
+            <Button onClick={saveChanges}>Save Colors</Button>
+          </div>
+          
+          {/* Custom Fields Section */}
+          <div className="border-t pt-6 mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-lg font-medium">Custom Fields</h3>
+                <p className="text-sm text-muted-foreground">
+                  Add custom fields to tasks in your kanban board
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setAddFieldDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Field
+              </Button>
+            </div>
+            
+            {/* Existing Custom Fields */}
+            <div className="space-y-4 mb-6">
+              <h4 className="text-sm font-medium text-muted-foreground">Current Fields</h4>
+              {customFields.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3">
+                  {customFields.map(field => (
+                    <div key={field.id} className="flex justify-between items-center p-3 bg-muted/30 rounded-md">
+                      <div>
+                        <p className="font-medium">{field.name}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          Type: {field.type} {field.required && " (Required)"}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteField(field.id, field.name)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center py-3 text-muted-foreground">No custom fields created yet</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </CardContent>
 
-      {/* Action Buttons */}
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={resetToDefaults}>
-          Reset to Defaults
-        </Button>
-        <Button onClick={saveSettings}>
-          Save Settings
-        </Button>
-      </div>
-    </div>
+      {/* Add Status Dialog */}
+      <Dialog open={addStatusDialogOpen} onOpenChange={setAddStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Status</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-status-name">Display Name</Label>
+                <Input
+                  id="new-status-name"
+                  placeholder="e.g. Waiting for Review"
+                  value={newStatusName}
+                  onChange={(e) => setNewStatusName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-status-id">Status ID</Label>
+                <Input
+                  id="new-status-id"
+                  placeholder="e.g. waiting-review"
+                  value={newStatusId}
+                  onChange={(e) => setNewStatusId(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Lowercase with hyphens, no spaces
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-status-color">Color</Label>
+                <div className="flex gap-2">
+                  <div 
+                    className="w-10 h-10 rounded border"
+                    style={{ backgroundColor: newStatusColor }}
+                  />
+                  <Input
+                    id="new-status-color"
+                    type="text"
+                    value={newStatusColor}
+                    onChange={(e) => setNewStatusColor(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddStatusDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddStatus}>Add Status</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Field Dialog */}
+      <Dialog open={addFieldDialogOpen} onOpenChange={setAddFieldDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Field</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="field-name">Field Name</Label>
+              <Input
+                id="field-name"
+                placeholder="e.g., Story Points"
+                value={newField.name}
+                onChange={(e) => handleFieldChange("name", e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="field-type">Field Type</Label>
+              <Select
+                value={newField.type}
+                onValueChange={(value) => handleFieldChange("type", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="text">Text</SelectItem>
+                  <SelectItem value="number">Number</SelectItem>
+                  <SelectItem value="date">Date</SelectItem>
+                  <SelectItem value="select">Single Select</SelectItem>
+                  <SelectItem value="multiselect">Multi Select</SelectItem>
+                  <SelectItem value="dropdown">Dropdown</SelectItem>
+                  <SelectItem value="file-upload">File Upload</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {(newField.type === 'select' || newField.type === 'multiselect' || newField.type === 'dropdown') && (
+              <div className="space-y-2">
+                <Label htmlFor="field-options">Options (comma separated)</Label>
+                <Input
+                  id="field-options"
+                  placeholder="Option 1, Option 2, Option 3"
+                  value={newField.options}
+                  onChange={(e) => handleFieldChange("options", e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Separate options with commas
+                </p>
+              </div>
+            )}
+            
+            <div className="flex items-center space-x-2">
+              <input
+                id="field-required"
+                type="checkbox"
+                className="h-4 w-4 rounded border-gray-300"
+                checked={newField.required}
+                onChange={(e) => handleFieldChange("required", e.target.checked)}
+              />
+              <Label htmlFor="field-required">Required Field</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddFieldDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddField}>Add Field</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
-}
+};
