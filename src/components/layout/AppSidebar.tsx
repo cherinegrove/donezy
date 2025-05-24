@@ -9,7 +9,6 @@ import {
   BarChart,
   Clock,
   MessageSquare,
-  Users,
   Briefcase,
   ListTodo,
   ShieldAlert,
@@ -128,25 +127,6 @@ export function AppSidebar() {
               <StickyNote className="h-4 w-4" />
               {!collapsed && <span>Notes</span>}
             </NavLink>
-            
-            {/* Users - only shown to admin and manager */}
-            {currentUser && (currentUser.role === "admin" || currentUser.role === "manager") && (
-              <NavLink
-                to="/users"
-                onClick={handleNavClick}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  )
-                }
-              >
-                <Users className="h-4 w-4" />
-                {!collapsed && <span>Users</span>}
-              </NavLink>
-            )}
             
             {/* Time */}
             <NavLink
