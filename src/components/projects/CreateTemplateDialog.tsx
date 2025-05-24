@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -218,6 +219,7 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
                         type="number"
                         placeholder="Default duration in days"
                         {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
@@ -236,6 +238,7 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
                         type="number"
                         placeholder="Allocated hours"
                         {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
@@ -255,93 +258,58 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
                         variant="ghost"
                         size="sm"
                         onClick={() => removeTask(index)}
+                        type="button"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    <FormField
-                      control={form.control}
-                      name={`tasks[${index}].title`}
-                      render={() => (
-                        <FormItem>
-                          <FormLabel>Title</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Task title"
-                              value={task.title}
-                              onChange={(e) => updateTask(index, "title", e.target.value)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div>
+                      <label className="text-sm font-medium">Title</label>
+                      <Input
+                        placeholder="Task title"
+                        value={task.title}
+                        onChange={(e) => updateTask(index, "title", e.target.value)}
+                      />
+                    </div>
                     
-                    <FormField
-                      control={form.control}
-                      name={`tasks[${index}].description`}
-                      render={() => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Task description"
-                              className="resize-none"
-                              value={task.description}
-                              onChange={(e) => updateTask(index, "description", e.target.value)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div>
+                      <label className="text-sm font-medium">Description</label>
+                      <Textarea
+                        placeholder="Task description"
+                        className="resize-none"
+                        value={task.description}
+                        onChange={(e) => updateTask(index, "description", e.target.value)}
+                      />
+                    </div>
                     
-                    <FormField
-                      control={form.control}
-                      name={`tasks[${index}].priority`}
-                      render={() => (
-                        <FormItem>
-                          <FormLabel>Priority</FormLabel>
-                          <Select
-                            value={task.priority}
-                            onValueChange={(value) => updateTask(index, "priority", value)}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select priority" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="low">Low</SelectItem>
-                              <SelectItem value="medium">Medium</SelectItem>
-                              <SelectItem value="high">High</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div>
+                      <label className="text-sm font-medium">Priority</label>
+                      <Select
+                        value={task.priority}
+                        onValueChange={(value) => updateTask(index, "priority", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     
-                    <FormField
-                      control={form.control}
-                      name={`tasks[${index}].estimatedHours`}
-                      render={() => (
-                        <FormItem>
-                          <FormLabel>Estimated Hours</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="Estimated hours"
-                              value={task.estimatedHours}
-                              onChange={(e) => updateTask(index, "estimatedHours", parseInt(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div>
+                      <label className="text-sm font-medium">Estimated Hours</label>
+                      <Input
+                        type="number"
+                        placeholder="Estimated hours"
+                        value={task.estimatedHours}
+                        onChange={(e) => updateTask(index, "estimatedHours", parseInt(e.target.value))}
+                      />
+                    </div>
                     
                     <div className="space-y-2">
                       <h4 className="text-sm font-medium">Subtasks</h4>
@@ -353,92 +321,57 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
                               variant="ghost"
                               size="sm"
                               onClick={() => removeSubtask(index, subtaskIndex)}
+                              type="button"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                           
-                          <FormField
-                            control={form.control}
-                            name={`tasks[${index}].subtasks[${subtaskIndex}].title`}
-                            render={() => (
-                              <FormItem>
-                                <FormLabel>Title</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    placeholder="Subtask title"
-                                    value={subtask.title}
-                                    onChange={(e) => updateSubtask(index, subtaskIndex, "title", e.target.value)}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          <div>
+                            <label className="text-sm font-medium">Title</label>
+                            <Input
+                              placeholder="Subtask title"
+                              value={subtask.title}
+                              onChange={(e) => updateSubtask(index, subtaskIndex, "title", e.target.value)}
+                            />
+                          </div>
                           
-                          <FormField
-                            control={form.control}
-                            name={`tasks[${index}].subtasks[${subtaskIndex}].description`}
-                            render={() => (
-                              <FormItem>
-                                <FormLabel>Description</FormLabel>
-                                <FormControl>
-                                  <Textarea
-                                    placeholder="Subtask description"
-                                    className="resize-none"
-                                    value={subtask.description}
-                                    onChange={(e) => updateSubtask(index, subtaskIndex, "description", e.target.value)}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          <div>
+                            <label className="text-sm font-medium">Description</label>
+                            <Textarea
+                              placeholder="Subtask description"
+                              className="resize-none"
+                              value={subtask.description}
+                              onChange={(e) => updateSubtask(index, subtaskIndex, "description", e.target.value)}
+                            />
+                          </div>
                           
-                          <FormField
-                            control={form.control}
-                            name={`tasks[${index}].subtasks[${subtaskIndex}].priority`}
-                            render={() => (
-                              <FormItem>
-                                <FormLabel>Priority</FormLabel>
-                                <Select
-                                  value={subtask.priority}
-                                  onValueChange={(value) => updateSubtask(index, subtaskIndex, "priority", value)}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select priority" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="low">Low</SelectItem>
-                                    <SelectItem value="medium">Medium</SelectItem>
-                                    <SelectItem value="high">High</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          <div>
+                            <label className="text-sm font-medium">Priority</label>
+                            <Select
+                              value={subtask.priority}
+                              onValueChange={(value) => updateSubtask(index, subtaskIndex, "priority", value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select priority" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="low">Low</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="high">High</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                           
-                          <FormField
-                            control={form.control}
-                            name={`tasks[${index}].subtasks[${subtaskIndex}].estimatedHours`}
-                            render={() => (
-                              <FormItem>
-                                <FormLabel>Estimated Hours</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="Estimated hours"
-                                    value={subtask.estimatedHours}
-                                    onChange={(e) => updateSubtask(index, subtaskIndex, "estimatedHours", parseInt(e.target.value))}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          <div>
+                            <label className="text-sm font-medium">Estimated Hours</label>
+                            <Input
+                              type="number"
+                              placeholder="Estimated hours"
+                              value={subtask.estimatedHours}
+                              onChange={(e) => updateSubtask(index, subtaskIndex, "estimatedHours", parseInt(e.target.value))}
+                            />
+                          </div>
                         </div>
                       ))}
                       <Button

@@ -1,6 +1,7 @@
+
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
-import { Team } from "@/types";
+import type { Team } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { EditTeamDialog } from "@/components/teams/EditTeamDialog";

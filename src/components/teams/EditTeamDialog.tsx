@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAppContext } from "@/contexts/AppContext";
-import { Team } from "@/types";
+import type { Team } from "@/types";
 import {
   Dialog,
   DialogContent,
@@ -136,8 +136,8 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
                   <FormLabel>Team Members</FormLabel>
                   <MultiSelect
                     options={userOptions}
-                    selected={field.value}
-                    onSelectionChange={field.onChange}
+                    selectedValues={field.value}
+                    onValueChange={field.onChange}
                     placeholder="Select team members"
                   />
                   <FormMessage />
