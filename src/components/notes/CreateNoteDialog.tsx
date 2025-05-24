@@ -89,12 +89,28 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
     const currentContent = form.getValues("content");
     const newContent = currentContent + (currentContent ? "\n" : "") + "☐ ";
     form.setValue("content", newContent);
+    
+    // Focus the textarea
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newContent.length, newContent.length);
+      }
+    }, 0);
   };
 
   const insertBulletPoint = () => {
     const currentContent = form.getValues("content");
     const newContent = currentContent + (currentContent ? "\n" : "") + "• ";
     form.setValue("content", newContent);
+    
+    // Focus the textarea
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newContent.length, newContent.length);
+      }
+    }, 0);
   };
 
   const handleTextFormat = (type: 'bold' | 'italic' | 'underline') => {
@@ -103,29 +119,65 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
+    const currentValue = textarea.value;
+    const selectedText = currentValue.substring(start, end);
     
     if (selectedText) {
       let formattedText = "";
+      let cursorOffset = 0;
+      
       switch (type) {
         case 'bold':
           formattedText = `**${selectedText}**`;
+          cursorOffset = 2;
           break;
         case 'italic':
           formattedText = `*${selectedText}*`;
+          cursorOffset = 1;
           break;
         case 'underline':
           formattedText = `__${selectedText}__`;
+          cursorOffset = 2;
           break;
       }
       
-      const newContent = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+      const newContent = currentValue.substring(0, start) + formattedText + currentValue.substring(end);
       form.setValue("content", newContent);
       
       // Set cursor position after the formatted text
       setTimeout(() => {
         textarea.focus();
-        textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
+        const newCursorPosition = start + formattedText.length;
+        textarea.setSelectionRange(newCursorPosition, newCursorPosition);
+      }, 0);
+    } else {
+      // If no text is selected, just insert the formatting markers
+      let formatMarkers = "";
+      let cursorOffset = 0;
+      
+      switch (type) {
+        case 'bold':
+          formatMarkers = "****";
+          cursorOffset = 2;
+          break;
+        case 'italic':
+          formatMarkers = "**";
+          cursorOffset = 1;
+          break;
+        case 'underline':
+          formatMarkers = "____";
+          cursorOffset = 2;
+          break;
+      }
+      
+      const newContent = currentValue.substring(0, start) + formatMarkers + currentValue.substring(end);
+      form.setValue("content", newContent);
+      
+      // Position cursor between the markers
+      setTimeout(() => {
+        textarea.focus();
+        const newCursorPosition = start + cursorOffset;
+        textarea.setSelectionRange(newCursorPosition, newCursorPosition);
       }, 0);
     }
   };
