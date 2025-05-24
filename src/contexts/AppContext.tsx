@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useContext,
@@ -80,6 +81,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, []);
 
+  // Helper function to safely parse JSON fields
+  const safeParseJson = (jsonData: any, fallback: any = {}) => {
+    if (!jsonData) return fallback;
+    if (typeof jsonData === 'object') return jsonData;
+    try {
+      return JSON.parse(jsonData);
+    } catch {
+      return fallback;
+    }
+  };
+
+  // Helper function to validate employment type
+  const validateEmploymentType = (type: any): 'full-time' | 'part-time' | 'contract' | undefined => {
+    if (!type) return undefined;
+    const validTypes = ['full-time', 'part-time', 'contract'];
+    return validTypes.includes(type) ? type : undefined;
+  };
+
+  // Helper function to validate billing type
+  const validateBillingType = (type: any): 'hourly' | 'monthly' | undefined => {
+    if (!type) return undefined;
+    const validTypes = ['hourly', 'monthly'];
+    return validTypes.includes(type) ? type : undefined;
+  };
+
   // Load users from Supabase
   const loadUsers = useCallback(async () => {
     if (!session?.user) return;
@@ -111,14 +137,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           jobTitle: user.job_title,
           clientRole: user.client_role,
           phone: user.phone,
-          employmentType: user.employment_type,
-          billingType: user.billing_type,
-          permissions: user.permissions,
+          employmentType: validateEmploymentType(user.employment_type),
+          billingType: validateBillingType(user.billing_type),
+          permissions: safeParseJson(user.permissions),
           managerId: user.manager_id,
-          notificationPreferences: user.notification_preferences,
+          notificationPreferences: safeParseJson(user.notification_preferences),
           is_guest: user.is_guest,
           guestOfUserId: user.guest_of_user_id,
-          guestPermissions: user.guest_permissions
+          guestPermissions: safeParseJson(user.guest_permissions, { canViewTasks: true, canViewProjects: true })
         })));
       }
     } catch (error) {
@@ -166,14 +192,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           jobTitle: userData?.job_title,
           clientRole: userData?.client_role,
           phone: userData?.phone,
-          employmentType: userData?.employment_type,
-          billingType: userData?.billing_type,
-          permissions: userData?.permissions,
+          employmentType: validateEmploymentType(userData?.employment_type),
+          billingType: validateBillingType(userData?.billing_type),
+          permissions: safeParseJson(userData?.permissions),
           managerId: userData?.manager_id,
-          notificationPreferences: userData?.notification_preferences,
+          notificationPreferences: safeParseJson(userData?.notification_preferences),
           is_guest: userData?.is_guest,
           guestOfUserId: userData?.guest_of_user_id,
-          guestPermissions: userData?.guest_permissions
+          guestPermissions: safeParseJson(userData?.guest_permissions, { canViewTasks: true, canViewProjects: true })
         });
       }
     } catch (error: any) {
@@ -343,14 +369,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           jobTitle: data.job_title,
           clientRole: data.client_role,
           phone: data.phone,
-          employmentType: data.employment_type,
-          billingType: data.billing_type,
-          permissions: data.permissions,
+          employmentType: validateEmploymentType(data.employment_type),
+          billingType: validateBillingType(data.billing_type),
+          permissions: safeParseJson(data.permissions),
           managerId: data.manager_id,
-          notificationPreferences: data.notification_preferences,
+          notificationPreferences: safeParseJson(data.notification_preferences),
           is_guest: data.is_guest,
           guestOfUserId: data.guest_of_user_id,
-          guestPermissions: data.guest_permissions
+          guestPermissions: safeParseJson(data.guest_permissions, { canViewTasks: true, canViewProjects: true })
         };
         setUsers(prev => [...prev, newUser]);
       }
