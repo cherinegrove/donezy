@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,7 +25,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { CheckSquare, List } from "lucide-react";
-import { TextFormattingToolbar } from "./TextFormattingToolbar";
 
 const noteSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -53,8 +53,6 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
   const { toast } = useToast();
   const [selectedColor, setSelectedColor] = useState("yellow");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [selectionStart, setSelectionStart] = useState(0);
-  const [selectionEnd, setSelectionEnd] = useState(0);
 
   const form = useForm<NoteFormData>({
     resolver: zodResolver(noteSchema),
@@ -64,14 +62,6 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
       color: "yellow",
     },
   });
-
-  // Store selection when textarea selection changes
-  const handleSelectionChange = () => {
-    if (textareaRef.current) {
-      setSelectionStart(textareaRef.current.selectionStart);
-      setSelectionEnd(textareaRef.current.selectionEnd);
-    }
-  };
 
   const onSubmit = (data: NoteFormData) => {
     if (!currentUser) return;
@@ -120,70 +110,6 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
         textareaRef.current.setSelectionRange(newContent.length, newContent.length);
       }
     }, 0);
-  };
-
-  const handleTextFormat = (type: 'bold' | 'italic' | 'underline') => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const currentValue = textarea.value;
-    const start = selectionStart;
-    const end = selectionEnd;
-    const selectedText = currentValue.substring(start, end);
-    
-    let markers = { start: '', end: '' };
-    switch (type) {
-      case 'bold':
-        markers = { start: '**', end: '**' };
-        break;
-      case 'italic':
-        markers = { start: '*', end: '*' };
-        break;
-      case 'underline':
-        markers = { start: '__', end: '__' };
-        break;
-    }
-    
-    if (selectedText) {
-      // Check if text is already formatted
-      const beforeText = currentValue.substring(Math.max(0, start - markers.start.length), start);
-      const afterText = currentValue.substring(end, end + markers.end.length);
-      
-      if (beforeText === markers.start && afterText === markers.end) {
-        // Remove formatting
-        const newContent = 
-          currentValue.substring(0, start - markers.start.length) + 
-          selectedText + 
-          currentValue.substring(end + markers.end.length);
-        form.setValue("content", newContent);
-        
-        setTimeout(() => {
-          textarea.focus();
-          textarea.setSelectionRange(start - markers.start.length, end - markers.start.length);
-        }, 0);
-      } else {
-        // Add formatting
-        const formattedText = `${markers.start}${selectedText}${markers.end}`;
-        const newContent = currentValue.substring(0, start) + formattedText + currentValue.substring(end);
-        form.setValue("content", newContent);
-        
-        setTimeout(() => {
-          textarea.focus();
-          textarea.setSelectionRange(start + markers.start.length, end + markers.start.length);
-        }, 0);
-      }
-    } else {
-      // No text selected, insert markers and position cursor between them
-      const formatMarkers = markers.start + markers.end;
-      const newContent = currentValue.substring(0, start) + formatMarkers + currentValue.substring(end);
-      form.setValue("content", newContent);
-      
-      setTimeout(() => {
-        textarea.focus();
-        const newCursorPosition = start + markers.start.length;
-        textarea.setSelectionRange(newCursorPosition, newCursorPosition);
-      }, 0);
-    }
   };
 
   return (
@@ -257,17 +183,13 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
                         Bullet
                       </Button>
                     </div>
-                    <TextFormattingToolbar onFormat={handleTextFormat} textareaRef={textareaRef} />
                   </div>
                   <FormControl>
                     <Textarea
                       ref={textareaRef}
-                      placeholder="Write your note here... Select text and use formatting buttons or Ctrl+B/I/U"
+                      placeholder="Write your note here..."
                       rows={8}
                       {...field}
-                      onSelect={handleSelectionChange}
-                      onKeyUp={handleSelectionChange}
-                      onMouseUp={handleSelectionChange}
                     />
                   </FormControl>
                   <FormMessage />
