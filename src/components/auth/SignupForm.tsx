@@ -1,10 +1,8 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useNavigate } from "react-router-dom";
-import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -34,7 +32,6 @@ const signupSchema = z.object({
 });
 
 export function SignupForm() {
-  const { inviteUser } = useAppContext();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [signupError, setSignupError] = useState<string | null>(null);
@@ -81,7 +78,7 @@ export function SignupForm() {
             name: values.name,
             role: "developer", // Default role
           },
-          emailRedirectTo: `${window.location.origin}/login?confirmed=true`
+          emailRedirectTo: `${window.location.origin}/confirm`
         }
       });
       
@@ -91,14 +88,6 @@ export function SignupForm() {
       
       if (authData.user) {
         console.log("Supabase signup success for:", authData.user.email);
-        
-        // Create the user in our app context as well to keep local functionality
-        inviteUser(values.email, values.name, "developer", {
-          employmentType: "full-time",
-          billingType: "hourly",
-          hourlyRate: 50,
-          currency: "USD",
-        });
         
         // Update the profiles table in Supabase - make sure to include the ID
         const { error: profileError } = await supabase
