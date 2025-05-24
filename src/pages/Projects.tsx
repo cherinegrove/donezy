@@ -1,4 +1,3 @@
-
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +15,7 @@ import { UseTemplateDialog } from "@/components/projects/UseTemplateDialog";
 import { TemplatesList } from "@/components/projects/TemplatesList";
 import { RecordActions } from "@/components/common/RecordActions";
 import type { Project } from "@/types";
+import { toast } from "react-toastify";
 
 const Projects = () => {
   const { projects, tasks, clients, teams } = useAppContext();
@@ -134,6 +134,11 @@ const Projects = () => {
       setEditingProject(projectToEdit);
     } else {
       console.error("Project not found for editing:", projectId);
+      toast({
+        title: "Error",
+        description: "Project not found. Please refresh the page and try again.",
+        variant: "destructive",
+      });
     }
   };
 

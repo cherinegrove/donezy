@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import {
   Dialog,
@@ -54,6 +55,7 @@ interface CreateProjectDialogProps {
 export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
   const { clients, addProject } = useAppContext();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ProjectFormData>({
@@ -74,7 +76,10 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
     setIsSubmitting(true);
     
     try {
-      addProject({
+      // Create the project data with a generated ID
+      const projectId = Math.random().toString(36).substring(2, 15);
+      const newProject = {
+        id: projectId,
         name: data.name,
         description: data.description,
         clientId: data.clientId,
@@ -82,13 +87,16 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
         startDate: data.startDate || "",
         dueDate: data.dueDate || "",
         allocatedHours: data.allocatedHours || 0,
-        status: "todo",
+        status: "todo" as const,
         usedHours: 0,
         teamIds: [],
         watcherIds: [],
-      });
+      };
 
-      console.log("Project added successfully");
+      // Add the project to state
+      addProject(newProject);
+
+      console.log("Project added successfully with ID:", projectId);
 
       toast({
         title: "Project created",
@@ -97,6 +105,11 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
 
       form.reset();
       onOpenChange(false);
+
+      // Navigate to the new project after a brief delay to ensure state is updated
+      setTimeout(() => {
+        navigate(`/projects/${projectId}`);
+      }, 100);
     } catch (error) {
       console.error("Error creating project:", error);
       toast({

@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useContext,
@@ -278,13 +277,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   // Project functions
-  const addProject = useCallback((project: Omit<Project, 'id'>) => {
+  const addProject = useCallback((project: Omit<Project, 'id'> | Project) => {
     console.log("Adding project:", project);
-    const newProject: Project = {
+    
+    // Handle both cases: with ID (from CreateProjectDialog) and without ID (legacy)
+    const newProject: Project = 'id' in project ? project as Project : {
       id: Math.random().toString(36).substring(2, 15),
       ...project,
     };
-    setProjects(prev => [...prev, newProject]);
+    
+    setProjects(prev => {
+      const updated = [...prev, newProject];
+      console.log("Projects state updated:", updated);
+      return updated;
+    });
+    
+    console.log("Project added successfully with ID:", newProject.id);
   }, []);
 
   const updateProject = useCallback((projectId: string, updates: Partial<Project>) => {

@@ -89,8 +89,16 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
           variant: "destructive",
         });
       }
+    } else if (open && !project) {
+      console.error("EditProjectDialog opened without project data");
+      toast({
+        title: "Error",
+        description: "No project data available for editing.",
+        variant: "destructive",
+      });
+      onClose();
     }
-  }, [form, open, project, toast]);
+  }, [form, open, project, toast, onClose]);
 
   const onSubmit = async (data: ProjectFormData) => {
     if (!project) {
@@ -128,8 +136,8 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
   };
 
   // Don't render anything if no project is provided
-  if (!project) {
-    console.warn("EditProjectDialog: No project provided");
+  if (!project && open) {
+    console.warn("EditProjectDialog: No project provided but dialog is open");
     return null;
   }
 
