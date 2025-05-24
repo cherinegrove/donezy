@@ -21,7 +21,7 @@ export interface AppContextType {
   activeTimeEntry: TimeEntry | null;
   taskLogs: TaskLog[];
   
-  // Missing setters
+  // Setters for currentUser and session
   setCurrentUser: (user: User | null) => void;
   setSession: (session: Session | null) => void;
   

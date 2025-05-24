@@ -23,6 +23,7 @@ import ProjectTemplates from './pages/ProjectTemplates';
 import TemplateDetails from './pages/TemplateDetails';
 import ClientAgreements from './pages/ClientAgreements';
 import { AppSidebar } from './components/layout/AppSidebar';
+import { User } from '@/types';
 
 function App() {
   const { setCurrentUser, setSession } = useAppContext();
@@ -35,14 +36,60 @@ function App() {
 
       setSession(session)
 
-      if (session) {
-        const { data: { user } } = await supabase
-          .from('users')
-          .select()
-          .eq('id', session?.user.id)
+      if (session?.user) {
+        // Query the profiles table instead of users table
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
           .single()
 
-        setCurrentUser(user)
+        if (profileData && !error) {
+          // Create a User object from the profile data and session user
+          const user: User = {
+            id: profileData.id,
+            name: profileData.display_name || session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            avatar: profileData.avatar_url,
+            role: 'admin', // Default role, you can modify this based on your needs
+            teamIds: [],
+            permissions: {
+              projects: 'admin',
+              clients: 'admin',
+              reports: 'admin',
+              templates: 'admin',
+              admin: 'admin',
+              timeTracking: 'admin',
+              tasks: 'admin',
+              users: 'admin',
+              teams: 'admin',
+              billing: 'admin'
+            }
+          };
+          setCurrentUser(user);
+        } else {
+          // If no profile exists, create a basic user from session data
+          const user: User = {
+            id: session.user.id,
+            name: session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            role: 'admin',
+            teamIds: [],
+            permissions: {
+              projects: 'admin',
+              clients: 'admin',
+              reports: 'admin',
+              templates: 'admin',
+              admin: 'admin',
+              timeTracking: 'admin',
+              tasks: 'admin',
+              users: 'admin',
+              teams: 'admin',
+              billing: 'admin'
+            }
+          };
+          setCurrentUser(user);
+        }
       }
 
       setLoading(false)
@@ -50,16 +97,63 @@ function App() {
 
     getActiveSession()
 
-    supabase.auth.onAuthStateChange((event, session) => {
+    supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session)
       
-      if (session) {
-        supabase
-          .from('users')
-          .select()
-          .eq('id', session?.user.id)
+      if (session?.user) {
+        // Query the profiles table instead of users table
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
           .single()
-          .then(({ data: user }) => setCurrentUser(user))
+
+        if (profileData && !error) {
+          // Create a User object from the profile data and session user
+          const user: User = {
+            id: profileData.id,
+            name: profileData.display_name || session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            avatar: profileData.avatar_url,
+            role: 'admin', // Default role, you can modify this based on your needs
+            teamIds: [],
+            permissions: {
+              projects: 'admin',
+              clients: 'admin',
+              reports: 'admin',
+              templates: 'admin',
+              admin: 'admin',
+              timeTracking: 'admin',
+              tasks: 'admin',
+              users: 'admin',
+              teams: 'admin',
+              billing: 'admin'
+            }
+          };
+          setCurrentUser(user);
+        } else {
+          // If no profile exists, create a basic user from session data
+          const user: User = {
+            id: session.user.id,
+            name: session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            role: 'admin',
+            teamIds: [],
+            permissions: {
+              projects: 'admin',
+              clients: 'admin',
+              reports: 'admin',
+              templates: 'admin',
+              admin: 'admin',
+              timeTracking: 'admin',
+              tasks: 'admin',
+              users: 'admin',
+              teams: 'admin',
+              billing: 'admin'
+            }
+          };
+          setCurrentUser(user);
+        }
       } else {
         setCurrentUser(null)
       }
