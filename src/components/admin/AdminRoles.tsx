@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
@@ -56,6 +55,7 @@ const featureLabels = {
 const accessLevels: { value: AccessLevel; label: string; color: string }[] = [
   { value: 'none', label: 'No Access', color: 'bg-gray-100 text-gray-800' },
   { value: 'view', label: 'View Only', color: 'bg-blue-100 text-blue-800' },
+  { value: 'create', label: 'Create', color: 'bg-yellow-100 text-yellow-800' },
   { value: 'edit', label: 'Edit', color: 'bg-green-100 text-green-800' },
   { value: 'delete', label: 'Delete', color: 'bg-red-100 text-red-800' }
 ];
@@ -234,6 +234,7 @@ export default function AdminRoles() {
                       <TableHead>Feature</TableHead>
                       <TableHead className="text-center">No Access</TableHead>
                       <TableHead className="text-center">View Only</TableHead>
+                      <TableHead className="text-center">Create</TableHead>
                       <TableHead className="text-center">Edit</TableHead>
                       <TableHead className="text-center">Delete</TableHead>
                     </TableRow>

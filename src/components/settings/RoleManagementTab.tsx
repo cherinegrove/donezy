@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
@@ -92,7 +91,7 @@ export function RoleManagementTab() {
     deleteCustomRole(id);
   };
 
-  const permissionOptions: AccessLevel[] = ["none", "view", "edit"];
+  const permissionOptions: AccessLevel[] = ["none", "view", "create", "edit"];
   const permissionKeys = Object.keys(defaultFormValues.permissions);
   
   // Function to handle permission change
@@ -162,6 +161,7 @@ export function RoleManagementTab() {
                         <TableHead>Feature</TableHead>
                         <TableHead>No Access</TableHead>
                         <TableHead>View Only</TableHead>
+                        <TableHead>Create</TableHead>
                         <TableHead>Edit</TableHead>
                       </TableRow>
                     </TableHeader>

@@ -258,7 +258,7 @@ export interface CustomField {
 }
 
 export type NotificationTimeframe = 'same-day' | '1-day' | '3-days' | '1-week';
-export type AccessLevel = 'none' | 'view' | 'edit' | 'delete';
+export type AccessLevel = 'none' | 'view' | 'create' | 'edit' | 'delete';
 export type BillingType = 'hourly' | 'monthly';
 export type EmploymentType = 'full-time' | 'part-time' | 'contract';
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
