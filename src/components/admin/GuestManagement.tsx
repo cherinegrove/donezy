@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { AccountLimits, GuestUser } from "@/types/subscription";
+import { AccountLimits } from "@/types/subscription";
+import { User } from "@/types/index";
 import { 
   Users, 
   Plus, 
@@ -21,12 +21,23 @@ import {
   Crown
 } from "lucide-react";
 
+// Define a local type for guest users from the database
+interface DbGuestUser {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  is_guest: boolean;
+  guest_of_user_id?: string;
+  guest_permissions: any; // This will be parsed JSON
+}
+
 export function GuestManagement() {
   const { currentUser } = useAppContext();
   const { toast } = useToast();
   
   const [accountLimits, setAccountLimits] = useState<AccountLimits | null>(null);
-  const [guestUsers, setGuestUsers] = useState<GuestUser[]>([]);
+  const [guestUsers, setGuestUsers] = useState<DbGuestUser[]>([]);
   const [isAddingGuest, setIsAddingGuest] = useState(false);
   const [guestForm, setGuestForm] = useState({
     name: "",
@@ -78,12 +89,21 @@ export function GuestManagement() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, name, email, avatar, is_guest, guest_of_user_id, guest_permissions')
         .eq('guest_of_user_id', currentUser.id)
         .eq('is_guest', true);
       
       if (error) throw error;
-      setGuestUsers(data || []);
+      
+      // Type cast and parse the guest permissions
+      const typedGuestUsers: DbGuestUser[] = (data || []).map(user => ({
+        ...user,
+        guest_permissions: typeof user.guest_permissions === 'string' 
+          ? JSON.parse(user.guest_permissions) 
+          : user.guest_permissions
+      }));
+      
+      setGuestUsers(typedGuestUsers);
     } catch (error) {
       console.error('Error fetching guest users:', error);
     }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,7 +41,14 @@ export function BillingManager() {
         .single();
       
       if (error) throw error;
-      setSubscription(data);
+      
+      // Type cast the data to ensure plan_type is properly typed
+      const typedData: AccountSubscription = {
+        ...data,
+        plan_type: data.plan_type as 'free' | 'paid'
+      };
+      
+      setSubscription(typedData);
     } catch (error) {
       console.error('Error fetching subscription:', error);
     }

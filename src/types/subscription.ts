@@ -1,4 +1,6 @@
 
+import { User } from './index';
+
 export interface AccountSubscription {
   id: string;
   user_id: string;
