@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -25,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { CheckSquare, List } from "lucide-react";
+import { TextFormattingToolbar } from "./TextFormattingToolbar";
 
 const noteSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -52,6 +53,7 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
   const { addNote, currentUser } = useAppContext();
   const { toast } = useToast();
   const [selectedColor, setSelectedColor] = useState("yellow");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const form = useForm<NoteFormData>({
     resolver: zodResolver(noteSchema),
@@ -85,7 +87,6 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
 
   const insertCheckbox = () => {
     const currentContent = form.getValues("content");
-    const cursorPosition = document.activeElement as HTMLTextAreaElement;
     const newContent = currentContent + (currentContent ? "\n" : "") + "☐ ";
     form.setValue("content", newContent);
   };
@@ -94,6 +95,39 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
     const currentContent = form.getValues("content");
     const newContent = currentContent + (currentContent ? "\n" : "") + "• ";
     form.setValue("content", newContent);
+  };
+
+  const handleTextFormat = (type: 'bold' | 'italic' | 'underline') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    
+    if (selectedText) {
+      let formattedText = "";
+      switch (type) {
+        case 'bold':
+          formattedText = `**${selectedText}**`;
+          break;
+        case 'italic':
+          formattedText = `*${selectedText}*`;
+          break;
+        case 'underline':
+          formattedText = `__${selectedText}__`;
+          break;
+      }
+      
+      const newContent = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+      form.setValue("content", newContent);
+      
+      // Set cursor position after the formatted text
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
+      }, 0);
+    }
   };
 
   return (
@@ -146,29 +180,33 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Content</FormLabel>
-                  <div className="flex gap-2 mb-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={insertCheckbox}
-                    >
-                      <CheckSquare className="h-4 w-4 mr-1" />
-                      Checkbox
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={insertBulletPoint}
-                    >
-                      <List className="h-4 w-4 mr-1" />
-                      Bullet
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={insertCheckbox}
+                      >
+                        <CheckSquare className="h-4 w-4 mr-1" />
+                        Checkbox
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={insertBulletPoint}
+                      >
+                        <List className="h-4 w-4 mr-1" />
+                        Bullet
+                      </Button>
+                    </div>
+                    <TextFormattingToolbar onFormat={handleTextFormat} />
                   </div>
                   <FormControl>
                     <Textarea
-                      placeholder="Write your note here... Use ☐ for checkboxes and • for bullet points"
+                      ref={textareaRef}
+                      placeholder="Write your note here... Use **bold**, *italic*, __underline__, ☐ for checkboxes and • for bullet points"
                       rows={8}
                       {...field}
                     />

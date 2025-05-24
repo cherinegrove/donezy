@@ -4,11 +4,13 @@ import { useAppContext } from "@/contexts/AppContext";
 import { NotesGrid } from "@/components/notes/NotesGrid";
 import { CreateNoteDialog } from "@/components/notes/CreateNoteDialog";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Archive } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default function Notes() {
-  const { currentUser } = useAppContext();
+  const { currentUser, notes } = useAppContext();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   if (!currentUser) {
     return (
@@ -21,17 +23,36 @@ export default function Notes() {
     );
   }
 
+  const archivedCount = notes.filter(note => note.archived).length;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">My Notes</h1>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Note
-        </Button>
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold">
+            {showArchived ? 'Archived Notes' : 'My Notes'}
+          </h1>
+          {archivedCount > 0 && (
+            <Button
+              variant={showArchived ? "default" : "outline"}
+              onClick={() => setShowArchived(!showArchived)}
+              className="flex items-center gap-2"
+            >
+              <Archive className="h-4 w-4" />
+              Archived
+              <Badge variant="secondary">{archivedCount}</Badge>
+            </Button>
+          )}
+        </div>
+        {!showArchived && (
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Note
+          </Button>
+        )}
       </div>
       
-      <NotesGrid />
+      <NotesGrid showArchived={showArchived} />
       
       <CreateNoteDialog
         open={createDialogOpen}

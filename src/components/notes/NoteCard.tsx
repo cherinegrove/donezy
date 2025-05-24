@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MoreVertical, Edit, Archive, Delete } from "lucide-react";
+import { MoreVertical, Edit, Archive, Delete, ArchiveRestore } from "lucide-react";
 import { Note } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +26,7 @@ import {
 interface NoteCardProps {
   note: Note;
   onEdit?: (note: Note) => void;
+  showArchived?: boolean;
 }
 
 const NOTE_COLORS = {
@@ -37,7 +38,7 @@ const NOTE_COLORS = {
   orange: "bg-orange-100 border-orange-200",
 };
 
-export function NoteCard({ note, onEdit }: NoteCardProps) {
+export function NoteCard({ note, onEdit, showArchived = false }: NoteCardProps) {
   const { updateNote, deleteNote } = useAppContext();
   const { toast } = useToast();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -56,6 +57,14 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
     toast({
       title: "Note archived",
       description: "The note has been archived.",
+    });
+  };
+
+  const handleUnarchive = () => {
+    updateNote(note.id, { archived: false });
+    toast({
+      title: "Note unarchived",
+      description: "The note has been restored to your active notes.",
     });
   };
 
@@ -91,12 +100,25 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
         );
       }
       
-      // Regular text
+      // Handle text formatting (bold, italic, underline)
       if (line.trim()) {
+        let formattedLine = line;
+        
+        // Handle bold text **text**
+        formattedLine = formattedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        // Handle italic text *text*
+        formattedLine = formattedLine.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+        
+        // Handle underline text __text__
+        formattedLine = formattedLine.replace(/__(.*?)__/g, '<u>$1</u>');
+        
         return (
-          <p key={index} className="text-sm mb-1">
-            {line}
-          </p>
+          <p 
+            key={index} 
+            className="text-sm mb-1"
+            dangerouslySetInnerHTML={{ __html: formattedLine }}
+          />
         );
       }
       
@@ -109,7 +131,7 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
   return (
     <>
       <Card 
-        className={`h-fit min-h-[200px] max-h-[300px] transform rotate-0 hover:rotate-1 transition-all duration-200 hover:shadow-lg cursor-pointer ${colorClass} border-2`}
+        className={`h-fit min-h-[200px] max-h-[300px] transform rotate-0 hover:rotate-1 transition-all duration-200 hover:shadow-lg cursor-pointer ${colorClass} border-2 ${showArchived ? 'opacity-75' : ''}`}
         style={{ transform: `rotate(${Math.random() * 4 - 2}deg)` }}
       >
         <CardHeader className="pb-2">
@@ -128,10 +150,17 @@ export function NoteCard({ note, onEdit }: NoteCardProps) {
                   <Edit className="h-3 w-3 mr-2" />
                   Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleArchive}>
-                  <Archive className="h-3 w-3 mr-2" />
-                  Archive
-                </DropdownMenuItem>
+                {showArchived ? (
+                  <DropdownMenuItem onClick={handleUnarchive}>
+                    <ArchiveRestore className="h-3 w-3 mr-2" />
+                    Unarchive
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={handleArchive}>
+                    <Archive className="h-3 w-3 mr-2" />
+                    Archive
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem 
                   onClick={() => setShowDeleteDialog(true)}
                   className="text-destructive focus:text-destructive"
