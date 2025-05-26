@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAppContext } from "@/contexts/AppContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -54,7 +55,7 @@ interface AddClientDialogProps {
 }
 
 export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
-  const { addClient } = useAppContext();
+  const { session } = useAppContext();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -74,25 +75,37 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
   });
 
   const onSubmit = async (data: ClientFormData) => {
+    if (!session?.user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a client.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     console.log("Submitting client data:", data);
     setIsSubmitting(true);
     
     try {
-      addClient({
-        name: data.name,
-        contactName: data.contactName || "",
-        email: data.email,
-        phone: data.phone || "",
-        address: data.address || "",
-        website: data.website || "",
-        billableRate: data.billableRate || 0,
-        currency: data.currency || "USD",
-        status: data.status,
-        createdAt: new Date().toISOString(),
-        memberIds: [],
-      });
+      const { error } = await supabase
+        .from('clients')
+        .insert({
+          auth_user_id: session.user.id,
+          name: data.name,
+          email: data.email,
+          phone: data.phone || null,
+          address: data.address || null,
+          website: data.website || null,
+          status: data.status,
+        });
 
-      console.log("Client added successfully");
+      if (error) {
+        console.error("Error creating client:", error);
+        throw error;
+      }
+
+      console.log("Client created successfully");
       
       toast({
         title: "Client added",
@@ -210,49 +223,6 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
                 </FormItem>
               )}
             />
-            
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="billableRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Billable Rate</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="100" 
-                        {...field}
-                        onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="currency"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Currency</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a currency" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="EUR">EUR</SelectItem>
-                        <SelectItem value="GBP">GBP</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
             
             <FormField
               control={form.control}

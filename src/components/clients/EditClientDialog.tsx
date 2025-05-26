@@ -96,7 +96,7 @@ export function EditClientDialog({ client, open, onClose }: EditClientDialogProp
     setIsSubmitting(true);
     
     try {
-      updateClient(client.id, {
+      await updateClient(client.id, {
         name: data.name,
         contactName: data.contactName || "",
         email: data.email,

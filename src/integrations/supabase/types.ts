@@ -51,6 +51,45 @@ export type Database = {
         }
         Relationships: []
       }
+      clients: {
+        Row: {
+          address: string | null
+          auth_user_id: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          status: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          auth_user_id: string
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          auth_user_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -74,6 +113,127 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      projects: {
+        Row: {
+          allocated_hours: number | null
+          auth_user_id: string
+          client_id: string
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          name: string
+          service_type: string
+          start_date: string | null
+          status: string
+          team_ids: string[] | null
+          updated_at: string
+          used_hours: number | null
+          watcher_ids: string[] | null
+        }
+        Insert: {
+          allocated_hours?: number | null
+          auth_user_id: string
+          client_id: string
+          created_at?: string
+          description: string
+          due_date?: string | null
+          id?: string
+          name: string
+          service_type?: string
+          start_date?: string | null
+          status?: string
+          team_ids?: string[] | null
+          updated_at?: string
+          used_hours?: number | null
+          watcher_ids?: string[] | null
+        }
+        Update: {
+          allocated_hours?: number | null
+          auth_user_id?: string
+          client_id?: string
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          name?: string
+          service_type?: string
+          start_date?: string | null
+          status?: string
+          team_ids?: string[] | null
+          updated_at?: string
+          used_hours?: number | null
+          watcher_ids?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          actual_hours: number | null
+          assignee_id: string | null
+          auth_user_id: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          estimated_hours: number | null
+          id: string
+          priority: string
+          project_id: string
+          status: string
+          title: string
+          updated_at: string
+          watcher_ids: string[] | null
+        }
+        Insert: {
+          actual_hours?: number | null
+          assignee_id?: string | null
+          auth_user_id: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          priority?: string
+          project_id: string
+          status?: string
+          title: string
+          updated_at?: string
+          watcher_ids?: string[] | null
+        }
+        Update: {
+          actual_hours?: number | null
+          assignee_id?: string | null
+          auth_user_id?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          priority?: string
+          project_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          watcher_ids?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       users: {
         Row: {

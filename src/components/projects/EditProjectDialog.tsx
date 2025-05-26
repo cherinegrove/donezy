@@ -109,7 +109,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
     setIsSubmitting(true);
     
     try {
-      updateProject(project.id, {
+      await updateProject(project.id, {
         name: data.name,
         description: data.description,
         clientId: data.clientId,

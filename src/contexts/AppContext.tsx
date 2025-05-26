@@ -1,56 +1,14 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-} from "react";
-import {
-  User,
-  Team,
-  Client,
-  Project,
-  Task,
-  TimeEntry,
-  Message,
-  Purchase,
-  ProjectTemplate,
-  CustomRole,
-  Note,
-  TaskLog,
-  ClientAgreement,
-  ClientFile,
-} from "@/types";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { AppContextType } from "./AppContextType";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile } from "@/types";
 
-// Create a function to get empty state for new users
-const getEmptyUserState = () => ({
-  users: [],
-  teams: [],
-  clients: [],
-  projects: [],
-  tasks: [],
-  timeEntries: [],
-  messages: [],
-  purchases: [],
-  projectTemplates: [],
-  customRoles: [],
-  comments: [],
-  notes: [],
-  customFields: [],
-  clientAgreements: [],
-  clientFiles: [],
-  taskLogs: []
-});
+const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const AppContext = createContext<AppContextType | undefined>(undefined);
-
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [session, setSession] = useState<any>(null);
-
-  // Initialize with empty state instead of mock data
+  const [session, setSession] = useState<Session | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -65,925 +23,716 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [notes, setNotes] = useState<Note[]>([]);
   const [customFields, setCustomFields] = useState<any[]>([]);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
-  const [clientAgreements, setClientAgreements] = useState<ClientAgreement[]>([]);
-  const [clientFiles, setClientFiles] = useState<ClientFile[]>([]);
   const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
 
-  // Load session on mount
+  // Set up auth state listener
   useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.id);
+        setSession(session);
+        
+        if (session?.user) {
+          // Load user data when authenticated
+          loadUserData();
+        } else {
+          // Clear data when logged out
+          setCurrentUser(null);
+          setClients([]);
+          setProjects([]);
+          setTasks([]);
+        }
+      }
+    );
+
+    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session?.user) {
+        loadUserData();
+      }
     });
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
+    return () => subscription.unsubscribe();
   }, []);
 
-  // Helper function to safely parse JSON fields
-  const safeParseJson = (jsonData: any, fallback: any = {}) => {
-    if (!jsonData) return fallback;
-    if (typeof jsonData === 'object') return jsonData;
+  const loadUserData = async () => {
     try {
-      return JSON.parse(jsonData);
-    } catch {
-      return fallback;
+      await Promise.all([
+        loadClients(),
+        loadProjects(),
+        loadTasks(),
+      ]);
+    } catch (error) {
+      console.error("Error loading user data:", error);
     }
   };
 
-  // Helper function to validate employment type
-  const validateEmploymentType = (type: any): 'full-time' | 'part-time' | 'contract' | undefined => {
-    if (!type) return undefined;
-    const validTypes = ['full-time', 'part-time', 'contract'];
-    return validTypes.includes(type) ? type as 'full-time' | 'part-time' | 'contract' : undefined;
-  };
-
-  // Helper function to validate billing type
-  const validateBillingType = (type: any): 'hourly' | 'monthly' | undefined => {
-    if (!type) return undefined;
-    const validTypes = ['hourly', 'monthly'];
-    return validTypes.includes(type) ? type as 'hourly' | 'monthly' : undefined;
-  };
-
-  // Load users from Supabase
-  const loadUsers = useCallback(async () => {
-    if (!session?.user) return;
-    
+  const loadClients = async () => {
     try {
       const { data, error } = await supabase
-        .from('users')
+        .from('clients')
         .select('*')
-        .eq('auth_user_id', session.user.id);
-      
-      if (error) {
-        console.error("Error loading users:", error);
-        return;
-      }
-      
-      if (data) {
-        const mappedUsers = data.map(user => ({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          avatar: user.avatar,
-          role: user.role as User['role'],
-          teamIds: user.team_ids || [],
-          clientId: user.client_id,
-          hourlyRate: user.hourly_rate,
-          monthlyRate: user.monthly_rate,
-          billingRate: user.billing_rate,
-          currency: user.currency,
-          jobTitle: user.job_title,
-          clientRole: user.client_role,
-          phone: user.phone,
-          employmentType: validateEmploymentType(user.employment_type),
-          billingType: validateBillingType(user.billing_type),
-          permissions: safeParseJson(user.permissions, {}),
-          managerId: user.manager_id,
-          notificationPreferences: safeParseJson(user.notification_preferences, {}),
-          is_guest: user.is_guest,
-          guest_of_user_id: user.guest_of_user_id,
-          guest_permissions: safeParseJson(user.guest_permissions, { canViewTasks: true, canViewProjects: true })
-        }));
-        setUsers(mappedUsers);
-      }
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedClients: Client[] = (data || []).map(client => ({
+        id: client.id,
+        name: client.name,
+        contactName: "",
+        email: client.email,
+        phone: client.phone || "",
+        address: client.address || "",
+        website: client.website || "",
+        billableRate: 0,
+        currency: "USD",
+        status: client.status as "active" | "inactive",
+        createdAt: client.created_at,
+        memberIds: [],
+      }));
+
+      setClients(formattedClients);
     } catch (error) {
-      console.error("Error loading users:", error);
+      console.error("Error loading clients:", error);
     }
-  }, [session?.user]);
+  };
 
-  // Get current user function
-  const getProfile = useCallback(async () => {
+  const loadProjects = async () => {
     try {
-      const { data, error, status } = await supabase
-        .from('profiles')
-        .select(`display_name, avatar_url`)
-        .eq('id', session?.user?.id)
-        .single()
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (error && status !== 406) {
-        throw error
-      }
+      if (error) throw error;
 
-      if (data) {
-        // Load the user record from users table
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('auth_user_id', session?.user?.id)
-          .single();
+      const formattedProjects: Project[] = (data || []).map(project => ({
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        clientId: project.client_id,
+        serviceType: project.service_type as "project" | "bank-hours" | "pay-as-you-go",
+        status: project.status as "todo" | "in-progress" | "done",
+        startDate: project.start_date || "",
+        dueDate: project.due_date || "",
+        allocatedHours: project.allocated_hours || 0,
+        usedHours: project.used_hours || 0,
+        teamIds: project.team_ids || [],
+        watcherIds: project.watcher_ids || [],
+      }));
 
-        if (userError && userError.code !== 'PGRST116') {
-          console.error("Error loading user data:", userError);
-          
-          // If no user record exists, create one for the account owner
-          if (userError.code === 'PGRST116') {
-            console.log("Creating user record for account owner");
-            await addUser({
-              name: data.display_name || session?.user?.email?.split('@')[0] || 'Admin User',
-              email: session?.user?.email || '',
-              avatar: data.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${session?.user?.email}`,
-              role: 'admin',
-              teamIds: [],
-              currency: 'USD',
-              is_guest: false,
-              permissions: {
-                canViewClients: true,
-                canEditClients: true,
-                canViewProjects: true,
-                canEditProjects: true,
-                canViewTasks: true,
-                canEditTasks: true,
-                canViewReports: true,
-                canManageUsers: true
-              },
-              notificationPreferences: {
-                detailedSettings: {
-                  inApp: {
-                    newTasks: true,
-                    taskUpdates: true,
-                    newComments: true,
-                    mentions: true,
-                    projectUpdates: false,
-                    timeTracking: false
-                  },
-                  email: {
-                    newTasks: false,
-                    taskUpdates: false,
-                    newComments: true,
-                    mentions: true,
-                    projectUpdates: false,
-                    timeTracking: false
-                  }
-                }
-              }
-            });
-            
-            // Reload users after creating the account owner
-            setTimeout(() => loadUsers(), 1000);
-          }
-        }
-
-        setCurrentUser({
-          id: userData?.id || session?.user?.id,
-          name: userData?.name || data.display_name || session?.user?.email?.split('@')[0] || 'User',
-          email: userData?.email || session?.user?.email || '',
-          avatar: userData?.avatar || data.avatar_url,
-          role: (userData?.role as User['role']) || 'admin',
-          teamIds: userData?.team_ids || [],
-          clientId: userData?.client_id,
-          hourlyRate: userData?.hourly_rate,
-          monthlyRate: userData?.monthly_rate,
-          billingRate: userData?.billing_rate,
-          currency: userData?.currency,
-          jobTitle: userData?.job_title,
-          clientRole: userData?.client_role,
-          phone: userData?.phone,
-          employmentType: validateEmploymentType(userData?.employment_type),
-          billingType: validateBillingType(userData?.billing_type),
-          permissions: safeParseJson(userData?.permissions, {}),
-          managerId: userData?.manager_id,
-          notificationPreferences: safeParseJson(userData?.notification_preferences, {}),
-          is_guest: userData?.is_guest,
-          guest_of_user_id: userData?.guest_of_user_id,
-          guest_permissions: safeParseJson(userData?.guest_permissions, { canViewTasks: true, canViewProjects: true })
-        });
-      }
-    } catch (error: any) {
-      console.error("Error loading user profile:", error.message);
+      setProjects(formattedProjects);
+    } catch (error) {
+      console.error("Error loading projects:", error);
     }
-  }, [session?.user?.id, session?.user?.email])
+  };
 
-  // Set current user
-  useEffect(() => {
-    if (session?.user) {
-      getProfile()
-    }
-  }, [session, getProfile])
-
-  // Load data when user is authenticated
-  useEffect(() => {
-    if (currentUser && session) {
-      console.log("Loading data for user:", currentUser.email);
-      loadUsers();
-    }
-  }, [currentUser, session, loadUsers]);
-
-  const login = useCallback(async (email, password) => {
+  const loadTasks = async () => {
     try {
-      console.log("Attempting to sign in with Supabase");
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedTasks: Task[] = (data || []).map(task => ({
+        id: task.id,
+        title: task.title,
+        description: task.description || "",
+        status: task.status,
+        priority: task.priority as "low" | "medium" | "high",
+        projectId: task.project_id,
+        assigneeId: task.assignee_id,
+        dueDate: task.due_date || "",
+        estimatedHours: task.estimated_hours || 0,
+        actualHours: task.actual_hours || 0,
+        createdAt: task.created_at,
+        timeEntries: [],
+        comments: [],
+        watcherIds: task.watcher_ids || [],
+        linkedTaskIds: [],
+        files: [],
+      }));
+
+      setTasks(formattedTasks);
+    } catch (error) {
+      console.error("Error loading tasks:", error);
+    }
+  };
+
+  // Authentication functions
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-      
+
       if (error) {
-        console.error("Supabase sign-in error:", error);
+        console.error("Login error:", error);
         return false;
       }
-      
-      console.log("Supabase sign-in successful:", data);
-      
-      // Fetch the user profile after successful sign-in
-      await getProfile();
-      
+
       return true;
     } catch (error) {
       console.error("Login error:", error);
       return false;
     }
-  }, [getProfile]);
+  };
 
-  const logout = useCallback(async () => {
+  const logout = async (): Promise<boolean> => {
     try {
-      console.log("Logging out user");
-      
-      // Clear all state
-      setCurrentUser(null);
-      setSession(null);
-      
-      // Reset all data to empty state
-      const emptyState = getEmptyUserState();
-      setUsers(emptyState.users);
-      setTeams(emptyState.teams);
-      setClients(emptyState.clients);
-      setProjects(emptyState.projects);
-      setTasks(emptyState.tasks);
-      setTimeEntries(emptyState.timeEntries);
-      setMessages(emptyState.messages);
-      setPurchases(emptyState.purchases);
-      setProjectTemplates(emptyState.projectTemplates);
-      setCustomRoles(emptyState.customRoles);
-      setComments(emptyState.comments);
-      setNotes(emptyState.notes);
-      setCustomFields(emptyState.customFields);
-      setClientAgreements(emptyState.clientAgreements);
-      setClientFiles(emptyState.clientFiles);
-      setTaskLogs(emptyState.taskLogs);
-      setActiveTimeEntry(null);
-      
-      // Sign out from Supabase
-      await supabase.auth.signOut({ scope: 'global' });
-      
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Logout error:", error);
+        return false;
+      }
       return true;
     } catch (error) {
       console.error("Logout error:", error);
       return false;
     }
-  }, []);
+  };
 
-  // Helper functions
-  const getUserById = useCallback((userId: string) => {
-    return users.find(user => user.id === userId);
-  }, [users]);
+  // Client functions
+  const addClient = async (client: Omit<Client, 'id'>) => {
+    // This function is now handled by the AddClientDialog component
+    // Refresh clients after adding
+    await loadClients();
+  };
 
-  const getClientById = useCallback((clientId: string) => {
-    return clients.find(client => client.id === clientId);
-  }, [clients]);
-
-  const getTaskById = useCallback((taskId: string) => {
-    return tasks.find(task => task.id === taskId);
-  }, [tasks]);
-
-  const getProjectById = useCallback((projectId: string) => {
-    return projects.find(project => project.id === projectId);
-  }, [projects]);
-
-  const getNotesByUser = useCallback((userId: string) => {
-    return notes.filter(note => note.userId === userId);
-  }, [notes]);
-
-  const getClientAgreements = useCallback((clientId: string) => {
-    return clientAgreements.filter(agreement => agreement.clientId === clientId);
-  }, [clientAgreements]);
-
-  const getClientFiles = useCallback((clientId: string) => {
-    return clientFiles.filter(file => file.clientId === clientId);
-  }, [clientFiles]);
-
-  // User functions - now with Supabase persistence
-  const addUser = useCallback(async (user: Omit<User, 'id'>) => {
-    if (!session?.user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .insert({
-          auth_user_id: session.user.id,
-          name: user.name,
-          email: user.email,
-          avatar: user.avatar,
-          role: user.role,
-          team_ids: user.teamIds || [],
-          client_id: user.clientId,
-          hourly_rate: user.hourlyRate,
-          monthly_rate: user.monthlyRate,
-          billing_rate: user.billingRate,
-          currency: user.currency || 'USD',
-          job_title: user.jobTitle,
-          client_role: user.clientRole,
-          phone: user.phone,
-          employment_type: user.employmentType,
-          billing_type: user.billingType,
-          permissions: user.permissions,
-          manager_id: user.managerId,
-          notification_preferences: user.notificationPreferences,
-          is_guest: user.is_guest,
-          guest_of_user_id: user.guest_of_user_id,
-          guest_permissions: user.guest_permissions
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Error adding user:", error);
-        return;
-      }
-
-      if (data) {
-        const newUser: User = {
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          avatar: data.avatar,
-          role: data.role as User['role'],
-          teamIds: data.team_ids || [],
-          clientId: data.client_id,
-          hourlyRate: data.hourly_rate,
-          monthlyRate: data.monthly_rate,
-          billingRate: data.billing_rate,
-          currency: data.currency,
-          jobTitle: data.job_title,
-          clientRole: data.client_role,
-          phone: data.phone,
-          employmentType: validateEmploymentType(data.employment_type),
-          billingType: validateBillingType(data.billing_type),
-          permissions: safeParseJson(data.permissions, {}),
-          managerId: data.manager_id,
-          notificationPreferences: safeParseJson(data.notification_preferences, {}),
-          is_guest: data.is_guest,
-          guest_of_user_id: data.guest_of_user_id,
-          guest_permissions: safeParseJson(data.guest_permissions, { canViewTasks: true, canViewProjects: true })
-        };
-        setUsers(prev => [...prev, newUser]);
-      }
-    } catch (error) {
-      console.error("Error adding user:", error);
-    }
-  }, [session?.user]);
-
-  // Update user function - now with Supabase persistence
-  const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
-    if (!session?.user) return;
-    
+  const updateClient = async (clientId: string, updates: Partial<Client>) => {
     try {
       const { error } = await supabase
-        .from('users')
+        .from('clients')
         .update({
           name: updates.name,
           email: updates.email,
-          avatar: updates.avatar,
-          role: updates.role,
-          team_ids: updates.teamIds,
-          client_id: updates.clientId,
-          hourly_rate: updates.hourlyRate,
-          monthly_rate: updates.monthlyRate,
-          billing_rate: updates.billingRate,
-          currency: updates.currency,
-          job_title: updates.jobTitle,
-          client_role: updates.clientRole,
           phone: updates.phone,
-          employment_type: updates.employmentType,
-          billing_type: updates.billingType,
-          permissions: updates.permissions,
-          manager_id: updates.managerId,
-          notification_preferences: updates.notificationPreferences,
-          is_guest: updates.is_guest,
-          guest_of_user_id: updates.guest_of_user_id,
-          guest_permissions: updates.guest_permissions
+          address: updates.address,
+          website: updates.website,
+          status: updates.status,
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', userId)
-        .eq('auth_user_id', session.user.id);
+        .eq('id', clientId);
 
-      if (error) {
-        console.error("Error updating user:", error);
-        return;
-      }
+      if (error) throw error;
 
-      // Update local state
-      setUsers(prev =>
-        prev.map(user => (user.id === userId ? { ...user, ...updates } : user))
-      );
-      
-      // Update current user if it's the same user
-      if (currentUser && currentUser.id === userId) {
-        setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
-      }
+      // Refresh clients
+      await loadClients();
     } catch (error) {
-      console.error("Error updating user:", error);
+      console.error("Error updating client:", error);
+      throw error;
     }
-  }, [session?.user, currentUser]);
+  };
 
-  // ... keep existing code (other functions remain the same for now - they will use local state)
-  const deleteUser = useCallback((userId: string) => {
-    setUsers(prev => prev.filter(user => user.id !== userId));
-  }, []);
+  const deleteClient = async (clientId: string) => {
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', clientId);
 
-  const inviteUser = useCallback((email: string, name: string, role: string) => {
-    console.log("Inviting user:", email, name, role);
-    // In a real app, this would send an invitation email
-  }, []);
+      if (error) throw error;
 
-  // Team functions
-  const addTeam = useCallback((team: Omit<Team, 'id'>) => {
-    const newTeam: Team = {
-      id: Math.random().toString(36).substring(2, 15),
-      ...team,
-    };
-    setTeams(prev => [...prev, newTeam]);
-  }, []);
+      // Refresh clients
+      await loadClients();
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      throw error;
+    }
+  };
 
-  const updateTeam = useCallback((teamId: string, updates: Partial<Team>) => {
-    setTeams(prev =>
-      prev.map(team => (team.id === teamId ? { ...team, ...updates } : team))
-    );
-  }, []);
-
-  const deleteTeam = useCallback((teamId: string) => {
-    setTeams(prev => prev.filter(team => team.id !== teamId));
-  }, []);
+  const getClientById = (clientId: string): Client | undefined => {
+    return clients.find(client => client.id === clientId);
+  };
 
   // Project functions
-  const addProject = useCallback((project: Omit<Project, 'id'> | Project) => {
-    console.log("Adding project:", project);
-    
-    // Handle both cases: with ID (from CreateProjectDialog) and without ID (legacy)
-    const newProject: Project = 'id' in project ? project as Project : {
+  const addProject = async (project: Omit<Project, 'id'>) => {
+    // This function is now handled by the CreateProjectDialog component
+    // Refresh projects after adding
+    await loadProjects();
+  };
+
+  const updateProject = async (projectId: string, updates: Partial<Project>) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          name: updates.name,
+          description: updates.description,
+          client_id: updates.clientId,
+          service_type: updates.serviceType,
+          status: updates.status,
+          start_date: updates.startDate,
+          due_date: updates.dueDate,
+          allocated_hours: updates.allocatedHours,
+          team_ids: updates.teamIds,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      // Refresh projects
+      await loadProjects();
+    } catch (error) {
+      console.error("Error updating project:", error);
+      throw error;
+    }
+  };
+
+  const deleteProject = async (projectId: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      // Refresh projects
+      await loadProjects();
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      throw error;
+    }
+  };
+
+  const getProjectById = (projectId: string): Project | undefined => {
+    return projects.find(project => project.id === projectId);
+  };
+
+  // Placeholder implementations for other functions (keeping existing mock behavior for now)
+  const addUser = (user: Omit<User, 'id'>) => {
+    const newUser: User = {
+      ...user,
       id: Math.random().toString(36).substring(2, 15),
-      ...project,
     };
-    
-    setProjects(prev => {
-      const updated = [...prev, newProject];
-      console.log("Projects state updated:", updated);
-      return updated;
-    });
-    
-    console.log("Project added successfully with ID:", newProject.id);
-  }, []);
+    setUsers(prev => [...prev, newUser]);
+  };
 
-  const updateProject = useCallback((projectId: string, updates: Partial<Project>) => {
-    console.log("Updating project:", projectId, updates);
-    setProjects(prev =>
-      prev.map(project => (project.id === projectId ? { ...project, ...updates } : project))
-    );
-  }, []);
+  const updateUser = (userId: string, updates: Partial<User>) => {
+    setUsers(prev => prev.map(user => 
+      user.id === userId ? { ...user, ...updates } : user
+    ));
+  };
 
-  const deleteProject = useCallback((projectId: string) => {
-    console.log("Deleting project:", projectId);
-    
-    // Delete all related tasks first
-    setTasks(prev => prev.filter(task => task.projectId !== projectId));
-    
-    // Delete all related time entries
-    setTimeEntries(prev => prev.filter(entry => entry.projectId !== projectId));
-    
-    // Delete all related messages
-    setMessages(prev => prev.filter(message => message.projectId !== projectId));
-    
-    // Finally delete the project
-    setProjects(prev => prev.filter(project => project.id !== projectId));
-  }, []);
+  const deleteUser = (userId: string) => {
+    setUsers(prev => prev.filter(user => user.id !== userId));
+  };
 
-  const watchProject = useCallback((projectId: string, userId: string) => {
-    setProjects(prev =>
-      prev.map(project => 
-        project.id === projectId 
-          ? { ...project, watcherIds: [...(project.watcherIds || []), userId] }
-          : project
-      )
-    );
-  }, []);
+  const getUserById = (userId: string): User | undefined => {
+    return users.find(user => user.id === userId);
+  };
 
-  const unwatchProject = useCallback((projectId: string, userId: string) => {
-    setProjects(prev =>
-      prev.map(project => 
-        project.id === projectId 
-          ? { ...project, watcherIds: (project.watcherIds || []).filter(id => id !== userId) }
-          : project
-      )
-    );
-  }, []);
+  const inviteUser = (email: string, name: string, role: string, options?: any) => {
+    console.log("Inviting user:", { email, name, role, options });
+  };
 
-  const convertProjectToTemplate = useCallback((projectId: string, templateData: { name: string; description: string }) => {
-    const project = getProjectById(projectId);
-    if (project) {
-      const newTemplate: ProjectTemplate = {
-        id: Math.random().toString(36).substring(2, 15),
-        ...templateData,
-        createdBy: currentUser?.id || '',
-        serviceType: project.serviceType,
-        defaultDuration: 30,
-        allocatedHours: project.allocatedHours || 0,
-        tasks: [],
-        teamIds: project.teamIds,
-        createdAt: new Date().toISOString(),
-        usageCount: 0,
-      };
-      setProjectTemplates(prev => [...prev, newTemplate]);
-    }
-  }, [getProjectById, currentUser]);
+  const updateManagerNotificationPreferences = (preferences: any) => {
+    console.log("Updating manager notification preferences:", preferences);
+  };
 
-  const createProjectFromTemplate = useCallback((templateId: string, projectData: any) => {
-    const template = projectTemplates.find(t => t.id === templateId);
-    if (template) {
-      addProject({
-        ...projectData,
-        templateId: templateId,
-        status: 'todo' as const,
-        usedHours: 0,
-        serviceType: template.serviceType,
-        allocatedHours: template.allocatedHours,
-        teamIds: projectData.memberIds || [],
-        watcherIds: [],
-      });
-      updateProjectTemplate(templateId, { usageCount: (template.usageCount || 0) + 1 });
-    }
-  }, [projectTemplates, addProject]);
+  // Team functions
+  const addTeam = (team: Omit<Team, 'id'>) => {
+    const newTeam: Team = {
+      ...team,
+      id: Math.random().toString(36).substring(2, 15),
+    };
+    setTeams(prev => [...prev, newTeam]);
+  };
+
+  const updateTeam = (teamId: string, updates: Partial<Team>) => {
+    setTeams(prev => prev.map(team => 
+      team.id === teamId ? { ...team, ...updates } : team
+    ));
+  };
+
+  const deleteTeam = (teamId: string) => {
+    setTeams(prev => prev.filter(team => team.id !== teamId));
+  };
 
   // Task functions
-  const addTask = useCallback((task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>) => {
+  const addTask = (task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>) => {
     const newTask: Task = {
+      ...task,
       id: Math.random().toString(36).substring(2, 15),
       createdAt: new Date().toISOString(),
       timeEntries: [],
       comments: [],
-      ...task,
     };
     setTasks(prev => [...prev, newTask]);
-  }, []);
+  };
 
-  const updateTask = useCallback((taskId: string, updates: Partial<Task>) => {
-    setTasks(prev =>
-      prev.map(task => (task.id === taskId ? { ...task, ...updates } : task))
-    );
-  }, []);
+  const updateTask = (taskId: string, updates: Partial<Task>) => {
+    setTasks(prev => prev.map(task => 
+      task.id === taskId ? { ...task, ...updates } : task
+    ));
+  };
 
-  const deleteTask = useCallback((taskId: string) => {
+  const deleteTask = (taskId: string) => {
     setTasks(prev => prev.filter(task => task.id !== taskId));
-  }, []);
+  };
 
-  const moveTask = useCallback((taskId: string, newStatus: string) => {
-    updateTask(taskId, { status: newStatus as any });
-  }, [updateTask]);
+  const getTaskById = (taskId: string): Task | undefined => {
+    return tasks.find(task => task.id === taskId);
+  };
 
-  const watchTask = useCallback((taskId: string, userId: string) => {
-    setTasks(prev =>
-      prev.map(task => 
-        task.id === taskId 
-          ? { ...task, watcherIds: [...(task.watcherIds || []), userId] }
-          : task
-      )
-    );
-  }, []);
+  const moveTask = (taskId: string, newStatus: string) => {
+    updateTask(taskId, { status: newStatus });
+  };
 
-  const unwatchTask = useCallback((taskId: string, userId: string) => {
-    setTasks(prev =>
-      prev.map(task => 
-        task.id === taskId 
-          ? { ...task, watcherIds: (task.watcherIds || []).filter(id => id !== userId) }
-          : task
-      )
-    );
-  }, []);
+  const watchTask = (taskId: string, userId: string) => {
+    const task = getTaskById(taskId);
+    if (task && !task.watcherIds?.includes(userId)) {
+      updateTask(taskId, { 
+        watcherIds: [...(task.watcherIds || []), userId] 
+      });
+    }
+  };
 
-  const linkTasks = useCallback((taskId: string, relatedTaskId: string) => {
-    console.log("Linking tasks:", taskId, relatedTaskId);
-    // Implementation would add relationship between tasks
-  }, []);
+  const unwatchTask = (taskId: string, userId: string) => {
+    const task = getTaskById(taskId);
+    if (task) {
+      updateTask(taskId, { 
+        watcherIds: task.watcherIds?.filter(id => id !== userId) || [] 
+      });
+    }
+  };
 
-  const unlinkTasks = useCallback((taskId: string, relatedTaskId: string) => {
-    console.log("Unlinking tasks:", taskId, relatedTaskId);
-    // Implementation would remove relationship between tasks
-  }, []);
+  const linkTasks = (taskId: string, relatedTaskId: string) => {
+    const task = getTaskById(taskId);
+    if (task && !task.linkedTaskIds?.includes(relatedTaskId)) {
+      updateTask(taskId, { 
+        linkedTaskIds: [...(task.linkedTaskIds || []), relatedTaskId] 
+      });
+    }
+  };
 
-  const uploadTaskFile = useCallback(async (taskId: string, file: File) => {
-    console.log("Uploading task file:", taskId, file.name);
-    // In a real implementation, this would upload to storage and return the URL
-    return Promise.resolve(`/uploads/${file.name}`);
-  }, []);
+  const unlinkTasks = (taskId: string, relatedTaskId: string) => {
+    const task = getTaskById(taskId);
+    if (task) {
+      updateTask(taskId, { 
+        linkedTaskIds: task.linkedTaskIds?.filter(id => id !== relatedTaskId) || [] 
+      });
+    }
+  };
 
-  const deleteTaskFile = useCallback((taskId: string, fileId: string) => {
-    console.log("Deleting task file:", taskId, fileId);
-    // Implementation would delete file from task
-  }, []);
+  const uploadTaskFile = async (taskId: string, file: File): Promise<string> => {
+    // Mock implementation
+    return Promise.resolve("file-id");
+  };
+
+  const deleteTaskFile = (taskId: string, fileId: string) => {
+    // Mock implementation
+    console.log("Deleting file:", fileId, "from task:", taskId);
+  };
 
   // TimeEntry functions
-  const addTimeEntry = useCallback((timeEntry: Omit<TimeEntry, 'id'>) => {
+  const addTimeEntry = (timeEntry: Omit<TimeEntry, 'id'>) => {
     const newTimeEntry: TimeEntry = {
-      id: Math.random().toString(36).substring(2, 15),
       ...timeEntry,
+      id: Math.random().toString(36).substring(2, 15),
     };
     setTimeEntries(prev => [...prev, newTimeEntry]);
-  }, []);
+  };
 
-  const updateTimeEntry = useCallback((timeEntryId: string, updates: Partial<TimeEntry>) => {
-    setTimeEntries(prev =>
-      prev.map(entry => (entry.id === timeEntryId ? { ...entry, ...updates } : entry))
-    );
-  }, []);
+  const updateTimeEntry = (timeEntryId: string, updates: Partial<TimeEntry>) => {
+    setTimeEntries(prev => prev.map(entry => 
+      entry.id === timeEntryId ? { ...entry, ...updates } : entry
+    ));
+  };
 
-  const deleteTimeEntry = useCallback((timeEntryId: string) => {
+  const deleteTimeEntry = (timeEntryId: string) => {
     setTimeEntries(prev => prev.filter(entry => entry.id !== timeEntryId));
-    if (activeTimeEntry && activeTimeEntry.id === timeEntryId) {
+  };
+
+  const startTimeTracking = (taskId: string, projectId?: string, clientId?: string) => {
+    const newTimeEntry: TimeEntry = {
+      id: Math.random().toString(36).substring(2, 15),
+      userId: currentUser?.id || "",
+      taskId,
+      projectId: projectId || "",
+      clientId: clientId || "",
+      startTime: new Date().toISOString(),
+      endTime: "",
+      duration: 0,
+      description: "",
+      status: "pending",
+    };
+    setActiveTimeEntry(newTimeEntry);
+    addTimeEntry(newTimeEntry);
+  };
+
+  const stopTimeTracking = (notes?: string) => {
+    if (activeTimeEntry) {
+      const endTime = new Date().toISOString();
+      const duration = Math.floor((new Date(endTime).getTime() - new Date(activeTimeEntry.startTime).getTime()) / 1000 / 60);
+      
+      updateTimeEntry(activeTimeEntry.id, {
+        endTime,
+        duration,
+        description: notes || "",
+      });
+      
       setActiveTimeEntry(null);
     }
-  }, [activeTimeEntry]);
+  };
 
-  const startTimeTracking = useCallback((taskId: string, projectId?: string, clientId?: string) => {
-    if (!currentUser) return;
-    
-    const newTimeEntry: TimeEntry = {
-      id: Math.random().toString(36).substring(2, 15),
-      userId: currentUser.id,
-      taskId,
-      projectId,
-      clientId,
-      startTime: new Date().toISOString(),
-      duration: 0,
-      billable: true,
-    };
-    
-    setActiveTimeEntry(newTimeEntry);
-    setTimeEntries(prev => [...prev, newTimeEntry]);
-  }, [currentUser]);
-
-  const stopTimeTracking = useCallback((notes?: string) => {
-    if (!activeTimeEntry) return;
-    
-    const endTime = new Date();
-    const startTime = new Date(activeTimeEntry.startTime);
-    const duration = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // minutes
-    
-    updateTimeEntry(activeTimeEntry.id, {
-      endTime: endTime.toISOString(),
-      duration,
-      description: notes,
-    });
-    
-    setActiveTimeEntry(null);
-  }, [activeTimeEntry, updateTimeEntry]);
-
-  const updateTimeEntryStatus = useCallback((timeEntryId: string, status: string, reason?: string) => {
-    updateTimeEntry(timeEntryId, { 
-      status: status as any,
-      ...(reason && { declineReason: reason })
-    });
-  }, [updateTimeEntry]);
+  const updateTimeEntryStatus = (timeEntryId: string, status: string, reason?: string) => {
+    updateTimeEntry(timeEntryId, { status, rejectionReason: reason });
+  };
 
   // Message functions
-  const addMessage = useCallback((message: Omit<Message, 'id'>) => {
+  const addMessage = (message: Omit<Message, 'id'>) => {
     const newMessage: Message = {
-      id: Math.random().toString(36).substring(2, 15),
       ...message,
+      id: Math.random().toString(36).substring(2, 15),
     };
     setMessages(prev => [...prev, newMessage]);
-  }, []);
+  };
 
-  const updateMessage = useCallback((messageId: string, updates: Partial<Message>) => {
-    setMessages(prev =>
-      prev.map(message => (message.id === messageId ? { ...message, ...updates } : message))
-    );
-  }, []);
+  const updateMessage = (messageId: string, updates: Partial<Message>) => {
+    setMessages(prev => prev.map(message => 
+      message.id === messageId ? { ...message, ...updates } : message
+    ));
+  };
 
-  const deleteMessage = useCallback((messageId: string) => {
+  const deleteMessage = (messageId: string) => {
     setMessages(prev => prev.filter(message => message.id !== messageId));
-  }, []);
+  };
 
-  const sendMessage = useCallback((message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
-    const completeMessage = {
+  const sendMessage = (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
+    addMessage({
       ...message,
       timestamp: new Date().toISOString(),
       read: false,
-    };
-    addMessage(completeMessage);
-  }, [addMessage]);
+    });
+  };
 
-  const createMessage = useCallback((message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
-    const completeMessage = {
-      ...message,
-      timestamp: new Date().toISOString(),
-      read: false,
-    };
-    addMessage(completeMessage);
-  }, [addMessage]);
+  const createMessage = (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
+    sendMessage(message);
+  };
 
-  const markMessageAsRead = useCallback((messageId: string) => {
+  const markMessageAsRead = (messageId: string) => {
     updateMessage(messageId, { read: true });
-  }, [updateMessage]);
-
-  // Purchase functions
-  const addPurchase = useCallback((purchase: Omit<Purchase, 'id'>) => {
-    const newPurchase: Purchase = {
-      id: Math.random().toString(36).substring(2, 15),
-      ...purchase,
-    };
-    setPurchases(prev => [...prev, newPurchase]);
-  }, []);
-
-  const updatePurchase = useCallback((purchaseId: string, updates: Partial<Purchase>) => {
-    setPurchases(prev =>
-      prev.map(purchase => (purchase.id === purchaseId ? { ...purchase, ...updates } : purchase))
-    );
-  }, []);
-
-  const deletePurchase = useCallback((purchaseId: string) => {
-    setPurchases(prev => prev.filter(purchase => purchase.id !== purchaseId));
-  }, []);
-
-  // ProjectTemplate functions
-  const addProjectTemplate = useCallback((projectTemplate: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => {
-    const newTemplate: ProjectTemplate = {
-      id: Math.random().toString(36).substring(2, 15),
-      createdAt: new Date().toISOString(),
-      usageCount: 0,
-      ...projectTemplate,
-    };
-    setProjectTemplates(prev => [...prev, newTemplate]);
-  }, []);
-
-  const updateProjectTemplate = useCallback((projectTemplateId: string, updates: Partial<ProjectTemplate>) => {
-    setProjectTemplates(prev =>
-      prev.map(template => (template.id === projectTemplateId ? { ...template, ...updates } : template))
-    );
-  }, []);
-
-  const deleteProjectTemplate = useCallback((projectTemplateId: string) => {
-    setProjectTemplates(prev => prev.filter(template => template.id !== projectTemplateId));
-  }, []);
-
-  // CustomRole functions
-  const addCustomRole = useCallback((customRole: Omit<CustomRole, 'id'>) => {
-    const newRole: CustomRole = {
-      id: Math.random().toString(36).substring(2, 15),
-      ...customRole,
-    };
-    setCustomRoles(prev => [...prev, newRole]);
-  }, []);
-
-  const updateCustomRole = useCallback((customRoleId: string, updates: Partial<CustomRole>) => {
-    setCustomRoles(prev =>
-      prev.map(role => (role.id === customRoleId ? { ...role, ...updates } : role))
-    );
-  }, []);
-
-  const deleteCustomRole = useCallback((customRoleId: string) => {
-    setCustomRoles(prev => prev.filter(role => role.id !== customRoleId));
-  }, []);
+  };
 
   // Comment functions
-  const addComment = useCallback((taskId: string, userId: string, content: string, mentionedUserIds: string[] = []) => {
-    const commentId = Math.random().toString(36).substring(2, 15);
+  const addComment = (taskId: string, userId: string, content: string, mentionedUserIds?: string[]): string => {
     const comment = {
-      id: commentId,
+      id: Math.random().toString(36).substring(2, 15),
+      taskId,
       userId,
       content,
+      mentionedUserIds: mentionedUserIds || [],
       timestamp: new Date().toISOString(),
-      mentionedUserIds,
     };
-    
-    setTasks(prev =>
-      prev.map(task => 
-        task.id === taskId 
-          ? { ...task, comments: [...(task.comments || []), comment] }
-          : task
-      )
-    );
-    
-    return commentId;
-  }, []);
+    setComments(prev => [...prev, comment]);
+    return comment.id;
+  };
 
   // Note functions
-  const addNote = useCallback((note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
-    console.log("Adding note:", note);
+  const addNote = (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newNote: Note = {
-      id: Math.random().toString(36).substring(2, 15),
       ...note,
-      title: note.title || 'Untitled Note',
-      color: note.color || 'yellow',
-      archived: note.archived || false,
+      id: Math.random().toString(36).substring(2, 15),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     setNotes(prev => [...prev, newNote]);
-  }, []);
+  };
 
-  const updateNote = useCallback((noteId: string, updates: Partial<Note>) => {
-    console.log("Updating note:", noteId, updates);
-    setNotes(prev =>
-      prev.map(note => (note.id === noteId ? { ...note, ...updates, updatedAt: new Date().toISOString() } : note))
-    );
-  }, []);
+  const updateNote = (noteId: string, updates: Partial<Note>) => {
+    setNotes(prev => prev.map(note => 
+      note.id === noteId ? { ...note, ...updates, updatedAt: new Date().toISOString() } : note
+    ));
+  };
 
-  const deleteNote = useCallback((noteId: string) => {
-    console.log("Deleting note:", noteId);
+  const deleteNote = (noteId: string) => {
     setNotes(prev => prev.filter(note => note.id !== noteId));
-  }, []);
+  };
 
-  // Client functions
-  const addClient = useCallback((client: Omit<Client, 'id'>) => {
-    console.log("Adding client:", client);
-    const newClient: Client = {
+  const getNotesByUser = (userId: string): Note[] => {
+    return notes.filter(note => note.userId === userId);
+  };
+
+  // Custom Role functions
+  const addCustomRole = (role: Omit<CustomRole, 'id'>) => {
+    const newRole: CustomRole = {
+      ...role,
       id: Math.random().toString(36).substring(2, 15),
-      ...client,
     };
-    setClients(prev => [...prev, newClient]);
-  }, []);
+    setCustomRoles(prev => [...prev, newRole]);
+  };
 
-  const updateClient = useCallback((clientId: string, updates: Partial<Client>) => {
-    console.log("Updating client:", clientId, updates);
-    setClients(prev =>
-      prev.map(client => (client.id === clientId ? { ...client, ...updates } : client))
-    );
-  }, []);
+  const updateCustomRole = (roleId: string, updates: Partial<CustomRole>) => {
+    setCustomRoles(prev => prev.map(role => 
+      role.id === roleId ? { ...role, ...updates } : role
+    ));
+  };
 
-  const deleteClient = useCallback((clientId: string) => {
-    console.log("Deleting client:", clientId);
-    
-    // Get all projects for this client
-    const clientProjects = projects.filter(project => project.clientId === clientId);
-    
-    // Delete all projects and their related data
-    clientProjects.forEach(project => {
-      deleteProject(project.id);
-    });
-    
-    // Delete all purchases for this client
-    setPurchases(prev => prev.filter(purchase => purchase.clientId !== clientId));
-    
-    // Delete all client agreements
-    setClientAgreements(prev => prev.filter(agreement => agreement.clientId !== clientId));
-    
-    // Delete all client files
-    setClientFiles(prev => prev.filter(file => file.clientId !== clientId));
-    
-    // Finally delete the client
-    setClients(prev => prev.filter(client => client.id !== clientId));
-  }, [projects, deleteProject]);
+  const deleteCustomRole = (roleId: string) => {
+    setCustomRoles(prev => prev.filter(role => role.id !== roleId));
+  };
 
-  // Client agreement functions
-  const addClientAgreement = useCallback((agreement: Omit<ClientAgreement, 'id'>) => {
-    const newAgreement: ClientAgreement = {
+  // Template functions
+  const addProjectTemplate = (template: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => {
+    const newTemplate: ProjectTemplate = {
+      ...template,
       id: Math.random().toString(36).substring(2, 15),
-      ...agreement,
-      usedHours: agreement.usedHours || 0,
+      createdAt: new Date().toISOString(),
+      usageCount: 0,
     };
-    setClientAgreements(prev => [...prev, newAgreement]);
-  }, []);
+    setProjectTemplates(prev => [...prev, newTemplate]);
+  };
 
-  const updateClientAgreement = useCallback((agreementId: string, updates: Partial<ClientAgreement>) => {
-    setClientAgreements(prev =>
-      prev.map(agreement => (agreement.id === agreementId ? { ...agreement, ...updates } : agreement))
-    );
-  }, []);
+  const updateProjectTemplate = (templateId: string, updates: Partial<ProjectTemplate>) => {
+    setProjectTemplates(prev => prev.map(template => 
+      template.id === templateId ? { ...template, ...updates } : template
+    ));
+  };
 
-  const deleteClientAgreement = useCallback((agreementId: string) => {
-    setClientAgreements(prev => prev.filter(agreement => agreement.id !== agreementId));
-  }, []);
+  const deleteProjectTemplate = (templateId: string) => {
+    setProjectTemplates(prev => prev.filter(template => template.id !== templateId));
+  };
 
-  // Client file functions
-  const uploadClientFile = useCallback(async (clientId: string, file: File) => {
-    const newFile: ClientFile = {
+  const convertProjectToTemplate = (projectId: string, templateData: { name: string; description: string }) => {
+    const project = getProjectById(projectId);
+    if (project) {
+      addProjectTemplate({
+        name: templateData.name,
+        description: templateData.description,
+        structure: {
+          name: project.name,
+          description: project.description,
+          serviceType: project.serviceType,
+          allocatedHours: project.allocatedHours,
+          tasks: tasks.filter(task => task.projectId === projectId).map(task => ({
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            priority: task.priority,
+            estimatedHours: task.estimatedHours,
+          })),
+        },
+        tags: [],
+      });
+    }
+  };
+
+  const watchProject = (projectId: string, userId: string) => {
+    const project = getProjectById(projectId);
+    if (project && !project.watcherIds?.includes(userId)) {
+      updateProject(projectId, { 
+        watcherIds: [...(project.watcherIds || []), userId] 
+      });
+    }
+  };
+
+  const unwatchProject = (projectId: string, userId: string) => {
+    const project = getProjectById(projectId);
+    if (project) {
+      updateProject(projectId, { 
+        watcherIds: project.watcherIds?.filter(id => id !== userId) || [] 
+      });
+    }
+  };
+
+  const createProjectFromTemplate = (templateId: string, projectData: any) => {
+    const template = projectTemplates.find(t => t.id === templateId);
+    if (template) {
+      // Create project from template
+      const newProject: Omit<Project, 'id'> = {
+        name: projectData.name,
+        description: projectData.description,
+        clientId: projectData.clientId,
+        serviceType: template.structure.serviceType,
+        status: "todo",
+        startDate: projectData.startDate || "",
+        dueDate: projectData.dueDate || "",
+        allocatedHours: template.structure.allocatedHours,
+        usedHours: 0,
+        teamIds: projectData.teamIds || [],
+        watcherIds: [],
+      };
+      
+      addProject(newProject);
+      
+      // Update template usage count
+      updateProjectTemplate(templateId, { 
+        usageCount: template.usageCount + 1 
+      });
+    }
+  };
+
+  // Purchase functions
+  const addPurchase = (purchase: Omit<Purchase, 'id'>) => {
+    const newPurchase: Purchase = {
+      ...purchase,
       id: Math.random().toString(36).substring(2, 15),
-      clientId,
-      name: file.name,
-      sizeKb: file.size / 1024,
-      uploadedAt: new Date().toISOString(),
     };
-    setClientFiles(prev => [...prev, newFile]);
-  }, []);
+    setPurchases(prev => [...prev, newPurchase]);
+  };
 
-  const deleteClientFile = useCallback((fileId: string) => {
-    setClientFiles(prev => prev.filter(file => file.id !== fileId));
-  }, []);
+  const updatePurchase = (purchaseId: string, updates: Partial<Purchase>) => {
+    setPurchases(prev => prev.map(purchase => 
+      purchase.id === purchaseId ? { ...purchase, ...updates } : purchase
+    ));
+  };
 
-  // Custom field functions
-  const addCustomField = useCallback((field: any) => {
-    const newField = {
-      id: Math.random().toString(36).substring(2, 15),
-      ...field,
-    };
-    setCustomFields(prev => [...prev, newField]);
-  }, []);
+  const deletePurchase = (purchaseId: string) => {
+    setPurchases(prev => prev.filter(purchase => purchase.id !== purchaseId));
+  };
 
-  const deleteCustomField = useCallback((fieldId: string) => {
+  // Client Agreement functions
+  const addClientAgreement = (agreement: Omit<ClientAgreement, 'id'>) => {
+    // Mock implementation
+    console.log("Adding client agreement:", agreement);
+  };
+
+  const updateClientAgreement = (agreementId: string, updates: Partial<ClientAgreement>) => {
+    // Mock implementation
+    console.log("Updating client agreement:", agreementId, updates);
+  };
+
+  const deleteClientAgreement = (agreementId: string) => {
+    // Mock implementation
+    console.log("Deleting client agreement:", agreementId);
+  };
+
+  const getClientAgreements = (clientId: string): ClientAgreement[] => {
+    // Mock implementation
+    return [];
+  };
+
+  // Client File functions
+  const uploadClientFile = async (clientId: string, file: File): Promise<void> => {
+    // Mock implementation
+    console.log("Uploading client file:", clientId, file.name);
+  };
+
+  const deleteClientFile = (fileId: string) => {
+    // Mock implementation
+    console.log("Deleting client file:", fileId);
+  };
+
+  const getClientFiles = (clientId: string): ClientFile[] => {
+    // Mock implementation
+    return [];
+  };
+
+  // Custom Field functions
+  const addCustomField = (field: any) => {
+    setCustomFields(prev => [...prev, { ...field, id: Math.random().toString(36).substring(2, 15) }]);
+  };
+
+  const deleteCustomField = (fieldId: string) => {
     setCustomFields(prev => prev.filter(field => field.id !== fieldId));
-  }, []);
-
-  // Notification functions
-  const updateManagerNotificationPreferences = useCallback((preferences: any) => {
-    console.log("Updating notification preferences:", preferences);
-  }, []);
+  };
 
   const value: AppContextType = {
     currentUser,
@@ -1003,16 +752,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     customFields,
     activeTimeEntry,
     taskLogs,
+    
     login,
     logout,
+    
+    // User functions
     addUser,
     updateUser,
     deleteUser,
     getUserById,
     inviteUser,
+    updateManagerNotificationPreferences,
+    
+    // Team functions
     addTeam,
     updateTeam,
     deleteTeam,
+    
+    // Client functions
+    addClient,
+    updateClient,
+    deleteClient,
+    getClientById,
+    
+    // Project functions
+    addProject,
+    updateProject,
+    deleteProject,
+    getProjectById,
+    convertProjectToTemplate,
+    watchProject,
+    unwatchProject,
+    createProjectFromTemplate,
+    
+    // Task functions
     addTask,
     updateTask,
     deleteTask,
@@ -1024,62 +797,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     unlinkTasks,
     uploadTaskFile,
     deleteTaskFile,
+    
+    // TimeEntry functions
     addTimeEntry,
     updateTimeEntry,
     deleteTimeEntry,
     startTimeTracking,
     stopTimeTracking,
     updateTimeEntryStatus,
+    
+    // Message functions
     addMessage,
     updateMessage,
     deleteMessage,
     sendMessage,
     createMessage,
     markMessageAsRead,
-    addPurchase,
-    updatePurchase,
-    deletePurchase,
-    addProjectTemplate,
-    updateProjectTemplate,
-    deleteProjectTemplate,
-    convertProjectToTemplate,
-    createProjectFromTemplate,
-    addCustomRole,
-    updateCustomRole,
-    deleteCustomRole,
+    
+    // Comment functions
     addComment,
+    
+    // Note functions
     addNote,
     updateNote,
     deleteNote,
     getNotesByUser,
-    addProject,
-    updateProject,
-    deleteProject,
-    getProjectById,
-    watchProject,
-    unwatchProject,
-    addClient,
-    updateClient,
-    deleteClient,
-    getClientById,
+    
+    // Custom Role functions
+    addCustomRole,
+    updateCustomRole,
+    deleteCustomRole,
+    
+    // Template functions
+    addProjectTemplate,
+    updateProjectTemplate,
+    deleteProjectTemplate,
+    
+    // Purchase functions
+    addPurchase,
+    updatePurchase,
+    deletePurchase,
+    
+    // Client Agreement functions
     addClientAgreement,
     updateClientAgreement,
     deleteClientAgreement,
     getClientAgreements,
+    
+    // Client File functions
     uploadClientFile,
-    getClientFiles,
     deleteClientFile,
+    getClientFiles,
+    
+    // Custom Field functions
     addCustomField,
     deleteCustomField,
-    updateManagerNotificationPreferences,
   };
 
-  return (
-    <AppContext.Provider value={value}>
-      {children}
-    </AppContext.Provider>
-  );
-};
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+}
 
 export const useAppContext = () => {
   const context = useContext(AppContext);

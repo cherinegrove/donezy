@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -55,7 +55,7 @@ interface CreateProjectDialogProps {
 }
 
 export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
-  const { clients, users, addProject } = useAppContext();
+  const { clients, users, session } = useAppContext();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,31 +75,44 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
   });
 
   const onSubmit = async (data: ProjectFormData) => {
+    if (!session?.user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a project.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     console.log("Submitting project data:", data);
     setIsSubmitting(true);
     
     try {
-      // Create the project data with a generated ID
-      const projectId = Math.random().toString(36).substring(2, 15);
-      const newProject = {
-        id: projectId,
-        name: data.name,
-        description: data.description,
-        clientId: data.clientId,
-        serviceType: data.serviceType,
-        startDate: data.startDate || "",
-        dueDate: data.dueDate || "",
-        allocatedHours: data.allocatedHours || 0,
-        status: "todo" as const,
-        usedHours: 0,
-        teamIds: data.teamIds || [],
-        watcherIds: [],
-      };
+      const { data: project, error } = await supabase
+        .from('projects')
+        .insert({
+          auth_user_id: session.user.id,
+          client_id: data.clientId,
+          name: data.name,
+          description: data.description,
+          service_type: data.serviceType,
+          start_date: data.startDate || null,
+          due_date: data.dueDate || null,
+          allocated_hours: data.allocatedHours || 0,
+          team_ids: data.teamIds || [],
+          status: 'todo',
+          used_hours: 0,
+          watcher_ids: [],
+        })
+        .select()
+        .single();
 
-      // Add the project to state
-      addProject(newProject);
+      if (error) {
+        console.error("Error creating project:", error);
+        throw error;
+      }
 
-      console.log("Project added successfully with ID:", projectId);
+      console.log("Project created successfully:", project);
 
       toast({
         title: "Project created",
@@ -109,10 +122,12 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       form.reset();
       onOpenChange(false);
 
-      // Navigate to the new project with a longer delay to ensure state is updated
-      setTimeout(() => {
-        navigate(`/projects/${projectId}`);
-      }, 200);
+      // Navigate to the new project
+      if (project?.id) {
+        setTimeout(() => {
+          navigate(`/projects/${project.id}`);
+        }, 200);
+      }
     } catch (error) {
       console.error("Error creating project:", error);
       toast({
