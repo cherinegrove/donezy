@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -152,6 +151,9 @@ export interface Task {
   watcherIds?: string[];
   files?: TaskFile[];
   relatedTaskIds?: string[];
+  linkedTaskIds?: string[];
+  estimatedHours?: number;
+  actualHours?: number;
 }
 
 export type TimeEntryStatus = 'pending' | 'approved' | 'rejected' | 'approved-billable' | 'approved-non-billable' | 'declined';
@@ -172,6 +174,7 @@ export interface TimeEntry {
   manuallyAdded?: boolean;
   declineReason?: string;
   edited?: boolean;
+  rejectionReason?: string;
 }
 
 export interface Message {
@@ -208,6 +211,20 @@ export interface ProjectTemplate {
   createdAt: string;
   usageCount: number;
   teamIds?: string[];
+  structure?: {
+    name: string;
+    description: string;
+    serviceType: 'project' | 'bank-hours' | 'pay-as-you-go';
+    allocatedHours: number;
+    tasks: {
+      title: string;
+      description: string;
+      status: TaskStatus;
+      priority: 'low' | 'medium' | 'high';
+      estimatedHours?: number;
+    }[];
+  };
+  tags?: string[];
 }
 
 export interface TemplateTask {
@@ -216,6 +233,7 @@ export interface TemplateTask {
   priority: 'low' | 'medium' | 'high';
   estimatedHours?: number;
   subtasks?: TemplateTask[];
+  status?: TaskStatus;
 }
 
 export interface CustomRole {

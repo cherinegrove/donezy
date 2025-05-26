@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { AppContextType } from "./AppContextType";
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile } from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatus, TimeEntryStatus } from "@/types";
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -141,7 +141,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         id: task.id,
         title: task.title,
         description: task.description || "",
-        status: task.status,
+        status: task.status as TaskStatus,
         priority: task.priority as "low" | "medium" | "high",
         projectId: task.project_id,
         assigneeId: task.assignee_id,
@@ -382,7 +382,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const moveTask = (taskId: string, newStatus: string) => {
-    updateTask(taskId, { status: newStatus });
+    updateTask(taskId, { status: newStatus as TaskStatus });
   };
 
   const watchTask = (taskId: string, userId: string) => {
@@ -483,7 +483,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateTimeEntryStatus = (timeEntryId: string, status: string, reason?: string) => {
-    updateTimeEntry(timeEntryId, { status, rejectionReason: reason });
+    updateTimeEntry(timeEntryId, { status: status as TimeEntryStatus, rejectionReason: reason });
   };
 
   // Message functions
@@ -606,19 +606,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addProjectTemplate({
         name: templateData.name,
         description: templateData.description,
-        structure: {
-          name: project.name,
-          description: project.description,
-          serviceType: project.serviceType,
-          allocatedHours: project.allocatedHours,
-          tasks: tasks.filter(task => task.projectId === projectId).map(task => ({
-            title: task.title,
-            description: task.description,
-            status: task.status,
-            priority: task.priority,
-            estimatedHours: task.estimatedHours,
-          })),
-        },
+        serviceType: project.serviceType,
+        defaultDuration: 0,
+        allocatedHours: project.allocatedHours || 0,
+        tasks: tasks.filter(task => task.projectId === projectId).map(task => ({
+          title: task.title,
+          description: task.description,
+          status: task.status,
+          priority: task.priority,
+          estimatedHours: task.estimatedHours,
+        })),
+        createdBy: currentUser?.id || "",
         tags: [],
       });
     }
@@ -644,7 +642,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const createProjectFromTemplate = (templateId: string, projectData: any) => {
     const template = projectTemplates.find(t => t.id === templateId);
-    if (template) {
+    if (template && template.structure) {
       // Create project from template
       const newProject: Omit<Project, 'id'> = {
         name: projectData.name,
