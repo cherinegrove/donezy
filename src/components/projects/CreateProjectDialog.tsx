@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -46,7 +45,7 @@ const projectSchema = z.object({
     (val) => (val === "" || val === undefined) ? undefined : Number(val),
     z.number().min(0).optional()
   ),
-  teamIds: z.array(z.string()).optional(),
+  teamIds: z.array(z.string()).default([]), // Ensure it's always an array of strings
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -72,7 +71,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       startDate: "",
       dueDate: "",
       allocatedHours: undefined,
-      teamIds: [],
+      teamIds: [], // Ensure it's always an empty array, not undefined
     },
   });
 
@@ -144,6 +143,25 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
 
   const activeClients = clients.filter(client => client.status === "active");
   
+  // Show loading state if users haven't loaded yet
+  if (!users || users.length === 0) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Project</DialogTitle>
+            <DialogDescription>
+              Loading team members...
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-sm text-muted-foreground">Loading users...</div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   // Enhanced user options mapping with safety checks
   const userOptions = React.useMemo(() => {
     console.log("CreateProjectDialog: Processing users for options", { users });
@@ -256,20 +274,35 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
             <FormField
               control={form.control}
               name="teamIds"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Allocated Users</FormLabel>
-                  <FormControl>
-                    <MultiSelect
-                      options={userOptions}
-                      selectedValues={field.value || []}
-                      onValueChange={field.onChange}
-                      placeholder="Select team members"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                // Ensure selectedValues is always a safe array of strings
+                const safeSelectedValues = Array.isArray(field.value) ? field.value : [];
+                
+                // Filter out any selected values that don't exist in current options
+                const validSelectedValues = safeSelectedValues.filter(
+                  (val) => userOptions.some((opt) => opt.value === val)
+                );
+
+                return (
+                  <FormItem>
+                    <FormLabel>Allocated Users</FormLabel>
+                    <FormControl>
+                      <MultiSelect
+                        options={userOptions}
+                        selectedValues={validSelectedValues}
+                        onValueChange={(val) => {
+                          console.log("CreateProjectDialog: Selected team members:", val);
+                          // Ensure we're always passing an array of strings
+                          const safeVal = Array.isArray(val) ? val : [];
+                          field.onChange(safeVal);
+                        }}
+                        placeholder="Select team members"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField

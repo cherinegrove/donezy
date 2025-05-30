@@ -118,6 +118,25 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
     return validOptions;
   }, [users]);
 
+  // Show loading state if users haven't loaded yet
+  if (isCreating && (!users || users.length === 0)) {
+    return (
+      <Card>
+        <CardContent className="p-6 space-y-4">
+          <div className="flex items-center justify-center py-8">
+            <div className="text-sm text-muted-foreground">Loading team members...</div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleCancel}>
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (isCreating) {
     return (
       <Card>
@@ -146,8 +165,13 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
             <Label>Team Members</Label>
             <MultiSelect
               options={userOptions}
-              selectedValues={memberIds}
-              onValueChange={setMemberIds}
+              selectedValues={Array.isArray(memberIds) ? memberIds : []}
+              onValueChange={(val) => {
+                console.log("CreateTeamCard: Selected team members:", val);
+                // Ensure we're always passing an array of strings
+                const safeVal = Array.isArray(val) ? val : [];
+                setMemberIds(safeVal);
+              }}
               placeholder="Select team members (guests excluded)"
             />
           </div>

@@ -50,7 +50,7 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
     defaultValues: {
       name: team.name,
       description: team.description || "",
-      memberIds: team.memberIds || [],
+      memberIds: Array.isArray(team.memberIds) ? team.memberIds : [],
       leaderId: team.leaderId || "",
     },
   });
@@ -60,7 +60,7 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
       form.reset({
         name: team.name,
         description: team.description || "",
-        memberIds: team.memberIds || [],
+        memberIds: Array.isArray(team.memberIds) ? team.memberIds : [],
         leaderId: team.leaderId || "",
       });
     }
@@ -126,6 +126,25 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
     return validOptions;
   }, [users]);
 
+  // Show loading state if users haven't loaded yet
+  if (!users || users.length === 0) {
+    return (
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>Edit Team</DialogTitle>
+            <DialogDescription>
+              Loading team members...
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-sm text-muted-foreground">Loading users...</div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[525px]">
@@ -170,18 +189,33 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
             <FormField
               control={form.control}
               name="memberIds"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Team Members</FormLabel>
-                  <MultiSelect
-                    options={userOptions}
-                    selectedValues={field.value}
-                    onValueChange={field.onChange}
-                    placeholder="Select team members"
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                // Ensure selectedValues is always a safe array of strings
+                const safeSelectedValues = Array.isArray(field.value) ? field.value : [];
+                
+                // Filter out any selected values that don't exist in current options
+                const validSelectedValues = safeSelectedValues.filter(
+                  (val) => userOptions.some((opt) => opt.value === val)
+                );
+
+                return (
+                  <FormItem>
+                    <FormLabel>Team Members</FormLabel>
+                    <MultiSelect
+                      options={userOptions}
+                      selectedValues={validSelectedValues}
+                      onValueChange={(val) => {
+                        console.log("EditTeamDialog: Selected team members:", val);
+                        // Ensure we're always passing an array of strings
+                        const safeVal = Array.isArray(val) ? val : [];
+                        field.onChange(safeVal);
+                      }}
+                      placeholder="Select team members"
+                    />
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             <FormField
               control={form.control}

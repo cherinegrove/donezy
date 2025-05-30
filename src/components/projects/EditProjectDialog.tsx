@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -73,14 +72,14 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
       startDate: "",
       dueDate: "",
       allocatedHours: undefined,
-      teamIds: [],
+      teamIds: [], // Ensure it's always an empty array, not undefined
     },
   });
 
   useEffect(() => {
     if (open && project) {
       console.log("Initializing form with project data:", project);
-      // Reset form with current project data
+      // Reset form with current project data, ensuring teamIds is always an array
       form.reset({
         name: project.name || "",
         description: project.description || "",
@@ -90,7 +89,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
         startDate: project.startDate || "",
         dueDate: project.dueDate || "",
         allocatedHours: project.allocatedHours || undefined,
-        teamIds: project.teamIds || [],
+        teamIds: Array.isArray(project.teamIds) ? project.teamIds : [],
       });
     }
   }, [form, open, project]);
@@ -147,6 +146,25 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
 
   const activeClients = clients.filter(client => client.status === "active");
   
+  // Show loading state if users haven't loaded yet
+  if (!users || users.length === 0) {
+    return (
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Project</DialogTitle>
+            <DialogDescription>
+              Loading team members...
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-sm text-muted-foreground">Loading users...</div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   // Enhanced user options mapping with safety checks
   const userOptions = React.useMemo(() => {
     console.log("EditProjectDialog: Processing users for options", { users });
@@ -259,20 +277,35 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
             <FormField
               control={form.control}
               name="teamIds"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Allocated Users</FormLabel>
-                  <FormControl>
-                    <MultiSelect
-                      options={userOptions}
-                      selectedValues={field.value || []}
-                      onValueChange={field.onChange}
-                      placeholder="Select team members"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                // Ensure selectedValues is always a safe array of strings
+                const safeSelectedValues = Array.isArray(field.value) ? field.value : [];
+                
+                // Filter out any selected values that don't exist in current options
+                const validSelectedValues = safeSelectedValues.filter(
+                  (val) => userOptions.some((opt) => opt.value === val)
+                );
+
+                return (
+                  <FormItem>
+                    <FormLabel>Allocated Users</FormLabel>
+                    <FormControl>
+                      <MultiSelect
+                        options={userOptions}
+                        selectedValues={validSelectedValues}
+                        onValueChange={(val) => {
+                          console.log("EditProjectDialog: Selected team members:", val);
+                          // Ensure we're always passing an array of strings
+                          const safeVal = Array.isArray(val) ? val : [];
+                          field.onChange(safeVal);
+                        }}
+                        placeholder="Select team members"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField
