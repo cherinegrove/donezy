@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { X, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -179,6 +180,15 @@ export function MultiSelect({
     return null;
   }
 
+  // Critical check: Don't render Command if data is not ready
+  const canRenderCommand = React.useMemo(() => {
+    const isReady = Array.isArray(safeOptions) && 
+                   Array.isArray(safeSelectedValues) && 
+                   typeof onValueChange === 'function';
+    console.log("MultiSelect: Can render command check", { isReady, safeOptions, safeSelectedValues });
+    return isReady;
+  }, [safeOptions, safeSelectedValues, onValueChange]);
+
   return (
     <>
       <Popover open={open} onOpenChange={setOpen}>
@@ -218,8 +228,8 @@ export function MultiSelect({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-          {/* Only render Command if we have valid options */}
-          {safeOptions.length > 0 ? (
+          {/* Critical safety check - only render Command if everything is ready */}
+          {canRenderCommand && safeOptions.length > 0 ? (
             <Command>
               <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
               <CommandEmpty>No options found.</CommandEmpty>
@@ -287,7 +297,7 @@ export function MultiSelect({
             </Command>
           ) : (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              No options available
+              {!canRenderCommand ? "Loading..." : "No options available"}
             </div>
           )}
         </PopoverContent>
