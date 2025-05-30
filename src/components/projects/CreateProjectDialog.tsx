@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,7 +32,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TeamMemberSelect } from "./TeamMemberSelect";
 import { useToast } from "@/hooks/use-toast";
 
 const projectSchema = z.object({
@@ -45,7 +45,6 @@ const projectSchema = z.object({
     (val) => (val === "" || val === undefined) ? undefined : Number(val),
     z.number().min(0).optional()
   ),
-  teamIds: z.array(z.string()).default([]), // Ensure it's always an array of strings
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -56,15 +55,10 @@ interface CreateProjectDialogProps {
 }
 
 export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
-  const { clients, users, session } = useAppContext();
+  const { clients, session } = useAppContext();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  console.log("CreateProjectDialog: Rendering with users", { 
-    usersCount: users?.length || 0,
-    users: users?.slice(0, 3) // Log first 3 users for debugging
-  });
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -76,7 +70,6 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       startDate: "",
       dueDate: "",
       allocatedHours: undefined,
-      teamIds: [], // Ensure it's always an empty array, not undefined
     },
   });
 
@@ -105,7 +98,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
           start_date: data.startDate || null,
           due_date: data.dueDate || null,
           allocated_hours: data.allocatedHours || 0,
-          team_ids: data.teamIds || [],
+          team_ids: [],
           status: 'todo',
           used_hours: 0,
           watcher_ids: [],
@@ -147,25 +140,6 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
   };
 
   const activeClients = clients.filter(client => client.status === "active");
-  
-  // Show loading state if users haven't loaded yet
-  if (!users || users.length === 0) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Project</DialogTitle>
-            <DialogDescription>
-              Loading team members...
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-center py-8">
-            <div className="text-sm text-muted-foreground">Loading users...</div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -231,28 +205,6 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                       )}
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="teamIds"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Allocated Users</FormLabel>
-                  <FormControl>
-                    <TeamMemberSelect
-                      users={users}
-                      selectedValues={Array.isArray(field.value) ? field.value : []}
-                      onValueChange={(values) => {
-                        console.log("CreateProjectDialog: TeamMemberSelect changed:", values);
-                        field.onChange(values);
-                      }}
-                      placeholder="Select team members"
-                    />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

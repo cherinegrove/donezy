@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,7 +31,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TeamMemberSelect } from "./TeamMemberSelect";
 import { useToast } from "@/hooks/use-toast";
 
 const projectSchema = z.object({
@@ -45,7 +45,6 @@ const projectSchema = z.object({
     (val) => (val === "" || val === undefined) ? undefined : Number(val),
     z.number().min(0).optional()
   ),
-  teamIds: z.array(z.string()).optional(),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -57,14 +56,9 @@ interface EditProjectDialogProps {
 }
 
 export function EditProjectDialog({ project, open, onClose }: EditProjectDialogProps) {
-  const { updateProject, clients, users } = useAppContext();
+  const { updateProject, clients } = useAppContext();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  console.log("EditProjectDialog: Rendering with project", project?.id, "and users", { 
-    usersCount: users?.length || 0,
-    projectTeamIds: project?.teamIds
-  });
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -77,14 +71,12 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
       startDate: "",
       dueDate: "",
       allocatedHours: undefined,
-      teamIds: [], // Ensure it's always an empty array, not undefined
     },
   });
 
   useEffect(() => {
     if (open && project) {
       console.log("EditProjectDialog: Initializing form with project data:", project);
-      // Reset form with current project data, ensuring teamIds is always an array
       form.reset({
         name: project.name || "",
         description: project.description || "",
@@ -94,7 +86,6 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
         startDate: project.startDate || "",
         dueDate: project.dueDate || "",
         allocatedHours: project.allocatedHours || undefined,
-        teamIds: Array.isArray(project.teamIds) ? project.teamIds : [],
       });
     }
   }, [form, open, project]);
@@ -123,7 +114,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
         startDate: data.startDate || "",
         dueDate: data.dueDate || "",
         allocatedHours: data.allocatedHours || 0,
-        teamIds: data.teamIds || [],
+        teamIds: [],
       });
 
       toast({
@@ -150,25 +141,6 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
   }
 
   const activeClients = clients.filter(client => client.status === "active");
-  
-  // Show loading state if users haven't loaded yet
-  if (!users || users.length === 0) {
-    return (
-      <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Project</DialogTitle>
-            <DialogDescription>
-              Loading team members...
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-center py-8">
-            <div className="text-sm text-muted-foreground">Loading users...</div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -234,28 +206,6 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
                       )}
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="teamIds"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Allocated Users</FormLabel>
-                  <FormControl>
-                    <TeamMemberSelect
-                      users={users}
-                      selectedValues={Array.isArray(field.value) ? field.value : []}
-                      onValueChange={(values) => {
-                        console.log("EditProjectDialog: TeamMemberSelect changed:", values);
-                        field.onChange(values);
-                      }}
-                      placeholder="Select team members"
-                    />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
@@ -33,7 +32,6 @@ export default function ProjectDetails() {
   const client = project ? clients.find(c => c.id === project.clientId) : null;
 
   const projectTasks = tasks.filter(task => task.projectId === projectId);
-  const projectMembers = users.filter(user => project?.teamIds?.includes(user.id));
   const totalHours = timeEntries
     .filter(entry => entry.projectId === projectId)
     .reduce((sum, entry) => sum + entry.duration, 0);
@@ -97,7 +95,7 @@ export default function ProjectDetails() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
         <Card>
           <CardHeader>
             <CardTitle>Client</CardTitle>
@@ -122,22 +120,6 @@ export default function ProjectDetails() {
           </CardHeader>
           <CardContent>
             <Badge variant="secondary">{project.status}</Badge>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Team Members</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center space-x-2">
-              {projectMembers?.map(member => (
-                <Avatar key={member.id} className="w-8 h-8">
-                  <AvatarImage src={member.avatar} />
-                  <AvatarFallback>{member?.name?.charAt(0)}</AvatarFallback>
-                </Avatar>
-              ))}
-            </div>
           </CardContent>
         </Card>
 
