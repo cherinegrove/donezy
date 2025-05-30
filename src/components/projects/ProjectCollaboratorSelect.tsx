@@ -52,7 +52,7 @@ export function ProjectCollaboratorSelect({
     }
 
     // Filter out guest users and clients (like in tasks)
-    if (user.is_guest === true || user.client_role) {
+    if (user.is_guest === true || user.clientRole) {
       console.log("ProjectCollaboratorSelect: Filtering out guest/client user:", user.name);
       return false;
     }
