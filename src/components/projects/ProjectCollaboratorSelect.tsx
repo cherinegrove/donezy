@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
@@ -52,7 +51,7 @@ export function ProjectCollaboratorSelect({
     }
 
     // Filter out guest users and clients - using consistent property names
-    if (user.isGuest === true || user.clientRole) {
+    if (user.is_guest === true || user.clientRole) {
       console.log("ProjectCollaboratorSelect: Filtering out guest/client user:", user.name);
       return false;
     }
