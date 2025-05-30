@@ -114,6 +114,9 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
 
       form.reset();
       onOpenChange(false);
+      
+      // Force a page reload to refresh the client list
+      window.location.reload();
     } catch (error) {
       console.error("Error adding client:", error);
       toast({
