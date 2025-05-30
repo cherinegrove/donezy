@@ -142,12 +142,45 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
 
   const activeClients = clients.filter(client => client.status === "active");
   
-  // Convert users to options for MultiSelect
-  const userOptions = users.map(user => ({
-    value: user.id,
-    label: user.name,
-    initials: user.name?.charAt(0) || "?",
-  }));
+  // Enhanced user options mapping with safety checks
+  const userOptions = React.useMemo(() => {
+    console.log("CreateProjectDialog: Processing users for options", { users });
+    
+    if (!users || !Array.isArray(users)) {
+      console.warn("CreateProjectDialog: Users is not an array or is undefined", { users });
+      return [];
+    }
+    
+    const validOptions = users
+      .filter(user => {
+        if (!user || typeof user !== 'object') {
+          console.warn("CreateProjectDialog: Invalid user object", { user });
+          return false;
+        }
+        if (!user.id || typeof user.id !== 'string') {
+          console.warn("CreateProjectDialog: User missing valid id", { user });
+          return false;
+        }
+        if (!user.name || typeof user.name !== 'string') {
+          console.warn("CreateProjectDialog: User missing valid name", { user });
+          return false;
+        }
+        return true;
+      })
+      .map(user => ({
+        value: user.id,
+        label: user.name,
+        initials: user.name.charAt(0).toUpperCase() || "?",
+      }));
+    
+    console.log("CreateProjectDialog: Generated user options", { 
+      originalCount: users.length, 
+      validCount: validOptions.length,
+      validOptions 
+    });
+    
+    return validOptions;
+  }, [users]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -40,34 +40,96 @@ export function MultiSelect({
   const [fileDialogOpen, setFileDialogOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Ensure we always have valid arrays with additional safety checks
+  // Enhanced safety checks with logging
   const safeOptions = React.useMemo(() => {
-    if (!options || !Array.isArray(options)) return [];
-    return options.filter(option => option && typeof option === 'object' && option.value);
+    if (!options || !Array.isArray(options)) {
+      console.warn("MultiSelect: options is not an array or is undefined", { options });
+      return [];
+    }
+    
+    const filteredOptions = options.filter(option => {
+      if (!option || typeof option !== 'object') {
+        console.warn("MultiSelect: Invalid option object", { option });
+        return false;
+      }
+      if (!option.value || typeof option.value !== 'string') {
+        console.warn("MultiSelect: Option missing valid value", { option });
+        return false;
+      }
+      if (!option.label || typeof option.label !== 'string') {
+        console.warn("MultiSelect: Option missing valid label", { option });
+        return false;
+      }
+      return true;
+    });
+    
+    console.log("MultiSelect: Processed options", { 
+      originalCount: options.length, 
+      filteredCount: filteredOptions.length,
+      filteredOptions 
+    });
+    
+    return filteredOptions;
   }, [options]);
 
   const safeSelectedValues = React.useMemo(() => {
-    if (!selectedValues || !Array.isArray(selectedValues)) return [];
-    return selectedValues.filter(value => value && typeof value === 'string');
+    if (!selectedValues || !Array.isArray(selectedValues)) {
+      console.warn("MultiSelect: selectedValues is not an array or is undefined", { selectedValues });
+      return [];
+    }
+    
+    const filteredValues = selectedValues.filter(value => {
+      if (!value || typeof value !== 'string') {
+        console.warn("MultiSelect: Invalid selected value", { value });
+        return false;
+      }
+      return true;
+    });
+    
+    console.log("MultiSelect: Processed selectedValues", { 
+      originalCount: selectedValues.length, 
+      filteredCount: filteredValues.length,
+      filteredValues 
+    });
+    
+    return filteredValues;
   }, [selectedValues]);
 
   const handleSelect = React.useCallback(
     (value: string) => {
-      if (!value || typeof value !== 'string') return;
+      if (!value || typeof value !== 'string') {
+        console.warn("MultiSelect: Invalid value in handleSelect", { value });
+        return;
+      }
       
-      const updatedValues = safeSelectedValues.includes(value) 
-        ? safeSelectedValues.filter((item) => item !== value)
-        : [...safeSelectedValues, value];
-        
-      onValueChange(updatedValues);
+      try {
+        const updatedValues = safeSelectedValues.includes(value) 
+          ? safeSelectedValues.filter((item) => item !== value)
+          : [...safeSelectedValues, value];
+          
+        console.log("MultiSelect: Updating values", { value, updatedValues });
+        onValueChange(updatedValues);
+      } catch (error) {
+        console.error("MultiSelect: Error in handleSelect", { error, value });
+      }
     },
     [safeSelectedValues, onValueChange]
   );
 
   const handleRemove = React.useCallback(
     (value: string) => {
-      if (!value || typeof value !== 'string') return;
-      onValueChange(safeSelectedValues.filter((item) => item !== value));
+      if (!value || typeof value !== 'string') {
+        console.warn("MultiSelect: Invalid value in handleRemove", { value });
+        return;
+      }
+      
+      try {
+        const updatedValues = safeSelectedValues.filter((item) => item !== value);
+        console.log("MultiSelect: Removing value", { value, updatedValues });
+        onValueChange(updatedValues);
+      } catch (error) {
+        console.error("MultiSelect: Error in handleRemove", { error, value });
+      }
     },
     [safeSelectedValues, onValueChange]
   );
@@ -79,15 +141,30 @@ export function MultiSelect({
     }
   };
 
-  // Get selected items with proper safety checks
+  // Get selected items with enhanced safety checks
   const selectedItems = React.useMemo(() => {
-    return safeSelectedValues
-      .map(value => safeOptions.find(option => option?.value === value))
-      .filter(Boolean) as Option[];
+    try {
+      const items = safeSelectedValues
+        .map(value => {
+          const option = safeOptions.find(option => option?.value === value);
+          if (!option) {
+            console.warn("MultiSelect: Selected value not found in options", { value, safeOptions });
+          }
+          return option;
+        })
+        .filter(Boolean) as Option[];
+      
+      console.log("MultiSelect: Selected items", { items });
+      return items;
+    } catch (error) {
+      console.error("MultiSelect: Error computing selected items", { error });
+      return [];
+    }
   }, [safeSelectedValues, safeOptions]);
 
   // Don't render if we don't have valid data yet
   if (!onValueChange) {
+    console.warn("MultiSelect: No onValueChange provided");
     return null;
   }
 

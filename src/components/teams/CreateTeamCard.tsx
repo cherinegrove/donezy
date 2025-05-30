@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,12 +72,49 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
     setIsCreating(false);
   };
 
-  // Filter out guest users and client users from team assignment options
-  const eligibleUsers = users.filter(user => user.role !== "client" && !user.is_guest);
-  const userOptions = eligibleUsers.map(user => ({
-    value: user.id,
-    label: user.name
-  }));
+  // Enhanced user filtering and options mapping with safety checks
+  const userOptions = React.useMemo(() => {
+    console.log("CreateTeamCard: Processing users for options", { users });
+    
+    if (!users || !Array.isArray(users)) {
+      console.warn("CreateTeamCard: Users is not an array or is undefined", { users });
+      return [];
+    }
+    
+    // Filter out guest users and client users from team assignment options
+    const eligibleUsers = users.filter(user => {
+      if (!user || typeof user !== 'object') {
+        console.warn("CreateTeamCard: Invalid user object", { user });
+        return false;
+      }
+      if (user.role === "client" || user.is_guest) {
+        return false;
+      }
+      if (!user.id || typeof user.id !== 'string') {
+        console.warn("CreateTeamCard: User missing valid id", { user });
+        return false;
+      }
+      if (!user.name || typeof user.name !== 'string') {
+        console.warn("CreateTeamCard: User missing valid name", { user });
+        return false;
+      }
+      return true;
+    });
+    
+    const validOptions = eligibleUsers.map(user => ({
+      value: user.id,
+      label: user.name
+    }));
+    
+    console.log("CreateTeamCard: Generated user options", { 
+      originalCount: users.length, 
+      eligibleCount: eligibleUsers.length,
+      validCount: validOptions.length,
+      validOptions 
+    });
+    
+    return validOptions;
+  }, [users]);
 
   if (isCreating) {
     return (

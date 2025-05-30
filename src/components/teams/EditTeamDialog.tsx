@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { MultiSelect } from "@/components/ui/multi-select";
+import React from "react";
 
 const teamSchema = z.object({
   name: z.string().min(1, "Team name is required"),
@@ -82,12 +82,49 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
     onClose();
   };
 
-  // Filter out guest users and client users from team assignment options
-  const eligibleUsers = users.filter(user => user.role !== "client" && !user.is_guest);
-  const userOptions = eligibleUsers.map(user => ({
-    value: user.id,
-    label: user.name
-  }));
+  // Enhanced user filtering and options mapping with safety checks
+  const userOptions = React.useMemo(() => {
+    console.log("EditTeamDialog: Processing users for options", { users });
+    
+    if (!users || !Array.isArray(users)) {
+      console.warn("EditTeamDialog: Users is not an array or is undefined", { users });
+      return [];
+    }
+    
+    // Filter out guest users and client users from team assignment options
+    const eligibleUsers = users.filter(user => {
+      if (!user || typeof user !== 'object') {
+        console.warn("EditTeamDialog: Invalid user object", { user });
+        return false;
+      }
+      if (user.role === "client" || user.is_guest) {
+        return false;
+      }
+      if (!user.id || typeof user.id !== 'string') {
+        console.warn("EditTeamDialog: User missing valid id", { user });
+        return false;
+      }
+      if (!user.name || typeof user.name !== 'string') {
+        console.warn("EditTeamDialog: User missing valid name", { user });
+        return false;
+      }
+      return true;
+    });
+    
+    const validOptions = eligibleUsers.map(user => ({
+      value: user.id,
+      label: user.name
+    }));
+    
+    console.log("EditTeamDialog: Generated user options", { 
+      originalCount: users.length, 
+      eligibleCount: eligibleUsers.length,
+      validCount: validOptions.length,
+      validOptions 
+    });
+    
+    return validOptions;
+  }, [users]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
