@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { X, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -83,7 +82,12 @@ export function MultiSelect({
         console.warn("MultiSelect: Invalid selected value", { value });
         return false;
       }
-      return true;
+      // Ensure the value exists in our options
+      const exists = safeOptions.some(option => option.value === value);
+      if (!exists && safeOptions.length > 0) {
+        console.warn("MultiSelect: Selected value not found in options", { value, safeOptions });
+      }
+      return exists;
     });
     
     console.log("MultiSelect: Processed selectedValues", { 
@@ -93,12 +97,19 @@ export function MultiSelect({
     });
     
     return filteredValues;
-  }, [selectedValues]);
+  }, [selectedValues, safeOptions]);
 
   const handleSelect = React.useCallback(
     (value: string) => {
       if (!value || typeof value !== 'string') {
         console.warn("MultiSelect: Invalid value in handleSelect", { value });
+        return;
+      }
+      
+      // Ensure the value exists in our options
+      const exists = safeOptions.some(option => option.value === value);
+      if (!exists) {
+        console.warn("MultiSelect: Trying to select value not in options", { value, safeOptions });
         return;
       }
       
@@ -113,7 +124,7 @@ export function MultiSelect({
         console.error("MultiSelect: Error in handleSelect", { error, value });
       }
     },
-    [safeSelectedValues, onValueChange]
+    [safeSelectedValues, safeOptions, onValueChange]
   );
 
   const handleRemove = React.useCallback(
@@ -152,7 +163,7 @@ export function MultiSelect({
           }
           return option;
         })
-        .filter(Boolean) as Option[];
+        .filter((option): option is Option => Boolean(option));
       
       console.log("MultiSelect: Selected items", { items });
       return items;

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
@@ -16,6 +17,7 @@ export function ProjectCollaboratorSelect({
   const { users } = useAppContext();
 
   console.log("ProjectCollaboratorSelect: Raw users data:", users);
+  console.log("ProjectCollaboratorSelect: Selected collaborators:", selectedCollaborators);
 
   // Safety check: ensure users is a valid array
   if (!users || !Array.isArray(users)) {
@@ -23,8 +25,8 @@ export function ProjectCollaboratorSelect({
     return (
       <MultiSelect
         options={[]}
-        selectedValues={selectedCollaborators || []}
-        onValueChange={onCollaboratorsChange}
+        selectedValues={[]}
+        onValueChange={() => {}}
         placeholder="No users available"
         disabled={true}
       />
@@ -91,20 +93,77 @@ export function ProjectCollaboratorSelect({
 
   console.log("ProjectCollaboratorSelect: Generated options:", collaboratorOptions);
 
-  // Safe selected values with filtering
-  const safeSelectedValues = (selectedCollaborators || []).filter(value => {
-    if (!value || typeof value !== 'string') {
-      console.warn("ProjectCollaboratorSelect: Invalid selected value:", value);
-      return false;
+  // Ensure selectedCollaborators is always a valid array of strings
+  const safeSelectedValues = React.useMemo(() => {
+    if (!selectedCollaborators || !Array.isArray(selectedCollaborators)) {
+      console.warn("ProjectCollaboratorSelect: selectedCollaborators is not a valid array:", selectedCollaborators);
+      return [];
     }
-    return true;
-  });
+
+    const validSelected = selectedCollaborators.filter(value => {
+      if (!value || typeof value !== 'string') {
+        console.warn("ProjectCollaboratorSelect: Invalid selected value:", value);
+        return false;
+      }
+      
+      // Ensure the selected value exists in our options
+      const exists = collaboratorOptions.some(option => option.value === value);
+      if (!exists) {
+        console.warn("ProjectCollaboratorSelect: Selected value not found in options:", value);
+      }
+      return exists;
+    });
+
+    console.log("ProjectCollaboratorSelect: Safe selected values:", validSelected);
+    return validSelected;
+  }, [selectedCollaborators, collaboratorOptions]);
+
+  // Safe change handler
+  const handleCollaboratorsChange = React.useCallback((newValues: string[]) => {
+    console.log("ProjectCollaboratorSelect: Handling change:", newValues);
+    
+    if (!newValues || !Array.isArray(newValues)) {
+      console.warn("ProjectCollaboratorSelect: Invalid new values received:", newValues);
+      onCollaboratorsChange([]);
+      return;
+    }
+
+    // Filter to only valid values that exist in our options
+    const validNewValues = newValues.filter(value => {
+      if (!value || typeof value !== 'string') {
+        console.warn("ProjectCollaboratorSelect: Invalid new value:", value);
+        return false;
+      }
+      
+      const exists = collaboratorOptions.some(option => option.value === value);
+      if (!exists) {
+        console.warn("ProjectCollaboratorSelect: New value not found in options:", value);
+      }
+      return exists;
+    });
+
+    console.log("ProjectCollaboratorSelect: Calling onCollaboratorsChange with:", validNewValues);
+    onCollaboratorsChange(validNewValues);
+  }, [onCollaboratorsChange, collaboratorOptions]);
+
+  // Don't render if we don't have valid options yet
+  if (collaboratorOptions.length === 0) {
+    return (
+      <MultiSelect
+        options={[]}
+        selectedValues={[]}
+        onValueChange={() => {}}
+        placeholder="No collaborators available"
+        disabled={true}
+      />
+    );
+  }
 
   return (
     <MultiSelect
       options={collaboratorOptions}
       selectedValues={safeSelectedValues}
-      onValueChange={onCollaboratorsChange}
+      onValueChange={handleCollaboratorsChange}
       placeholder="Select collaborators"
       disabled={disabled}
     />
