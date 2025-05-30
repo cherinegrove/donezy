@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,11 +34,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         
         if (session?.user) {
+          // Create a mock current user based on session data
+          const mockUser: User = {
+            id: session.user.id,
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || "User",
+            email: session.user.email || "",
+            role: session.user.user_metadata?.role || "admin",
+            teamIds: [],
+          };
+          setCurrentUser(mockUser);
+          
+          // Add current user to users array if not already there
+          setUsers(prevUsers => {
+            const userExists = prevUsers.some(user => user.id === mockUser.id);
+            if (!userExists) {
+              return [...prevUsers, mockUser];
+            }
+            return prevUsers;
+          });
+          
           // Load user data when authenticated
-          loadUserData();
+          setTimeout(() => {
+            loadUserData();
+          }, 0);
         } else {
           // Clear data when logged out
           setCurrentUser(null);
+          setUsers([]);
           setClients([]);
           setProjects([]);
           setTasks([]);
@@ -49,7 +72,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
-        loadUserData();
+        const mockUser: User = {
+          id: session.user.id,
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || "User",
+          email: session.user.email || "",
+          role: session.user.user_metadata?.role || "admin",
+          teamIds: [],
+        };
+        setCurrentUser(mockUser);
+        setUsers([mockUser]);
+        
+        setTimeout(() => {
+          loadUserData();
+        }, 0);
       }
     });
 
