@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MultiSelect } from "@/components/ui/multi-select";
+import { TeamMemberSelect } from "./TeamMemberSelect";
 import { useToast } from "@/hooks/use-toast";
 
 const projectSchema = z.object({
@@ -61,6 +61,11 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  console.log("CreateProjectDialog: Rendering with users", { 
+    usersCount: users?.length || 0,
+    users: users?.slice(0, 3) // Log first 3 users for debugging
+  });
+
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -85,7 +90,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       return;
     }
 
-    console.log("Submitting project data:", data);
+    console.log("CreateProjectDialog: Submitting project data:", data);
     setIsSubmitting(true);
     
     try {
@@ -109,11 +114,11 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
         .single();
 
       if (error) {
-        console.error("Error creating project:", error);
+        console.error("CreateProjectDialog: Error creating project:", error);
         throw error;
       }
 
-      console.log("Project created successfully:", project);
+      console.log("CreateProjectDialog: Project created successfully:", project);
 
       toast({
         title: "Project created",
@@ -130,7 +135,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
         }, 200);
       }
     } catch (error) {
-      console.error("Error creating project:", error);
+      console.error("CreateProjectDialog: Error creating project:", error);
       toast({
         title: "Error",
         description: "Failed to create project. Please try again.",
@@ -161,46 +166,6 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       </Dialog>
     );
   }
-
-  // Enhanced user options mapping with safety checks
-  const userOptions = React.useMemo(() => {
-    console.log("CreateProjectDialog: Processing users for options", { users });
-    
-    if (!users || !Array.isArray(users)) {
-      console.warn("CreateProjectDialog: Users is not an array or is undefined", { users });
-      return [];
-    }
-    
-    const validOptions = users
-      .filter(user => {
-        if (!user || typeof user !== 'object') {
-          console.warn("CreateProjectDialog: Invalid user object", { user });
-          return false;
-        }
-        if (!user.id || typeof user.id !== 'string') {
-          console.warn("CreateProjectDialog: User missing valid id", { user });
-          return false;
-        }
-        if (!user.name || typeof user.name !== 'string') {
-          console.warn("CreateProjectDialog: User missing valid name", { user });
-          return false;
-        }
-        return true;
-      })
-      .map(user => ({
-        value: user.id,
-        label: user.name,
-        initials: user.name.charAt(0).toUpperCase() || "?",
-      }));
-    
-    console.log("CreateProjectDialog: Generated user options", { 
-      originalCount: users.length, 
-      validCount: validOptions.length,
-      validOptions 
-    });
-    
-    return validOptions;
-  }, [users]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -274,35 +239,23 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
             <FormField
               control={form.control}
               name="teamIds"
-              render={({ field }) => {
-                // Ensure selectedValues is always a safe array of strings
-                const safeSelectedValues = Array.isArray(field.value) ? field.value : [];
-                
-                // Filter out any selected values that don't exist in current options
-                const validSelectedValues = safeSelectedValues.filter(
-                  (val) => userOptions.some((opt) => opt.value === val)
-                );
-
-                return (
-                  <FormItem>
-                    <FormLabel>Allocated Users</FormLabel>
-                    <FormControl>
-                      <MultiSelect
-                        options={userOptions}
-                        selectedValues={validSelectedValues}
-                        onValueChange={(val) => {
-                          console.log("CreateProjectDialog: Selected team members:", val);
-                          // Ensure we're always passing an array of strings
-                          const safeVal = Array.isArray(val) ? val : [];
-                          field.onChange(safeVal);
-                        }}
-                        placeholder="Select team members"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Allocated Users</FormLabel>
+                  <FormControl>
+                    <TeamMemberSelect
+                      users={users}
+                      selectedValues={Array.isArray(field.value) ? field.value : []}
+                      onValueChange={(values) => {
+                        console.log("CreateProjectDialog: TeamMemberSelect changed:", values);
+                        field.onChange(values);
+                      }}
+                      placeholder="Select team members"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
 
             <FormField

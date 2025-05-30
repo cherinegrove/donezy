@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MultiSelect } from "@/components/ui/multi-select";
+import { TeamMemberSelect } from "./TeamMemberSelect";
 import { useToast } from "@/hooks/use-toast";
 
 const projectSchema = z.object({
@@ -61,6 +61,11 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  console.log("EditProjectDialog: Rendering with project", project?.id, "and users", { 
+    usersCount: users?.length || 0,
+    projectTeamIds: project?.teamIds
+  });
+
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -78,7 +83,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
 
   useEffect(() => {
     if (open && project) {
-      console.log("Initializing form with project data:", project);
+      console.log("EditProjectDialog: Initializing form with project data:", project);
       // Reset form with current project data, ensuring teamIds is always an array
       form.reset({
         name: project.name || "",
@@ -96,7 +101,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
 
   const onSubmit = async (data: ProjectFormData) => {
     if (!project) {
-      console.error("No project to update");
+      console.error("EditProjectDialog: No project to update");
       toast({
         title: "Error",
         description: "No project selected for editing.",
@@ -105,7 +110,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
       return;
     }
 
-    console.log("Submitting project update:", data);
+    console.log("EditProjectDialog: Submitting project update:", data);
     setIsSubmitting(true);
     
     try {
@@ -128,7 +133,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
 
       onClose();
     } catch (error) {
-      console.error("Error updating project:", error);
+      console.error("EditProjectDialog: Error updating project:", error);
       toast({
         title: "Error",
         description: "Failed to update project. Please try again.",
@@ -164,46 +169,6 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
       </Dialog>
     );
   }
-
-  // Enhanced user options mapping with safety checks
-  const userOptions = React.useMemo(() => {
-    console.log("EditProjectDialog: Processing users for options", { users });
-    
-    if (!users || !Array.isArray(users)) {
-      console.warn("EditProjectDialog: Users is not an array or is undefined", { users });
-      return [];
-    }
-    
-    const validOptions = users
-      .filter(user => {
-        if (!user || typeof user !== 'object') {
-          console.warn("EditProjectDialog: Invalid user object", { user });
-          return false;
-        }
-        if (!user.id || typeof user.id !== 'string') {
-          console.warn("EditProjectDialog: User missing valid id", { user });
-          return false;
-        }
-        if (!user.name || typeof user.name !== 'string') {
-          console.warn("EditProjectDialog: User missing valid name", { user });
-          return false;
-        }
-        return true;
-      })
-      .map(user => ({
-        value: user.id,
-        label: user.name,
-        initials: user.name.charAt(0).toUpperCase() || "?",
-      }));
-    
-    console.log("EditProjectDialog: Generated user options", { 
-      originalCount: users.length, 
-      validCount: validOptions.length,
-      validOptions 
-    });
-    
-    return validOptions;
-  }, [users]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -277,35 +242,23 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
             <FormField
               control={form.control}
               name="teamIds"
-              render={({ field }) => {
-                // Ensure selectedValues is always a safe array of strings
-                const safeSelectedValues = Array.isArray(field.value) ? field.value : [];
-                
-                // Filter out any selected values that don't exist in current options
-                const validSelectedValues = safeSelectedValues.filter(
-                  (val) => userOptions.some((opt) => opt.value === val)
-                );
-
-                return (
-                  <FormItem>
-                    <FormLabel>Allocated Users</FormLabel>
-                    <FormControl>
-                      <MultiSelect
-                        options={userOptions}
-                        selectedValues={validSelectedValues}
-                        onValueChange={(val) => {
-                          console.log("EditProjectDialog: Selected team members:", val);
-                          // Ensure we're always passing an array of strings
-                          const safeVal = Array.isArray(val) ? val : [];
-                          field.onChange(safeVal);
-                        }}
-                        placeholder="Select team members"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Allocated Users</FormLabel>
+                  <FormControl>
+                    <TeamMemberSelect
+                      users={users}
+                      selectedValues={Array.isArray(field.value) ? field.value : []}
+                      onValueChange={(values) => {
+                        console.log("EditProjectDialog: TeamMemberSelect changed:", values);
+                        field.onChange(values);
+                      }}
+                      placeholder="Select team members"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
 
             <FormField
