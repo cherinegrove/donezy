@@ -36,6 +36,9 @@ export function AssigneeSelect({ field, value, onChange }: AssigneeSelectProps) 
   // Use a non-empty string for unassigned value in the Select component
   const selectValue = actualValue || "unassigned";
   
+  // Add safety check for users array
+  const safeUsers = users || [];
+  
   return (
     <Select 
       value={selectValue} 
@@ -47,17 +50,23 @@ export function AssigneeSelect({ field, value, onChange }: AssigneeSelectProps) 
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="unassigned">Unassigned</SelectItem>
-        {users.map(user => (
-          <SelectItem key={user.id} value={user.id}>
-            <div className="flex items-center gap-2">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={user.avatar} />
-                <AvatarFallback>{user.name.substring(0, 2)}</AvatarFallback>
-              </Avatar>
-              {user.name}
-            </div>
+        {safeUsers.length > 0 ? (
+          safeUsers.map(user => (
+            <SelectItem key={user.id} value={user.id}>
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={user.avatar} />
+                  <AvatarFallback>{user.name?.substring(0, 2) || "?"}</AvatarFallback>
+                </Avatar>
+                {user.name || "Unknown User"}
+              </div>
+            </SelectItem>
+          ))
+        ) : (
+          <SelectItem value="no-users" disabled>
+            No users available
           </SelectItem>
-        ))}
+        )}
       </SelectContent>
     </Select>
   );
