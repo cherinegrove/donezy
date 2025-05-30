@@ -40,18 +40,20 @@ export function MultiSelect({
   const [fileDialogOpen, setFileDialogOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Ensure we always have valid arrays
+  // Ensure we always have valid arrays with additional safety checks
   const safeOptions = React.useMemo(() => {
-    return Array.isArray(options) ? options.filter(Boolean) : [];
+    if (!options || !Array.isArray(options)) return [];
+    return options.filter(option => option && typeof option === 'object' && option.value);
   }, [options]);
 
   const safeSelectedValues = React.useMemo(() => {
-    return Array.isArray(selectedValues) ? selectedValues.filter(Boolean) : [];
+    if (!selectedValues || !Array.isArray(selectedValues)) return [];
+    return selectedValues.filter(value => value && typeof value === 'string');
   }, [selectedValues]);
 
   const handleSelect = React.useCallback(
     (value: string) => {
-      if (!value) return;
+      if (!value || typeof value !== 'string') return;
       
       const updatedValues = safeSelectedValues.includes(value) 
         ? safeSelectedValues.filter((item) => item !== value)
@@ -64,7 +66,7 @@ export function MultiSelect({
 
   const handleRemove = React.useCallback(
     (value: string) => {
-      if (!value) return;
+      if (!value || typeof value !== 'string') return;
       onValueChange(safeSelectedValues.filter((item) => item !== value));
     },
     [safeSelectedValues, onValueChange]
@@ -83,6 +85,11 @@ export function MultiSelect({
       .map(value => safeOptions.find(option => option?.value === value))
       .filter(Boolean) as Option[];
   }, [safeSelectedValues, safeOptions]);
+
+  // Don't render if we don't have valid data yet
+  if (!onValueChange) {
+    return null;
+  }
 
   return (
     <>
@@ -123,71 +130,78 @@ export function MultiSelect({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-          <Command>
-            <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
-            <CommandEmpty>No options found.</CommandEmpty>
-            <CommandGroup className="max-h-64 overflow-auto">
-              {safeOptions.map((option) => {
-                const isSelected = safeSelectedValues.includes(option.value);
-                
-                return (
-                  <CommandItem
-                    key={option.value}
-                    onSelect={() => handleSelect(option.value)}
-                    className={cn("flex items-center gap-2", {
-                      "bg-accent": isSelected,
-                    })}
-                  >
-                    <div
-                      className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", {
-                        "bg-primary text-primary-foreground": isSelected,
+          {/* Only render Command if we have valid options */}
+          {safeOptions.length > 0 ? (
+            <Command>
+              <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
+              <CommandEmpty>No options found.</CommandEmpty>
+              <CommandGroup className="max-h-64 overflow-auto">
+                {safeOptions.map((option) => {
+                  const isSelected = safeSelectedValues.includes(option.value);
+                  
+                  return (
+                    <CommandItem
+                      key={option.value}
+                      onSelect={() => handleSelect(option.value)}
+                      className={cn("flex items-center gap-2", {
+                        "bg-accent": isSelected,
                       })}
                     >
-                      {isSelected && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-3 w-3"
-                        >
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      )}
-                    </div>
-                    {option.avatar && (
-                      <img 
-                        src={option.avatar} 
-                        alt={option.label} 
-                        className="h-6 w-6 rounded-full mr-2" 
-                      />
-                    )}
-                    {!option.avatar && option.initials && (
-                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
-                        {option.initials}
+                      <div
+                        className={cn("mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary", {
+                          "bg-primary text-primary-foreground": isSelected,
+                        })}
+                      >
+                        {isSelected && (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-3 w-3"
+                          >
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        )}
                       </div>
-                    )}
-                    <span>{option.label}</span>
+                      {option.avatar && (
+                        <img 
+                          src={option.avatar} 
+                          alt={option.label} 
+                          className="h-6 w-6 rounded-full mr-2" 
+                        />
+                      )}
+                      {!option.avatar && option.initials && (
+                        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                          {option.initials}
+                        </div>
+                      )}
+                      <span>{option.label}</span>
+                    </CommandItem>
+                  );
+                })}
+                {allowFileUpload && (
+                  <CommandItem 
+                    onSelect={() => {
+                      setOpen(false);
+                      setFileDialogOpen(true);
+                    }}
+                    className="border-t mt-2 pt-2"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    <span>Upload file</span>
                   </CommandItem>
-                );
-              })}
-              {allowFileUpload && (
-                <CommandItem 
-                  onSelect={() => {
-                    setOpen(false);
-                    setFileDialogOpen(true);
-                  }}
-                  className="border-t mt-2 pt-2"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  <span>Upload file</span>
-                </CommandItem>
-              )}
-            </CommandGroup>
-          </Command>
+                )}
+              </CommandGroup>
+            </Command>
+          ) : (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              No options available
+            </div>
+          )}
         </PopoverContent>
       </Popover>
 
