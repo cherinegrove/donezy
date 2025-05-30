@@ -51,8 +51,8 @@ export function ProjectCollaboratorSelect({
       return false;
     }
 
-    // Filter out guest users and clients (like in tasks)
-    if (user.is_guest === true || user.clientRole) {
+    // Filter out guest users and clients - using consistent property names
+    if (user.isGuest === true || user.clientRole) {
       console.log("ProjectCollaboratorSelect: Filtering out guest/client user:", user.name);
       return false;
     }
