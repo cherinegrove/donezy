@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { getCaretCoordinates } from "@/utils/textUtils";
-import { CollaboratorSelect } from "./CollaboratorSelect";
 import { useToast } from "@/hooks/use-toast";
 
 interface CommentSectionProps {
