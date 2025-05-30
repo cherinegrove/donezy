@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { ProjectCollaboratorSelect } from "./ProjectCollaboratorSelect";
 
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
@@ -45,6 +46,7 @@ const projectSchema = z.object({
     (val) => (val === "" || val === undefined) ? undefined : Number(val),
     z.number().min(0).optional()
   ),
+  collaboratorIds: z.array(z.string()).optional(),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -70,6 +72,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       startDate: "",
       dueDate: "",
       allocatedHours: undefined,
+      collaboratorIds: [],
     },
   });
 
@@ -98,7 +101,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
           start_date: data.startDate || null,
           due_date: data.dueDate || null,
           allocated_hours: data.allocatedHours || 0,
-          team_ids: [],
+          team_ids: data.collaboratorIds || [],
           status: 'todo',
           used_hours: 0,
           watcher_ids: [],
@@ -228,6 +231,24 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                       <SelectItem value="pay-as-you-go">Pay as You Go</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="collaboratorIds"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Collaborators</FormLabel>
+                  <FormControl>
+                    <ProjectCollaboratorSelect
+                      selectedCollaborators={field.value || []}
+                      onCollaboratorsChange={field.onChange}
+                      disabled={isSubmitting}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
