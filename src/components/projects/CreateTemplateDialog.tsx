@@ -25,7 +25,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CustomField, CustomFieldType } from "@/types";
@@ -231,11 +230,9 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
                         checked={form.watch("customFields").includes(field.id)}
                         onCheckedChange={() => handleFieldToggle(field.id)}
                       />
-                      <Label htmlFor={`field-${field.id}`} className="flex-1">
+                      <Label htmlFor={`field-${field.id}`} className="flex-1 flex items-center gap-1">
                         {field.name}
-                        {field.required && (
-                          <Badge variant="secondary" className="ml-2 text-xs">Required</Badge>
-                        )}
+                        {field.required && <span className="text-red-500">*</span>}
                       </Label>
                     </div>
                   ))}
