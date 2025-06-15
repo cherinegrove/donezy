@@ -1,138 +1,124 @@
-
+import React from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { format, parseISO, isBefore } from "date-fns";
 import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
-import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
-import { Clock } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-export type DisplayOption = "project" | "client" | "assignee" | "parentTask" | "dueDate" | "priority" | "status" | "collaborators";
+import { cn } from "@/lib/utils";
 
 interface TaskCardProps {
   task: Task;
   onClick?: () => void;
-  displayOptions?: DisplayOption[];
+  showProject?: boolean;
 }
 
-export function TaskCard({ task, onClick, displayOptions = ["project", "client", "assignee", "parentTask"] }: TaskCardProps) {
-  const { projects, users, tasks } = useAppContext();
+export function TaskCard({ task, onClick, showProject = true }: TaskCardProps) {
+  const { projects, users, currentUser } = useAppContext();
   
   const project = projects.find(p => p.id === task.projectId);
-  const assignee = task.assigneeId ? users.find(user => user.id === task.assigneeId) : null;
-  const collaborators = users.filter(user => task.collaboratorIds?.includes(user.id));
+  const assignee = users.find(u => u.id === task.assigneeId);
+  const assignee2 = users.find(u => u.id === task.assignee2Id);
   
-  // Fix: Get parent task properly
-  const parentTask = task.parentTaskId ? tasks.find(t => t.id === task.parentTaskId) : null;
-  
-  const client = project ? projects.find(p => p.id === task.projectId)?.clientId : null;
-  const clientName = client ? useAppContext().clients.find(c => c.id === client)?.name : null;
-  
-  const getBadgeColor = () => {
-    switch (task.priority) {
-      case 'high':
-        return "bg-destructive/10 text-destructive hover:bg-destructive/20";
-      case 'medium':
-        return "bg-warning/10 text-warning hover:bg-warning/20";
-      case 'low':
-        return "bg-primary/10 text-primary hover:bg-primary/20";
-      default:
-        return "";
+  const getPriorityColor = (priority: Task['priority']) => {
+    switch (priority) {
+      case 'low': return 'text-green-500';
+      case 'medium': return 'text-yellow-500';
+      case 'high': return 'text-red-500';
+      default: return 'text-gray-500';
     }
   };
-  
-  const getStatusColor = () => {
-    switch (task.status) {
-      case 'done':
-        return "bg-green-100 text-green-800";
-      case 'in-progress':
-        return "bg-blue-100 text-blue-800";
-      case 'review':
-        return "bg-purple-100 text-purple-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+
+  const formatDueDate = (date: string) => {
+    return format(new Date(date), "MMM dd");
   };
+
+  const isOverdue = (date: string) => {
+    return isBefore(parseISO(date), new Date());
+  };
+
+  const isAssignee2Task = task.assignee2Id === currentUser?.id && task.assigneeId !== currentUser?.id;
 
   return (
-    <div 
-      className="border rounded-md p-4 bg-card shadow-sm hover:shadow transition-all cursor-pointer relative group"
+    <Card 
+      className={cn(
+        "cursor-pointer hover:shadow-md transition-shadow",
+        isAssignee2Task && "border-l-4 border-l-blue-500"
+      )}
       onClick={onClick}
     >
-      <div className="space-y-3">
-        <div className="flex items-start justify-between">
-          <h3 className="font-medium text-base line-clamp-2">{task.title}</h3>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-2">
-          {displayOptions.includes("priority") && (
-            <Badge variant="outline" className={getBadgeColor()}>
-              {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+      <CardContent className="p-4">
+        <div className="space-y-3">
+          <div className="flex items-start justify-between">
+            <h3 className="font-medium text-sm line-clamp-2 flex-1">
+              {task.title}
+              {isAssignee2Task && (
+                <Badge variant="outline" className="ml-2 text-xs">
+                  Assignee 2
+                </Badge>
+              )}
+            </h3>
+            <Badge 
+              variant="secondary" 
+              className={cn("text-xs", getPriorityColor(task.priority))}
+            >
+              {task.priority}
             </Badge>
+          </div>
+          
+          {task.description && (
+            <p className="text-xs text-muted-foreground line-clamp-1">
+              {task.description}
+            </p>
           )}
           
-          {displayOptions.includes("status") && (
-            <Badge variant="outline" className={getStatusColor()}>
-              {task.status.replace(/-/g, ' ')}
-            </Badge>
-          )}
-          
-          {displayOptions.includes("project") && project && (
-            <Badge variant="secondary">
-              {project.name}
-            </Badge>
-          )}
-
-          {displayOptions.includes("client") && clientName && (
-            <Badge variant="outline" className="bg-blue-50 text-blue-800">
-              {clientName}
-            </Badge>
-          )}
-
-          {displayOptions.includes("parentTask") && parentTask && (
-            <Badge variant="outline" className="bg-purple-50 text-purple-800">
-              Parent: {parentTask.title && parentTask.title.length > 15 ? `${parentTask.title.substring(0, 15)}...` : parentTask.title}
-            </Badge>
-          )}
-        </div>
-        
-        <div className="flex justify-between items-end">
-          {displayOptions.includes("assignee") && assignee && (
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">Assignee:</span>
-              <Avatar className="h-6 w-6 border-2 border-background">
-                <AvatarImage src={assignee.avatar} />
-                <AvatarFallback>{assignee.name?.slice(0, 2)}</AvatarFallback>
-              </Avatar>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                {task.status.replace('-', ' ')}
+              </Badge>
+              {showProject && project && (
+                <span className="truncate max-w-[100px]">{project.name}</span>
+              )}
             </div>
-          )}
-          
-          {displayOptions.includes("collaborators") && collaborators.length > 0 && (
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">Collaborators:</span>
-              <div className="flex -space-x-2">
-                {collaborators.slice(0, 3).map(user => (
-                  <Avatar key={user.id} className="h-6 w-6 border-2 border-background">
-                    <AvatarImage src={user.avatar} />
-                    <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+            
+            <div className="flex items-center gap-2">
+              {assignee && (
+                <div className="flex items-center gap-1">
+                  <Avatar className="h-4 w-4">
+                    <AvatarImage src={assignee.avatar} alt={assignee.name} />
+                    <AvatarFallback className="text-xs">
+                      {assignee.name.charAt(0)}
+                    </AvatarFallback>
                   </Avatar>
-                ))}
-                {collaborators.length > 3 && (
-                  <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs">
-                    +{collaborators.length - 3}
-                  </div>
-                )}
-              </div>
+                  <span className="text-xs truncate max-w-[60px]">{assignee.name}</span>
+                </div>
+              )}
+              
+              {assignee2 && (
+                <div className="flex items-center gap-1">
+                  <Avatar className="h-4 w-4 border-2 border-blue-200">
+                    <AvatarImage src={assignee2.avatar} alt={assignee2.name} />
+                    <AvatarFallback className="text-xs bg-blue-100">
+                      {assignee2.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs truncate max-w-[60px] text-blue-600">{assignee2.name}</span>
+                </div>
+              )}
+              
+              {task.dueDate && (
+                <span className={cn(
+                  "text-xs",
+                  isOverdue(task.dueDate) ? "text-red-500" : "text-muted-foreground"
+                )}>
+                  {formatDueDate(task.dueDate)}
+                </span>
+              )}
             </div>
-          )}
-          
-          {displayOptions.includes("dueDate") && task.dueDate && (
-            <div className="flex items-center text-xs text-muted-foreground">
-              <Clock className="h-3 w-3 mr-1" />
-              {format(new Date(task.dueDate), "MMM d")}
-            </div>
-          )}
+          </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

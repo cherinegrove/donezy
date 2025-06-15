@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -27,6 +26,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { TaskStatus } from "@/types";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Assignee2Select } from "./Assignee2Select";
 
 // Define schema for task form
 const createTaskSchema = (isSubtask: boolean) => {
@@ -36,6 +36,7 @@ const createTaskSchema = (isSubtask: boolean) => {
     clientId: z.string().min(1, { message: "Client is required" }),
     projectId: z.string().min(1, { message: "Project is required" }),
     assigneeId: z.string().optional(),
+    assignee2Id: z.string().optional(),
     status: z.string().min(1, { message: "Status is required" }),
     priority: z.string().min(1, { message: "Priority is required" }),
     startDate: z.string().optional(),
@@ -91,6 +92,7 @@ export function CreateTaskDialog({
       projectId: defaultProjectId || "",
       parentTaskId: defaultParentTaskId || "",
       assigneeId: "",
+      assignee2Id: "",
       status: "todo",
       priority: "medium",
       startDate: "",
@@ -124,6 +126,7 @@ export function CreateTaskDialog({
       projectId: data.projectId,
       parentTaskId: data.parentTaskId,
       assigneeId: data.assigneeId,
+      assignee2Id: data.assignee2Id,
       status: data.status as TaskStatus,
       priority: data.priority as "low" | "medium" | "high",
       startDate: data.startDate,
@@ -288,34 +291,50 @@ export function CreateTaskDialog({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="assigneeId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Assignee</FormLabel>
-                      <FormControl>
-                        <Select
-                          value={field.value || ""}
-                          onValueChange={field.onChange}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select an assignee" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">No assignee</SelectItem>
-                            {users.map((user) => (
-                              <SelectItem key={user.id} value={user.id}>
-                                {user.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="assigneeId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Assignee</FormLabel>
+                        <FormControl>
+                          <Select
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select an assignee" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">No assignee</SelectItem>
+                              {users.map((user) => (
+                                <SelectItem key={user.id} value={user.id}>
+                                  {user.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="assignee2Id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Assignee 2</FormLabel>
+                        <FormControl>
+                          <Assignee2Select field={field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <FormField

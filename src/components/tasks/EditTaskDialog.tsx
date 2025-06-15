@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { CalendarIcon, Trash } from "lucide-react";
 import { ProjectSelect } from "./ProjectSelect";
+import { Assignee2Select } from "./Assignee2Select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,6 +64,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState(task.priority);
   const [assigneeId, setAssigneeId] = useState(task.assigneeId);
+  const [assignee2Id, setAssignee2Id] = useState(task.assignee2Id);
   const [projectId, setProjectId] = useState(task.projectId);
   const [dueDate, setDueDate] = useState<Date | undefined>(
     task.dueDate ? new Date(task.dueDate) : undefined
@@ -78,6 +79,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     setStatus(task.status);
     setPriority(task.priority);
     setAssigneeId(task.assigneeId);
+    setAssignee2Id(task.assignee2Id);
     setProjectId(task.projectId);
     setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
   }, [task]);
@@ -89,6 +91,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       status,
       priority,
       assigneeId,
+      assignee2Id,
       projectId,
       dueDate: dueDate ? dueDate.toISOString() : undefined,
     });
@@ -126,6 +129,10 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
 
   const handleAssigneeChange = (value: string | undefined) => {
     setAssigneeId(value);
+  };
+
+  const handleAssignee2Change = (value: string | undefined) => {
+    setAssignee2Id(value);
   };
 
   return (
@@ -184,6 +191,22 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label>Assignee 2</Label>
+                  <Assignee2Select
+                    field={{ value: assignee2Id, onChange: handleAssignee2Change }}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Priority</Label>
+                  <PrioritySelect
+                    field={{ value: priority, onChange: handlePriorityChange }}
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label>Due Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -207,18 +230,11 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Priority</Label>
-                  <PrioritySelect
-                    field={{ value: priority, onChange: handlePriorityChange }}
+                  <Label>Status</Label>
+                  <StatusSelect
+                    field={{ value: status, onChange: handleStatusChange }}
                   />
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <StatusSelect
-                  field={{ value: status, onChange: handleStatusChange }}
-                />
               </div>
             </TabsContent>
 

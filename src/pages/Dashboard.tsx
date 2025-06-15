@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
 import {
@@ -45,18 +44,19 @@ const Dashboard = () => {
     { name: "Done", value: tasksByStatus.done },
   ];
 
-  // Tasks assigned to me
+  // Tasks assigned to me (including assignee2)
   const myTasks = tasks.filter((task) => 
-    task.assigneeId === currentUser?.id && 
+    (task.assigneeId === currentUser?.id || task.assignee2Id === currentUser?.id) && 
     task.status !== "done"
   );
 
-  // Overdue tasks
+  // Overdue tasks (including assignee2)
   const today = startOfToday();
   const overdueTasks = tasks.filter((task) => 
     task.dueDate && 
     isBefore(parseISO(task.dueDate), today) &&
-    task.status !== "done"
+    task.status !== "done" &&
+    (task.assigneeId === currentUser?.id || task.assignee2Id === currentUser?.id)
   );
 
   // Recent activity (using time entries as proxy)
