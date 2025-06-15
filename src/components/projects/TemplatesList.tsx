@@ -1,15 +1,25 @@
-
 import { useEffect, useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Plus, ListChecks, Clock, ChevronDown, ChevronRight } from "lucide-react";
+import { FileText, Plus, ListChecks, Clock, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ProjectTemplateWithTasks, ProjectTemplateTask, ProjectTemplateSubtask } from "@/types/projectTemplate";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface TemplatesListProps {
   onCreateTemplate: () => void;
@@ -122,6 +132,34 @@ export function TemplatesList({ onCreateTemplate, onUseTemplate }: TemplatesList
     }
   };
 
+  const handleDeleteTemplate = async (templateId: string, templateName: string) => {
+    try {
+      // Delete the template (tasks and subtasks will be deleted automatically due to CASCADE)
+      const { error } = await supabase
+        .from('project_templates')
+        .delete()
+        .eq('id', templateId)
+        .eq('auth_user_id', currentUser?.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setTemplates(prev => prev.filter(template => template.id !== templateId));
+
+      toast({
+        title: "Success",
+        description: `Template "${templateName}" has been deleted`,
+      });
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete template",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -156,6 +194,7 @@ export function TemplatesList({ onCreateTemplate, onUseTemplate }: TemplatesList
             key={template.id}
             template={template}
             onUseTemplate={() => onUseTemplate(template.id)}
+            onDeleteTemplate={handleDeleteTemplate}
           />
         ))}
 
@@ -198,9 +237,10 @@ export function TemplatesList({ onCreateTemplate, onUseTemplate }: TemplatesList
 interface TemplateCardProps {
   template: ProjectTemplateWithTasks;
   onUseTemplate: () => void;
+  onDeleteTemplate: (templateId: string, templateName: string) => void;
 }
 
-function TemplateCard({ template, onUseTemplate }: TemplateCardProps) {
+function TemplateCard({ template, onUseTemplate, onDeleteTemplate }: TemplateCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   
   const totalEstimatedHours = template.tasks.reduce((total, task) => {
@@ -237,9 +277,35 @@ function TemplateCard({ template, onUseTemplate }: TemplateCardProps) {
             </CardTitle>
             <CardDescription className="mt-1">{template.description}</CardDescription>
           </div>
-          <Button onClick={onUseTemplate} size="sm">
-            Use Template
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={onUseTemplate} size="sm">
+              Use Template
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Template</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete the template "{template.name}"? This action cannot be undone and will also delete all associated tasks and subtasks.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => onDeleteTemplate(template.id, template.name)}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
