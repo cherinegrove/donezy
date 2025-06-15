@@ -21,7 +21,9 @@ import {
   Save, 
   X,
   FileText,
-  Copy
+  Copy,
+  Calendar,
+  Users
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -43,6 +45,7 @@ import {
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskStatus, CustomField, CustomFieldType } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 interface TaskTemplate {
   id: string;
@@ -252,6 +255,83 @@ const TaskTemplateForm = ({
     </div>
   );
 };
+
+interface TaskTemplateCardProps {
+  template: TaskTemplate;
+  onEdit: () => void;
+  onDelete: () => void;
+  onDuplicate: () => void;
+}
+
+function TaskTemplateCard({ template, onEdit, onDelete, onDuplicate }: TaskTemplateCardProps) {
+  const { getUserById } = useAppContext();
+  
+  return (
+    <Card className="hover:shadow-md transition-shadow">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              {template.name}
+            </CardTitle>
+            <CardDescription className="text-sm mt-1">
+              {template.description}
+            </CardDescription>
+          </div>
+          <div className="flex gap-1">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onEdit}>
+              <Edit2 className="h-3 w-3" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onDuplicate}>
+              <Copy className="h-3 w-3" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={onDelete}>
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <Users className="h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">Priority:</span>
+              <Badge variant="outline" className="text-xs capitalize">
+                {template.defaultPriority}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">Used:</span>
+              <span className="font-medium">{template.usageCount || 0} times</span>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Default Status:</span>
+              <Badge variant="outline" className="text-xs capitalize">
+                {template.defaultStatus.replace('-', ' ')}
+              </Badge>
+            </div>
+            
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Custom Fields:</span>
+              <span className="font-medium">{template.includeCustomFields?.length || 0}</span>
+            </div>
+            
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Created:</span>
+              <span className="font-medium">{format(new Date(template.createdAt), "MMM d, yyyy")}</span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function TaskTemplateManager() {
   const { currentUser } = useAppContext();
@@ -483,104 +563,44 @@ export function TaskTemplateManager() {
             <p className="text-sm">Create your first template to get started.</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {templates.map((template) => (
-              <div key={template.id} className="p-4 border rounded-lg bg-background">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-medium">{template.name}</h3>
-                      <Badge variant="outline" className="text-xs">
-                        Used {template.usageCount} times
-                      </Badge>
-                    </div>
-                    
-                    {template.description && (
-                      <p className="text-sm text-muted-foreground mb-2">{template.description}</p>
-                    )}
-                    
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Default Priority:</span>
-                        <Badge variant="outline" className="ml-2 capitalize">
-                          {template.defaultPriority}
-                        </Badge>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Default Status:</span>
-                        <Badge variant="outline" className="ml-2 capitalize">
-                          {template.defaultStatus.replace('-', ' ')}
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    {template.includeCustomFields.length > 0 && (
-                      <div className="mt-2">
-                        <span className="text-sm text-muted-foreground">
-                          Includes {template.includeCustomFields.length} custom field(s)
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDuplicate(template)}
-                      title="Duplicate template"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    
-                    <Dialog open={editingId === template.id} onOpenChange={(open) => {
-                      if (!open) handleCancelEdit();
-                    }}>
-                      <DialogTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEdit(template)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>Edit Task Template</DialogTitle>
-                          <DialogDescription>
-                            Update the task template settings and field configuration.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <TaskTemplateForm 
-                          template={newTemplate}
-                          setTemplate={setNewTemplate}
-                          customFields={customFields}
-                          isEdit
-                        />
-                        <DialogFooter>
-                          <Button variant="outline" onClick={handleCancelEdit}>
-                            Cancel
-                          </Button>
-                          <Button onClick={handleSaveEdit}>Save Changes</Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                    
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(template.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <TaskTemplateCard
+                key={template.id}
+                template={template}
+                onEdit={() => handleEdit(template)}
+                onDelete={() => handleDelete(template.id)}
+                onDuplicate={() => handleDuplicate(template)}
+              />
             ))}
           </div>
         )}
+
+        {/* Edit Dialog */}
+        <Dialog open={editingId !== null} onOpenChange={(open) => {
+          if (!open) handleCancelEdit();
+        }}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Task Template</DialogTitle>
+              <DialogDescription>
+                Update the task template settings and field configuration.
+              </DialogDescription>
+            </DialogHeader>
+            <TaskTemplateForm 
+              template={newTemplate}
+              setTemplate={setNewTemplate}
+              customFields={customFields}
+              isEdit
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCancelEdit}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEdit}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
