@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,7 @@ import { CollaboratorSelect } from "./CollaboratorSelect";
 import { StatusSelect } from "./StatusSelect";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 // Define schema for task form
 const createTaskSchema = (isSubtask: boolean) => {
@@ -68,11 +70,8 @@ interface TaskTemplate {
   id: string;
   name: string;
   description: string;
-  defaultTitle: string;
-  defaultDescription: string;
   defaultPriority: 'low' | 'medium' | 'high';
   defaultStatus: TaskStatus;
-  estimatedHours?: number;
   includeCustomFields: string[];
   fieldOrder: string[];
   usageCount: number;
@@ -93,27 +92,12 @@ export function CreateTaskDialog({
   isSubtask = false,
   defaultParentTaskId,
 }: CreateTaskDialogProps) {
-  const { projects, users, tasks, customFields, addTask, clients } = useAppContext();
+  const { projects, users, tasks, customFields, addTask, clients, currentUser } = useAppContext();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [clientProjects, setClientProjects] = useState<typeof projects>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("default");
-  
-  // Mock task templates - in real app this would come from context or API
-  const taskTemplates: TaskTemplate[] = [
-    {
-      id: "default",
-      name: "Default Template",
-      description: "System default template with basic fields",
-      defaultTitle: "",
-      defaultDescription: "",
-      defaultPriority: "medium",
-      defaultStatus: "todo",
-      includeCustomFields: [],
-      fieldOrder: [],
-      usageCount: 0,
-    },
-    // Add any custom templates here - these would be loaded from the TaskTemplateManager
-  ];
+  const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
   
   // Use the appropriate schema based on whether we're creating a subtask
   const schema = createTaskSchema(isSubtask);
@@ -135,6 +119,69 @@ export function CreateTaskDialog({
       customFields: {},
     },
   });
+
+  // Fetch task templates from Supabase
+  useEffect(() => {
+    const fetchTaskTemplates = async () => {
+      if (!currentUser) return;
+
+      try {
+        setLoadingTemplates(true);
+        const { data, error } = await supabase
+          .from('task_templates')
+          .select('*')
+          .eq('auth_user_id', currentUser.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const templates: TaskTemplate[] = data.map(template => ({
+          id: template.id,
+          name: template.name,
+          description: template.description || "",
+          defaultPriority: template.default_priority as 'low' | 'medium' | 'high',
+          defaultStatus: template.default_status as TaskStatus,
+          includeCustomFields: template.include_custom_fields || [],
+          fieldOrder: template.field_order || [],
+          usageCount: template.usage_count,
+        }));
+
+        // Add default template at the beginning
+        const defaultTemplate: TaskTemplate = {
+          id: "default",
+          name: "Default Template",
+          description: "System default template with basic fields",
+          defaultPriority: "medium",
+          defaultStatus: "todo",
+          includeCustomFields: [],
+          fieldOrder: [],
+          usageCount: 0,
+        };
+
+        setTaskTemplates([defaultTemplate, ...templates]);
+      } catch (error) {
+        console.error('Error fetching task templates:', error);
+        toast.error("Failed to load task templates");
+        // Set only default template on error
+        setTaskTemplates([{
+          id: "default",
+          name: "Default Template",
+          description: "System default template with basic fields",
+          defaultPriority: "medium",
+          defaultStatus: "todo",
+          includeCustomFields: [],
+          fieldOrder: [],
+          usageCount: 0,
+        }]);
+      } finally {
+        setLoadingTemplates(false);
+      }
+    };
+
+    if (open && currentUser) {
+      fetchTaskTemplates();
+    }
+  }, [open, currentUser]);
 
   // Get the selected template's custom fields
   const getTemplateCustomFields = () => {
@@ -160,8 +207,8 @@ export function CreateTaskDialog({
   useEffect(() => {
     const template = taskTemplates.find(t => t.id === selectedTemplate);
     if (template) {
-      form.setValue("title", template.defaultTitle);
-      form.setValue("description", template.defaultDescription);
+      form.setValue("title", "");
+      form.setValue("description", template.description || "");
       form.setValue("priority", template.defaultPriority);
       form.setValue("status", template.defaultStatus);
       
@@ -204,6 +251,28 @@ export function CreateTaskDialog({
       }
     }
   }, [selectedTemplate, taskTemplates, customFields, form]);
+
+  // Update template usage count when template is used
+  const updateTemplateUsage = async (templateId: string) => {
+    if (templateId === "default" || !currentUser) return;
+
+    try {
+      const template = taskTemplates.find(t => t.id === templateId);
+      if (template) {
+        await supabase
+          .from('task_templates')
+          .update({ 
+            usage_count: template.usageCount + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', templateId)
+          .eq('auth_user_id', currentUser.id);
+      }
+    } catch (error) {
+      console.error('Error updating template usage:', error);
+      // Don't show error to user as this is not critical
+    }
+  };
   
   // Filter projects by selected client
   useEffect(() => {
@@ -223,7 +292,7 @@ export function CreateTaskDialog({
     }
   }, [form.watch("clientId"), projects, selectedClientId]);
   
-  const onSubmit = (data: TaskFormData) => {
+  const onSubmit = async (data: TaskFormData) => {
     addTask({
       title: data.title,
       description: data.description,
@@ -238,6 +307,9 @@ export function CreateTaskDialog({
       customFields: data.customFields || {},
       subtasks: [],
     });
+    
+    // Update template usage count
+    await updateTemplateUsage(selectedTemplate);
     
     toast.success("Task created successfully");
     form.reset();
@@ -285,9 +357,9 @@ export function CreateTaskDialog({
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                  <Select value={selectedTemplate} onValueChange={setSelectedTemplate} disabled={loadingTemplates}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a template" />
+                      <SelectValue placeholder={loadingTemplates ? "Loading templates..." : "Select a template"} />
                     </SelectTrigger>
                     <SelectContent>
                       {taskTemplates.map((template) => (
