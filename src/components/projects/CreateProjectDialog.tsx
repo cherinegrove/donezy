@@ -1,10 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAppContext } from "@/contexts/AppContext";
-import { ProjectTemplate } from "@/types";
+import { ProjectTemplate, CustomField, CustomFieldType } from "@/types";
 import {
   Dialog,
   DialogContent,
@@ -35,7 +35,9 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Calendar, Settings } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
@@ -54,9 +56,11 @@ interface CreateProjectDialogProps {
 }
 
 export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
-  const { addProject, clients, projectTemplates, currentUser, customFields } = useAppContext();
+  const { addProject, clients, projectTemplates, currentUser } = useAppContext();
   const { toast } = useToast();
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [loadingFields, setLoadingFields] = useState(true);
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -67,6 +71,51 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       customFields: [],
     },
   });
+
+  // Fetch custom fields from Supabase
+  useEffect(() => {
+    if (open) {
+      fetchCustomFields();
+    }
+  }, [open]);
+
+  const fetchCustomFields = async () => {
+    try {
+      setLoadingFields(true);
+      const { data, error } = await supabase
+        .from('custom_fields')
+        .select('*')
+        .contains('applicable_to', ['projects'])
+        .order('field_order');
+      
+      if (error) throw error;
+      
+      const fields = data.map(field => ({
+        id: field.id,
+        name: field.name,
+        type: field.type as CustomFieldType,
+        description: field.description,
+        required: field.required,
+        applicableTo: field.applicable_to as ('projects' | 'tasks')[],
+        options: field.options,
+        reportable: field.reportable,
+        order: field.field_order,
+        createdAt: field.created_at,
+        updatedAt: field.updated_at,
+      }));
+      
+      setCustomFields(fields);
+    } catch (error) {
+      console.error('Error fetching custom fields:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load custom fields",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingFields(false);
+    }
+  };
 
   // System default template
   const systemDefaultTemplate: ProjectTemplate = {
@@ -88,7 +137,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
   // Get the selected template's custom fields
   const getTemplateCustomFields = () => {
     if (!selectedTemplate || selectedTemplate === "system-default") {
-      return [];
+      return customFields; // Show all available custom fields for system default
     }
     
     const template = projectTemplates.find(t => t.id === selectedTemplate);
@@ -98,7 +147,6 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
     
     // Return only the custom fields that are included in this template
     return customFields.filter(field => 
-      field.applicableTo.includes('projects') && 
       template.customFields?.includes(field.id)
     );
   };
@@ -125,6 +173,15 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
         form.setValue("dueDate", dueDate);
       }
     }
+  };
+
+  const handleFieldToggle = (fieldId: string) => {
+    const currentFields = form.getValues("customFields");
+    const newFields = currentFields.includes(fieldId)
+      ? currentFields.filter(id => id !== fieldId)
+      : [...currentFields, fieldId];
+    
+    form.setValue("customFields", newFields);
   };
 
   const onSubmit = (data: ProjectFormData) => {
@@ -165,10 +222,18 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
 
   const selectedTemplateInfo = getSelectedTemplateInfo();
 
-  // Only show custom fields if a user-created template is selected AND it has custom fields
-  const shouldShowCustomFields = selectedTemplate && 
-    selectedTemplate !== "system-default" && 
-    templateCustomFields.length > 0;
+  if (loadingFields) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Create New Project</DialogTitle>
+            <DialogDescription>Loading custom fields...</DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -331,69 +396,46 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
               />
             </div>
 
-            {/* Custom Fields Selection - Only for templates that include specific custom fields */}
-            {shouldShowCustomFields && (
+            {/* Custom Fields Selection */}
+            {templateCustomFields.length > 0 && (
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium flex items-center gap-2">
+                  <Label className="flex items-center gap-2">
                     <Settings className="h-4 w-4" />
-                    Template Custom Fields
-                  </label>
-                  <p className="text-sm text-muted-foreground">Custom fields included in this template</p>
+                    Include Custom Fields
+                  </Label>
+                  <p className="text-sm text-muted-foreground">Select which custom fields to include in this project</p>
                 </div>
                 
-                <FormField
-                  control={form.control}
-                  name="customFields"
-                  render={() => (
-                    <FormItem>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {templateCustomFields.map((field) => (
-                          <FormField
-                            key={field.id}
-                            control={form.control}
-                            name="customFields"
-                            render={({ field: formField }) => {
-                              return (
-                                <FormItem
-                                  key={field.id}
-                                  className="flex flex-row items-start space-x-3 space-y-0"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={formField.value?.includes(field.id)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? formField.onChange([...formField.value, field.id])
-                                          : formField.onChange(
-                                              formField.value?.filter(
-                                                (value) => value !== field.id
-                                              )
-                                            )
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel className="text-sm font-normal">
-                                      {field.name}
-                                      {field.required && <span className="text-red-500 ml-1">*</span>}
-                                    </FormLabel>
-                                    {field.description && (
-                                      <p className="text-xs text-muted-foreground">
-                                        {field.description}
-                                      </p>
-                                    )}
-                                  </div>
-                                </FormItem>
-                              )
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-2">
+                  {templateCustomFields.map((field) => (
+                    <div key={field.id} className="flex items-center space-x-2">
+                      <Switch
+                        id={`field-${field.id}`}
+                        checked={form.watch("customFields").includes(field.id)}
+                        onCheckedChange={() => handleFieldToggle(field.id)}
+                      />
+                      <Label htmlFor={`field-${field.id}`} className="flex-1">
+                        {field.name}
+                        {field.required && (
+                          <Badge variant="secondary" className="ml-2 text-xs">Required</Badge>
+                        )}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {templateCustomFields.length === 0 && (
+              <div className="space-y-4">
+                <div>
+                  <Label>Custom Fields</Label>
+                  <p className="text-sm text-muted-foreground">
+                    No custom fields created yet that apply to projects. 
+                    Create custom fields in the Custom Fields Manager first.
+                  </p>
+                </div>
               </div>
             )}
             
