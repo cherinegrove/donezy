@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { CalendarIcon, Trash } from "lucide-react";
 import { ProjectSelect } from "./ProjectSelect";
 import { Assignee2Select } from "./Assignee2Select";
+import { CollaboratorSelect } from "./CollaboratorSelect";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,7 +65,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState(task.priority);
   const [assigneeId, setAssigneeId] = useState(task.assigneeId);
-  const [assignee2Id, setAssignee2Id] = useState(task.assignee2Id);
+  const [collaboratorIds, setCollaboratorIds] = useState(task.collaboratorIds || []);
   const [projectId, setProjectId] = useState(task.projectId);
   const [dueDate, setDueDate] = useState<Date | undefined>(
     task.dueDate ? new Date(task.dueDate) : undefined
@@ -79,7 +80,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     setStatus(task.status);
     setPriority(task.priority);
     setAssigneeId(task.assigneeId);
-    setAssignee2Id(task.assignee2Id);
+    setCollaboratorIds(task.collaboratorIds || []);
     setProjectId(task.projectId);
     setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
   }, [task]);
@@ -91,7 +92,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       status,
       priority,
       assigneeId,
-      assignee2Id,
+      collaboratorIds,
       projectId,
       dueDate: dueDate ? dueDate.toISOString() : undefined,
     });
@@ -131,8 +132,8 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     setAssigneeId(value);
   };
 
-  const handleAssignee2Change = (value: string | undefined) => {
-    setAssignee2Id(value);
+  const handleCollaboratorChange = (value: string[] | undefined) => {
+    setCollaboratorIds(value || []);
   };
 
   return (
@@ -191,9 +192,9 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Assignee 2</Label>
-                  <Assignee2Select
-                    field={{ value: assignee2Id, onChange: handleAssignee2Change }}
+                  <Label>Collaborators</Label>
+                  <CollaboratorSelect
+                    field={{ value: collaboratorIds, onChange: handleCollaboratorChange }}
                   />
                 </div>
                 

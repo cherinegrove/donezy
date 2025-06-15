@@ -20,7 +20,7 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
   
   const project = projects.find(p => p.id === task.projectId);
   const assignee = users.find(u => u.id === task.assigneeId);
-  const assignee2 = users.find(u => u.id === task.assignee2Id);
+  const collaborators = (task.collaboratorIds || []).map(id => users.find(u => u.id === id)).filter(Boolean);
   
   const getPriorityColor = (priority: Task['priority']) => {
     switch (priority) {
@@ -39,13 +39,13 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
     return isBefore(parseISO(date), new Date());
   };
 
-  const isAssignee2Task = task.assignee2Id === currentUser?.id && task.assigneeId !== currentUser?.id;
+  const isCollaboratorTask = task.collaboratorIds?.includes(currentUser?.id) && task.assigneeId !== currentUser?.id;
 
   return (
     <Card 
       className={cn(
         "cursor-pointer hover:shadow-md transition-shadow",
-        isAssignee2Task && "border-l-4 border-l-blue-500"
+        isCollaboratorTask && "border-l-4 border-l-blue-500"
       )}
       onClick={onClick}
     >
@@ -54,9 +54,9 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
           <div className="flex items-start justify-between">
             <h3 className="font-medium text-sm line-clamp-2 flex-1">
               {task.title}
-              {isAssignee2Task && (
+              {isCollaboratorTask && (
                 <Badge variant="outline" className="ml-2 text-xs">
-                  Assignee 2
+                  Collaborator
                 </Badge>
               )}
             </h3>
@@ -97,15 +97,21 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
                 </div>
               )}
               
-              {assignee2 && (
+              {collaborators.length > 0 && (
                 <div className="flex items-center gap-1">
-                  <Avatar className="h-4 w-4 border-2 border-blue-200">
-                    <AvatarImage src={assignee2.avatar} alt={assignee2.name} />
-                    <AvatarFallback className="text-xs bg-blue-100">
-                      {assignee2.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs truncate max-w-[60px] text-blue-600">{assignee2.name}</span>
+                  <div className="flex -space-x-1">
+                    {collaborators.slice(0, 2).map((collaborator, index) => (
+                      <Avatar key={collaborator.id} className="h-4 w-4 border-2 border-blue-200">
+                        <AvatarImage src={collaborator.avatar} alt={collaborator.name} />
+                        <AvatarFallback className="text-xs bg-blue-100">
+                          {collaborator.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                    ))}
+                  </div>
+                  {collaborators.length > 2 && (
+                    <span className="text-xs text-blue-600">+{collaborators.length - 2}</span>
+                  )}
                 </div>
               )}
               

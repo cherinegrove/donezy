@@ -26,7 +26,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { TaskStatus } from "@/types";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Assignee2Select } from "./Assignee2Select";
+import { CollaboratorSelect } from "./CollaboratorSelect";
 
 // Define schema for task form
 const createTaskSchema = (isSubtask: boolean) => {
@@ -36,7 +36,7 @@ const createTaskSchema = (isSubtask: boolean) => {
     clientId: z.string().min(1, { message: "Client is required" }),
     projectId: z.string().min(1, { message: "Project is required" }),
     assigneeId: z.string().optional(),
-    assignee2Id: z.string().optional(),
+    collaboratorIds: z.array(z.string()).optional(),
     status: z.string().min(1, { message: "Status is required" }),
     priority: z.string().min(1, { message: "Priority is required" }),
     startDate: z.string().optional(),
@@ -92,7 +92,7 @@ export function CreateTaskDialog({
       projectId: defaultProjectId || "",
       parentTaskId: defaultParentTaskId || "",
       assigneeId: "",
-      assignee2Id: "",
+      collaboratorIds: [],
       status: "todo",
       priority: "medium",
       startDate: "",
@@ -126,7 +126,7 @@ export function CreateTaskDialog({
       projectId: data.projectId,
       parentTaskId: data.parentTaskId,
       assigneeId: data.assigneeId,
-      assignee2Id: data.assignee2Id,
+      collaboratorIds: data.collaboratorIds,
       status: data.status as TaskStatus,
       priority: data.priority as "low" | "medium" | "high",
       startDate: data.startDate,
@@ -323,12 +323,12 @@ export function CreateTaskDialog({
 
                   <FormField
                     control={form.control}
-                    name="assignee2Id"
+                    name="collaboratorIds"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Assignee 2</FormLabel>
+                        <FormLabel>Collaborators</FormLabel>
                         <FormControl>
-                          <Assignee2Select field={field} />
+                          <CollaboratorSelect field={field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -44,19 +44,19 @@ const Dashboard = () => {
     { name: "Done", value: tasksByStatus.done },
   ];
 
-  // Tasks assigned to me (including assignee2)
+  // Tasks assigned to me (including collaborators)
   const myTasks = tasks.filter((task) => 
-    (task.assigneeId === currentUser?.id || task.assignee2Id === currentUser?.id) && 
+    (task.assigneeId === currentUser?.id || task.collaboratorIds?.includes(currentUser?.id)) && 
     task.status !== "done"
   );
 
-  // Overdue tasks (including assignee2)
+  // Overdue tasks (including collaborators)
   const today = startOfToday();
   const overdueTasks = tasks.filter((task) => 
     task.dueDate && 
     isBefore(parseISO(task.dueDate), today) &&
     task.status !== "done" &&
-    (task.assigneeId === currentUser?.id || task.assignee2Id === currentUser?.id)
+    (task.assigneeId === currentUser?.id || task.collaboratorIds?.includes(currentUser?.id))
   );
 
   // Recent activity (using time entries as proxy)

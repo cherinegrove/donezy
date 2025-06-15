@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -139,7 +138,6 @@ export interface Task {
   projectId: string;
   parentTaskId?: string;
   assigneeId?: string;
-  assignee2Id?: string;
   collaboratorIds?: string[];
   status: TaskStatus;
   priority: 'low' | 'medium' | 'high';
