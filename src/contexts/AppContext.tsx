@@ -330,7 +330,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   };
 
   // Project functions
-  const addProject = async (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  const addProject = async (projectData: Omit<Project, 'id'>): Promise<string> => {
     if (!currentUser) {
       throw new Error("User must be logged in to create a project");
     }
@@ -340,8 +340,6 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
       const newProject: Project = {
         ...projectData,
         id: projectId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
 
       // Insert into Supabase

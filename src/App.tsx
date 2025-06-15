@@ -25,7 +25,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin"; 
-import { AppProvider, useAppContext } from "./contexts/AppContext";
+import { AppContextProvider, useAppContext } from "./contexts/AppContext";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 
 // Protected route component - simplified and faster
@@ -215,11 +215,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <BrowserRouter>
-        <AppProvider>
+        <AppContextProvider>
           <Toaster />
           <Sonner />
           <AppRoutes />
-        </AppProvider>
+        </AppContextProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
