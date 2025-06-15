@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +12,10 @@ interface TaskCardProps {
   task: Task;
   onClick?: () => void;
   showProject?: boolean;
+  displayOptions?: string[];
 }
 
-export function TaskCard({ task, onClick, showProject = true }: TaskCardProps) {
+export function TaskCard({ task, onClick, showProject = true, displayOptions = [] }: TaskCardProps) {
   const { projects, users, currentUser } = useAppContext();
   
   const project = projects.find(p => p.id === task.projectId);
