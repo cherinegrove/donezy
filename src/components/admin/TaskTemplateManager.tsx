@@ -75,6 +75,12 @@ const TaskTemplateForm = ({
   const [selectedFields, setSelectedFields] = useState<string[]>(template.includeCustomFields || []);
   const [fieldOrder, setFieldOrder] = useState<string[]>(template.fieldOrder || []);
 
+  // Update local state when template changes (important for editing)
+  useEffect(() => {
+    setSelectedFields(template.includeCustomFields || []);
+    setFieldOrder(template.fieldOrder || []);
+  }, [template.includeCustomFields, template.fieldOrder]);
+
   const handleFieldToggle = (fieldId: string) => {
     const newSelected = selectedFields.includes(fieldId)
       ? selectedFields.filter(id => id !== fieldId)
@@ -435,7 +441,12 @@ export function TaskTemplateManager() {
 
   const handleEdit = (template: TaskTemplate) => {
     setEditingId(template.id);
-    setNewTemplate(template);
+    // Properly set the template data for editing
+    setNewTemplate({
+      ...template,
+      includeCustomFields: template.includeCustomFields || [],
+      fieldOrder: template.fieldOrder || [],
+    });
   };
 
   const handleSaveEdit = async () => {
