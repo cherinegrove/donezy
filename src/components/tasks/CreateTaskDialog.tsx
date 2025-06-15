@@ -27,6 +27,7 @@ import { TaskStatus } from "@/types";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CollaboratorSelect } from "./CollaboratorSelect";
+import { StatusSelect } from "./StatusSelect";
 
 // Define schema for task form
 const createTaskSchema = (isSubtask: boolean) => {
@@ -344,21 +345,10 @@ export function CreateTaskDialog({
                       <FormItem>
                         <FormLabel>Status</FormLabel>
                         <FormControl>
-                          <Select 
+                          <StatusSelect 
                             value={field.value} 
                             onValueChange={field.onChange}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="backlog">Backlog</SelectItem>
-                              <SelectItem value="todo">To Do</SelectItem>
-                              <SelectItem value="in-progress">In Progress</SelectItem>
-                              <SelectItem value="review">In Review</SelectItem>
-                              <SelectItem value="done">Done</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
