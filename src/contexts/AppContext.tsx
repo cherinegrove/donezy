@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { AppContextType } from "./AppContextType";
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatus, TimeEntryStatus, TaskStatusDefinition } from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatus, TimeEntryStatus, TaskStatusDefinition, ProjectStatusDefinition } from "@/types";
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -30,6 +30,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     { id: '3', label: 'In Progress', value: 'in-progress', color: 'bg-yellow-500', order: 2 },
     { id: '4', label: 'Review', value: 'review', color: 'bg-orange-500', order: 3 },
     { id: '5', label: 'Done', value: 'done', color: 'bg-green-500', order: 4 },
+  ]);
+  const [projectStatuses, setProjectStatuses] = useState<ProjectStatusDefinition[]>([
+    { id: '1', label: 'Planning', value: 'planning', color: 'bg-blue-500', order: 0 },
+    { id: '2', label: 'Active', value: 'active', color: 'bg-green-500', order: 1 },
+    { id: '3', label: 'On Hold', value: 'on-hold', color: 'bg-yellow-500', order: 2 },
+    { id: '4', label: 'Completed', value: 'completed', color: 'bg-gray-500', order: 3 },
   ]);
 
   // Set up auth state listener
@@ -417,6 +423,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const reorderTaskStatuses = (statuses: TaskStatusDefinition[]) => {
     setTaskStatuses(statuses);
+  };
+
+  // Project Status functions
+  const addProjectStatus = (status: Omit<ProjectStatusDefinition, 'id'>) => {
+    const newStatus: ProjectStatusDefinition = {
+      ...status,
+      id: Math.random().toString(36).substring(2, 15),
+    };
+    setProjectStatuses(prev => [...prev, newStatus]);
+  };
+
+  const updateProjectStatus = (statusId: string, updates: Partial<ProjectStatusDefinition>) => {
+    setProjectStatuses(prev => prev.map(status => 
+      status.id === statusId ? { ...status, ...updates } : status
+    ));
+  };
+
+  const deleteProjectStatus = (statusId: string) => {
+    setProjectStatuses(prev => prev.filter(status => status.id !== statusId));
+  };
+
+  const reorderProjectStatuses = (statuses: ProjectStatusDefinition[]) => {
+    setProjectStatuses(statuses);
   };
 
   // Task functions
@@ -815,6 +844,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     activeTimeEntry,
     taskLogs,
     taskStatuses,
+    projectStatuses,
     
     login,
     logout,
@@ -866,6 +896,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     updateTaskStatus,
     deleteTaskStatus,
     reorderTaskStatuses,
+    
+    // Project Status functions
+    addProjectStatus,
+    updateProjectStatus,
+    deleteProjectStatus,
+    reorderProjectStatuses,
     
     // TimeEntry functions
     addTimeEntry,

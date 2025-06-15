@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { AreaChart, BarChart3, Box, Database, Settings, ShieldAlert, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Clients from "@/pages/Clients";
+import { ProjectStatusManager } from "@/components/admin/ProjectStatusManager";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -173,6 +174,8 @@ export default function Admin() {
         <TabsContent value="account-settings" className="space-y-6">
           <div className="space-y-6">
             <TaskStatusManager />
+            
+            <ProjectStatusManager />
             
             <Card>
               <CardHeader>
