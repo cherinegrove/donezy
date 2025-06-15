@@ -1,4 +1,5 @@
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatusDefinition, ProjectStatusDefinition } from "@/types";
+
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatusDefinition, ProjectStatusDefinition, CustomField } from "@/types";
 import { Session } from "@supabase/supabase-js";
 
 export interface AppContextType {
@@ -16,7 +17,7 @@ export interface AppContextType {
   customRoles: CustomRole[];
   comments: any[];
   notes: Note[];
-  customFields: any[];
+  customFields: CustomField[];
   activeTimeEntry: TimeEntry | null;
   taskLogs: TaskLog[];
   taskStatuses: TaskStatusDefinition[];
@@ -131,6 +132,8 @@ export interface AppContextType {
   getClientFiles: (clientId: string) => ClientFile[];
   
   // Custom Field functions
-  addCustomField: (field: any) => void;
+  addCustomField: (field: Omit<CustomField, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateCustomField: (fieldId: string, updates: Partial<CustomField>) => void;
   deleteCustomField: (fieldId: string) => void;
+  reorderCustomFields: (fields: CustomField[]) => void;
 }

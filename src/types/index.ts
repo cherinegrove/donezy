@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -301,12 +302,21 @@ export interface ClientFile {
   uploadedAt: string;
 }
 
+export type CustomFieldType = 'text' | 'date' | 'dropdown' | 'multiselect' | 'checkbox' | 'number';
+
 export interface CustomField {
   id: string;
   name: string;
-  type: 'text' | 'number' | 'select' | 'date' | 'checkbox';
-  options?: string[];
+  type: CustomFieldType;
+  description?: string;
   required: boolean;
+  applicableTo: ('projects' | 'tasks')[];
+  options?: string[];
+  defaultValue?: any;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+  reportable: boolean;
 }
 
 export type NotificationTimeframe = 'same-day' | '1-day' | '3-days' | '1-week';

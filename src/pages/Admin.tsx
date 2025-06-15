@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAppContext } from "@/contexts/AppContext";
@@ -7,6 +8,7 @@ import AdminTeams from "@/components/admin/AdminTeams";
 import AdminRoles from "@/components/admin/AdminRoles";
 import { TaskStatusManager } from "@/components/admin/TaskStatusManager";
 import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
+import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AreaChart, BarChart3, Box, Database, Settings, ShieldAlert, Users } from "lucide-react";
@@ -176,6 +178,8 @@ export default function Admin() {
             <TaskStatusManager />
             
             <ProjectStatusManager />
+            
+            <CustomFieldsManager />
             
             <Card>
               <CardHeader>
