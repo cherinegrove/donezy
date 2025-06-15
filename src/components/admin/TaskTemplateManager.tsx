@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,7 +83,7 @@ const TaskTemplateForm = ({
     
     setSelectedFields(template.includeCustomFields || []);
     setFieldOrder(template.fieldOrder || []);
-  }, [template.id, template.includeCustomFields, template.fieldOrder]); // Added template.id as dependency
+  }, [template.includeCustomFields, template.fieldOrder]); // Removed template.id dependency to fix new template issue
 
   const handleFieldToggle = (fieldId: string) => {
     const newSelected = selectedFields.includes(fieldId)
