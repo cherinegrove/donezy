@@ -6,7 +6,7 @@ import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, Projec
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export function AppProvider({ children }: { children: React.ReactNode }) {
+export function AppContextProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -330,10 +330,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Project functions
-  const addProject = async (project: Omit<Project, 'id'>) => {
-    // This function is now handled by the CreateProjectDialog component
-    // Refresh projects after adding
-    await loadProjects();
+  const addProject = async (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+    if (!currentUser) {
+      throw new Error("User must be logged in to create a project");
+    }
+
+    try {
+      const projectId = crypto.randomUUID();
+      const newProject: Project = {
+        ...projectData,
+        id: projectId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Insert into Supabase
+      const { error } = await supabase
+        .from('projects')
+        .insert({
+          id: projectId,
+          auth_user_id: currentUser.id,
+          name: projectData.name,
+          description: projectData.description,
+          client_id: projectData.clientId,
+          service_type: projectData.serviceType || 'project',
+          start_date: projectData.startDate,
+          due_date: projectData.dueDate,
+          allocated_hours: projectData.allocatedHours || 0,
+          used_hours: 0,
+          status: projectData.status || 'todo',
+          team_ids: projectData.teamIds || [],
+        });
+
+      if (error) {
+        console.error('Error creating project:', error);
+        throw error;
+      }
+
+      // Update local state immediately
+      setProjects(prevProjects => [...prevProjects, newProject]);
+      
+      console.log("Project added to state:", projectId);
+      return projectId;
+    } catch (error) {
+      console.error("Error in addProject:", error);
+      throw error;
+    }
   };
 
   const updateProject = async (projectId: string, updates: Partial<Project>) => {

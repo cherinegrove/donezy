@@ -208,7 +208,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
     console.log("Custom fields:", data.customFields);
 
     try {
-      const projectId = addProject({
+      const projectId = await addProject({
         name: data.name,
         description: data.description,
         clientId: data.clientId,
