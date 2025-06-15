@@ -259,7 +259,7 @@ export function CustomFieldsManager() {
               onCheckedChange={(checked) => {
                 const current = newField.applicableTo || [];
                 const updated = checked 
-                  ? [...current, 'projects']
+                  ? [...current.filter(item => item !== 'projects'), 'projects' as const]
                   : current.filter(item => item !== 'projects');
                 setNewField({ ...newField, applicableTo: updated });
               }}
@@ -273,7 +273,7 @@ export function CustomFieldsManager() {
               onCheckedChange={(checked) => {
                 const current = newField.applicableTo || [];
                 const updated = checked 
-                  ? [...current, 'tasks']
+                  ? [...current.filter(item => item !== 'tasks'), 'tasks' as const]
                   : current.filter(item => item !== 'tasks');
                 setNewField({ ...newField, applicableTo: updated });
               }}

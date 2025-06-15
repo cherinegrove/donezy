@@ -163,16 +163,19 @@ export const KanbanCustomizationCard = () => {
       return;
     }
     
-    // Parse options for select and multiselect types
-    const options = newField.type === 'select' || newField.type === 'multiselect' || newField.type === 'dropdown' || newField.type === 'file-upload'
+    // Parse options for dropdown and multiselect types
+    const options = newField.type === 'dropdown' || newField.type === 'multiselect'
       ? newField.options.split(',').map(opt => opt.trim()).filter(opt => opt)
       : undefined;
     
     addCustomField({
       name: newField.name,
-      type: newField.type as 'text' | 'number' | 'date' | 'select' | 'multiselect',
+      type: newField.type as 'text' | 'number' | 'date' | 'dropdown' | 'multiselect' | 'checkbox',
       options,
-      required: newField.required
+      required: newField.required,
+      applicableTo: ['tasks'],
+      reportable: true,
+      order: 0
     });
     
     // Reset form
@@ -499,15 +502,14 @@ export const KanbanCustomizationCard = () => {
                   <SelectItem value="text">Text</SelectItem>
                   <SelectItem value="number">Number</SelectItem>
                   <SelectItem value="date">Date</SelectItem>
-                  <SelectItem value="select">Single Select</SelectItem>
-                  <SelectItem value="multiselect">Multi Select</SelectItem>
                   <SelectItem value="dropdown">Dropdown</SelectItem>
-                  <SelectItem value="file-upload">File Upload</SelectItem>
+                  <SelectItem value="multiselect">Multi Select</SelectItem>
+                  <SelectItem value="checkbox">Checkbox</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
-            {(newField.type === 'select' || newField.type === 'multiselect' || newField.type === 'dropdown') && (
+            {(newField.type === 'dropdown' || newField.type === 'multiselect') && (
               <div className="space-y-2">
                 <Label htmlFor="field-options">Options (comma separated)</Label>
                 <Input

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { AppContextType } from "./AppContextType";
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatus, TimeEntryStatus, TaskStatusDefinition, ProjectStatusDefinition } from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatus, TimeEntryStatus, TaskStatusDefinition, ProjectStatusDefinition, CustomField } from "@/types";
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -21,7 +21,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
-  const [customFields, setCustomFields] = useState<any[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
   const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
   const [taskStatuses, setTaskStatuses] = useState<TaskStatusDefinition[]>([
@@ -817,12 +817,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Custom Field functions
-  const addCustomField = (field: any) => {
-    setCustomFields(prev => [...prev, { ...field, id: Math.random().toString(36).substring(2, 15) }]);
+  const addCustomField = (field: Omit<CustomField, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newField: CustomField = {
+      ...field,
+      id: Math.random().toString(36).substring(2, 15),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setCustomFields(prev => [...prev, newField]);
+  };
+
+  const updateCustomField = (fieldId: string, updates: Partial<CustomField>) => {
+    setCustomFields(prev => prev.map(field => 
+      field.id === fieldId ? { ...field, ...updates, updatedAt: new Date().toISOString() } : field
+    ));
   };
 
   const deleteCustomField = (fieldId: string) => {
     setCustomFields(prev => prev.filter(field => field.id !== fieldId));
+  };
+
+  const reorderCustomFields = (fields: CustomField[]) => {
+    setCustomFields(fields);
   };
 
   const value: AppContextType = {
@@ -956,7 +972,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     
     // Custom Field functions
     addCustomField,
+    updateCustomField,
     deleteCustomField,
+    reorderCustomFields,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
