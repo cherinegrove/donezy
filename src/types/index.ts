@@ -110,6 +110,7 @@ export interface Project {
   teamIds?: string[];
   watcherIds?: string[];
   templateId?: string;
+  customFields?: Record<string, any>;
 }
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
