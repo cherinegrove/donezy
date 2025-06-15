@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,16 +34,16 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Calendar, Clock, DollarSign } from "lucide-react";
+import { FileText, Calendar, Settings } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   description: z.string().min(1, "Description is required"),
   clientId: z.string().min(1, "Client is required"),
-  serviceType: z.enum(["project", "bank-hours", "pay-as-you-go"]),
   startDate: z.date().optional(),
   dueDate: z.date().optional(),
-  allocatedHours: z.number().min(0, "Allocated hours must be positive"),
+  customFields: z.array(z.string()).default([]),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -53,7 +54,7 @@ interface CreateProjectDialogProps {
 }
 
 export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
-  const { addProject, clients, projectTemplates, currentUser } = useAppContext();
+  const { addProject, clients, projectTemplates, currentUser, customFields } = useAppContext();
   const { toast } = useToast();
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
 
@@ -63,8 +64,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       name: "",
       description: "",
       clientId: "",
-      serviceType: "project",
-      allocatedHours: 0,
+      customFields: [],
     },
   });
 
@@ -85,22 +85,21 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
 
   const availableTemplates = [systemDefaultTemplate, ...projectTemplates];
 
+  // Get custom fields that apply to projects
+  const projectCustomFields = customFields.filter(field => 
+    field.applicableTo.includes('projects')
+  );
+
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId);
     
     if (templateId === "system-default") {
       // Reset to default values
-      form.setValue("serviceType", "project");
-      form.setValue("allocatedHours", 0);
       return;
     }
 
     const template = projectTemplates.find(t => t.id === templateId);
     if (template) {
-      // Apply template values
-      form.setValue("serviceType", template.serviceType);
-      form.setValue("allocatedHours", template.allocatedHours);
-      
       // Set due date based on default duration
       if (template.defaultDuration) {
         const dueDate = new Date();
@@ -113,28 +112,18 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
   const onSubmit = (data: ProjectFormData) => {
     if (!currentUser) return;
 
-    const selectedTemplateData = selectedTemplate && selectedTemplate !== "system-default" 
-      ? projectTemplates.find(t => t.id === selectedTemplate)
-      : null;
-
     const projectId = addProject({
       name: data.name,
       description: data.description,
       clientId: data.clientId,
-      serviceType: data.serviceType,
+      serviceType: "project", // Default service type
       startDate: data.startDate?.toISOString(),
       dueDate: data.dueDate?.toISOString(),
-      allocatedHours: data.allocatedHours,
+      allocatedHours: 0, // Default allocated hours
       status: "todo",
       usedHours: 0,
       templateId: selectedTemplate !== "system-default" ? selectedTemplate : undefined,
     });
-
-    // If using a template, create tasks from template
-    if (selectedTemplateData && selectedTemplateData.tasks.length > 0) {
-      // Note: Task creation from template would be handled in the AppContext
-      // This is just setting up the project with template reference
-    }
 
     toast({
       title: "Project created",
@@ -210,40 +199,12 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">Service Type:</span>
-                        <Badge variant="outline" className="text-xs capitalize">
-                          {selectedTemplateInfo.serviceType === "bank-hours" 
-                            ? "Bank of Hours" 
-                            : selectedTemplateInfo.serviceType === "pay-as-you-go" 
-                              ? "Pay As You Go" 
-                              : "Fixed Project"}
-                        </Badge>
-                      </div>
-                      
-                      {selectedTemplateInfo.allocatedHours > 0 && (
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-muted-foreground">Hours:</span>
-                          <span className="font-medium">{selectedTemplateInfo.allocatedHours}h</span>
-                        </div>
-                      )}
-                      
+                    <div className="grid grid-cols-1 gap-3 text-xs">
                       {selectedTemplateInfo.defaultDuration && (
                         <div className="flex items-center gap-2">
                           <Calendar className="h-3 w-3 text-muted-foreground" />
                           <span className="text-muted-foreground">Duration:</span>
                           <span className="font-medium">{selectedTemplateInfo.defaultDuration} days</span>
-                        </div>
-                      )}
-                      
-                      {selectedTemplateInfo.tasks && selectedTemplateInfo.tasks.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-muted-foreground">Tasks:</span>
-                          <span className="font-medium">{selectedTemplateInfo.tasks.length}</span>
                         </div>
                       )}
                     </div>
@@ -312,50 +273,6 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="serviceType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Service Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a service type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="project">Project</SelectItem>
-                        <SelectItem value="bank-hours">Bank of Hours</SelectItem>
-                        <SelectItem value="pay-as-you-go">Pay as you go</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="allocatedHours"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Allocated Hours</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Allocated hours"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
                 name="startDate"
                 render={({ field }) => (
                   <FormItem>
@@ -390,6 +307,72 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                 )}
               />
             </div>
+
+            {/* Custom Fields Selection */}
+            {projectCustomFields.length > 0 && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Custom Fields
+                  </label>
+                  <p className="text-sm text-muted-foreground">Select which custom fields to include in this project</p>
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="customFields"
+                  render={() => (
+                    <FormItem>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {projectCustomFields.map((field) => (
+                          <FormField
+                            key={field.id}
+                            control={form.control}
+                            name="customFields"
+                            render={({ field: formField }) => {
+                              return (
+                                <FormItem
+                                  key={field.id}
+                                  className="flex flex-row items-start space-x-3 space-y-0"
+                                >
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={formField.value?.includes(field.id)}
+                                      onCheckedChange={(checked) => {
+                                        return checked
+                                          ? formField.onChange([...formField.value, field.id])
+                                          : formField.onChange(
+                                              formField.value?.filter(
+                                                (value) => value !== field.id
+                                              )
+                                            )
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel className="text-sm font-normal">
+                                      {field.name}
+                                      {field.required && <span className="text-red-500 ml-1">*</span>}
+                                    </FormLabel>
+                                    {field.description && (
+                                      <p className="text-xs text-muted-foreground">
+                                        {field.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                </FormItem>
+                              )
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
             
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
