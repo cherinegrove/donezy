@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -84,13 +85,31 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
 
   const availableTemplates = [systemDefaultTemplate, ...projectTemplates];
 
-  // Get custom fields that apply to projects
-  const projectCustomFields = customFields.filter(field => 
-    field.applicableTo.includes('projects')
-  );
+  // Get the selected template's custom fields
+  const getTemplateCustomFields = () => {
+    if (!selectedTemplate || selectedTemplate === "system-default") {
+      return [];
+    }
+    
+    const template = projectTemplates.find(t => t.id === selectedTemplate);
+    if (!template || !template.customFields) {
+      return [];
+    }
+    
+    // Return only the custom fields that are included in this template
+    return customFields.filter(field => 
+      field.applicableTo.includes('projects') && 
+      template.customFields?.includes(field.id)
+    );
+  };
+
+  const templateCustomFields = getTemplateCustomFields();
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId);
+    
+    // Reset custom fields when template changes
+    form.setValue("customFields", []);
     
     if (templateId === "system-default") {
       // Reset to default values
@@ -146,8 +165,10 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
 
   const selectedTemplateInfo = getSelectedTemplateInfo();
 
-  // Only show custom fields if a user-created template is selected (not system default)
-  const shouldShowCustomFields = selectedTemplate && selectedTemplate !== "system-default" && projectCustomFields.length > 0;
+  // Only show custom fields if a user-created template is selected AND it has custom fields
+  const shouldShowCustomFields = selectedTemplate && 
+    selectedTemplate !== "system-default" && 
+    templateCustomFields.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -310,15 +331,15 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
               />
             </div>
 
-            {/* Custom Fields Selection - Only for user-created templates */}
+            {/* Custom Fields Selection - Only for templates that include specific custom fields */}
             {shouldShowCustomFields && (
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium flex items-center gap-2">
                     <Settings className="h-4 w-4" />
-                    Custom Fields
+                    Template Custom Fields
                   </label>
-                  <p className="text-sm text-muted-foreground">Select which custom fields to include in this project</p>
+                  <p className="text-sm text-muted-foreground">Custom fields included in this template</p>
                 </div>
                 
                 <FormField
@@ -327,7 +348,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                   render={() => (
                     <FormItem>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {projectCustomFields.map((field) => (
+                        {templateCustomFields.map((field) => (
                           <FormField
                             key={field.id}
                             control={form.control}
