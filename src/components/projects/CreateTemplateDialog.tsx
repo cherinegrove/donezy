@@ -89,7 +89,7 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
         <DialogHeader>
           <DialogTitle>Create Project Template</DialogTitle>
           <DialogDescription>
-            Create a reusable template for projects with predefined settings.
+            Create a reusable template for projects with predefined settings and custom fields.
           </DialogDescription>
         </DialogHeader>
         
