@@ -28,6 +28,8 @@ import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CollaboratorSelect } from "./CollaboratorSelect";
 import { StatusSelect } from "./StatusSelect";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileText } from "lucide-react";
 
 // Define schema for task form
 const createTaskSchema = (isSubtask: boolean) => {
@@ -62,6 +64,20 @@ const createTaskSchema = (isSubtask: boolean) => {
 
 type TaskFormData = z.infer<ReturnType<typeof createTaskSchema>>;
 
+interface TaskTemplate {
+  id: string;
+  name: string;
+  description: string;
+  defaultTitle: string;
+  defaultDescription: string;
+  defaultPriority: 'low' | 'medium' | 'high';
+  defaultStatus: TaskStatus;
+  estimatedHours?: number;
+  includeCustomFields: string[];
+  fieldOrder: string[];
+  usageCount: number;
+}
+
 interface CreateTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -80,6 +96,24 @@ export function CreateTaskDialog({
   const { projects, users, tasks, customFields, addTask, clients } = useAppContext();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [clientProjects, setClientProjects] = useState<typeof projects>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("default");
+  
+  // Mock task templates - in real app this would come from context or API
+  const taskTemplates: TaskTemplate[] = [
+    {
+      id: "default",
+      name: "Default Template",
+      description: "System default template with basic fields",
+      defaultTitle: "",
+      defaultDescription: "",
+      defaultPriority: "medium",
+      defaultStatus: "todo",
+      includeCustomFields: [],
+      fieldOrder: [],
+      usageCount: 0,
+    },
+    // Add any custom templates here - these would be loaded from the TaskTemplateManager
+  ];
   
   // Use the appropriate schema based on whether we're creating a subtask
   const schema = createTaskSchema(isSubtask);
@@ -101,6 +135,53 @@ export function CreateTaskDialog({
       customFields: {},
     },
   });
+  
+  // Apply template when selected
+  useEffect(() => {
+    const template = taskTemplates.find(t => t.id === selectedTemplate);
+    if (template) {
+      form.setValue("title", template.defaultTitle);
+      form.setValue("description", template.defaultDescription);
+      form.setValue("priority", template.defaultPriority);
+      form.setValue("status", template.defaultStatus);
+      
+      // Reset custom fields first
+      form.setValue("customFields", {});
+      
+      // Apply template's custom fields in the specified order
+      const orderedFields = template.fieldOrder.length > 0 
+        ? template.fieldOrder 
+        : template.includeCustomFields;
+      
+      const customFieldsValue: Record<string, any> = {};
+      orderedFields.forEach(fieldId => {
+        if (template.includeCustomFields.includes(fieldId)) {
+          const field = customFields.find(f => f.id === fieldId);
+          if (field) {
+            // Set default value based on field type
+            switch (field.type) {
+              case 'text':
+                customFieldsValue[fieldId] = '';
+                break;
+              case 'number':
+                customFieldsValue[fieldId] = 0;
+                break;
+              case 'date':
+                customFieldsValue[fieldId] = '';
+                break;
+              case 'dropdown':
+              case 'multiselect':
+                customFieldsValue[fieldId] = '';
+                break;
+              default:
+                customFieldsValue[fieldId] = '';
+            }
+          }
+        }
+      });
+      form.setValue("customFields", customFieldsValue);
+    }
+  }, [selectedTemplate, taskTemplates, customFields, form]);
   
   // Filter projects by selected client
   useEffect(() => {
@@ -138,6 +219,7 @@ export function CreateTaskDialog({
     
     toast.success("Task created successfully");
     form.reset();
+    setSelectedTemplate("default");
     onOpenChange(false);
   };
   
@@ -145,6 +227,21 @@ export function CreateTaskDialog({
   const projectTasks = form.watch("projectId") 
     ? tasks.filter(task => task.projectId === form.watch("projectId"))
     : [];
+  
+  // Get current template
+  const currentTemplate = taskTemplates.find(t => t.id === selectedTemplate);
+  
+  // Get custom fields to display based on template
+  const fieldsToShow = currentTemplate?.includeCustomFields.length 
+    ? customFields.filter(field => currentTemplate.includeCustomFields.includes(field.id))
+    : customFields;
+  
+  // Order fields based on template
+  const orderedFieldsToShow = currentTemplate?.fieldOrder.length 
+    ? currentTemplate.fieldOrder
+        .map(fieldId => fieldsToShow.find(f => f.id === fieldId))
+        .filter(Boolean) as typeof customFields
+    : fieldsToShow;
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -158,60 +255,51 @@ export function CreateTaskDialog({
         
         <div className="flex-1 overflow-hidden px-6">
           <ScrollArea className="h-full pr-4">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pb-4">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Title</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Task title" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Task description" {...field} className="min-h-[80px]" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* Client Selection */}
+            <div className="space-y-4 pb-4">
+              {/* Template Selection */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Choose Template
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Select a template to pre-fill task details and custom fields
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {taskTemplates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          <div className="flex flex-col">
+                            <span>{template.name}</span>
+                            {template.description && (
+                              <span className="text-xs text-muted-foreground">
+                                {template.description}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
+
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="clientId"
+                    name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Client *</FormLabel>
+                        <FormLabel>Title</FormLabel>
                         <FormControl>
-                          <Select 
-                            value={field.value} 
-                            onValueChange={field.onChange}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a client" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {clients.map((client) => (
-                                <SelectItem key={client.id} value={client.id}>
-                                  {client.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Input placeholder="Task title" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -220,98 +308,112 @@ export function CreateTaskDialog({
                   
                   <FormField
                     control={form.control}
-                    name="projectId"
+                    name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Project</FormLabel>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Task description" {...field} className="min-h-[80px]" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Client Selection */}
+                    <FormField
+                      control={form.control}
+                      name="clientId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Client *</FormLabel>
+                          <FormControl>
+                            <Select 
+                              value={field.value} 
+                              onValueChange={field.onChange}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a client" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {clients.map((client) => (
+                                  <SelectItem key={client.id} value={client.id}>
+                                    {client.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="projectId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Project</FormLabel>
+                          <FormControl>
+                            <Select 
+                              value={field.value} 
+                              onValueChange={field.onChange}
+                              disabled={clientProjects.length === 0}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={
+                                  !form.watch("clientId") 
+                                    ? "Select a client first" 
+                                    : clientProjects.length === 0 
+                                      ? "No projects for this client" 
+                                      : "Select a project"
+                                } />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {clientProjects.map((project) => (
+                                  <SelectItem key={project.id} value={project.id}>
+                                    {project.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="parentTaskId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{isSubtask ? "Parent Task" : "Parent Task (Optional)"}</FormLabel>
                         <FormControl>
                           <Select 
-                            value={field.value} 
+                            value={field.value || ""} 
                             onValueChange={field.onChange}
-                            disabled={clientProjects.length === 0}
+                            disabled={isSubtask && !!defaultParentTaskId || projectTasks.length === 0}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder={
-                                !form.watch("clientId") 
-                                  ? "Select a client first" 
-                                  : clientProjects.length === 0 
-                                    ? "No projects for this client" 
-                                    : "Select a project"
+                                !form.watch("projectId") 
+                                  ? "Select a project first" 
+                                  : isSubtask 
+                                    ? "Select parent task" 
+                                    : "No parent task"
                               } />
                             </SelectTrigger>
                             <SelectContent>
-                              {clientProjects.map((project) => (
-                                <SelectItem key={project.id} value={project.id}>
-                                  {project.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="parentTaskId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{isSubtask ? "Parent Task" : "Parent Task (Optional)"}</FormLabel>
-                      <FormControl>
-                        <Select 
-                          value={field.value || ""} 
-                          onValueChange={field.onChange}
-                          disabled={isSubtask && !!defaultParentTaskId || projectTasks.length === 0}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={
-                              !form.watch("projectId") 
-                                ? "Select a project first" 
-                                : isSubtask 
-                                  ? "Select parent task" 
-                                  : "No parent task"
-                            } />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {!isSubtask && (
-                              <SelectItem key="no-parent" value="">No parent task</SelectItem>
-                            )}
-                            {projectTasks.map((task) => (
-                              <SelectItem key={task.id} value={task.id}>
-                                {task.title}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="assigneeId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Assignee</FormLabel>
-                        <FormControl>
-                          <Select
-                            value={field.value || ""}
-                            onValueChange={field.onChange}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select an assignee" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="">No assignee</SelectItem>
-                              {users.map((user) => (
-                                <SelectItem key={user.id} value={user.id}>
-                                  {user.name}
+                              {!isSubtask && (
+                                <SelectItem key="no-parent" value="">No parent task</SelectItem>
+                              )}
+                              {projectTasks.map((task) => (
+                                <SelectItem key={task.id} value={task.id}>
+                                  {task.title}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -322,71 +424,116 @@ export function CreateTaskDialog({
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="collaboratorIds"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Collaborators</FormLabel>
-                        <FormControl>
-                          <CollaboratorSelect field={field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <FormControl>
-                          <StatusSelect 
-                            value={field.value} 
-                            onChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="assigneeId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Assignee</FormLabel>
+                          <FormControl>
+                            <Select
+                              value={field.value || ""}
+                              onValueChange={field.onChange}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select an assignee" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">No assignee</SelectItem>
+                                {users.map((user) => (
+                                  <SelectItem key={user.id} value={user.id}>
+                                    {user.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="collaboratorIds"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Collaborators</FormLabel>
+                          <FormControl>
+                            <CollaboratorSelect field={field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                   
-                  <FormField
-                    control={form.control}
-                    name="priority"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Priority</FormLabel>
-                        <FormControl>
-                          <Select 
-                            value={field.value} 
-                            onValueChange={field.onChange}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select priority" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="low">Low</SelectItem>
-                              <SelectItem value="medium">Medium</SelectItem>
-                              <SelectItem value="high">High</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Status</FormLabel>
+                          <FormControl>
+                            <StatusSelect 
+                              value={field.value} 
+                              onChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="priority"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Priority</FormLabel>
+                          <FormControl>
+                            <Select 
+                              value={field.value} 
+                              onValueChange={field.onChange}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select priority" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="low">Low</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="high">High</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="startDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Start Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={form.control}
-                    name="startDate"
+                    name="dueDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Start Date</FormLabel>
+                        <FormLabel>Due Date</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
@@ -394,103 +541,93 @@ export function CreateTaskDialog({
                       </FormItem>
                     )}
                   />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="dueDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Due Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {/* Custom Fields */}
-                {customFields.length > 0 && (
-                  <div className="space-y-4">
-                    <Label>Custom Fields</Label>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      {customFields.map((field) => (
-                        <div key={field.id} className="space-y-2">
-                          <Label htmlFor={field.id}>
-                            {field.name} {field.required && <span className="text-red-500">*</span>}
-                          </Label>
-                          
-                          {field.type === 'text' && (
-                            <Input 
-                              id={field.id}
-                              onChange={(e) => {
-                                const customFieldsValue = form.getValues("customFields");
-                                form.setValue("customFields", {
-                                  ...customFieldsValue,
-                                  [field.id]: e.target.value,
-                                });
-                              }}
-                            />
-                          )}
-                          
-                          {field.type === 'number' && (
-                            <Input 
-                              id={field.id} 
-                              type="number"
-                              onChange={(e) => {
-                                const customFieldsValue = form.getValues("customFields");
-                                form.setValue("customFields", {
-                                  ...customFieldsValue,
-                                  [field.id]: parseFloat(e.target.value) || 0,
-                                });
-                              }}
-                            />
-                          )}
-                          
-                          {field.type === 'date' && (
-                            <Input 
-                              id={field.id} 
-                              type="date"
-                              onChange={(e) => {
-                                const customFieldsValue = form.getValues("customFields");
-                                form.setValue("customFields", {
-                                  ...customFieldsValue,
-                                  [field.id]: e.target.value,
-                                });
-                              }}
-                            />
-                          )}
-                          
-                          {(field.type === 'dropdown' || field.type === 'multiselect') && field.options && (
-                            <Select
-                              onValueChange={(value) => {
-                                const customFieldsValue = form.getValues("customFields");
-                                form.setValue("customFields", {
-                                  ...customFieldsValue,
-                                  [field.id]: value,
-                                });
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {field.options.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                        </div>
-                      ))}
+                  
+                  {/* Custom Fields */}
+                  {orderedFieldsToShow.length > 0 && (
+                    <div className="space-y-4">
+                      <Label>Custom Fields</Label>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {orderedFieldsToShow.map((field) => (
+                          <div key={field.id} className="space-y-2">
+                            <Label htmlFor={field.id}>
+                              {field.name} {field.required && <span className="text-red-500">*</span>}
+                            </Label>
+                            
+                            {field.type === 'text' && (
+                              <Input 
+                                id={field.id}
+                                value={form.watch("customFields")?.[field.id] || ""}
+                                onChange={(e) => {
+                                  const customFieldsValue = form.getValues("customFields");
+                                  form.setValue("customFields", {
+                                    ...customFieldsValue,
+                                    [field.id]: e.target.value,
+                                  });
+                                }}
+                              />
+                            )}
+                            
+                            {field.type === 'number' && (
+                              <Input 
+                                id={field.id} 
+                                type="number"
+                                value={form.watch("customFields")?.[field.id] || ""}
+                                onChange={(e) => {
+                                  const customFieldsValue = form.getValues("customFields");
+                                  form.setValue("customFields", {
+                                    ...customFieldsValue,
+                                    [field.id]: parseFloat(e.target.value) || 0,
+                                  });
+                                }}
+                              />
+                            )}
+                            
+                            {field.type === 'date' && (
+                              <Input 
+                                id={field.id} 
+                                type="date"
+                                value={form.watch("customFields")?.[field.id] || ""}
+                                onChange={(e) => {
+                                  const customFieldsValue = form.getValues("customFields");
+                                  form.setValue("customFields", {
+                                    ...customFieldsValue,
+                                    [field.id]: e.target.value,
+                                  });
+                                }}
+                              />
+                            )}
+                            
+                            {(field.type === 'dropdown' || field.type === 'multiselect') && field.options && (
+                              <Select
+                                value={form.watch("customFields")?.[field.id] || ""}
+                                onValueChange={(value) => {
+                                  const customFieldsValue = form.getValues("customFields");
+                                  form.setValue("customFields", {
+                                    ...customFieldsValue,
+                                    [field.id]: value,
+                                  });
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {field.options.map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                      {option}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </form>
-            </Form>
+                  )}
+                </form>
+              </Form>
+            </div>
           </ScrollArea>
         </div>
         
