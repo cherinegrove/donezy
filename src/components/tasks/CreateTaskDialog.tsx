@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -463,7 +462,7 @@ export function CreateTaskDialog({
                             />
                           )}
                           
-                          {(field.type === 'select' || field.type === 'multiselect') && field.options && (
+                          {(field.type === 'dropdown' || field.type === 'multiselect') && field.options && (
                             <Select
                               onValueChange={(value) => {
                                 const customFieldsValue = form.getValues("customFields");
