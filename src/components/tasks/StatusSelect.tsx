@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAppContext } from "@/contexts/AppContext";
 import { TaskStatus } from "@/types";
 
 interface StatusSelectProps {
@@ -19,6 +20,8 @@ interface StatusSelectProps {
 }
 
 export function StatusSelect({ field, value, onChange }: StatusSelectProps) {
+  const { taskStatuses } = useAppContext();
+  
   // Use either field props or direct value/onChange props
   const actualValue = field?.value ?? value;
 
@@ -42,11 +45,13 @@ export function StatusSelect({ field, value, onChange }: StatusSelectProps) {
         <SelectValue placeholder="Select status" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="backlog">Backlog</SelectItem>
-        <SelectItem value="todo">To Do</SelectItem>
-        <SelectItem value="in-progress">In Progress</SelectItem>
-        <SelectItem value="review">Review</SelectItem>
-        <SelectItem value="done">Done</SelectItem>
+        {taskStatuses
+          .sort((a, b) => a.order - b.order)
+          .map((status) => (
+            <SelectItem key={status.id} value={status.value}>
+              {status.label}
+            </SelectItem>
+          ))}
       </SelectContent>
     </Select>
   );
