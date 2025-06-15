@@ -135,6 +135,26 @@ export function CreateTaskDialog({
       customFields: {},
     },
   });
+
+  // Get the selected template's custom fields
+  const getTemplateCustomFields = () => {
+    if (!selectedTemplate || selectedTemplate === "default") {
+      return [];
+    }
+    
+    const template = taskTemplates.find(t => t.id === selectedTemplate);
+    if (!template || !template.includeCustomFields || template.includeCustomFields.length === 0) {
+      return [];
+    }
+    
+    // Return only the custom fields that are included in this template
+    return customFields.filter(field => 
+      field.applicableTo.includes('tasks') && 
+      template.includeCustomFields.includes(field.id)
+    );
+  };
+
+  const templateCustomFields = getTemplateCustomFields();
   
   // Apply template when selected
   useEffect(() => {
@@ -148,38 +168,40 @@ export function CreateTaskDialog({
       // Reset custom fields first
       form.setValue("customFields", {});
       
-      // Apply template's custom fields in the specified order
-      const orderedFields = template.fieldOrder.length > 0 
-        ? template.fieldOrder 
-        : template.includeCustomFields;
-      
-      const customFieldsValue: Record<string, any> = {};
-      orderedFields.forEach(fieldId => {
-        if (template.includeCustomFields.includes(fieldId)) {
-          const field = customFields.find(f => f.id === fieldId);
-          if (field) {
-            // Set default value based on field type
-            switch (field.type) {
-              case 'text':
-                customFieldsValue[fieldId] = '';
-                break;
-              case 'number':
-                customFieldsValue[fieldId] = 0;
-                break;
-              case 'date':
-                customFieldsValue[fieldId] = '';
-                break;
-              case 'dropdown':
-              case 'multiselect':
-                customFieldsValue[fieldId] = '';
-                break;
-              default:
-                customFieldsValue[fieldId] = '';
+      // Apply template's custom fields in the specified order (only for non-default templates)
+      if (selectedTemplate !== "default") {
+        const orderedFields = template.fieldOrder.length > 0 
+          ? template.fieldOrder 
+          : template.includeCustomFields;
+        
+        const customFieldsValue: Record<string, any> = {};
+        orderedFields.forEach(fieldId => {
+          if (template.includeCustomFields.includes(fieldId)) {
+            const field = customFields.find(f => f.id === fieldId);
+            if (field) {
+              // Set default value based on field type
+              switch (field.type) {
+                case 'text':
+                  customFieldsValue[fieldId] = '';
+                  break;
+                case 'number':
+                  customFieldsValue[fieldId] = 0;
+                  break;
+                case 'date':
+                  customFieldsValue[fieldId] = '';
+                  break;
+                case 'dropdown':
+                case 'multiselect':
+                  customFieldsValue[fieldId] = '';
+                  break;
+                default:
+                  customFieldsValue[fieldId] = '';
+              }
             }
           }
-        }
-      });
-      form.setValue("customFields", customFieldsValue);
+        });
+        form.setValue("customFields", customFieldsValue);
+      }
     }
   }, [selectedTemplate, taskTemplates, customFields, form]);
   
@@ -231,17 +253,12 @@ export function CreateTaskDialog({
   // Get current template
   const currentTemplate = taskTemplates.find(t => t.id === selectedTemplate);
   
-  // Get custom fields to display based on template
-  const fieldsToShow = currentTemplate?.includeCustomFields.length 
-    ? customFields.filter(field => currentTemplate.includeCustomFields.includes(field.id))
-    : customFields;
-  
-  // Order fields based on template
-  const orderedFieldsToShow = currentTemplate?.fieldOrder.length 
+  // Order fields based on template (only for non-default templates)
+  const orderedFieldsToShow = currentTemplate?.fieldOrder.length && selectedTemplate !== "default"
     ? currentTemplate.fieldOrder
-        .map(fieldId => fieldsToShow.find(f => f.id === fieldId))
+        .map(fieldId => templateCustomFields.find(f => f.id === fieldId))
         .filter(Boolean) as typeof customFields
-    : fieldsToShow;
+    : templateCustomFields;
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -292,6 +309,7 @@ export function CreateTaskDialog({
 
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  {/* Title */}
                   <FormField
                     control={form.control}
                     name="title"
@@ -306,6 +324,7 @@ export function CreateTaskDialog({
                     )}
                   />
                   
+                  {/* Description */}
                   <FormField
                     control={form.control}
                     name="description"
@@ -542,10 +561,10 @@ export function CreateTaskDialog({
                     )}
                   />
                   
-                  {/* Custom Fields */}
-                  {orderedFieldsToShow.length > 0 && (
+                  {/* Custom Fields - Only show for user-created templates that include custom fields */}
+                  {orderedFieldsToShow.length > 0 && selectedTemplate !== "default" && (
                     <div className="space-y-4">
-                      <Label>Custom Fields</Label>
+                      <Label>Template Custom Fields</Label>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {orderedFieldsToShow.map((field) => (
                           <div key={field.id} className="space-y-2">
