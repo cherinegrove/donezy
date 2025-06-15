@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -146,6 +145,9 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
   };
 
   const selectedTemplateInfo = getSelectedTemplateInfo();
+
+  // Only show custom fields if a user-created template is selected (not system default)
+  const shouldShowCustomFields = selectedTemplate && selectedTemplate !== "system-default" && projectCustomFields.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -308,8 +310,8 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
               />
             </div>
 
-            {/* Custom Fields Selection */}
-            {projectCustomFields.length > 0 && (
+            {/* Custom Fields Selection - Only for user-created templates */}
+            {shouldShowCustomFields && (
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium flex items-center gap-2">
