@@ -32,13 +32,12 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, onClick }: ProjectCardProps) {
-  const { clients, users, deleteProject } = useAppContext();
+  const { clients, deleteProject } = useAppContext();
   const { toast } = useToast();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
   const client = clients.find(c => c.id === project.clientId);
-  const teamMembers = users.filter(user => project.teamIds?.includes(user.teamIds?.[0] || ''));
   
   const progress = project.allocatedHours ? (project.usedHours / project.allocatedHours) * 100 : 0;
   
@@ -163,7 +162,7 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogContent>
+        </AlertDialogFooter>
       </AlertDialog>
     </>
   );

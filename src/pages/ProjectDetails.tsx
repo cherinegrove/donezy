@@ -17,7 +17,7 @@ import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { projects, clients, tasks, users, timeEntries } = useAppContext();
+  const { projects, clients, tasks, timeEntries } = useAppContext();
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
@@ -36,11 +36,6 @@ export default function ProjectDetails() {
   const totalHours = timeEntries
     .filter(entry => entry.projectId === projectId)
     .reduce((sum, entry) => sum + entry.duration, 0);
-
-  // Get project collaborators
-  const projectCollaborators = project?.teamIds 
-    ? users.filter(user => project.teamIds.includes(user.id))
-    : [];
 
   // Show loading state while searching for project
   if (!project && projects.length > 0) {
@@ -101,7 +96,7 @@ export default function ProjectDetails() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
         <Card>
           <CardHeader>
             <CardTitle>Client</CardTitle>
@@ -136,31 +131,6 @@ export default function ProjectDetails() {
           <CardContent>
             <h3 className="text-2xl font-bold">{totalHours / 60}</h3>
             <p className="text-sm text-muted-foreground">Hours tracked</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Collaborators</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {projectCollaborators.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {projectCollaborators.map((collaborator) => (
-                  <div key={collaborator.id} className="flex items-center space-x-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={collaborator.avatar} />
-                      <AvatarFallback className="text-xs">
-                        {collaborator.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm">{collaborator.name}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No collaborators assigned</p>
-            )}
           </CardContent>
         </Card>
       </div>
