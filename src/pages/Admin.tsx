@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAppContext } from "@/contexts/AppContext";
@@ -16,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import Clients from "@/pages/Clients";
 import { ProjectStatusManager } from "@/components/admin/ProjectStatusManager";
 import { CreateTemplateDialog } from "@/components/projects/CreateTemplateDialog";
+import { ProjectTemplatesList } from "@/components/projects/ProjectTemplatesList";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export default function Admin() {
@@ -227,14 +229,12 @@ export default function Admin() {
                           </div>
                           <Button onClick={() => setIsCreateTemplateOpen(true)} className="flex items-center gap-2">
                             <Plus className="w-4 h-4" />
-                            Create Project Template
+                            Create Template
                           </Button>
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm text-muted-foreground">
-                          Project templates allow you to quickly create new projects with predefined tasks, settings, and structure.
-                        </p>
+                        <ProjectTemplatesList onCreateTemplate={() => setIsCreateTemplateOpen(true)} />
                       </CardContent>
                     </Card>
                   </div>
