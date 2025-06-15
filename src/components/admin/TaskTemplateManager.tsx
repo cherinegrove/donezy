@@ -264,8 +264,6 @@ interface TaskTemplateCardProps {
 }
 
 function TaskTemplateCard({ template, onEdit, onDelete, onDuplicate }: TaskTemplateCardProps) {
-  const { getUserById } = useAppContext();
-  
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
@@ -338,6 +336,7 @@ export function TaskTemplateManager() {
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingFields, setLoadingFields] = useState(true);
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newTemplate, setNewTemplate] = useState<Partial<TaskTemplate>>({
@@ -350,10 +349,13 @@ export function TaskTemplateManager() {
   });
   const { toast } = useToast();
 
-  // Fetch custom fields from Supabase
+  // Fetch custom fields and templates from Supabase
   useEffect(() => {
-    fetchCustomFields();
-  }, []);
+    if (currentUser) {
+      fetchCustomFields();
+      fetchTemplates();
+    }
+  }, [currentUser]);
 
   const fetchCustomFields = async () => {
     try {
@@ -393,34 +395,98 @@ export function TaskTemplateManager() {
     }
   };
 
+  const fetchTemplates = async () => {
+    if (!currentUser) return;
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('task_templates')
+        .select('*')
+        .eq('auth_user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const taskTemplates: TaskTemplate[] = data.map(template => ({
+        id: template.id,
+        name: template.name,
+        description: template.description || "",
+        defaultPriority: template.default_priority as 'low' | 'medium' | 'high',
+        defaultStatus: template.default_status as TaskStatus,
+        includeCustomFields: template.include_custom_fields || [],
+        fieldOrder: template.field_order || [],
+        createdAt: template.created_at,
+        usageCount: template.usage_count,
+      }));
+
+      setTemplates(taskTemplates);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load task templates",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEdit = (template: TaskTemplate) => {
     setEditingId(template.id);
     setNewTemplate(template);
   };
 
-  const handleSaveEdit = () => {
-    if (!editingId || !newTemplate.name?.trim()) return;
+  const handleSaveEdit = async () => {
+    if (!editingId || !newTemplate.name?.trim() || !currentUser) return;
     
-    setTemplates(prev => prev.map(t => 
-      t.id === editingId 
-        ? { ...t, ...newTemplate, id: editingId }
-        : t
-    ));
-    
-    setEditingId(null);
-    setNewTemplate({
-      name: "",
-      description: "",
-      defaultPriority: "medium",
-      defaultStatus: "todo",
-      includeCustomFields: [],
-      fieldOrder: [],
-    });
-    
-    toast({
-      title: "Success",
-      description: "Task template updated successfully",
-    });
+    try {
+      const { error } = await supabase
+        .from('task_templates')
+        .update({
+          name: newTemplate.name,
+          description: newTemplate.description || "",
+          default_priority: newTemplate.defaultPriority,
+          default_status: newTemplate.defaultStatus,
+          include_custom_fields: newTemplate.includeCustomFields,
+          field_order: newTemplate.fieldOrder,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editingId)
+        .eq('auth_user_id', currentUser.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setTemplates(prev => prev.map(t => 
+        t.id === editingId 
+          ? { ...t, ...newTemplate, id: editingId }
+          : t
+      ));
+      
+      setEditingId(null);
+      setNewTemplate({
+        name: "",
+        description: "",
+        defaultPriority: "medium",
+        defaultStatus: "todo",
+        includeCustomFields: [],
+        fieldOrder: [],
+      });
+      
+      toast({
+        title: "Success",
+        description: "Task template updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task template",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCancelEdit = () => {
@@ -435,16 +501,35 @@ export function TaskTemplateManager() {
     });
   };
 
-  const handleDelete = (id: string) => {
-    setTemplates(prev => prev.filter(t => t.id !== id));
-    toast({
-      title: "Success",
-      description: "Task template deleted successfully",
-    });
+  const handleDelete = async (id: string) => {
+    if (!currentUser) return;
+
+    try {
+      const { error } = await supabase
+        .from('task_templates')
+        .delete()
+        .eq('id', id)
+        .eq('auth_user_id', currentUser.id);
+
+      if (error) throw error;
+
+      setTemplates(prev => prev.filter(t => t.id !== id));
+      toast({
+        title: "Success",
+        description: "Task template deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task template",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleCreate = () => {
-    if (!newTemplate.name?.trim()) {
+  const handleCreate = async () => {
+    if (!newTemplate.name?.trim() || !currentUser) {
       toast({
         title: "Error",
         description: "Please enter a template name",
@@ -453,52 +538,110 @@ export function TaskTemplateManager() {
       return;
     }
 
-    const template: TaskTemplate = {
-      id: `template-${Date.now()}`,
-      name: newTemplate.name,
-      description: newTemplate.description || "",
-      defaultPriority: newTemplate.defaultPriority || "medium",
-      defaultStatus: newTemplate.defaultStatus || "todo",
-      includeCustomFields: newTemplate.includeCustomFields || [],
-      fieldOrder: newTemplate.fieldOrder || [],
-      createdAt: new Date().toISOString(),
-      usageCount: 0,
-    };
+    try {
+      const { data, error } = await supabase
+        .from('task_templates')
+        .insert({
+          auth_user_id: currentUser.id,
+          name: newTemplate.name,
+          description: newTemplate.description || "",
+          default_priority: newTemplate.defaultPriority || "medium",
+          default_status: newTemplate.defaultStatus || "todo",
+          include_custom_fields: newTemplate.includeCustomFields || [],
+          field_order: newTemplate.fieldOrder || [],
+          usage_count: 0,
+        })
+        .select()
+        .single();
 
-    setTemplates(prev => [...prev, template]);
-    setIsCreating(false);
-    setNewTemplate({
-      name: "",
-      description: "",
-      defaultPriority: "medium",
-      defaultStatus: "todo",
-      includeCustomFields: [],
-      fieldOrder: [],
-    });
-    
-    toast({
-      title: "Success",
-      description: "Task template created successfully",
-    });
+      if (error) throw error;
+
+      const newTaskTemplate: TaskTemplate = {
+        id: data.id,
+        name: data.name,
+        description: data.description || "",
+        defaultPriority: data.default_priority as 'low' | 'medium' | 'high',
+        defaultStatus: data.default_status as TaskStatus,
+        includeCustomFields: data.include_custom_fields || [],
+        fieldOrder: data.field_order || [],
+        createdAt: data.created_at,
+        usageCount: data.usage_count,
+      };
+
+      setTemplates(prev => [newTaskTemplate, ...prev]);
+      setIsCreating(false);
+      setNewTemplate({
+        name: "",
+        description: "",
+        defaultPriority: "medium",
+        defaultStatus: "todo",
+        includeCustomFields: [],
+        fieldOrder: [],
+      });
+      
+      toast({
+        title: "Success",
+        description: "Task template created successfully",
+      });
+    } catch (error) {
+      console.error('Error creating template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create task template",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDuplicate = (template: TaskTemplate) => {
-    const duplicated: TaskTemplate = {
-      ...template,
-      id: `template-${Date.now()}`,
-      name: `${template.name} (Copy)`,
-      createdAt: new Date().toISOString(),
-      usageCount: 0,
-    };
-    
-    setTemplates(prev => [...prev, duplicated]);
-    toast({
-      title: "Success",
-      description: "Task template duplicated successfully",
-    });
+  const handleDuplicate = async (template: TaskTemplate) => {
+    if (!currentUser) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('task_templates')
+        .insert({
+          auth_user_id: currentUser.id,
+          name: `${template.name} (Copy)`,
+          description: template.description,
+          default_priority: template.defaultPriority,
+          default_status: template.defaultStatus,
+          include_custom_fields: template.includeCustomFields,
+          field_order: template.fieldOrder,
+          usage_count: 0,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const duplicatedTemplate: TaskTemplate = {
+        id: data.id,
+        name: data.name,
+        description: data.description || "",
+        defaultPriority: data.default_priority as 'low' | 'medium' | 'high',
+        defaultStatus: data.default_status as TaskStatus,
+        includeCustomFields: data.include_custom_fields || [],
+        fieldOrder: data.field_order || [],
+        createdAt: data.created_at,
+        usageCount: data.usage_count,
+      };
+
+      setTemplates(prev => [duplicatedTemplate, ...prev]);
+      toast({
+        title: "Success",
+        description: "Task template duplicated successfully",
+      });
+    } catch (error) {
+      console.error('Error duplicating template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to duplicate task template",
+        variant: "destructive"
+      });
+    }
   };
 
-  if (loadingFields) {
+  if (loadingFields || loading) {
     return (
       <Card>
         <CardHeader>
@@ -506,7 +649,7 @@ export function TaskTemplateManager() {
             <FileText className="h-5 w-5 text-primary" />
             Task Templates
           </CardTitle>
-          <CardDescription>Loading custom fields...</CardDescription>
+          <CardDescription>Loading...</CardDescription>
         </CardHeader>
       </Card>
     );
