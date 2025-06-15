@@ -47,11 +47,8 @@ interface TaskTemplate {
   id: string;
   name: string;
   description: string;
-  defaultTitle: string;
-  defaultDescription: string;
   defaultPriority: 'low' | 'medium' | 'high';
   defaultStatus: TaskStatus;
-  estimatedHours?: number;
   includeCustomFields: string[];
   fieldOrder: string[];
   createdAt: string;
@@ -130,27 +127,6 @@ const TaskTemplateForm = ({
         />
       </div>
 
-      <div>
-        <Label htmlFor="default-title">Default Task Title</Label>
-        <Input
-          id="default-title"
-          value={template.defaultTitle || ""}
-          onChange={(e) => setTemplate({ ...template, defaultTitle: e.target.value })}
-          placeholder="Default title for tasks created from this template"
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="default-description">Default Task Description</Label>
-        <Textarea
-          id="default-description"
-          value={template.defaultDescription || ""}
-          onChange={(e) => setTemplate({ ...template, defaultDescription: e.target.value })}
-          placeholder="Default description for tasks created from this template"
-          rows={3}
-        />
-      </div>
-
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="default-priority">Default Priority</Label>
@@ -187,17 +163,6 @@ const TaskTemplateForm = ({
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div>
-        <Label htmlFor="estimated-hours">Estimated Hours (Optional)</Label>
-        <Input
-          id="estimated-hours"
-          type="number"
-          value={template.estimatedHours || ""}
-          onChange={(e) => setTemplate({ ...template, estimatedHours: e.target.value ? Number(e.target.value) : undefined })}
-          placeholder="Estimated hours for tasks"
-        />
       </div>
 
       {taskCustomFields.length > 0 && (
@@ -283,8 +248,6 @@ export function TaskTemplateManager() {
   const [newTemplate, setNewTemplate] = useState<Partial<TaskTemplate>>({
     name: "",
     description: "",
-    defaultTitle: "",
-    defaultDescription: "",
     defaultPriority: "medium",
     defaultStatus: "todo",
     includeCustomFields: [],
@@ -310,8 +273,6 @@ export function TaskTemplateManager() {
     setNewTemplate({
       name: "",
       description: "",
-      defaultTitle: "",
-      defaultDescription: "",
       defaultPriority: "medium",
       defaultStatus: "todo",
       includeCustomFields: [],
@@ -329,8 +290,6 @@ export function TaskTemplateManager() {
     setNewTemplate({
       name: "",
       description: "",
-      defaultTitle: "",
-      defaultDescription: "",
       defaultPriority: "medium",
       defaultStatus: "todo",
       includeCustomFields: [],
@@ -360,11 +319,8 @@ export function TaskTemplateManager() {
       id: `template-${Date.now()}`,
       name: newTemplate.name,
       description: newTemplate.description || "",
-      defaultTitle: newTemplate.defaultTitle || "",
-      defaultDescription: newTemplate.defaultDescription || "",
       defaultPriority: newTemplate.defaultPriority || "medium",
       defaultStatus: newTemplate.defaultStatus || "todo",
-      estimatedHours: newTemplate.estimatedHours,
       includeCustomFields: newTemplate.includeCustomFields || [],
       fieldOrder: newTemplate.fieldOrder || [],
       createdAt: new Date().toISOString(),
@@ -376,8 +332,6 @@ export function TaskTemplateManager() {
     setNewTemplate({
       name: "",
       description: "",
-      defaultTitle: "",
-      defaultDescription: "",
       defaultPriority: "medium",
       defaultStatus: "todo",
       includeCustomFields: [],
