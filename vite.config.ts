@@ -10,10 +10,33 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     watch: {
-      // Reduce file watching overhead
+      // Disable polling completely to reduce file system load
       usePolling: false,
-      interval: 300,
-      binaryInterval: 1000,
+      // Increase intervals significantly to reduce file system pressure
+      interval: 1000,
+      binaryInterval: 2000,
+      // Ignore more directories to reduce watched files
+      ignored: [
+        '**/node_modules/**',
+        '**/dist/**',
+        '**/build/**',
+        '**/.git/**',
+        '**/coverage/**',
+        '**/public/**',
+        '**/supabase/**',
+        '**/*.log',
+        '**/tmp/**',
+        '**/temp/**',
+        '**/.cache/**',
+        '**/.*',
+      ],
+      // Reduce the number of watchers
+      followSymlinks: false,
+    },
+    // Add file system limits
+    fs: {
+      strict: true,
+      allow: ['..'],
     },
   },
   plugins: [
@@ -26,7 +49,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // Optimize build and dev performance
+  // More aggressive optimization
   optimizeDeps: {
     include: [
       "react",
@@ -35,6 +58,8 @@ export default defineConfig(({ mode }) => ({
       "@tanstack/react-query",
       "@supabase/supabase-js"
     ],
+    // Force specific dependencies to be pre-bundled
+    force: true,
   },
   build: {
     rollupOptions: {
@@ -47,5 +72,12 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
+    // Reduce build overhead
+    sourcemap: false,
+    minify: 'esbuild',
+  },
+  // Reduce module resolution overhead
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
   },
 }));
