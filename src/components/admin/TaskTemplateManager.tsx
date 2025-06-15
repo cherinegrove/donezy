@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +41,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useAppContext } from "@/contexts/AppContext";
-import { TaskStatus } from "@/types";
+import { TaskStatus, CustomField, CustomFieldType } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TaskTemplate {
   id: string;
@@ -58,7 +59,7 @@ interface TaskTemplate {
 interface TaskTemplateFormProps {
   template: Partial<TaskTemplate>;
   setTemplate: (template: Partial<TaskTemplate>) => void;
-  customFields: any[];
+  customFields: CustomField[];
   isEdit?: boolean;
 }
 
@@ -236,12 +237,26 @@ const TaskTemplateForm = ({
           )}
         </div>
       )}
+
+      {taskCustomFields.length === 0 && (
+        <div className="space-y-4">
+          <div>
+            <Label>Custom Fields</Label>
+            <p className="text-sm text-muted-foreground">
+              No custom fields created yet that apply to tasks. 
+              Create custom fields in the Custom Fields Manager first.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export function TaskTemplateManager() {
-  const { customFields } = useAppContext();
+  const { currentUser } = useAppContext();
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [loadingFields, setLoadingFields] = useState(true);
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -254,6 +269,49 @@ export function TaskTemplateManager() {
     fieldOrder: [],
   });
   const { toast } = useToast();
+
+  // Fetch custom fields from Supabase
+  useEffect(() => {
+    fetchCustomFields();
+  }, []);
+
+  const fetchCustomFields = async () => {
+    try {
+      setLoadingFields(true);
+      const { data, error } = await supabase
+        .from('custom_fields')
+        .select('*')
+        .contains('applicable_to', ['tasks'])
+        .order('field_order');
+      
+      if (error) throw error;
+      
+      const fields = data.map(field => ({
+        id: field.id,
+        name: field.name,
+        type: field.type as CustomFieldType,
+        description: field.description,
+        required: field.required,
+        applicableTo: field.applicable_to as ('projects' | 'tasks')[],
+        options: field.options,
+        reportable: field.reportable,
+        order: field.field_order,
+        createdAt: field.created_at,
+        updatedAt: field.updated_at,
+      }));
+      
+      setCustomFields(fields);
+    } catch (error) {
+      console.error('Error fetching custom fields:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load custom fields",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingFields(false);
+    }
+  };
 
   const handleEdit = (template: TaskTemplate) => {
     setEditingId(template.id);
@@ -359,6 +417,20 @@ export function TaskTemplateManager() {
       description: "Task template duplicated successfully",
     });
   };
+
+  if (loadingFields) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            Task Templates
+          </CardTitle>
+          <CardDescription>Loading custom fields...</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
     <Card>
