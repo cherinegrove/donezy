@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +36,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FileText, Calendar, Settings } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 
 const projectSchema = z.object({
@@ -46,6 +46,7 @@ const projectSchema = z.object({
   startDate: z.date().optional(),
   dueDate: z.date().optional(),
   customFields: z.array(z.string()).default([]),
+  customFieldValues: z.record(z.any()).default({}),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -69,6 +70,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       description: "",
       clientId: "",
       customFields: [],
+      customFieldValues: {},
     },
   });
 
@@ -160,6 +162,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
     if (templateId === "system-default") {
       // Reset custom fields when template changes to system default
       form.setValue("customFields", []);
+      form.setValue("customFieldValues", {});
       return;
     }
 
@@ -180,16 +183,118 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       } else {
         form.setValue("customFields", []);
       }
+      
+      // Reset custom field values when template changes
+      form.setValue("customFieldValues", {});
     }
   };
 
   const handleFieldToggle = (fieldId: string) => {
     const currentFields = form.getValues("customFields");
+    const currentValues = form.getValues("customFieldValues");
+    
     const newFields = currentFields.includes(fieldId)
       ? currentFields.filter(id => id !== fieldId)
       : [...currentFields, fieldId];
     
+    // If removing a field, also remove its value
+    if (!newFields.includes(fieldId)) {
+      const newValues = { ...currentValues };
+      delete newValues[fieldId];
+      form.setValue("customFieldValues", newValues);
+    }
+    
     form.setValue("customFields", newFields);
+  };
+
+  const handleCustomFieldValueChange = (fieldId: string, value: any) => {
+    const currentValues = form.getValues("customFieldValues");
+    form.setValue("customFieldValues", {
+      ...currentValues,
+      [fieldId]: value
+    });
+  };
+
+  const renderCustomFieldInput = (field: CustomField) => {
+    const value = form.watch("customFieldValues")[field.id] || "";
+    
+    switch (field.type) {
+      case "text":
+        return (
+          <Input
+            placeholder={field.description || `Enter ${field.name}`}
+            value={value}
+            onChange={(e) => handleCustomFieldValueChange(field.id, e.target.value)}
+          />
+        );
+      
+      case "textarea":
+        return (
+          <Textarea
+            placeholder={field.description || `Enter ${field.name}`}
+            value={value}
+            onChange={(e) => handleCustomFieldValueChange(field.id, e.target.value)}
+          />
+        );
+      
+      case "number":
+        return (
+          <Input
+            type="number"
+            placeholder={field.description || `Enter ${field.name}`}
+            value={value}
+            onChange={(e) => handleCustomFieldValueChange(field.id, parseFloat(e.target.value) || 0)}
+          />
+        );
+      
+      case "select":
+        return (
+          <Select
+            value={value}
+            onValueChange={(val) => handleCustomFieldValueChange(field.id, val)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={`Select ${field.name}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {field.options?.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      
+      case "checkbox":
+        return (
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              checked={!!value}
+              onCheckedChange={(checked) => handleCustomFieldValueChange(field.id, checked)}
+            />
+            <Label>{field.description || "Check if applicable"}</Label>
+          </div>
+        );
+      
+      case "date":
+        return (
+          <DatePicker
+            date={value ? new Date(value) : undefined}
+            onDateChange={(date) => handleCustomFieldValueChange(field.id, date?.toISOString())}
+            placeholder={`Select ${field.name}`}
+          />
+        );
+      
+      default:
+        return (
+          <Input
+            placeholder={field.description || `Enter ${field.name}`}
+            value={value}
+            onChange={(e) => handleCustomFieldValueChange(field.id, e.target.value)}
+          />
+        );
+    }
   };
 
   const onSubmit = async (data: ProjectFormData) => {
@@ -206,19 +311,21 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
     console.log("Creating project with data:", data);
     console.log("Selected template:", selectedTemplate);
     console.log("Custom fields:", data.customFields);
+    console.log("Custom field values:", data.customFieldValues);
 
     try {
       const projectId = await addProject({
         name: data.name,
         description: data.description,
         clientId: data.clientId,
-        serviceType: "project", // Default service type
+        serviceType: "project",
         startDate: data.startDate?.toISOString(),
         dueDate: data.dueDate?.toISOString(),
-        allocatedHours: 0, // Default allocated hours
+        allocatedHours: 0,
         status: "todo",
         usedHours: 0,
         templateId: selectedTemplate !== "system-default" ? selectedTemplate : undefined,
+        customFieldValues: data.customFieldValues,
       });
 
       console.log("Project created with ID:", projectId);
@@ -272,6 +379,12 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
     
     const template = projectTemplates.find(t => t.id === selectedTemplate);
     return template && template.customFields && template.customFields.length > 0;
+  };
+
+  // Get the currently selected custom fields for input rendering
+  const getSelectedCustomFields = () => {
+    const selectedFieldIds = form.watch("customFields");
+    return customFields.filter(field => selectedFieldIds.includes(field.id));
   };
 
   if (loadingFields) {
@@ -456,21 +569,22 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                     <Settings className="h-4 w-4" />
                     Template Custom Fields
                   </Label>
-                  <p className="text-sm text-muted-foreground">These custom fields are included in the selected template</p>
+                  <p className="text-sm text-muted-foreground">Fill in the custom fields included in this template</p>
                 </div>
                 
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {templateCustomFields.map((field) => (
-                    <div key={field.id} className="flex items-center space-x-2 p-2 bg-muted/30 rounded">
-                      <div className="flex-1">
-                        <span className="text-sm font-medium">{field.name}</span>
+                    <div key={field.id} className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        {field.name}
                         {field.required && (
-                          <Badge variant="secondary" className="ml-2 text-xs">Required</Badge>
+                          <Badge variant="secondary" className="text-xs">Required</Badge>
                         )}
-                        {field.description && (
-                          <p className="text-xs text-muted-foreground">{field.description}</p>
-                        )}
-                      </div>
+                      </Label>
+                      {field.description && (
+                        <p className="text-xs text-muted-foreground">{field.description}</p>
+                      )}
+                      {renderCustomFieldInput(field)}
                     </div>
                   ))}
                 </div>
@@ -505,6 +619,27 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                     </div>
                   ))}
                 </div>
+
+                {/* Render input fields for selected custom fields */}
+                {getSelectedCustomFields().length > 0 && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <h4 className="text-sm font-medium">Custom Field Values</h4>
+                    {getSelectedCustomFields().map((field) => (
+                      <div key={field.id} className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          {field.name}
+                          {field.required && (
+                            <Badge variant="secondary" className="text-xs">Required</Badge>
+                          )}
+                        </Label>
+                        {field.description && (
+                          <p className="text-xs text-muted-foreground">{field.description}</p>
+                        )}
+                        {renderCustomFieldInput(field)}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
