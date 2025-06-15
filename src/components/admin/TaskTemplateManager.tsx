@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,11 +74,15 @@ const TaskTemplateForm = ({
   const [selectedFields, setSelectedFields] = useState<string[]>(template.includeCustomFields || []);
   const [fieldOrder, setFieldOrder] = useState<string[]>(template.fieldOrder || []);
 
-  // Update local state when template changes (important for editing)
+  // Update local state when template changes - this is crucial for editing
   useEffect(() => {
+    console.log('Template changed:', template);
+    console.log('Template includeCustomFields:', template.includeCustomFields);
+    console.log('Template fieldOrder:', template.fieldOrder);
+    
     setSelectedFields(template.includeCustomFields || []);
     setFieldOrder(template.fieldOrder || []);
-  }, [template.includeCustomFields, template.fieldOrder]);
+  }, [template.id, template.includeCustomFields, template.fieldOrder]); // Added template.id as dependency
 
   const handleFieldToggle = (fieldId: string) => {
     const newSelected = selectedFields.includes(fieldId)
@@ -113,6 +116,12 @@ const TaskTemplateForm = ({
   };
 
   const taskCustomFields = customFields.filter(field => field.applicableTo.includes('tasks'));
+
+  console.log('Rendering TaskTemplateForm with:');
+  console.log('- selectedFields:', selectedFields);
+  console.log('- fieldOrder:', fieldOrder);
+  console.log('- taskCustomFields:', taskCustomFields);
+  console.log('- isEdit:', isEdit);
 
   return (
     <div className="space-y-4">
@@ -440,13 +449,22 @@ export function TaskTemplateManager() {
   };
 
   const handleEdit = (template: TaskTemplate) => {
+    console.log('Starting edit for template:', template);
     setEditingId(template.id);
-    // Properly set the template data for editing
-    setNewTemplate({
-      ...template,
+    
+    // Create a complete template object for editing with all required fields
+    const editTemplate: Partial<TaskTemplate> = {
+      id: template.id,
+      name: template.name,
+      description: template.description,
+      defaultPriority: template.defaultPriority,
+      defaultStatus: template.defaultStatus,
       includeCustomFields: template.includeCustomFields || [],
       fieldOrder: template.fieldOrder || [],
-    });
+    };
+    
+    console.log('Setting edit template:', editTemplate);
+    setNewTemplate(editTemplate);
   };
 
   const handleSaveEdit = async () => {
