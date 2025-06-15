@@ -1,5 +1,5 @@
 
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile } from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatusDefinition } from "@/types";
 import { Session } from "@supabase/supabase-js";
 
 export interface AppContextType {
@@ -20,6 +20,7 @@ export interface AppContextType {
   customFields: any[];
   activeTimeEntry: TimeEntry | null;
   taskLogs: TaskLog[];
+  taskStatuses: TaskStatusDefinition[];
   
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<boolean>;
@@ -65,6 +66,12 @@ export interface AppContextType {
   unlinkTasks: (taskId: string, relatedTaskId: string) => void;
   uploadTaskFile: (taskId: string, file: File) => Promise<string>;
   deleteTaskFile: (taskId: string, fileId: string) => void;
+  
+  // Task Status functions
+  addTaskStatus: (status: Omit<TaskStatusDefinition, 'id'>) => void;
+  updateTaskStatus: (statusId: string, updates: Partial<TaskStatusDefinition>) => void;
+  deleteTaskStatus: (statusId: string) => void;
+  reorderTaskStatuses: (statuses: TaskStatusDefinition[]) => void;
   
   // TimeEntry functions
   addTimeEntry: (timeEntry: Omit<TimeEntry, 'id'>) => void;

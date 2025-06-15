@@ -26,21 +26,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
-interface TaskStatus {
-  id: string;
-  label: string;
-  value: string;
-  color: string;
-}
-
-const defaultStatuses: TaskStatus[] = [
-  { id: "1", label: "Backlog", value: "backlog", color: "bg-gray-500" },
-  { id: "2", label: "To Do", value: "todo", color: "bg-blue-500" },
-  { id: "3", label: "In Progress", value: "in-progress", color: "bg-yellow-500" },
-  { id: "4", label: "Review", value: "review", color: "bg-purple-500" },
-  { id: "5", label: "Done", value: "done", color: "bg-green-500" },
-];
+import { useAppContext } from "@/contexts/AppContext";
+import { TaskStatusDefinition } from "@/types";
 
 const colorOptions = [
   "bg-red-500",
@@ -61,7 +48,14 @@ const colorOptions = [
 ];
 
 export function TaskStatusManager() {
-  const [statuses, setStatuses] = useState<TaskStatus[]>(defaultStatuses);
+  const { 
+    taskStatuses, 
+    addTaskStatus, 
+    updateTaskStatus, 
+    deleteTaskStatus, 
+    reorderTaskStatuses 
+  } = useAppContext();
+  
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [isAdding, setIsAdding] = useState(false);
@@ -71,32 +65,32 @@ export function TaskStatusManager() {
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
-    const items = Array.from(statuses);
+    const items = Array.from(taskStatuses);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    setStatuses(items);
+    // Update order property
+    const reorderedStatuses = items.map((status, index) => ({
+      ...status,
+      order: index
+    }));
+
+    reorderTaskStatuses(reorderedStatuses);
     toast({
       title: "Success",
       description: "Task statuses reordered successfully",
     });
   };
 
-  const handleEdit = (status: TaskStatus) => {
+  const handleEdit = (status: TaskStatusDefinition) => {
     setEditingId(status.id);
     setEditValue(status.label);
   };
 
   const handleSaveEdit = () => {
-    if (!editValue.trim()) return;
+    if (!editValue.trim() || !editingId) return;
     
-    setStatuses(prev => 
-      prev.map(status => 
-        status.id === editingId 
-          ? { ...status, label: editValue.trim() }
-          : status
-      )
-    );
+    updateTaskStatus(editingId, { label: editValue.trim() });
     setEditingId(null);
     setEditValue("");
     toast({
@@ -111,7 +105,18 @@ export function TaskStatusManager() {
   };
 
   const handleDelete = (id: string) => {
-    setStatuses(prev => prev.filter(status => status.id !== id));
+    // Prevent deletion of core statuses
+    const status = taskStatuses.find(s => s.id === id);
+    if (status && ['backlog', 'todo', 'in-progress', 'review', 'done'].includes(status.value)) {
+      toast({
+        title: "Cannot Delete",
+        description: "Core task statuses cannot be deleted",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    deleteTaskStatus(id);
     toast({
       title: "Success",
       description: "Status deleted successfully",
@@ -121,14 +126,14 @@ export function TaskStatusManager() {
   const handleAdd = () => {
     if (!newStatusLabel.trim()) return;
 
-    const newStatus: TaskStatus = {
-      id: Date.now().toString(),
+    const newStatus: Omit<TaskStatusDefinition, 'id'> = {
       label: newStatusLabel.trim(),
       value: newStatusLabel.toLowerCase().replace(/\s+/g, '-'),
       color: "bg-indigo-500",
+      order: taskStatuses.length,
     };
 
-    setStatuses(prev => [...prev, newStatus]);
+    addTaskStatus(newStatus);
     setNewStatusLabel("");
     setIsAdding(false);
     toast({
@@ -138,18 +143,15 @@ export function TaskStatusManager() {
   };
 
   const handleColorChange = (statusId: string, newColor: string) => {
-    setStatuses(prev => 
-      prev.map(status => 
-        status.id === statusId 
-          ? { ...status, color: newColor }
-          : status
-      )
-    );
+    updateTaskStatus(statusId, { color: newColor });
     toast({
       title: "Success",
       description: "Status color updated",
     });
   };
+
+  // Sort statuses by order
+  const sortedStatuses = [...taskStatuses].sort((a, b) => a.order - b.order);
 
   return (
     <Card>
@@ -168,7 +170,7 @@ export function TaskStatusManager() {
                 ref={provided.innerRef}
                 className="space-y-2"
               >
-                {statuses.map((status, index) => (
+                {sortedStatuses.map((status, index) => (
                   <Draggable key={status.id} draggableId={status.id} index={index}>
                     {(provided) => (
                       <div
@@ -249,6 +251,7 @@ export function TaskStatusManager() {
                                 variant="ghost"
                                 onClick={() => handleDelete(status.id)}
                                 className="text-destructive hover:text-destructive"
+                                disabled={['backlog', 'todo', 'in-progress', 'review', 'done'].includes(status.value)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>

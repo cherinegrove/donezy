@@ -114,6 +114,14 @@ export interface Project {
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
 
+export interface TaskStatusDefinition {
+  id: string;
+  label: string;
+  value: string;
+  color: string;
+  order: number;
+}
+
 export interface Comment {
   id: string;
   userId: string;
