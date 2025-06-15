@@ -259,13 +259,10 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       
       case "checkbox":
         return (
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              checked={!!value}
-              onCheckedChange={(checked) => handleCustomFieldValueChange(field.id, checked)}
-            />
-            <Label>{field.description || "Check if applicable"}</Label>
-          </div>
+          <Checkbox
+            checked={!!value}
+            onCheckedChange={(checked) => handleCustomFieldValueChange(field.id, checked)}
+          />
         );
       
       case "date":
@@ -566,14 +563,26 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                 <div className="space-y-4">
                   {templateCustomFields.map((field) => (
                     <div key={field.id} className="space-y-2">
-                      <Label className="flex items-center gap-1">
-                        {field.name}
-                        {field.required && <span className="text-red-500">*</span>}
-                      </Label>
-                      {field.description && (
-                        <p className="text-xs text-muted-foreground">{field.description}</p>
+                      {field.type === "checkbox" ? (
+                        <div className="flex items-center gap-2">
+                          {renderCustomFieldInput(field)}
+                          <Label className="flex items-center gap-1">
+                            {field.name}
+                            {field.required && <span className="text-red-500">*</span>}
+                          </Label>
+                        </div>
+                      ) : (
+                        <>
+                          <Label className="flex items-center gap-1">
+                            {field.name}
+                            {field.required && <span className="text-red-500">*</span>}
+                          </Label>
+                          {field.description && (
+                            <p className="text-xs text-muted-foreground">{field.description}</p>
+                          )}
+                          {renderCustomFieldInput(field)}
+                        </>
                       )}
-                      {renderCustomFieldInput(field)}
                     </div>
                   ))}
                 </div>
@@ -613,14 +622,26 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                     <h4 className="text-sm font-medium">Custom Field Values</h4>
                     {getSelectedCustomFields().map((field) => (
                       <div key={field.id} className="space-y-2">
-                        <Label className="flex items-center gap-1">
-                          {field.name}
-                          {field.required && <span className="text-red-500">*</span>}
-                        </Label>
-                        {field.description && (
-                          <p className="text-xs text-muted-foreground">{field.description}</p>
+                        {field.type === "checkbox" ? (
+                          <div className="flex items-center gap-2">
+                            {renderCustomFieldInput(field)}
+                            <Label className="flex items-center gap-1">
+                              {field.name}
+                              {field.required && <span className="text-red-500">*</span>}
+                            </Label>
+                          </div>
+                        ) : (
+                          <>
+                            <Label className="flex items-center gap-1">
+                              {field.name}
+                              {field.required && <span className="text-red-500">*</span>}
+                            </Label>
+                            {field.description && (
+                              <p className="text-xs text-muted-foreground">{field.description}</p>
+                            )}
+                            {renderCustomFieldInput(field)}
+                          </>
                         )}
-                        {renderCustomFieldInput(field)}
                       </div>
                     ))}
                   </div>
