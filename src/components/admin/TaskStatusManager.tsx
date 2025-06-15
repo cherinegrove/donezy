@@ -156,10 +156,23 @@ export function TaskStatusManager() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Task Status Management</CardTitle>
-        <CardDescription>
-          Manage task statuses for Kanban board. Drag to reorder, click to edit or delete, and customize colors.
-        </CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Task Status Management</CardTitle>
+            <CardDescription>
+              Manage task statuses for Kanban board. Drag to reorder, click to edit or delete, and customize colors.
+            </CardDescription>
+          </div>
+          
+          <Button 
+            onClick={() => setIsAdding(true)} 
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Status
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <DragDropContext onDragEnd={handleDragEnd}>
@@ -268,7 +281,7 @@ export function TaskStatusManager() {
           </Droppable>
         </DragDropContext>
 
-        {isAdding ? (
+        {isAdding && (
           <div className="flex items-center gap-2 p-3 border rounded-lg">
             <Label htmlFor="new-status">New Status:</Label>
             <Input
@@ -285,17 +298,6 @@ export function TaskStatusManager() {
             <Button onClick={handleAdd}>Add</Button>
             <Button variant="outline" onClick={() => setIsAdding(false)}>
               Cancel
-            </Button>
-          </div>
-        ) : (
-          <div className="flex justify-center">
-            <Button 
-              onClick={() => setIsAdding(true)} 
-              variant="outline" 
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add New Status
             </Button>
           </div>
         )}
