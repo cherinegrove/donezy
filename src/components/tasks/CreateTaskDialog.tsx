@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -347,7 +348,7 @@ export function CreateTaskDialog({
                         <FormControl>
                           <StatusSelect 
                             value={field.value} 
-                            onValueChange={field.onChange}
+                            onChange={field.onChange}
                           />
                         </FormControl>
                         <FormMessage />
