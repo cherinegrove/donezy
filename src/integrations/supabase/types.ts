@@ -367,42 +367,39 @@ export type Database = {
         Row: {
           auth_user_id: string
           created_at: string
+          default_priority: string
+          default_status: string
           description: string
-          estimated_hours: number | null
+          field_order: string[] | null
           id: string
+          include_custom_fields: string[] | null
           name: string
-          priority: string
-          status: string
-          tags: string[] | null
-          title: string
           updated_at: string
           usage_count: number
         }
         Insert: {
           auth_user_id: string
           created_at?: string
+          default_priority?: string
+          default_status?: string
           description: string
-          estimated_hours?: number | null
+          field_order?: string[] | null
           id?: string
+          include_custom_fields?: string[] | null
           name: string
-          priority?: string
-          status?: string
-          tags?: string[] | null
-          title: string
           updated_at?: string
           usage_count?: number
         }
         Update: {
           auth_user_id?: string
           created_at?: string
+          default_priority?: string
+          default_status?: string
           description?: string
-          estimated_hours?: number | null
+          field_order?: string[] | null
           id?: string
+          include_custom_fields?: string[] | null
           name?: string
-          priority?: string
-          status?: string
-          tags?: string[] | null
-          title?: string
           updated_at?: string
           usage_count?: number
         }
