@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAppContext } from "@/contexts/AppContext";
@@ -9,6 +8,7 @@ import AdminRoles from "@/components/admin/AdminRoles";
 import { TaskStatusManager } from "@/components/admin/TaskStatusManager";
 import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
+import { TaskTemplateManager } from "@/components/admin/TaskTemplateManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AreaChart, BarChart3, Box, Database, Settings, ShieldAlert, Users, FileText, Plus, CheckSquare, Folder } from "lucide-react";
@@ -194,30 +194,7 @@ export default function Admin() {
                 <AccordionContent className="px-6 pb-6">
                   <div className="space-y-6">
                     <TaskStatusManager />
-                    
-                    {/* Task Templates Management */}
-                    <Card>
-                      <CardHeader>
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <CardTitle className="flex items-center gap-2">
-                              <FileText className="h-5 w-5 text-primary" />
-                              Task Templates
-                            </CardTitle>
-                            <CardDescription>Create and manage task templates for consistent task creation</CardDescription>
-                          </div>
-                          <Button variant="outline" className="flex items-center gap-2">
-                            <Plus className="w-4 h-4" />
-                            Create Task Template
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground">
-                          Task templates help standardize task creation with predefined descriptions, priorities, and settings.
-                        </p>
-                      </CardContent>
-                    </Card>
+                    <TaskTemplateManager />
                   </div>
                 </AccordionContent>
               </AccordionItem>
