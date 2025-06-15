@@ -288,10 +288,16 @@ export function TaskStatusManager() {
             </Button>
           </div>
         ) : (
-          <Button onClick={() => setIsAdding(true)} className="w-full">
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Status
-          </Button>
+          <div className="flex justify-center">
+            <Button 
+              onClick={() => setIsAdding(true)} 
+              variant="outline" 
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add New Status
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>
