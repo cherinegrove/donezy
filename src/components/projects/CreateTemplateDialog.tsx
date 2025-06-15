@@ -71,6 +71,7 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
       tasks: [],
       teamIds: [],
       customFields: data.customFields,
+      createdBy: currentUser.id,
     });
 
     toast({
