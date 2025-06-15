@@ -156,11 +156,9 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId);
     
-    // Reset custom fields when template changes
-    form.setValue("customFields", []);
-    
     if (templateId === "system-default") {
-      // Reset to default values
+      // Reset custom fields when template changes to system default
+      form.setValue("customFields", []);
       return;
     }
 
@@ -171,6 +169,13 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
         const dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + template.defaultDuration);
         form.setValue("dueDate", dueDate);
+      }
+      
+      // Automatically set custom fields from template
+      if (template.customFields && template.customFields.length > 0) {
+        form.setValue("customFields", template.customFields);
+      } else {
+        form.setValue("customFields", []);
       }
     }
   };
@@ -221,6 +226,27 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
   };
 
   const selectedTemplateInfo = getSelectedTemplateInfo();
+
+  // Check if we should show custom fields selection
+  const shouldShowCustomFieldsSelection = () => {
+    if (!selectedTemplate || selectedTemplate === "system-default") {
+      return templateCustomFields.length > 0;
+    }
+    
+    // For non-system templates, only show selection if template has no predefined custom fields
+    const template = projectTemplates.find(t => t.id === selectedTemplate);
+    return template && (!template.customFields || template.customFields.length === 0) && templateCustomFields.length > 0;
+  };
+
+  // Check if we should show custom fields preview (for templates with predefined fields)
+  const shouldShowCustomFieldsPreview = () => {
+    if (!selectedTemplate || selectedTemplate === "system-default") {
+      return false;
+    }
+    
+    const template = projectTemplates.find(t => t.id === selectedTemplate);
+    return template && template.customFields && template.customFields.length > 0;
+  };
 
   if (loadingFields) {
     return (
@@ -396,8 +422,37 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
               />
             </div>
 
-            {/* Custom Fields Selection */}
-            {templateCustomFields.length > 0 && (
+            {/* Custom Fields Preview for templates with predefined fields */}
+            {shouldShowCustomFieldsPreview() && (
+              <div className="space-y-4">
+                <div>
+                  <Label className="flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Template Custom Fields
+                  </Label>
+                  <p className="text-sm text-muted-foreground">These custom fields are included in the selected template</p>
+                </div>
+                
+                <div className="space-y-2">
+                  {templateCustomFields.map((field) => (
+                    <div key={field.id} className="flex items-center space-x-2 p-2 bg-muted/30 rounded">
+                      <div className="flex-1">
+                        <span className="text-sm font-medium">{field.name}</span>
+                        {field.required && (
+                          <Badge variant="secondary" className="ml-2 text-xs">Required</Badge>
+                        )}
+                        {field.description && (
+                          <p className="text-xs text-muted-foreground">{field.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Custom Fields Selection for system default or templates without predefined fields */}
+            {shouldShowCustomFieldsSelection() && (
               <div className="space-y-4">
                 <div>
                   <Label className="flex items-center gap-2">
@@ -427,7 +482,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
               </div>
             )}
 
-            {templateCustomFields.length === 0 && (
+            {customFields.length === 0 && (
               <div className="space-y-4">
                 <div>
                   <Label>Custom Fields</Label>
