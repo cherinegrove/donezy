@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -126,6 +125,8 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       startDate: data.startDate?.toISOString(),
       dueDate: data.dueDate?.toISOString(),
       allocatedHours: data.allocatedHours,
+      status: "todo",
+      usedHours: 0,
       templateId: selectedTemplate !== "system-default" ? selectedTemplate : undefined,
     });
 
