@@ -1,9 +1,8 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { AppContextType } from "./AppContextType";
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatus, TimeEntryStatus } from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatus, TimeEntryStatus, TaskStatusDefinition } from "@/types";
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -25,6 +24,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [customFields, setCustomFields] = useState<any[]>([]);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
   const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
+  const [taskStatuses, setTaskStatuses] = useState<TaskStatusDefinition[]>([
+    { id: '1', label: 'Backlog', value: 'backlog', color: 'bg-gray-500', order: 0 },
+    { id: '2', label: 'To Do', value: 'todo', color: 'bg-blue-500', order: 1 },
+    { id: '3', label: 'In Progress', value: 'in-progress', color: 'bg-yellow-500', order: 2 },
+    { id: '4', label: 'Review', value: 'review', color: 'bg-orange-500', order: 3 },
+    { id: '5', label: 'Done', value: 'done', color: 'bg-green-500', order: 4 },
+  ]);
 
   // Set up auth state listener
   useEffect(() => {
@@ -388,6 +394,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deleteTeam = (teamId: string) => {
     setTeams(prev => prev.filter(team => team.id !== teamId));
+  };
+
+  // Task Status functions
+  const addTaskStatus = (status: Omit<TaskStatusDefinition, 'id'>) => {
+    const newStatus: TaskStatusDefinition = {
+      ...status,
+      id: Math.random().toString(36).substring(2, 15),
+    };
+    setTaskStatuses(prev => [...prev, newStatus]);
+  };
+
+  const updateTaskStatus = (statusId: string, updates: Partial<TaskStatusDefinition>) => {
+    setTaskStatuses(prev => prev.map(status => 
+      status.id === statusId ? { ...status, ...updates } : status
+    ));
+  };
+
+  const deleteTaskStatus = (statusId: string) => {
+    setTaskStatuses(prev => prev.filter(status => status.id !== statusId));
+  };
+
+  const reorderTaskStatuses = (statuses: TaskStatusDefinition[]) => {
+    setTaskStatuses(statuses);
   };
 
   // Task functions
@@ -785,6 +814,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     customFields,
     activeTimeEntry,
     taskLogs,
+    taskStatuses,
     
     login,
     logout,
@@ -830,6 +860,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     unlinkTasks,
     uploadTaskFile,
     deleteTaskFile,
+    
+    // Task Status functions
+    addTaskStatus,
+    updateTaskStatus,
+    deleteTaskStatus,
+    reorderTaskStatuses,
     
     // TimeEntry functions
     addTimeEntry,
