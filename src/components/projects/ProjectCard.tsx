@@ -162,7 +162,7 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
     </>
   );
