@@ -23,7 +23,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CustomField, CustomFieldType } from "@/types";
@@ -103,6 +105,15 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
     }
   };
 
+  const handleFieldToggle = (fieldId: string) => {
+    const currentFields = form.getValues("customFields");
+    const newFields = currentFields.includes(fieldId)
+      ? currentFields.filter(id => id !== fieldId)
+      : [...currentFields, fieldId];
+    
+    form.setValue("customFields", newFields);
+  };
+
   const onSubmit = (data: TemplateFormData) => {
     if (!currentUser) return;
 
@@ -163,6 +174,7 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
                     <Textarea
                       placeholder="Describe this template"
                       className="resize-none"
+                      rows={2}
                       {...field}
                     />
                   </FormControl>
@@ -194,86 +206,51 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
             {loadingFields ? (
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium flex items-center gap-2">
+                  <Label className="flex items-center gap-2">
                     <Settings className="h-4 w-4" />
-                    Custom Fields
-                  </label>
+                    Include Custom Fields
+                  </Label>
                   <p className="text-sm text-muted-foreground">Loading custom fields...</p>
                 </div>
               </div>
             ) : customFields.length > 0 ? (
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium flex items-center gap-2">
+                  <Label className="flex items-center gap-2">
                     <Settings className="h-4 w-4" />
-                    Custom Fields
-                  </label>
+                    Include Custom Fields
+                  </Label>
                   <p className="text-sm text-muted-foreground">Select which custom fields to include in this template</p>
                 </div>
                 
-                <FormField
-                  control={form.control}
-                  name="customFields"
-                  render={() => (
-                    <FormItem>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {customFields.map((field) => (
-                          <FormField
-                            key={field.id}
-                            control={form.control}
-                            name="customFields"
-                            render={({ field: formField }) => {
-                              return (
-                                <FormItem
-                                  key={field.id}
-                                  className="flex flex-row items-start space-x-3 space-y-0"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={formField.value?.includes(field.id)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? formField.onChange([...formField.value, field.id])
-                                          : formField.onChange(
-                                              formField.value?.filter(
-                                                (value) => value !== field.id
-                                              )
-                                            )
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel className="text-sm font-normal">
-                                      {field.name}
-                                      {field.required && <span className="text-red-500 ml-1">*</span>}
-                                    </FormLabel>
-                                    {field.description && (
-                                      <p className="text-xs text-muted-foreground">
-                                        {field.description}
-                                      </p>
-                                    )}
-                                  </div>
-                                </FormItem>
-                              )
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-2">
+                  {customFields.map((field) => (
+                    <div key={field.id} className="flex items-center space-x-2">
+                      <Switch
+                        id={`field-${field.id}`}
+                        checked={form.watch("customFields").includes(field.id)}
+                        onCheckedChange={() => handleFieldToggle(field.id)}
+                      />
+                      <Label htmlFor={`field-${field.id}`} className="flex-1">
+                        {field.name}
+                        {field.required && (
+                          <Badge variant="secondary" className="ml-2 text-xs">Required</Badge>
+                        )}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium flex items-center gap-2">
+                  <Label className="flex items-center gap-2">
                     <Settings className="h-4 w-4" />
                     Custom Fields
-                  </label>
+                  </Label>
                   <p className="text-sm text-muted-foreground">
                     No custom fields created yet that apply to projects. 
-                    Create custom fields in the Admin section first.
+                    Create custom fields in the Custom Fields Manager first.
                   </p>
                 </div>
               </div>
