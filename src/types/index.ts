@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -228,6 +227,7 @@ export interface ProjectTemplate {
   createdAt: string;
   usageCount: number;
   teamIds?: string[];
+  customFields?: string[];
   structure?: {
     name: string;
     description: string;
