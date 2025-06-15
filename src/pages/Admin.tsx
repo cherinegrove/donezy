@@ -11,13 +11,15 @@ import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AreaChart, BarChart3, Box, Database, Settings, ShieldAlert, Users } from "lucide-react";
+import { AreaChart, BarChart3, Box, Database, Settings, ShieldAlert, Users, FileText, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Clients from "@/pages/Clients";
 import { ProjectStatusManager } from "@/components/admin/ProjectStatusManager";
+import { CreateTemplateDialog } from "@/components/projects/CreateTemplateDialog";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
   const { currentUser, users } = useAppContext();
 
   // Only admin should access this page
@@ -181,6 +183,54 @@ export default function Admin() {
             
             <CustomFieldsManager />
             
+            {/* Project Templates Management */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Project Templates
+                    </CardTitle>
+                    <CardDescription>Create and manage project templates for efficient project setup</CardDescription>
+                  </div>
+                  <Button onClick={() => setIsCreateTemplateOpen(true)} className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    Create Project Template
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Project templates allow you to quickly create new projects with predefined tasks, settings, and structure.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Task Templates Management */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Task Templates
+                    </CardTitle>
+                    <CardDescription>Create and manage task templates for consistent task creation</CardDescription>
+                  </div>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    Create Task Template
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Task templates help standardize task creation with predefined descriptions, priorities, and settings.
+                </p>
+              </CardContent>
+            </Card>
+            
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -218,6 +268,11 @@ export default function Admin() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <CreateTemplateDialog 
+        open={isCreateTemplateOpen} 
+        onOpenChange={setIsCreateTemplateOpen} 
+      />
     </div>
   );
 }
