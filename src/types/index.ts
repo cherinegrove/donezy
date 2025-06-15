@@ -122,6 +122,14 @@ export interface TaskStatusDefinition {
   order: number;
 }
 
+export interface ProjectStatusDefinition {
+  id: string;
+  label: string;
+  value: string;
+  color: string;
+  order: number;
+}
+
 export interface Comment {
   id: string;
   userId: string;
