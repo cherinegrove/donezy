@@ -76,6 +76,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setClients([]);
           setProjects([]);
           setTasks([]);
+          setProjectTemplates([]);
         }
       }
     );
@@ -109,9 +110,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         loadClients(),
         loadProjects(),
         loadTasks(),
+        loadProjectTemplates(),
       ]);
     } catch (error) {
       console.error("Error loading user data:", error);
+    }
+  };
+
+  const loadProjectTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('project_templates')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedTemplates: ProjectTemplate[] = (data || []).map(template => ({
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        serviceType: template.service_type as "project" | "bank-hours" | "pay-as-you-go",
+        defaultDuration: template.default_duration,
+        allocatedHours: template.allocated_hours,
+        customFields: template.custom_fields || [],
+        teamIds: template.team_ids || [],
+        tags: template.tags || [],
+        tasks: [], // Templates don't store actual task instances
+        createdBy: template.auth_user_id,
+        createdAt: template.created_at,
+        usageCount: template.usage_count,
+      }));
+
+      setProjectTemplates(formattedTemplates);
+    } catch (error) {
+      console.error("Error loading project templates:", error);
     }
   };
 
@@ -350,6 +383,77 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const getProjectById = (projectId: string): Project | undefined => {
     return projects.find(project => project.id === projectId);
+  };
+
+  // Template functions - Updated to use database
+  const addProjectTemplate = async (template: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => {
+    try {
+      const { error } = await supabase
+        .from('project_templates')
+        .insert({
+          auth_user_id: currentUser?.id,
+          name: template.name,
+          description: template.description,
+          service_type: template.serviceType,
+          default_duration: template.defaultDuration,
+          allocated_hours: template.allocatedHours,
+          custom_fields: template.customFields || [],
+          team_ids: template.teamIds || [],
+          tags: template.tags || [],
+        });
+
+      if (error) throw error;
+
+      // Refresh templates
+      await loadProjectTemplates();
+    } catch (error) {
+      console.error("Error creating project template:", error);
+      throw error;
+    }
+  };
+
+  const updateProjectTemplate = async (templateId: string, updates: Partial<ProjectTemplate>) => {
+    try {
+      const { error } = await supabase
+        .from('project_templates')
+        .update({
+          name: updates.name,
+          description: updates.description,
+          service_type: updates.serviceType,
+          default_duration: updates.defaultDuration,
+          allocated_hours: updates.allocatedHours,
+          custom_fields: updates.customFields,
+          team_ids: updates.teamIds,
+          tags: updates.tags,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', templateId);
+
+      if (error) throw error;
+
+      // Refresh templates
+      await loadProjectTemplates();
+    } catch (error) {
+      console.error("Error updating project template:", error);
+      throw error;
+    }
+  };
+
+  const deleteProjectTemplate = async (templateId: string) => {
+    try {
+      const { error } = await supabase
+        .from('project_templates')
+        .delete()
+        .eq('id', templateId);
+
+      if (error) throw error;
+
+      // Refresh templates
+      await loadProjectTemplates();
+    } catch (error) {
+      console.error("Error deleting project template:", error);
+      throw error;
+    }
   };
 
   // Placeholder implementations for other functions (keeping existing mock behavior for now)
@@ -670,27 +774,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deleteCustomRole = (roleId: string) => {
     setCustomRoles(prev => prev.filter(role => role.id !== roleId));
-  };
-
-  // Template functions
-  const addProjectTemplate = (template: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => {
-    const newTemplate: ProjectTemplate = {
-      ...template,
-      id: Math.random().toString(36).substring(2, 15),
-      createdAt: new Date().toISOString(),
-      usageCount: 0,
-    };
-    setProjectTemplates(prev => [...prev, newTemplate]);
-  };
-
-  const updateProjectTemplate = (templateId: string, updates: Partial<ProjectTemplate>) => {
-    setProjectTemplates(prev => prev.map(template => 
-      template.id === templateId ? { ...template, ...updates } : template
-    ));
-  };
-
-  const deleteProjectTemplate = (templateId: string) => {
-    setProjectTemplates(prev => prev.filter(template => template.id !== templateId));
   };
 
   const convertProjectToTemplate = (projectId: string, templateData: { name: string; description: string }) => {

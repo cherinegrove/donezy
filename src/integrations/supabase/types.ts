@@ -162,6 +162,54 @@ export type Database = {
         }
         Relationships: []
       }
+      project_templates: {
+        Row: {
+          allocated_hours: number
+          auth_user_id: string
+          created_at: string
+          custom_fields: string[] | null
+          default_duration: number
+          description: string
+          id: string
+          name: string
+          service_type: string
+          tags: string[] | null
+          team_ids: string[] | null
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          allocated_hours?: number
+          auth_user_id: string
+          created_at?: string
+          custom_fields?: string[] | null
+          default_duration?: number
+          description: string
+          id?: string
+          name: string
+          service_type?: string
+          tags?: string[] | null
+          team_ids?: string[] | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          allocated_hours?: number
+          auth_user_id?: string
+          created_at?: string
+          custom_fields?: string[] | null
+          default_duration?: number
+          description?: string
+          id?: string
+          name?: string
+          service_type?: string
+          tags?: string[] | null
+          team_ids?: string[] | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           allocated_hours: number | null
@@ -223,6 +271,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      task_templates: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          description: string
+          estimated_hours: number | null
+          id: string
+          name: string
+          priority: string
+          status: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          description: string
+          estimated_hours?: number | null
+          id?: string
+          name: string
+          priority?: string
+          status?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          description?: string
+          estimated_hours?: number | null
+          id?: string
+          name?: string
+          priority?: string
+          status?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
       }
       tasks: {
         Row: {
