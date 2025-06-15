@@ -11,11 +11,12 @@ import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AreaChart, BarChart3, Box, Database, Settings, ShieldAlert, Users, FileText, Plus } from "lucide-react";
+import { AreaChart, BarChart3, Box, Database, Settings, ShieldAlert, Users, FileText, Plus, CheckSquare, Folder } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Clients from "@/pages/Clients";
 import { ProjectStatusManager } from "@/components/admin/ProjectStatusManager";
 import { CreateTemplateDialog } from "@/components/projects/CreateTemplateDialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -177,94 +178,146 @@ export default function Admin() {
 
         <TabsContent value="account-settings" className="space-y-6">
           <div className="space-y-6">
-            <TaskStatusManager />
-            
-            <ProjectStatusManager />
-            
-            <CustomFieldsManager />
-            
-            {/* Project Templates Management */}
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary" />
-                      Project Templates
-                    </CardTitle>
-                    <CardDescription>Create and manage project templates for efficient project setup</CardDescription>
+            <Accordion type="multiple" defaultValue={["task-management", "project-management", "account-settings"]} className="space-y-4">
+              
+              {/* Task Management Section */}
+              <AccordionItem value="task-management" className="border rounded-lg">
+                <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                  <div className="flex items-center gap-3">
+                    <CheckSquare className="h-5 w-5 text-primary" />
+                    <div className="text-left">
+                      <h3 className="font-semibold">Task Management</h3>
+                      <p className="text-sm text-muted-foreground">Configure task statuses, templates, and custom fields</p>
+                    </div>
                   </div>
-                  <Button onClick={() => setIsCreateTemplateOpen(true)} className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Create Project Template
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Project templates allow you to quickly create new projects with predefined tasks, settings, and structure.
-                </p>
-              </CardContent>
-            </Card>
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-6">
+                  <div className="space-y-6">
+                    <TaskStatusManager />
+                    
+                    {/* Task Templates Management */}
+                    <Card>
+                      <CardHeader>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <CardTitle className="flex items-center gap-2">
+                              <FileText className="h-5 w-5 text-primary" />
+                              Task Templates
+                            </CardTitle>
+                            <CardDescription>Create and manage task templates for consistent task creation</CardDescription>
+                          </div>
+                          <Button variant="outline" className="flex items-center gap-2">
+                            <Plus className="w-4 h-4" />
+                            Create Task Template
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground">
+                          Task templates help standardize task creation with predefined descriptions, priorities, and settings.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
 
-            {/* Task Templates Management */}
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary" />
-                      Task Templates
-                    </CardTitle>
-                    <CardDescription>Create and manage task templates for consistent task creation</CardDescription>
-                  </div>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Create Task Template
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Task templates help standardize task creation with predefined descriptions, priorities, and settings.
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-primary" />
-                  Account Settings
-                </CardTitle>
-                <CardDescription>Configure global account settings</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <h3 className="font-medium">Maintenance Mode</h3>
-                    <p className="text-sm text-muted-foreground">When enabled, only administrators can access the system.</p>
-                    <div className="flex items-center justify-end">
-                      <Button variant="outline">Enable Maintenance Mode</Button>
+              {/* Project Management Section */}
+              <AccordionItem value="project-management" className="border rounded-lg">
+                <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                  <div className="flex items-center gap-3">
+                    <Folder className="h-5 w-5 text-primary" />
+                    <div className="text-left">
+                      <h3 className="font-semibold">Project Management</h3>
+                      <p className="text-sm text-muted-foreground">Configure project statuses, templates, and settings</p>
                     </div>
                   </div>
-                  <div className="grid gap-2">
-                    <h3 className="font-medium">Database Backup</h3>
-                    <p className="text-sm text-muted-foreground">Create a full backup of all system data.</p>
-                    <div className="flex items-center justify-end">
-                      <Button variant="outline">Generate Backup</Button>
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-6">
+                  <div className="space-y-6">
+                    <ProjectStatusManager />
+                    
+                    {/* Project Templates Management */}
+                    <Card>
+                      <CardHeader>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <CardTitle className="flex items-center gap-2">
+                              <FileText className="h-5 w-5 text-primary" />
+                              Project Templates
+                            </CardTitle>
+                            <CardDescription>Create and manage project templates for efficient project setup</CardDescription>
+                          </div>
+                          <Button onClick={() => setIsCreateTemplateOpen(true)} className="flex items-center gap-2">
+                            <Plus className="w-4 h-4" />
+                            Create Project Template
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground">
+                          Project templates allow you to quickly create new projects with predefined tasks, settings, and structure.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Account Settings Section */}
+              <AccordionItem value="account-settings" className="border rounded-lg">
+                <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                  <div className="flex items-center gap-3">
+                    <Settings className="h-5 w-5 text-primary" />
+                    <div className="text-left">
+                      <h3 className="font-semibold">Account Settings</h3>
+                      <p className="text-sm text-muted-foreground">Manage custom fields and global system settings</p>
                     </div>
                   </div>
-                  <div className="grid gap-2">
-                    <h3 className="font-medium">System Cache</h3>
-                    <p className="text-sm text-muted-foreground">Clear system cache to resolve potential issues.</p>
-                    <div className="flex items-center justify-end">
-                      <Button variant="outline">Clear Cache</Button>
-                    </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-6">
+                  <div className="space-y-6">
+                    <CustomFieldsManager />
+                    
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Settings className="h-5 w-5 text-primary" />
+                          System Settings
+                        </CardTitle>
+                        <CardDescription>Configure global account settings</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="grid gap-4">
+                          <div className="grid gap-2">
+                            <h3 className="font-medium">Maintenance Mode</h3>
+                            <p className="text-sm text-muted-foreground">When enabled, only administrators can access the system.</p>
+                            <div className="flex items-center justify-end">
+                              <Button variant="outline">Enable Maintenance Mode</Button>
+                            </div>
+                          </div>
+                          <div className="grid gap-2">
+                            <h3 className="font-medium">Database Backup</h3>
+                            <p className="text-sm text-muted-foreground">Create a full backup of all system data.</p>
+                            <div className="flex items-center justify-end">
+                              <Button variant="outline">Generate Backup</Button>
+                            </div>
+                          </div>
+                          <div className="grid gap-2">
+                            <h3 className="font-medium">System Cache</h3>
+                            <p className="text-sm text-muted-foreground">Clear system cache to resolve potential issues.</p>
+                            <div className="flex items-center justify-end">
+                              <Button variant="outline">Clear Cache</Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </AccordionContent>
+              </AccordionItem>
+              
+            </Accordion>
           </div>
         </TabsContent>
       </Tabs>
