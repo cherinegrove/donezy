@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -25,6 +25,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Settings } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { CustomField, CustomFieldType } from "@/types";
 
 const templateSchema = z.object({
   name: z.string().min(1, "Template name is required"),
@@ -41,8 +43,10 @@ interface CreateTemplateDialogProps {
 }
 
 export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialogProps) {
-  const { addProjectTemplate, currentUser, customFields } = useAppContext();
+  const { addProjectTemplate, currentUser } = useAppContext();
   const { toast } = useToast();
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [loadingFields, setLoadingFields] = useState(true);
 
   const form = useForm<TemplateFormData>({
     resolver: zodResolver(templateSchema),
@@ -54,10 +58,50 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
     },
   });
 
-  // Get custom fields that apply to projects
-  const projectCustomFields = customFields.filter(field => 
-    field.applicableTo.includes('projects')
-  );
+  // Fetch custom fields from Supabase
+  useEffect(() => {
+    if (open) {
+      fetchCustomFields();
+    }
+  }, [open]);
+
+  const fetchCustomFields = async () => {
+    try {
+      setLoadingFields(true);
+      const { data, error } = await supabase
+        .from('custom_fields')
+        .select('*')
+        .contains('applicable_to', ['projects'])
+        .order('field_order');
+      
+      if (error) throw error;
+      
+      const fields = data.map(field => ({
+        id: field.id,
+        name: field.name,
+        type: field.type as CustomFieldType,
+        description: field.description,
+        required: field.required,
+        applicableTo: field.applicable_to as ('projects' | 'tasks')[],
+        options: field.options,
+        reportable: field.reportable,
+        order: field.field_order,
+        createdAt: field.created_at,
+        updatedAt: field.updated_at,
+      }));
+      
+      setCustomFields(fields);
+    } catch (error) {
+      console.error('Error fetching custom fields:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load custom fields",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingFields(false);
+    }
+  };
 
   const onSubmit = (data: TemplateFormData) => {
     if (!currentUser) return;
@@ -147,7 +191,17 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
             />
 
             {/* Custom Fields Selection */}
-            {projectCustomFields.length > 0 && (
+            {loadingFields ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Custom Fields
+                  </label>
+                  <p className="text-sm text-muted-foreground">Loading custom fields...</p>
+                </div>
+              </div>
+            ) : customFields.length > 0 ? (
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium flex items-center gap-2">
@@ -163,7 +217,7 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
                   render={() => (
                     <FormItem>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {projectCustomFields.map((field) => (
+                        {customFields.map((field) => (
                           <FormField
                             key={field.id}
                             control={form.control}
@@ -209,6 +263,19 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
                     </FormItem>
                   )}
                 />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Custom Fields
+                  </label>
+                  <p className="text-sm text-muted-foreground">
+                    No custom fields created yet that apply to projects. 
+                    Create custom fields in the Admin section first.
+                  </p>
+                </div>
               </div>
             )}
             

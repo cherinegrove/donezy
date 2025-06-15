@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,8 +18,6 @@ import {
   Edit2, 
   Trash2, 
   GripVertical, 
-  Save, 
-  X,
   Type,
   Calendar,
   ChevronDown,
@@ -43,7 +42,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useAppContext } from "@/contexts/AppContext";
+import { supabase } from "@/integrations/supabase/client";
 import { CustomField, CustomFieldType } from "@/types";
 
 const fieldTypeIcons = {
@@ -195,14 +194,8 @@ const CustomFieldForm = ({
 );
 
 export function CustomFieldsManager() {
-  const { 
-    customFields, 
-    addCustomField, 
-    updateCustomField, 
-    deleteCustomField, 
-    reorderCustomFields 
-  } = useAppContext();
-  
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newField, setNewField] = useState<Partial<CustomField>>({
@@ -217,7 +210,48 @@ export function CustomFieldsManager() {
   const [optionsText, setOptionsText] = useState("");
   const { toast } = useToast();
 
-  const handleDragEnd = (result: DropResult) => {
+  // Fetch custom fields from Supabase
+  useEffect(() => {
+    fetchCustomFields();
+  }, []);
+
+  const fetchCustomFields = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('custom_fields')
+        .select('*')
+        .order('field_order');
+      
+      if (error) throw error;
+      
+      const fields = data.map(field => ({
+        id: field.id,
+        name: field.name,
+        type: field.type as CustomFieldType,
+        description: field.description,
+        required: field.required,
+        applicableTo: field.applicable_to as ('projects' | 'tasks')[],
+        options: field.options,
+        reportable: field.reportable,
+        order: field.field_order,
+        createdAt: field.created_at,
+        updatedAt: field.updated_at,
+      }));
+      
+      setCustomFields(fields);
+    } catch (error) {
+      console.error('Error fetching custom fields:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load custom fields",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
 
     const items = Array.from(customFields);
@@ -229,11 +263,31 @@ export function CustomFieldsManager() {
       order: index
     }));
 
-    reorderCustomFields(reorderedFields);
-    toast({
-      title: "Success",
-      description: "Custom fields reordered successfully",
-    });
+    setCustomFields(reorderedFields);
+
+    try {
+      // Update order in database
+      for (const field of reorderedFields) {
+        await supabase
+          .from('custom_fields')
+          .update({ field_order: field.order })
+          .eq('id', field.id);
+      }
+      
+      toast({
+        title: "Success",
+        description: "Custom fields reordered successfully",
+      });
+    } catch (error) {
+      console.error('Error reordering fields:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reorder custom fields",
+        variant: "destructive"
+      });
+      // Revert on error
+      fetchCustomFields();
+    }
   };
 
   const handleEdit = (field: CustomField) => {
@@ -242,32 +296,55 @@ export function CustomFieldsManager() {
     setOptionsText(field.options?.join('\n') || '');
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingId || !newField.name?.trim()) return;
     
-    const updatedField = {
-      ...newField,
-      options: newField.type === 'dropdown' || newField.type === 'multiselect' 
-        ? optionsText.split('\n').filter(opt => opt.trim()).map(opt => opt.trim())
-        : undefined
-    };
+    try {
+      const updatedField = {
+        name: newField.name,
+        type: newField.type,
+        description: newField.description,
+        required: newField.required,
+        applicable_to: newField.applicableTo,
+        options: newField.type === 'dropdown' || newField.type === 'multiselect' 
+          ? optionsText.split('\n').filter(opt => opt.trim()).map(opt => opt.trim())
+          : null,
+        reportable: newField.reportable,
+        updated_at: new Date().toISOString(),
+      };
 
-    updateCustomField(editingId, updatedField);
-    setEditingId(null);
-    setNewField({
-      name: "",
-      type: "text",
-      description: "",
-      required: false,
-      applicableTo: [],
-      options: [],
-      reportable: true,
-    });
-    setOptionsText("");
-    toast({
-      title: "Success",
-      description: "Custom field updated successfully",
-    });
+      const { error } = await supabase
+        .from('custom_fields')
+        .update(updatedField)
+        .eq('id', editingId);
+
+      if (error) throw error;
+
+      await fetchCustomFields();
+      setEditingId(null);
+      setNewField({
+        name: "",
+        type: "text",
+        description: "",
+        required: false,
+        applicableTo: [],
+        options: [],
+        reportable: true,
+      });
+      setOptionsText("");
+      
+      toast({
+        title: "Success",
+        description: "Custom field updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating field:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update custom field",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCancelEdit = () => {
@@ -284,15 +361,31 @@ export function CustomFieldsManager() {
     setOptionsText("");
   };
 
-  const handleDelete = (id: string) => {
-    deleteCustomField(id);
-    toast({
-      title: "Success",
-      description: "Custom field deleted successfully",
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('custom_fields')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await fetchCustomFields();
+      toast({
+        title: "Success",
+        description: "Custom field deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting field:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete custom field",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newField.name?.trim() || !newField.applicableTo?.length) {
       toast({
         title: "Error",
@@ -302,31 +395,66 @@ export function CustomFieldsManager() {
       return;
     }
 
-    const fieldToCreate = {
-      ...newField,
-      options: newField.type === 'dropdown' || newField.type === 'multiselect' 
-        ? optionsText.split('\n').filter(opt => opt.trim()).map(opt => opt.trim())
-        : undefined,
-      order: customFields.length,
-    } as Omit<CustomField, 'id' | 'createdAt' | 'updatedAt'>;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
 
-    addCustomField(fieldToCreate);
-    setIsCreating(false);
-    setNewField({
-      name: "",
-      type: "text",
-      description: "",
-      required: false,
-      applicableTo: [],
-      options: [],
-      reportable: true,
-    });
-    setOptionsText("");
-    toast({
-      title: "Success",
-      description: "Custom field created successfully",
-    });
+      const fieldToCreate = {
+        auth_user_id: user.id,
+        name: newField.name,
+        type: newField.type,
+        description: newField.description,
+        required: newField.required,
+        applicable_to: newField.applicableTo,
+        options: newField.type === 'dropdown' || newField.type === 'multiselect' 
+          ? optionsText.split('\n').filter(opt => opt.trim()).map(opt => opt.trim())
+          : null,
+        reportable: newField.reportable,
+        field_order: customFields.length,
+      };
+
+      const { error } = await supabase
+        .from('custom_fields')
+        .insert(fieldToCreate);
+
+      if (error) throw error;
+
+      await fetchCustomFields();
+      setIsCreating(false);
+      setNewField({
+        name: "",
+        type: "text",
+        description: "",
+        required: false,
+        applicableTo: [],
+        options: [],
+        reportable: true,
+      });
+      setOptionsText("");
+      
+      toast({
+        title: "Success",
+        description: "Custom field created successfully",
+      });
+    } catch (error) {
+      console.error('Error creating field:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create custom field",
+        variant: "destructive"
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div>Loading custom fields...</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const sortedFields = [...customFields].sort((a, b) => a.order - b.order);
 

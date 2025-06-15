@@ -90,6 +90,54 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_fields: {
+        Row: {
+          applicable_to: string[]
+          auth_user_id: string
+          created_at: string
+          default_value: Json | null
+          description: string | null
+          field_order: number
+          id: string
+          name: string
+          options: string[] | null
+          reportable: boolean
+          required: boolean
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          applicable_to?: string[]
+          auth_user_id: string
+          created_at?: string
+          default_value?: Json | null
+          description?: string | null
+          field_order?: number
+          id?: string
+          name: string
+          options?: string[] | null
+          reportable?: boolean
+          required?: boolean
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          applicable_to?: string[]
+          auth_user_id?: string
+          created_at?: string
+          default_value?: Json | null
+          description?: string | null
+          field_order?: number
+          id?: string
+          name?: string
+          options?: string[] | null
+          reportable?: boolean
+          required?: boolean
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
