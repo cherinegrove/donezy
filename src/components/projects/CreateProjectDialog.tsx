@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -154,6 +153,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
   const templateCustomFields = getTemplateCustomFields();
 
   const handleTemplateSelect = (templateId: string) => {
+    console.log("Selecting template:", templateId);
     setSelectedTemplate(templateId);
     
     if (templateId === "system-default") {
@@ -164,6 +164,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
 
     const template = projectTemplates.find(t => t.id === templateId);
     if (template) {
+      console.log("Found template with custom fields:", template.customFields);
       // Set due date based on default duration
       if (template.defaultDuration) {
         const dueDate = new Date();
@@ -173,6 +174,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       
       // Automatically set custom fields from template
       if (template.customFields && template.customFields.length > 0) {
+        console.log("Setting custom fields from template:", template.customFields);
         form.setValue("customFields", template.customFields);
       } else {
         form.setValue("customFields", []);
@@ -189,30 +191,54 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
     form.setValue("customFields", newFields);
   };
 
-  const onSubmit = (data: ProjectFormData) => {
-    if (!currentUser) return;
+  const onSubmit = async (data: ProjectFormData) => {
+    if (!currentUser) {
+      console.error("No current user found");
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a project",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    const projectId = addProject({
-      name: data.name,
-      description: data.description,
-      clientId: data.clientId,
-      serviceType: "project", // Default service type
-      startDate: data.startDate?.toISOString(),
-      dueDate: data.dueDate?.toISOString(),
-      allocatedHours: 0, // Default allocated hours
-      status: "todo",
-      usedHours: 0,
-      templateId: selectedTemplate !== "system-default" ? selectedTemplate : undefined,
-    });
+    console.log("Creating project with data:", data);
+    console.log("Selected template:", selectedTemplate);
+    console.log("Custom fields:", data.customFields);
 
-    toast({
-      title: "Project created",
-      description: `${data.name} has been created successfully.`,
-    });
+    try {
+      const projectId = addProject({
+        name: data.name,
+        description: data.description,
+        clientId: data.clientId,
+        serviceType: "project", // Default service type
+        startDate: data.startDate?.toISOString(),
+        dueDate: data.dueDate?.toISOString(),
+        allocatedHours: 0, // Default allocated hours
+        status: "todo",
+        usedHours: 0,
+        templateId: selectedTemplate !== "system-default" ? selectedTemplate : undefined,
+        customFieldIds: data.customFields, // Pass the custom field IDs
+      });
 
-    form.reset();
-    setSelectedTemplate("");
-    onOpenChange(false);
+      console.log("Project created with ID:", projectId);
+
+      toast({
+        title: "Project created",
+        description: `${data.name} has been created successfully.`,
+      });
+
+      form.reset();
+      setSelectedTemplate("");
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error creating project:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create project. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getSelectedTemplateInfo = () => {
