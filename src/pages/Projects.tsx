@@ -1,4 +1,3 @@
-
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +16,7 @@ import { TemplatesList } from "@/components/projects/TemplatesList";
 import { RecordActions } from "@/components/common/RecordActions";
 import type { Project } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { CreateProjectTemplateDialog } from "@/components/projects/CreateProjectTemplateDialog";
 
 const Projects = () => {
   console.log("Projects component: Starting render");
@@ -321,7 +321,7 @@ const Projects = () => {
           onOpenChange={setIsCreateDialogOpen}
         />
 
-        <CreateTemplateDialog
+        <CreateProjectTemplateDialog
           open={isCreateTemplateDialogOpen}
           onOpenChange={setIsCreateTemplateDialogOpen}
         />

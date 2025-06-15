@@ -162,6 +162,97 @@ export type Database = {
         }
         Relationships: []
       }
+      project_template_subtasks: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          description: string | null
+          estimated_hours: number | null
+          id: string
+          name: string
+          order_index: number
+          template_task_id: string
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          name: string
+          order_index?: number
+          template_task_id: string
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          name?: string
+          order_index?: number
+          template_task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_template_subtasks_template_task_id_fkey"
+            columns: ["template_task_id"]
+            isOneToOne: false
+            referencedRelation: "project_template_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_template_tasks: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          description: string | null
+          estimated_hours: number | null
+          id: string
+          name: string
+          order_index: number
+          priority: string
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          name: string
+          order_index?: number
+          priority?: string
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          name?: string
+          order_index?: number
+          priority?: string
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_template_tasks_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "project_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_templates: {
         Row: {
           allocated_hours: number
