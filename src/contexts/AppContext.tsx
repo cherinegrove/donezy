@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AppContextType } from './AppContextType';
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, TaskStatusDefinition, ProjectStatusDefinition, CustomField } from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, TaskStatusDefinition, ProjectStatusDefinition, CustomField, TaskStatus, TimeEntryStatus } from "@/types";
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 
@@ -121,7 +121,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         address: client.address || undefined,
         website: client.website || undefined,
         createdAt: client.created_at,
-        status: client.status || 'active'
+        status: (client.status as 'active' | 'inactive') || 'active'
       })) || [];
       
       setClients(convertedClients);
@@ -148,8 +148,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         name: project.name,
         description: project.description,
         clientId: project.client_id,
-        status: project.status,
-        serviceType: project.service_type,
+        status: (project.status as 'todo' | 'in-progress' | 'done') || 'todo',
+        serviceType: (project.service_type as 'project' | 'bank-hours' | 'pay-as-you-go') || 'project',
         startDate: project.start_date || undefined,
         dueDate: project.due_date || undefined,
         allocatedHours: project.allocated_hours || undefined,
@@ -183,8 +183,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         description: task.description || '',
         projectId: task.project_id,
         assigneeId: task.assignee_id || undefined,
-        status: task.status,
-        priority: task.priority,
+        status: (task.status as TaskStatus) || 'backlog',
+        priority: (task.priority as 'low' | 'medium' | 'high') || 'medium',
         startDate: task.start_date || undefined,
         dueDate: task.due_date || undefined,
         estimatedHours: task.estimated_hours || undefined,
@@ -222,7 +222,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         endTime: entry.end_time || undefined,
         duration: entry.duration || 0,
         description: entry.notes || undefined,
-        status: entry.status || 'pending',
+        status: (entry.status as TimeEntryStatus) || 'pending',
         notes: entry.notes || undefined,
         rejectionReason: entry.rejection_reason || undefined
       })) || [];
@@ -538,7 +538,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           address: data.address || undefined,
           website: data.website || undefined,
           createdAt: data.created_at,
-          status: data.status || 'active'
+          status: (data.status as 'active' | 'inactive') || 'active'
         };
         setClients(prev => [...prev, newClient]);
       }
@@ -637,8 +637,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           name: data.name,
           description: data.description,
           clientId: data.client_id,
-          status: data.status,
-          serviceType: data.service_type,
+          status: (data.status as 'todo' | 'in-progress' | 'done') || 'todo',
+          serviceType: (data.service_type as 'project' | 'bank-hours' | 'pay-as-you-go') || 'project',
           startDate: data.start_date || undefined,
           dueDate: data.due_date || undefined,
           allocatedHours: data.allocated_hours || undefined,
@@ -749,8 +749,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           description: data.description || '',
           projectId: data.project_id,
           assigneeId: data.assignee_id || undefined,
-          status: data.status,
-          priority: data.priority,
+          status: (data.status as TaskStatus) || 'backlog',
+          priority: (data.priority as 'low' | 'medium' | 'high') || 'medium',
           startDate: data.start_date || undefined,
           dueDate: data.due_date || undefined,
           estimatedHours: data.estimated_hours || undefined,
@@ -864,7 +864,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           endTime: data.end_time || undefined,
           duration: data.duration || 0,
           description: data.notes || undefined,
-          status: data.status || 'pending',
+          status: (data.status as TimeEntryStatus) || 'pending',
           notes: data.notes || undefined,
           rejectionReason: data.rejection_reason || undefined
         };
@@ -981,7 +981,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const updateTimeEntryStatus = async (timeEntryId: string, status: string, reason?: string) => {
-    const updates: Partial<TimeEntry> = { status };
+    const updates: Partial<TimeEntry> = { status: status as TimeEntryStatus };
     if (reason) {
       updates.rejectionReason = reason;
     }
