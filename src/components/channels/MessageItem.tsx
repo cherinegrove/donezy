@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { 
@@ -10,6 +10,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EllipsisVertical, MessageSquare, Heart, ThumbsUp, Smile, Zap } from "lucide-react";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useAppContext } from "@/contexts/AppContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface MessageItemData {
   id: string;
@@ -22,6 +25,12 @@ interface MessageItemData {
   reply_count?: number;
 }
 
+interface EmojiReaction {
+  emoji: string;
+  count: number;
+  users: string[];
+}
+
 interface MessageItemProps {
   message: MessageItemData;
   onReply: (message: MessageItemData) => void;
@@ -29,9 +38,97 @@ interface MessageItemProps {
 }
 
 export function MessageItem({ message, onReply, formatMessageContent }: MessageItemProps) {
-  const handleEmojiReact = (emoji: string) => {
-    // TODO: Implement emoji reactions
-    console.log(`Reacting with ${emoji} to message ${message.id}`);
+  const { currentUser, session } = useAppContext();
+  const { toast } = useToast();
+  const [reactions, setReactions] = useState<EmojiReaction[]>([]);
+
+  useEffect(() => {
+    fetchReactions();
+  }, [message.id]);
+
+  const fetchReactions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('message_reactions')
+        .select('emoji, user_id')
+        .eq('message_id', message.id);
+
+      if (error) throw error;
+
+      // Group reactions by emoji
+      const reactionGroups: { [key: string]: EmojiReaction } = {};
+      
+      data?.forEach(reaction => {
+        if (!reactionGroups[reaction.emoji]) {
+          reactionGroups[reaction.emoji] = {
+            emoji: reaction.emoji,
+            count: 0,
+            users: []
+          };
+        }
+        reactionGroups[reaction.emoji].count++;
+        reactionGroups[reaction.emoji].users.push(reaction.user_id);
+      });
+
+      setReactions(Object.values(reactionGroups));
+    } catch (error) {
+      console.error('Error fetching reactions:', error);
+    }
+  };
+
+  const handleEmojiReact = async (emoji: string) => {
+    if (!currentUser || !session?.user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to react to messages",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Check if user already reacted with this emoji
+      const existingReaction = reactions.find(r => 
+        r.emoji === emoji && r.users.includes(currentUser.id)
+      );
+
+      if (existingReaction) {
+        // Remove reaction
+        const { error } = await supabase
+          .from('message_reactions')
+          .delete()
+          .eq('message_id', message.id)
+          .eq('user_id', currentUser.id)
+          .eq('emoji', emoji);
+
+        if (error) throw error;
+      } else {
+        // Add reaction
+        const { error } = await supabase
+          .from('message_reactions')
+          .insert({
+            message_id: message.id,
+            user_id: currentUser.id,
+            emoji: emoji
+          });
+
+        if (error) throw error;
+      }
+
+      // Refresh reactions
+      fetchReactions();
+    } catch (error) {
+      console.error('Error handling emoji reaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add reaction",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const toggleReaction = (emoji: string) => {
+    handleEmojiReact(emoji);
   };
 
   return (
@@ -57,6 +154,27 @@ export function MessageItem({ message, onReply, formatMessageContent }: MessageI
             __html: formatMessageContent(message.content, message.mentioned_users || [])
           }}
         />
+
+        {/* Emoji reactions display */}
+        {reactions.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {reactions.map(reaction => (
+              <Button
+                key={reaction.emoji}
+                variant="outline"
+                size="sm"
+                className={`h-6 px-2 text-xs ${
+                  currentUser && reaction.users.includes(currentUser.id) 
+                    ? 'bg-primary/20 border-primary' 
+                    : ''
+                }`}
+                onClick={() => toggleReaction(reaction.emoji)}
+              >
+                {reaction.emoji} {reaction.count}
+              </Button>
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           {message.reply_count && message.reply_count > 0 && (
