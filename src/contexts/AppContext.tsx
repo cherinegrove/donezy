@@ -202,7 +202,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         actualHours: task.actual_hours || undefined,
         createdAt: task.created_at,
         watcherIds: task.watcher_ids || [],
-        comments: task.comments || []
+        comments: task.comments || [],
+        collaboratorIds: task.collaborator_ids || []
       })) || [];
       
       setTasks(convertedTasks);
@@ -762,7 +763,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           estimated_hours: task.estimatedHours,
           actual_hours: task.actualHours,
           watcher_ids: task.watcherIds || [],
-          comments: task.comments || []
+          collaborator_ids: task.collaboratorIds || [],
+          comments: []
         })
         .select()
         .single();
@@ -786,7 +788,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           actualHours: data.actual_hours || undefined,
           createdAt: data.created_at,
           watcherIds: data.watcher_ids || [],
-          comments: data.comments || []
+          comments: [],
+          collaboratorIds: data.collaborator_ids || []
         };
         setTasks(prev => [...prev, newTask]);
       }
@@ -1305,9 +1308,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const addMessage = (message: Omit<Message, 'id'>) => {
     const newMessage: Message = {
       ...message,
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toISOString(),
-      read: false
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     };
     
     setMessages(prev => [...prev, newMessage]);
@@ -1324,24 +1325,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const sendMessage = (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
-    addMessage(message);
+    addMessage({
+      ...message,
+      timestamp: new Date().toISOString(),
+      read: false
+    });
   };
 
   const createMessage = (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
-    const newMessage: Message = {
+    addMessage({
       ...message,
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      senderId: message.senderId,
-      recipientIds: message.recipientIds,
-      content: message.content,
       timestamp: new Date().toISOString(),
-      read: false,
-      commentId: message.commentId,
-      taskId: message.taskId,
-      projectId: message.projectId
-    };
-    
-    setMessages(prev => [...prev, newMessage]);
+      read: false
+    });
   };
 
   const markMessageAsRead = (messageId: string) => {
