@@ -25,42 +25,42 @@ const themes: ColorScheme[] = [
     name: "Default",
     primary: "#8B5CF6",
     secondary: "#D946EF",
-    accent: "#F97316",
+    accent: "#8E44AD",
     background: "#FFFFFF"
   },
   {
     name: "Ocean",
     primary: "#0EA5E9",
     secondary: "#38BDF8",
-    accent: "#22D3EE",
+    accent: "#8E44AD",
     background: "#F0F9FF"
   },
   {
     name: "Forest",
     primary: "#10B981",
     secondary: "#34D399",
-    accent: "#4ADE80",
+    accent: "#8E44AD",
     background: "#ECFDF5"
   },
   {
     name: "Sunset",
     primary: "#F97316",
     secondary: "#FB923C",
-    accent: "#FDBA74",
+    accent: "#8E44AD",
     background: "#FFF7ED"
   },
   {
     name: "Berry",
     primary: "#D946EF",
     secondary: "#E879F9",
-    accent: "#F0ABFC",
+    accent: "#8E44AD",
     background: "#FAF5FF"
   },
   {
     name: "Dark Mode",
     primary: "#9333EA",
     secondary: "#A855F7",
-    accent: "#D8B4FE",
+    accent: "#8E44AD",
     background: "#1E1E1E"
   }
 ];
@@ -71,7 +71,7 @@ export function ThemeSettings({ userId }: ThemeSettingsProps) {
   const [customColors, setCustomColors] = useState({
     primary: "#8B5CF6",
     secondary: "#D946EF",
-    accent: "#F97316",
+    accent: "#8E44AD",
     background: "#FFFFFF"
   });
   const [useCustomColors, setUseCustomColors] = useState(false);
