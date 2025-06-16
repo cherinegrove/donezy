@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,7 +28,7 @@ import Admin from "./pages/Admin";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 
-// Protected route component - simplified and faster
+// Simplified Protected route component
 const ProtectedRoute = ({ 
   element, 
   allowedRoles = ['admin', 'manager', 'developer', 'client']
@@ -35,51 +36,38 @@ const ProtectedRoute = ({
   element: React.ReactNode;
   allowedRoles?: Array<'admin' | 'manager' | 'developer' | 'client'>;
 }) => {
-  const { currentUser } = useAppContext();
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    let mounted = true;
-    
-    // Quick session check
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (mounted) {
-          setSession(session);
-          setLoading(false);
-        }
+        setSession(session);
       } catch (error) {
         console.error("Session check error:", error);
-        if (mounted) {
-          setSession(null);
-          setLoading(false);
-        }
+        setSession(null);
+      } finally {
+        setLoading(false);
       }
     };
 
     checkSession();
     
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (mounted) {
-        setSession(session);
-        setLoading(false);
-      }
+      setSession(session);
+      setLoading(false);
     });
 
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
   
-  // Show minimal loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -88,44 +76,33 @@ const ProtectedRoute = ({
     return <Navigate to="/login" replace />;
   }
   
-  // Allow access if user is logged in, regardless of currentUser state for now
   return <>{element}</>;
 };
 
-// Public route component - simplified and faster
+// Simplified Public route component
 const PublicRoute = ({ element }: { element: React.ReactNode }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    let mounted = true;
-    
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (mounted) {
-          setSession(session);
-          setLoading(false);
-        }
+        setSession(session);
       } catch (error) {
-        if (mounted) {
-          setSession(null);
-          setLoading(false);
-        }
+        setSession(null);
+      } finally {
+        setLoading(false);
       }
     };
 
     checkSession();
-    
-    return () => {
-      mounted = false;
-    };
   }, []);
   
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -137,7 +114,47 @@ const PublicRoute = ({ element }: { element: React.ReactNode }) => {
   return <>{element}</>;
 };
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+// Error boundary component
+const ErrorBoundary = ({ children }: { children: React.ReactNode }) => {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    const handleError = (error: ErrorEvent) => {
+      console.error('Global error caught:', error);
+      setHasError(true);
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  if (hasError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-primary text-white rounded"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
 
 // The AppRoutes component needs to be inside the AppProvider
 const AppRoutes = () => {
@@ -152,15 +169,10 @@ const AppRoutes = () => {
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
         <Route index element={<Dashboard />} />
-        
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:projectId" element={<ProjectDetails />} />
-        
         <Route path="/tasks" element={<Tasks />} />
-        
         <Route path="/notes" element={<Notes />} />
-        
-        {/* Client routes are restricted for client users */}
         <Route 
           path="/clients" 
           element={
@@ -170,10 +182,7 @@ const AppRoutes = () => {
             />
           } 
         />
-        
         <Route path="/clients/:clientId" element={<ClientDetails />} />
-        
-        {/* Team management */}
         <Route 
           path="/team" 
           element={
@@ -183,17 +192,11 @@ const AppRoutes = () => {
             />
           } 
         />
-        
         <Route path="/time" element={<TimeTracking />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/messages/:messageId" element={<Messages />} />
-        
-        {/* Reports available to all but with different views */}
         <Route path="/reports" element={<Reports />} />
-        
         <Route path="/settings" element={<Settings />} />
-        
-        {/* Admin section - only accessible by admins */}
         <Route 
           path="/admin" 
           element={
@@ -203,25 +206,28 @@ const AppRoutes = () => {
             />
           } 
         />
-        
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter>
-        <AppProvider>
-          <Toaster />
-          <Sonner />
-          <AppRoutes />
-        </AppProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <BrowserRouter>
+            <AppProvider>
+              <Toaster />
+              <Sonner />
+              <AppRoutes />
+            </AppProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+};
 
 export default App;
