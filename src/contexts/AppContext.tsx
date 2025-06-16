@@ -81,9 +81,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Data loading functions
   const loadUsers = async () => {
-    if (!session?.user) return;
+    if (!session?.user) {
+      console.log('No session available for loading users');
+      return;
+    }
     
     try {
+      console.log('Loading users with session:', session.user.id);
       const { data, error } = await supabase
         .from('users')
         .select('*');
@@ -93,8 +97,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
       
+      console.log('Users loaded successfully:', data?.length || 0);
       const convertedUsers = data?.map(convertDbUserToUser) || [];
       setUsers(convertedUsers);
+      
+      // Set current user based on session email
+      const sessionUser = convertedUsers.find(u => u.email === session.user.email);
+      if (sessionUser) {
+        console.log('Current user found:', sessionUser.name);
+        setCurrentUser(sessionUser);
+      }
     } catch (error) {
       console.error('Error loading users:', error);
     }
@@ -294,42 +306,60 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Load all data when session is available
   useEffect(() => {
     if (session?.user) {
-      loadUsers();
-      loadClients();
-      loadProjects();
-      loadTasks();
-      loadTimeEntries();
-      loadTeams();
-      loadNotes();
+      console.log('Session available, loading data...');
+      // Use setTimeout to prevent potential auth deadlocks
+      setTimeout(() => {
+        loadUsers();
+        loadClients();
+        loadProjects();
+        loadTasks();
+        loadTimeEntries();
+        loadTeams();
+        loadNotes();
+      }, 100);
     }
   }, [session]);
 
-  // Authentication
+  // Authentication setup with better session handling
   useEffect(() => {
+    console.log('Setting up auth listener');
+    
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        // Try to find current user in users table
-        const userFromUsers = users.find(u => u.email === session.user.email);
-        setCurrentUser(userFromUsers || null);
-      }
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      console.log('Initial session:', initialSession?.user?.email || 'No session');
+      setSession(initialSession);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      if (session?.user) {
-        // Try to find current user in users table
-        const userFromUsers = users.find(u => u.email === session.user.email);
-        setCurrentUser(userFromUsers || null);
-      } else {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      console.log('Auth state changed:', event, newSession?.user?.email || 'No session');
+      setSession(newSession);
+      
+      if (event === 'SIGNED_OUT') {
+        // Clear all state on sign out
         setCurrentUser(null);
+        setUsers([]);
+        setTeams([]);
+        setClients([]);
+        setProjects([]);
+        setTasks([]);
+        setTimeEntries([]);
+        setMessages([]);
+        setPurchases([]);
+        setProjectTemplates([]);
+        setCustomRoles([]);
+        setComments([]);
+        setNotes([]);
+        setCustomFields([]);
+        setActiveTimeEntry(null);
+        setTaskLogs([]);
+        setTaskStatuses([]);
+        setProjectStatuses([]);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [users]);
+  }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -1495,3 +1525,5 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     </AppContext.Provider>
   );
 };
+
+export default AppProvider;

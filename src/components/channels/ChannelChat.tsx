@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -32,7 +31,7 @@ interface ChannelChatProps {
 }
 
 export function ChannelChat({ channelId }: ChannelChatProps) {
-  const { users, currentUser } = useAppContext();
+  const { users, currentUser, session } = useAppContext();
   const [channel, setChannel] = useState<Channel | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +39,10 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
 
   useEffect(() => {
     console.log('ChannelChat loading for channel:', channelId);
+    console.log('Current session:', session?.user?.email || 'No session');
+    console.log('Current user:', currentUser?.name || 'No user');
+    console.log('Users available:', users.length);
+    
     fetchChannelInfo();
     fetchMessages();
 
@@ -73,7 +76,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
 
   const fetchChannelInfo = async () => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('channels')
         .select('*')
         .eq('id', channelId)
@@ -90,6 +93,8 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
   const fetchMessages = async () => {
     try {
       console.log('Fetching messages for channel:', channelId);
+      console.log('Session user ID:', session?.user?.id);
+      
       const { data, error } = await supabase
         .from('messages')
         .select('*')
@@ -146,25 +151,35 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
   };
 
   const handleSendMessage = async (content: string, mentionedUsers: string[]) => {
-    if (!currentUser) {
-      console.error('No current user found');
+    if (!currentUser || !session?.user) {
+      console.error('No current user or session found');
       return;
     }
 
-    console.log('Sending message:', { content, mentionedUsers, channelId, userId: currentUser.id });
+    console.log('Sending message:', { 
+      content, 
+      mentionedUsers, 
+      channelId, 
+      userId: currentUser.id,
+      sessionUserId: session.user.id 
+    });
 
     try {
+      const messageData = {
+        channel_id: channelId,
+        from_user_id: currentUser.id,
+        to_user_id: currentUser.id, // For channel messages, set this to the sender's ID
+        subject: 'Channel Message',
+        content,
+        mentioned_users: mentionedUsers,
+        auth_user_id: session.user.id, // Use the actual auth user ID
+      };
+      
+      console.log('Inserting message with data:', messageData);
+
       const { error } = await supabase
         .from('messages')
-        .insert({
-          channel_id: channelId,
-          from_user_id: currentUser.id,
-          to_user_id: currentUser.id, // For channel messages, set this to the sender's ID
-          subject: 'Channel Message',
-          content,
-          mentioned_users: mentionedUsers,
-          auth_user_id: currentUser.id,
-        });
+        .insert(messageData);
 
       if (error) {
         console.error('Error sending message:', error);
@@ -195,7 +210,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
             mentioned_user_id: userId,
           }));
 
-          await (supabase as any).from('mentions').insert(mentions);
+          await supabase.from('mentions').insert(mentions);
         }
       }
     } catch (error) {
