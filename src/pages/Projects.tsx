@@ -21,7 +21,7 @@ import { CreateProjectTemplateDialog } from "@/components/projects/CreateProject
 const Projects = () => {
   console.log("Projects component: Starting render");
   
-  const { projects, tasks, clients, teams } = useAppContext();
+  const { projects, tasks, clients, teams, deleteProject } = useAppContext();
   console.log("Projects component: Context data", { 
     projectsCount: projects?.length || 0, 
     tasksCount: tasks?.length || 0, 
@@ -173,6 +173,25 @@ const Projects = () => {
     navigate(`/projects/${projectId}`);
   };
 
+  const handleDeleteProject = (projectId: string) => {
+    console.log("Projects component: Delete project", projectId);
+    const projectToDelete = projects.find(p => p.id === projectId);
+    if (projectToDelete) {
+      deleteProject(projectId);
+      toast({
+        title: "Project deleted",
+        description: `Project "${projectToDelete.name}" has been successfully deleted.`,
+      });
+    } else {
+      console.error("Projects component: Project not found for deletion", projectId);
+      toast({
+        title: "Error",
+        description: "Project not found. Please refresh the page and try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   console.log("Projects component: About to render JSX");
 
   try {
@@ -238,8 +257,7 @@ const Projects = () => {
                           recordType="Project"
                           recordName={project.name}
                           onEdit={() => handleEditProject(project.id)}
-                          onDelete={() => {}}
-                          disableDelete={true}
+                          onDelete={() => handleDeleteProject(project.id)}
                           disableDuplicate={true}
                         />
                       </div>
