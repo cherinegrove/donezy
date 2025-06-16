@@ -45,7 +45,11 @@ export default function Notes() {
           )}
         </div>
         {!showArchived && (
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <Button 
+            variant="default"
+            onClick={() => setCreateDialogOpen(true)}
+            className="bg-[var(--button-primary-color)] text-[var(--button-text-color)] hover:opacity-90"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Create Note
           </Button>
