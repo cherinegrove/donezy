@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -240,6 +241,55 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
                 </FormItem>
               )}
             />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="billableRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Billable Rate (per hour)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="100" 
+                        step="0.01"
+                        min="0"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="currency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Currency</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select currency" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="EUR">EUR</SelectItem>
+                        <SelectItem value="GBP">GBP</SelectItem>
+                        <SelectItem value="AUD">AUD</SelectItem>
+                        <SelectItem value="CAD">CAD</SelectItem>
+                        <SelectItem value="ZAR">ZAR</SelectItem>
+                        <SelectItem value="JPY">JPY</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             <FormField
               control={form.control}
