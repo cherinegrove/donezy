@@ -52,6 +52,8 @@ export default function Clients() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
+  console.log("Clients page rendering with clients:", clients);
+
   const filteredClients = clients.filter((client) => {
     const searchRegex = new RegExp(searchTerm, "i");
     const nameMatch = searchRegex.test(client.name);
@@ -66,13 +68,14 @@ export default function Clients() {
   });
 
   const handleDeleteClient = (client: Client) => {
+    console.log("Opening delete dialog for client:", client);
     setClientToDelete(client);
     setDeleteDialogOpen(true);
   };
 
   const confirmDelete = () => {
     if (clientToDelete) {
-      console.log("Deleting client:", clientToDelete.id);
+      console.log("Confirming deletion of client:", clientToDelete.id);
       deleteClient(clientToDelete.id);
       toast({
         title: "Client deleted",
@@ -81,6 +84,12 @@ export default function Clients() {
       setDeleteDialogOpen(false);
       setClientToDelete(null);
     }
+  };
+
+  const cancelDelete = () => {
+    console.log("Cancelling delete operation");
+    setDeleteDialogOpen(false);
+    setClientToDelete(null);
   };
 
   return (
@@ -195,7 +204,7 @@ export default function Clients() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+            <AlertDialogCancel onClick={cancelDelete}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">

@@ -109,9 +109,10 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
 
       console.log("Client created successfully:", clientData);
       
-      // Add client to context state
+      // Add client to context state with the correct ID from Supabase
       if (addClient && clientData) {
-        addClient({
+        const newClient = {
+          id: clientData.id, // Use the ID from Supabase
           name: clientData.name,
           email: clientData.email,
           phone: clientData.phone || "",
@@ -122,7 +123,10 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
           billableRate: data.billableRate || 0,
           currency: data.currency || "USD",
           createdAt: clientData.created_at,
-        });
+        };
+        
+        console.log("Adding client to context:", newClient);
+        addClient(newClient);
       }
       
       toast({
