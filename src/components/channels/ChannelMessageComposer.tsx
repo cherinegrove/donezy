@@ -5,7 +5,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Send } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 import { MentionDropdown } from "../messages/MentionDropdown";
-import { getCaretCoordinates } from "@/utils/textUtils";
 import { User } from "@/types";
 
 interface ChannelMessageComposerProps {
@@ -41,6 +40,19 @@ export function ChannelMessageComposer({
     }
   };
 
+  const calculateMentionPosition = () => {
+    if (!textareaRef.current) return { top: 0, left: 0 };
+    
+    const textarea = textareaRef.current;
+    const rect = textarea.getBoundingClientRect();
+    
+    // Position dropdown above the textarea
+    return {
+      top: -250, // Position above the textarea
+      left: 0
+    };
+  };
+
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
     setContent(text);
@@ -56,18 +68,11 @@ export function ChannelMessageComposer({
       if (atIndex !== -1 && (atIndex === 0 || /\s/.test(textBeforeCursor[atIndex - 1]))) {
         const query = textBeforeCursor.substring(atIndex + 1);
         
-        if (!query.includes(' ')) {
+        // Only show mentions if there's no space after @ and query is reasonable length
+        if (!query.includes(' ') && query.length <= 20) {
           setMentionQuery(query);
           setMentionOpen(true);
-          
-          if (textareaRef.current) {
-            const cursorCoords = getCaretCoordinates(textareaRef.current, atIndex);
-            setMentionPosition({
-              top: cursorCoords.top - 200, // Position above the textarea
-              left: cursorCoords.left
-            });
-          }
-          
+          setMentionPosition(calculateMentionPosition());
           return;
         }
       }
@@ -109,6 +114,7 @@ export function ChannelMessageComposer({
     }
     
     setMentionOpen(false);
+    setMentionQuery("");
   };
 
   const otherUsers = users.filter(user => user.id !== currentUser?.id);
