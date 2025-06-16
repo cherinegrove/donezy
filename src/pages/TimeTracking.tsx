@@ -1,7 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { format, startOfMonth, endOfMonth, differenceInDays, isWithinInterval, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -72,17 +72,6 @@ const TimeTracking = () => {
     to: undefined
   });
 
-  // Add debugging logs to understand what's happening with time entries
-  useEffect(() => {
-    console.log('🔍 TimeTracking Debug - All time entries:', timeEntries);
-    console.log('🔍 TimeTracking Debug - Time entries length:', timeEntries.length);
-    console.log('🔍 TimeTracking Debug - Active time entry:', activeTimeEntry);
-    console.log('🔍 TimeTracking Debug - Current user:', currentUser);
-    console.log('🔍 TimeTracking Debug - Tasks:', tasks);
-    console.log('🔍 TimeTracking Debug - Projects:', projects);
-    console.log('🔍 TimeTracking Debug - Clients:', clients);
-  }, [timeEntries, activeTimeEntry, currentUser, tasks, projects, clients]);
-
   // Update current time every second for active timer display
   useEffect(() => {
     const timer = setInterval(() => {
@@ -122,19 +111,13 @@ const TimeTracking = () => {
   
   // Filter time entries based on selected filters and date range
   const filteredTimeEntries = timeEntries.filter(entry => {
-    console.log('🔍 Filtering entry:', entry);
-    
     // Get task and project (but don't filter out if missing)
     const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
     const project = task ? projects.find(p => p.id === task.projectId) : 
                    (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
     
-    console.log('🔍 Found task:', task);
-    console.log('🔍 Found project:', project);
-    
     // Check user filter
     if (selectedFilters.user?.length > 0 && !selectedFilters.user.includes(entry.userId)) {
-      console.log('❌ User filter failed:', entry.userId, selectedFilters.user);
       return false;
     }
     
@@ -142,7 +125,6 @@ const TimeTracking = () => {
     if (selectedFilters.project?.length > 0) {
       const entryProjectId = task?.projectId || entry.projectId;
       if (!entryProjectId || !selectedFilters.project.includes(entryProjectId)) {
-        console.log('❌ Project filter failed:', entryProjectId, selectedFilters.project);
         return false;
       }
     }
@@ -151,7 +133,6 @@ const TimeTracking = () => {
     if (selectedFilters.client?.length > 0) {
       const entryClientId = project?.clientId || entry.clientId;
       if (!entryClientId || !selectedFilters.client.includes(entryClientId)) {
-        console.log('❌ Client filter failed:', entryClientId, selectedFilters.client);
         return false;
       }
     }
@@ -163,35 +144,26 @@ const TimeTracking = () => {
       if (dateRange.from && dateRange.to) {
         const inRange = isWithinInterval(entryDate, { start: dateRange.from, end: dateRange.to });
         if (!inRange) {
-          console.log('❌ Date range filter failed:', entryDate, dateRange);
           return false;
         }
       } else if (dateRange.from) {
         if (entryDate < dateRange.from) {
-          console.log('❌ Start date filter failed:', entryDate, dateRange.from);
           return false;
         }
       } else if (dateRange.to) {
         if (entryDate > dateRange.to) {
-          console.log('❌ End date filter failed:', entryDate, dateRange.to);
           return false;
         }
       }
     }
     
-    console.log('✅ Entry passed filters:', entry);
     return true;
   });
-
-  console.log('🔍 Filtered time entries:', filteredTimeEntries);
-  console.log('🔍 Filtered time entries length:', filteredTimeEntries.length);
   
   // Get unique dates from filtered time entries
   const dates = [...new Set(filteredTimeEntries.map(entry => 
     format(new Date(entry.startTime), "yyyy-MM-dd")
   ))].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-  
-  console.log('🔍 Unique dates:', dates);
   
   // Group filtered time entries by date
   const entriesByDate = dates.reduce((acc, date) => {
@@ -201,16 +173,11 @@ const TimeTracking = () => {
     return acc;
   }, {} as Record<string, typeof filteredTimeEntries>);
 
-  console.log('🔍 Entries by date:', entriesByDate);
-
   // Get active timer with live elapsed time calculation
   const getActiveTimer = () => {
     if (!activeTimeEntry) {
-      console.log('No active time entry found');
       return null;
     }
-    
-    console.log('Active time entry found:', activeTimeEntry);
     
     const task = tasks.find(t => t.id === activeTimeEntry.taskId);
     const project = task ? projects.find(p => p.id === task.projectId) : undefined;
@@ -240,7 +207,7 @@ const TimeTracking = () => {
     return entries.reduce((total, entry) => total + entry.duration, 0);
   };
   
-  // Active timers and recent tasks for the Active tab
+  // Active timer for the Active tab
   const activeTimer = getActiveTimer();
   
   // Generate monthly report data grouped by client
@@ -424,30 +391,6 @@ const TimeTracking = () => {
     }
   };
 
-  // Get recently active tasks (tasks with time entries in the last week)
-  const getRecentlyActiveTasks = () => {
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    
-    const recentEntries = timeEntries
-      .filter(entry => new Date(entry.startTime) > weekAgo)
-      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-      
-    const recentTaskIds = [...new Set(recentEntries.map(e => e.taskId))];
-    
-    return recentTaskIds.slice(0, 5).map(taskId => {
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) return null;
-      
-      const project = projects.find(p => p.id === task.projectId);
-      const client = project ? clients.find(c => c.id === project.clientId) : undefined;
-      
-      return { task, project, client };
-    }).filter(Boolean);
-  };
-
-  const recentlyActiveTasks = getRecentlyActiveTasks();
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -510,40 +453,6 @@ const TimeTracking = () => {
                       <p className="text-sm">Start a timer from a task or project to track your time</p>
                     </div>
                   )}
-                  
-                  <div className="mt-6 border-t pt-4">
-                    <h3 className="text-sm font-medium mb-3">Recently Active Tasks</h3>
-                    {recentlyActiveTasks.length > 0 ? (
-                      <div className="space-y-2">
-                        {recentlyActiveTasks.map(item => item && (
-                          <div 
-                            key={item.task.id} 
-                            className="flex justify-between items-center p-3 bg-muted/20 rounded-md"
-                          >
-                            <div>
-                              <h3 className="font-medium">{item.task.title}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                {item.project?.name}
-                              </p>
-                            </div>
-                            <Button 
-                              variant="outline"
-                              onClick={() => startTimeTracking(item.task.id)}
-                              className="border-primary/20 bg-primary/10 hover:bg-primary/20"
-                              disabled={!!activeTimeEntry}
-                            >
-                              <Play className="h-3 w-3 mr-1" />
-                              Track
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-center py-4 text-muted-foreground text-sm">
-                        No recently active tasks
-                      </p>
-                    )}
-                  </div>
                 </div>
               </CardContent>
             </Card>
