@@ -458,19 +458,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const stopTimeTracking = (notes?: string) => {
-    if (!activeTimeEntry) return;
+    console.log('stopTimeTracking called with notes:', notes);
+    console.log('Current activeTimeEntry:', activeTimeEntry);
+    
+    if (!activeTimeEntry) {
+      console.log('No active time entry to stop');
+      return;
+    }
 
     const endTime = new Date().toISOString();
     const startTime = new Date(activeTimeEntry.startTime);
-    const duration = Math.round((new Date().getTime() - startTime.getTime()) / 60000); // in minutes
+    const endTimeDate = new Date(endTime);
+    const durationInMinutes = Math.floor((endTimeDate.getTime() - startTime.getTime()) / (1000 * 60));
+    
+    console.log('Calculated duration:', durationInMinutes, 'minutes');
 
-    updateTimeEntry(activeTimeEntry.id, {
-      endTime,
-      duration,
-      notes,
+    const completedEntry: TimeEntry = {
+      ...activeTimeEntry,
+      endTime: endTime,
+      duration: durationInMinutes,
+      notes: notes || activeTimeEntry.notes || '',
+      status: 'pending' as TimeEntryStatus
+    };
+
+    console.log('Creating completed entry:', completedEntry);
+
+    // Add the completed entry to timeEntries and clear activeTimeEntry
+    setTimeEntries(prev => {
+      const newEntries = [completedEntry, ...prev];
+      console.log('Updated timeEntries length:', newEntries.length);
+      console.log('New time entries:', newEntries);
+      return newEntries;
     });
-
+    
     setActiveTimeEntry(null);
+    console.log('Active time entry cleared');
+
+    toast({
+      title: "Time Entry Saved",
+      description: `Logged ${Math.floor(durationInMinutes / 60)}h ${durationInMinutes % 60}m for this task.`,
+    });
   };
 
   const updateTimeEntryStatus = (timeEntryId: string, status: string, reason?: string) => {
