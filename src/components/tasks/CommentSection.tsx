@@ -219,10 +219,10 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   const otherUsers = safeUsers.filter(user => user.id !== currentUser?.id);
 
   // Format comment content with mentions
-  const formatCommentContent = (content: string, mentionedUsers: string[] = []) => {
+  const formatCommentContent = (content: string, mentionedUserIds: string[] = []) => {
     let formattedContent = content;
     
-    mentionedUsers.forEach(userId => {
+    mentionedUserIds.forEach(userId => {
       const user = safeUsers.find(u => u.id === userId);
       if (user) {
         const mentionRegex = new RegExp(`@${user.name}`, 'g');
@@ -270,7 +270,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
                     <div 
                       className="mt-1 whitespace-pre-wrap"
                       dangerouslySetInnerHTML={{ 
-                        __html: formatCommentContent(c.content, c.mentionedUsers)
+                        __html: formatCommentContent(c.content, c.mentionedUserIds)
                       }}
                     />
                   </div>
@@ -377,7 +377,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
                           <div 
                             className="text-sm whitespace-pre-wrap"
                             dangerouslySetInnerHTML={{ 
-                              __html: formatCommentContent(comment.content, comment.mentionedUsers)
+                              __html: formatCommentContent(comment.content, comment.mentionedUserIds)
                             }}
                           />
                         </div>
