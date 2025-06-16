@@ -402,7 +402,7 @@ const TimeTracking = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="active">Active Timers</TabsTrigger>
-          <TabsTrigger value="timesheet">Timesheet</TabsTrigger>
+          <TabsTrigger value="timesheet">Time Logs</TabsTrigger>
           <TabsTrigger value="reports">Monthly Summary</TabsTrigger>
         </TabsList>
         
