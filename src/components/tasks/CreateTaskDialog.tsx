@@ -725,16 +725,16 @@ export function CreateTaskDialog({
                                 </Label>
                               </div>
                             ) : field.type === 'multiselect' ? (
-                              // Multi-select field - ensure we have valid data
+                              // Multi-select field - ensure we have valid data with enhanced safety
                               <>
                                 <Label htmlFor={field.id}>
                                   {field.name} {field.required && <span className="text-red-500">*</span>}
                                 </Label>
                                 <MultiSelect
-                                  options={(field.options || []).map(option => ({
+                                  options={Array.isArray(field.options) ? field.options.map(option => ({
                                     value: String(option),
                                     label: String(option)
-                                  }))}
+                                  })) : []}
                                   selectedValues={(() => {
                                     const currentValue = form.watch("customFields")?.[field.id];
                                     if (Array.isArray(currentValue)) {
@@ -747,7 +747,7 @@ export function CreateTaskDialog({
                                     const customFieldsValue = form.getValues("customFields") || {};
                                     const newCustomFields = {
                                       ...customFieldsValue,
-                                      [field.id]: values,
+                                      [field.id]: Array.isArray(values) ? values : [],
                                     };
                                     console.log('Setting custom fields to:', newCustomFields);
                                     form.setValue("customFields", newCustomFields);
