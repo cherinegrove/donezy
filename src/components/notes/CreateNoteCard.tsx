@@ -88,7 +88,7 @@ export function CreateNoteCard({ onNoteCreated }: CreateNoteCardProps) {
       onClick={() => setIsCreating(true)}
     >
       <CardContent className="flex flex-col items-center justify-center py-12">
-        <Plus className="h-12 w-12 text-muted-foreground mb-4" />
+      <Plus className="h-12 w-12 mb-4" style={{ color: "#8E44AD" }} />
         <h3 className="text-lg font-semibold mb-2">Create New Note</h3>
         <p className="text-sm text-muted-foreground text-center">
           Click here to add a new note
