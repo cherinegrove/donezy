@@ -279,6 +279,7 @@ export type Database = {
           from_user_id: string
           id: string
           mentioned_users: string[] | null
+          parent_message_id: string | null
           priority: string | null
           read: boolean | null
           subject: string
@@ -294,6 +295,7 @@ export type Database = {
           from_user_id: string
           id?: string
           mentioned_users?: string[] | null
+          parent_message_id?: string | null
           priority?: string | null
           read?: boolean | null
           subject: string
@@ -309,6 +311,7 @@ export type Database = {
           from_user_id?: string
           id?: string
           mentioned_users?: string[] | null
+          parent_message_id?: string | null
           priority?: string | null
           read?: boolean | null
           subject?: string
@@ -322,6 +325,13 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
         ]
