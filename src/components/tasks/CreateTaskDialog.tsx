@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -723,6 +722,31 @@ export function CreateTaskDialog({
                                   {field.name} {field.required && <span className="text-red-500">*</span>}
                                 </Label>
                               </div>
+                            ) : field.type === 'multiselect' ? (
+                              // Multi-select field
+                              <>
+                                <Label htmlFor={field.id}>
+                                  {field.name} {field.required && <span className="text-red-500">*</span>}
+                                </Label>
+                                <MultiSelect
+                                  options={field.options?.map(option => ({
+                                    value: option,
+                                    label: option
+                                  })) || []}
+                                  selectedValues={Array.isArray(form.watch("customFields")?.[field.id]) 
+                                    ? form.watch("customFields")?.[field.id] 
+                                    : []
+                                  }
+                                  onValueChange={(values) => {
+                                    const customFieldsValue = form.getValues("customFields");
+                                    form.setValue("customFields", {
+                                      ...customFieldsValue,
+                                      [field.id]: values,
+                                    });
+                                  }}
+                                  placeholder={`Select ${field.name.toLowerCase()}...`}
+                                />
+                              </>
                             ) : (
                               // All other field types - show label above input
                               <>
