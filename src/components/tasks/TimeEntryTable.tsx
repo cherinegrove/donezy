@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { TimeEntry, TimeEntryStatus } from "@/types";
 
@@ -23,7 +23,7 @@ interface TimeEntryTableProps {
 }
 
 export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = false }: TimeEntryTableProps) {
-  const { timeEntries, deleteTimeEntry, updateTimeEntryStatus, tasks, projects, clients, users } = useAppContext();
+  const { timeEntries, deleteTimeEntry, updateTimeEntryStatus, tasks, projects, clients, users, activeTimeEntry } = useAppContext();
 
   let filteredEntries = timeEntries;
   
@@ -37,8 +37,21 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
     filteredEntries = filteredEntries.filter(entry => entry.userId === userId);
   }
 
+  // Include active time entry if it matches the filters
+  let allEntries = [...filteredEntries];
+  if (activeTimeEntry) {
+    const matchesFilters = 
+      (!taskId || activeTimeEntry.taskId === taskId) &&
+      (!projectId || activeTimeEntry.projectId === projectId) &&
+      (!userId || activeTimeEntry.userId === userId);
+    
+    if (matchesFilters) {
+      allEntries = [activeTimeEntry, ...filteredEntries];
+    }
+  }
+
   // Sort by start time, most recent first
-  const sortedEntries = [...filteredEntries].sort((a, b) => 
+  const sortedEntries = [...allEntries].sort((a, b) => 
     new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
   );
 
@@ -62,6 +75,14 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}h ${mins}m`;
+  };
+
+  const calculateActiveDuration = (startTime: string) => {
+    const now = new Date();
+    const start = new Date(startTime);
+    const diffMs = now.getTime() - start.getTime();
+    const minutes = Math.floor(diffMs / (1000 * 60));
+    return minutes;
   };
 
   const formatTime = (dateString: string) => {
@@ -89,6 +110,10 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
     return user?.name || "Unknown user";
   };
 
+  const isActiveEntry = (entry: TimeEntry) => {
+    return activeTimeEntry && entry.id === activeTimeEntry.id;
+  };
+
   if (sortedEntries.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -114,54 +139,70 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedEntries.map((entry) => (
-            <TableRow key={entry.id}>
-              <TableCell className="font-mono text-sm">
-                {formatTime(entry.startTime)}
-              </TableCell>
-              <TableCell className="font-mono">
-                {formatDuration(entry.duration)}
-              </TableCell>
-              {showAllDetails && !taskId && (
-                <TableCell>{getTaskName(entry.taskId)}</TableCell>
-              )}
-              {showAllDetails && !projectId && (
-                <TableCell>{getProjectName(entry.projectId)}</TableCell>
-              )}
-              {showAllDetails && (
-                <TableCell>{getUserName(entry.userId)}</TableCell>
-              )}
-              <TableCell>
-                <div className="max-w-xs">
-                  {entry.description || entry.notes || "-"}
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge className={getStatusColor(entry.status || 'pending')}>
-                  {entry.status || 'pending'}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <Badge variant={entry.billable ? "default" : "secondary"}>
-                  {entry.billable ? "Billable" : "Non-billable"}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => deleteTimeEntry(entry.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+          {sortedEntries.map((entry) => {
+            const isActive = isActiveEntry(entry);
+            const duration = isActive ? calculateActiveDuration(entry.startTime) : entry.duration;
+            
+            return (
+              <TableRow key={entry.id} className={isActive ? "bg-green-50 dark:bg-green-900/20" : ""}>
+                <TableCell className="font-mono text-sm">
+                  {formatTime(entry.startTime)}
+                </TableCell>
+                <TableCell className="font-mono">
+                  <div className="flex items-center gap-2">
+                    {isActive && <Clock className="h-3 w-3 text-green-600" />}
+                    {formatDuration(duration)}
+                    {isActive && <span className="text-xs text-green-600">(active)</span>}
+                  </div>
+                </TableCell>
+                {showAllDetails && !taskId && (
+                  <TableCell>{getTaskName(entry.taskId)}</TableCell>
+                )}
+                {showAllDetails && !projectId && (
+                  <TableCell>{getProjectName(entry.projectId)}</TableCell>
+                )}
+                {showAllDetails && (
+                  <TableCell>{getUserName(entry.userId)}</TableCell>
+                )}
+                <TableCell>
+                  <div className="max-w-xs">
+                    {entry.description || entry.notes || (isActive ? "Timer running..." : "-")}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge className={getStatusColor(entry.status || 'pending')}>
+                    {isActive ? "active" : (entry.status || 'pending')}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={entry.billable ? "default" : "secondary"}>
+                    {entry.billable ? "Billable" : "Non-billable"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    {!isActive && (
+                      <>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => deleteTimeEntry(entry.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                    {isActive && (
+                      <span className="text-xs text-muted-foreground">Timer running</span>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
