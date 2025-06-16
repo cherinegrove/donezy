@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -193,8 +192,7 @@ const AppRoutes = () => {
           } 
         />
         <Route path="/time" element={<TimeTracking />} />
-        <Route path="/messages" element={<Messages />} />
-        <Route path="/messages/:messageId" element={<Messages />} />
+        <Route path="/notifications" element={<Notifications />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
         <Route 

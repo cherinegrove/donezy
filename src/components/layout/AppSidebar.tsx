@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -8,7 +7,7 @@ import {
   LayoutDashboard,
   BarChart,
   Clock,
-  MessageSquare,
+  Bell,
   Briefcase,
   ListTodo,
   ShieldAlert,
@@ -145,9 +144,9 @@ export function AppSidebar() {
               {!collapsed && <span>Time Tracking</span>}
             </NavLink>
             
-            {/* Messages */}
+            {/* Notifications (changed from Messages) */}
             <NavLink
-              to="/messages"
+              to="/notifications"
               onClick={handleNavClick}
               className={({ isActive }) =>
                 cn(
@@ -158,8 +157,8 @@ export function AppSidebar() {
                 )
               }
             >
-              <MessageSquare className="h-4 w-4" />
-              {!collapsed && <span>Messages</span>}
+              <Bell className="h-4 w-4" />
+              {!collapsed && <span>Notifications</span>}
             </NavLink>
             
             {/* Reports */}
