@@ -17,7 +17,7 @@ type ThemeContextType = {
 
 const defaultThemeColors: ThemeColors = {
   buttonColor: "#8E44AD",
-  buttonTextColor: "#FFFFFF",
+  buttonTextColor: "#100b47",
   sidebarColor: "#1A1F2C",
   sidebarTextColor: "#FFFFFF",
 };
