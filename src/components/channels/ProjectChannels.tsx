@@ -16,28 +16,30 @@ export function ProjectChannels({ projectId }: ProjectChannelsProps) {
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [defaultChannelCreated, setDefaultChannelCreated] = useState(false);
 
-  // Create default "General" channel if none exist
+  // Create default "General" channel if none exist and auto-select it
   useEffect(() => {
-    const createDefaultChannel = async () => {
+    const createDefaultChannelAndSelect = async () => {
       if (!currentUser || defaultChannelCreated) return;
 
       try {
         // Check if any channels exist for this project
         const { data: existingChannels, error: checkError } = await (supabase as any)
           .from('channels')
-          .select('id')
-          .eq('project_id', projectId)
-          .limit(1);
+          .select('id, name')
+          .eq('project_id', projectId);
 
         if (checkError) throw checkError;
 
-        // If no channels exist, create a default "General" channel
-        if (!existingChannels || existingChannels.length === 0) {
+        // If channels exist, auto-select the first one (should be the default chat channel)
+        if (existingChannels && existingChannels.length > 0) {
+          setSelectedChannelId(existingChannels[0].id);
+        } else {
+          // If no channels exist, create a default one (this shouldn't happen with the trigger, but just in case)
           const { data: channelData, error: channelError } = await (supabase as any)
             .from('channels')
             .insert({
               project_id: projectId,
-              name: 'general',
+              name: 'General Chat',
               description: 'General project discussion',
               is_private: false,
               created_by: currentUser.id,
@@ -63,12 +65,12 @@ export function ProjectChannels({ projectId }: ProjectChannelsProps) {
         
         setDefaultChannelCreated(true);
       } catch (error) {
-        console.error('Error creating default channel:', error);
+        console.error('Error setting up default channel:', error);
         setDefaultChannelCreated(true); // Prevent infinite retries
       }
     };
 
-    createDefaultChannel();
+    createDefaultChannelAndSelect();
   }, [projectId, currentUser, defaultChannelCreated]);
 
   return (
@@ -90,8 +92,8 @@ export function ProjectChannels({ projectId }: ProjectChannelsProps) {
           <div className="h-full flex items-center justify-center border rounded-lg">
             <div className="text-center text-muted-foreground">
               <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-medium mb-2">Select a Channel</h3>
-              <p className="text-sm">Choose a channel from the sidebar to start chatting</p>
+              <h3 className="text-lg font-medium mb-2">Loading Channels</h3>
+              <p className="text-sm">Setting up your project chat...</p>
             </div>
           </div>
         )}
