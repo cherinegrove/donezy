@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -122,7 +121,6 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
           billableRate: data.billableRate || 0,
           currency: data.currency || "USD",
           createdAt: clientData.created_at,
-          updatedAt: clientData.updated_at,
         });
       }
       
