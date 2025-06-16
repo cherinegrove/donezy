@@ -52,7 +52,7 @@ export function MessageItem({ message, onReply, formatMessageContent }: MessageI
             variant="ghost"
             size="sm"
             onClick={() => onReply(message)}
-            className="h-6 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+            className="h-6 text-xs"
           >
             <MessageSquare className="h-3 w-3 mr-1" />
             {message.reply_count ? `${message.reply_count} replies` : 'Reply'}

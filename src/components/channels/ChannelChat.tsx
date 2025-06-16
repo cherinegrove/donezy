@@ -78,6 +78,13 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
     scrollToBottom();
   }, [messages]);
 
+  // Auto-select the first message as thread when messages load
+  useEffect(() => {
+    if (messages.length > 0 && !selectedThread) {
+      setSelectedThread(messages[0]);
+    }
+  }, [messages]);
+
   const fetchChannelInfo = async () => {
     try {
       const { data, error } = await supabase
@@ -250,10 +257,6 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
     setSelectedThread(message);
   };
 
-  const handleCloseThread = () => {
-    setSelectedThread(null);
-  };
-
   if (loading) {
     return (
       <Card className="h-full">
@@ -274,127 +277,82 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
     );
   }
 
-  // If a thread is selected, show split view
-  if (selectedThread) {
-    return (
-      <div className="h-full flex gap-4">
-        {/* Main chat (50% width) */}
-        <div className="flex-1">
-          <Card className="h-full flex flex-col">
-            <CardHeader className="border-b">
-              <CardTitle className="flex items-center gap-2">
-                {channel.is_private ? (
-                  <Lock className="h-5 w-5" />
-                ) : (
-                  <Hash className="h-5 w-5" />
-                )}
-                {channel.name}
-                {channel.is_private && (
-                  <Badge variant="outline" className="text-xs">Private</Badge>
-                )}
-              </CardTitle>
-              {channel.description && (
-                <p className="text-sm text-muted-foreground">{channel.description}</p>
+  // Always show split view with main chat on left and thread on right
+  return (
+    <div className="h-full flex gap-4">
+      {/* Main chat (60% width) */}
+      <div className="flex-[3]">
+        <Card className="h-full flex flex-col">
+          <CardHeader className="border-b">
+            <CardTitle className="flex items-center gap-2">
+              {channel.is_private ? (
+                <Lock className="h-5 w-5" />
+              ) : (
+                <Hash className="h-5 w-5" />
               )}
-            </CardHeader>
-            
-            <CardContent className="flex-1 flex flex-col p-0">
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4">
-                  {messages.map(message => (
-                    <MessageItem
-                      key={message.id}
-                      message={message}
-                      onReply={handleReply}
-                      formatMessageContent={formatMessageContent}
-                    />
-                  ))}
-                  
-                  {messages.length === 0 && (
-                    <div className="text-center text-muted-foreground py-8">
-                      <Hash className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm mb-2">Welcome to #{channel.name}!</p>
-                      <p className="text-xs">This is the beginning of your conversation. Start by sending a message below.</p>
-                    </div>
-                  )}
-                  
-                  <div ref={messagesEndRef} />
-                </div>
-              </ScrollArea>
-              
-              <div className="border-t p-4">
-                <ChannelMessageComposer
-                  channelId={channelId}
-                  onSendMessage={handleSendMessage}
-                />
+              {channel.name}
+              {channel.is_private && (
+                <Badge variant="outline" className="text-xs">Private</Badge>
+              )}
+            </CardTitle>
+            {channel.description && (
+              <p className="text-sm text-muted-foreground">{channel.description}</p>
+            )}
+          </CardHeader>
+          
+          <CardContent className="flex-1 flex flex-col p-0">
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-4">
+                {messages.map(message => (
+                  <MessageItem
+                    key={message.id}
+                    message={message}
+                    onReply={handleReply}
+                    formatMessageContent={formatMessageContent}
+                  />
+                ))}
+                
+                {messages.length === 0 && (
+                  <div className="text-center text-muted-foreground py-8">
+                    <Hash className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm mb-2">Welcome to #{channel.name}!</p>
+                    <p className="text-xs">This is the beginning of your conversation. Start by sending a message below.</p>
+                  </div>
+                )}
+                
+                <div ref={messagesEndRef} />
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </ScrollArea>
+            
+            <div className="border-t p-4">
+              <ChannelMessageComposer
+                channelId={channelId}
+                onSendMessage={handleSendMessage}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Thread view (50% width) */}
-        <div className="flex-1">
+      {/* Thread view (40% width) - always visible */}
+      <div className="flex-[2]">
+        {selectedThread ? (
           <MessageThread
             parentMessage={selectedThread}
             channelId={channelId}
-            onClose={handleCloseThread}
+            onClose={() => setSelectedThread(null)}
           />
-        </div>
-      </div>
-    );
-  }
-
-  // Default single view
-  return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="border-b">
-        <CardTitle className="flex items-center gap-2">
-          {channel.is_private ? (
-            <Lock className="h-5 w-5" />
-          ) : (
-            <Hash className="h-5 w-5" />
-          )}
-          {channel.name}
-          {channel.is_private && (
-            <Badge variant="outline" className="text-xs">Private</Badge>
-          )}
-        </CardTitle>
-        {channel.description && (
-          <p className="text-sm text-muted-foreground">{channel.description}</p>
-        )}
-      </CardHeader>
-      
-      <CardContent className="flex-1 flex flex-col p-0">
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
-            {messages.map(message => (
-              <MessageItem
-                key={message.id}
-                message={message}
-                onReply={handleReply}
-                formatMessageContent={formatMessageContent}
-              />
-            ))}
-            
-            {messages.length === 0 && (
-              <div className="text-center text-muted-foreground py-8">
-                <Hash className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm mb-2">Welcome to #{channel.name}!</p>
-                <p className="text-xs">This is the beginning of your conversation. Start by sending a message below.</p>
+        ) : (
+          <Card className="h-full">
+            <CardContent className="flex items-center justify-center h-full">
+              <div className="text-center text-muted-foreground">
+                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Select a message to view its thread</p>
               </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
-        
-        <div className="border-t p-4">
-          <ChannelMessageComposer
-            channelId={channelId}
-            onSendMessage={handleSendMessage}
-          />
-        </div>
-      </CardContent>
-    </Card>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
   );
 }
