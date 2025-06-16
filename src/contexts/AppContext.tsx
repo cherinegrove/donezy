@@ -1,3 +1,4 @@
+
 import { ReactNode, createContext, useContext, useState, useEffect } from "react";
 import { AppContextType } from "./AppContextType";
 import { User, Team, Client, Project, Task, TimeEntry, TimeEntryStatus, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatus, TaskStatusDefinition, ProjectStatusDefinition, CustomField, CustomFieldType } from "@/types";
@@ -439,7 +440,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const startTimeTracking = (taskId: string, projectId?: string, clientId?: string) => {
+    console.log('🚀 startTimeTracking called with:', { taskId, projectId, clientId });
+    
     if (activeTimeEntry) {
+      console.log('⏹️ Stopping existing timer before starting new one');
       stopTimeTracking();
     }
 
@@ -453,16 +457,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     const entry = { ...newTimeEntry, id: uuidv4() };
+    console.log('⏰ Created new active time entry:', entry);
+    
     setActiveTimeEntry(entry);
     setTimeEntries([...timeEntries, entry]);
+    
+    console.log('✅ Active time entry set');
   };
 
   const stopTimeTracking = (notes?: string) => {
-    console.log('stopTimeTracking called with notes:', notes);
-    console.log('Current activeTimeEntry:', activeTimeEntry);
+    console.log('🛑 stopTimeTracking called with notes:', notes);
+    console.log('📊 Current activeTimeEntry:', activeTimeEntry);
+    console.log('📋 Current timeEntries length:', timeEntries.length);
     
     if (!activeTimeEntry) {
-      console.log('No active time entry to stop');
+      console.log('❌ No active time entry to stop');
       return;
     }
 
@@ -471,7 +480,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const endTimeDate = new Date(endTime);
     const durationInMinutes = Math.floor((endTimeDate.getTime() - startTime.getTime()) / (1000 * 60));
     
-    console.log('Calculated duration:', durationInMinutes, 'minutes');
+    console.log('⏱️ Calculated duration:', durationInMinutes, 'minutes');
 
     const completedEntry: TimeEntry = {
       ...activeTimeEntry,
@@ -481,20 +490,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
       status: 'pending' as TimeEntryStatus
     };
 
-    console.log('Creating completed entry:', completedEntry);
+    console.log('✨ Creating completed entry:', completedEntry);
 
-    // Add the completed entry to timeEntries and clear activeTimeEntry
+    // Update timeEntries array by replacing the active entry with completed one
     setTimeEntries(prev => {
-      const newEntries = [completedEntry, ...prev];
-      console.log('Updated timeEntries length:', newEntries.length);
-      console.log('New time entries:', newEntries);
+      console.log('🔄 Updating timeEntries, previous length:', prev.length);
+      
+      // Remove the active entry and add the completed one
+      const filteredEntries = prev.filter(entry => entry.id !== activeTimeEntry.id);
+      const newEntries = [completedEntry, ...filteredEntries];
+      
+      console.log('📈 New timeEntries length:', newEntries.length);
+      console.log('🆕 New time entries:', newEntries);
       return newEntries;
     });
     
     setActiveTimeEntry(null);
-    console.log('Active time entry cleared');
+    console.log('🔚 Active time entry cleared');
 
     toast.success(`Time Entry Saved - Logged ${Math.floor(durationInMinutes / 60)}h ${durationInMinutes % 60}m for this task.`);
+    console.log('📢 Toast notification sent');
   };
 
   const updateTimeEntryStatus = (timeEntryId: string, status: string, reason?: string) => {

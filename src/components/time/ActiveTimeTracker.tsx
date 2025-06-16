@@ -38,16 +38,23 @@ export function ActiveTimeTracker() {
   }, [activeTimeEntry]);
   
   const handleStopTracking = () => {
+    console.log('🔴 ActiveTimeTracker: handleStopTracking called');
     setStopDialogOpen(true);
   };
   
   const confirmStopTracking = () => {
+    console.log('✅ ActiveTimeTracker: confirmStopTracking called with notes:', notes);
+    console.log('🎯 ActiveTimeTracker: About to call stopTimeTracking function');
+    
     stopTimeTracking(notes);
+    
+    console.log('✨ ActiveTimeTracker: stopTimeTracking function called, closing dialog');
     setStopDialogOpen(false);
     setNotes("");
   };
 
   const handleDeleteTimeEntry = () => {
+    console.log('🗑️ ActiveTimeTracker: handleDeleteTimeEntry called');
     if (activeTimeEntry) {
       deleteTimeEntry(activeTimeEntry.id);
       setStopDialogOpen(false);
