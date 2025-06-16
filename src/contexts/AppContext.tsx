@@ -201,7 +201,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         estimatedHours: task.estimated_hours || undefined,
         actualHours: task.actual_hours || undefined,
         createdAt: task.created_at,
-        watcherIds: task.watcher_ids || []
+        watcherIds: task.watcher_ids || [],
+        comments: task.comments || []
       })) || [];
       
       setTasks(convertedTasks);
@@ -760,7 +761,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           due_date: task.dueDate,
           estimated_hours: task.estimatedHours,
           actual_hours: task.actualHours,
-          watcher_ids: task.watcherIds || []
+          watcher_ids: task.watcherIds || [],
+          comments: task.comments || []
         })
         .select()
         .single();
@@ -783,7 +785,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           estimatedHours: data.estimated_hours || undefined,
           actualHours: data.actual_hours || undefined,
           createdAt: data.created_at,
-          watcherIds: data.watcher_ids || []
+          watcherIds: data.watcher_ids || [],
+          comments: data.comments || []
         };
         setTasks(prev => [...prev, newTask]);
       }
@@ -808,6 +811,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.estimatedHours !== undefined) dbUpdates.estimated_hours = updates.estimatedHours;
       if (updates.actualHours !== undefined) dbUpdates.actual_hours = updates.actualHours;
       if (updates.watcherIds !== undefined) dbUpdates.watcher_ids = updates.watcherIds;
+      if (updates.comments !== undefined) dbUpdates.comments = updates.comments;
 
       const { error } = await supabase
         .from('tasks')
@@ -1272,35 +1276,79 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('Reorder project statuses not yet implemented');
   };
 
+  // Comment functions
+  const addComment = (taskId: string, userId: string, content: string, mentionedUserIds?: string[]): string => {
+    const commentId = `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const timestamp = new Date().toISOString();
+    
+    const newComment = {
+      id: commentId,
+      userId,
+      content,
+      timestamp,
+      mentionedUserIds: mentionedUserIds || []
+    };
+
+    setTasks(prev => prev.map(task => 
+      task.id === taskId 
+        ? { 
+            ...task, 
+            comments: [...(task.comments || []), newComment]
+          }
+        : task
+    ));
+
+    return commentId;
+  };
+
+  // Message functions
   const addMessage = (message: Omit<Message, 'id'>) => {
-    console.log('Add message not yet implemented');
+    const newMessage: Message = {
+      ...message,
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date().toISOString(),
+      read: false
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
   };
 
   const updateMessage = (messageId: string, updates: Partial<Message>) => {
-    console.log('Update message not yet implemented');
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId ? { ...msg, ...updates } : msg
+    ));
   };
 
   const deleteMessage = (messageId: string) => {
-    console.log('Delete message not yet implemented');
+    setMessages(prev => prev.filter(msg => msg.id !== messageId));
   };
 
   const sendMessage = (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
-    console.log('Send message not yet implemented');
+    addMessage(message);
   };
 
   const createMessage = (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
-    console.log('Create message not yet implemented');
+    const newMessage: Message = {
+      ...message,
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      senderId: message.senderId,
+      recipientIds: message.recipientIds,
+      content: message.content,
+      timestamp: new Date().toISOString(),
+      read: false,
+      commentId: message.commentId,
+      taskId: message.taskId,
+      projectId: message.projectId
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
   };
 
   const markMessageAsRead = (messageId: string) => {
-    console.log('Mark message as read not yet implemented');
+    updateMessage(messageId, { read: true });
   };
 
-  const addComment = (taskId: string, userId: string, content: string, mentionedUserIds?: string[]): string => {
-    console.log('Add comment not yet implemented');
-    return '';
-  };
-
+  // Custom Role functions
   const addCustomRole = (role: Omit<CustomRole, 'id'>) => {
     console.log('Add custom role not yet implemented');
   };
@@ -1313,6 +1361,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('Delete custom role not yet implemented');
   };
 
+  // Template functions
   const addProjectTemplate = (template: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => {
     console.log('Add project template not yet implemented');
   };
@@ -1325,6 +1374,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('Delete project template not yet implemented');
   };
 
+  // Purchase functions
   const addPurchase = (purchase: Omit<Purchase, 'id'>) => {
     console.log('Add purchase not yet implemented');
   };
@@ -1337,6 +1387,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('Delete purchase not yet implemented');
   };
 
+  // Client Agreement functions
   const addClientAgreement = (agreement: any) => {
     console.log('Add client agreement not yet implemented');
   };
@@ -1354,6 +1405,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return [];
   };
 
+  // Client File functions
   const uploadClientFile = async (clientId: string, file: File): Promise<void> => {
     console.log('Upload client file not yet implemented');
   };
@@ -1367,6 +1419,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return [];
   };
 
+  // Custom Field functions
   const addCustomField = (field: Omit<CustomField, 'id' | 'createdAt' | 'updatedAt'>) => {
     console.log('Add custom field not yet implemented');
   };
