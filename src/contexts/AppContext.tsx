@@ -185,7 +185,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         assigneeId: task.assignee_id || undefined,
         status: (task.status as TaskStatus) || 'backlog',
         priority: (task.priority as 'low' | 'medium' | 'high') || 'medium',
-        startDate: task.start_date || undefined,
         dueDate: task.due_date || undefined,
         estimatedHours: task.estimated_hours || undefined,
         actualHours: task.actual_hours || undefined,
@@ -728,7 +727,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           assignee_id: task.assigneeId,
           status: task.status,
           priority: task.priority,
-          start_date: task.startDate,
           due_date: task.dueDate,
           estimated_hours: task.estimatedHours,
           actual_hours: task.actualHours,
@@ -751,7 +749,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           assigneeId: data.assignee_id || undefined,
           status: (data.status as TaskStatus) || 'backlog',
           priority: (data.priority as 'low' | 'medium' | 'high') || 'medium',
-          startDate: data.start_date || undefined,
           dueDate: data.due_date || undefined,
           estimatedHours: data.estimated_hours || undefined,
           actualHours: data.actual_hours || undefined,
@@ -777,7 +774,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.assigneeId !== undefined) dbUpdates.assignee_id = updates.assigneeId;
       if (updates.status !== undefined) dbUpdates.status = updates.status;
       if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
-      if (updates.startDate !== undefined) dbUpdates.start_date = updates.startDate;
       if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate;
       if (updates.estimatedHours !== undefined) dbUpdates.estimated_hours = updates.estimatedHours;
       if (updates.actualHours !== undefined) dbUpdates.actual_hours = updates.actualHours;
