@@ -99,6 +99,13 @@ export function CreateTaskDialog({
   const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   
+  // Add debugging for custom fields
+  useEffect(() => {
+    console.log('CreateTaskDialog - AppContext customFields:', customFields);
+    console.log('CreateTaskDialog - customFields length:', customFields.length);
+    console.log('CreateTaskDialog - currentUser:', currentUser);
+  }, [customFields, currentUser]);
+  
   // Use the appropriate schema based on whether we're creating a subtask
   const schema = createTaskSchema(isSubtask);
   
@@ -196,13 +203,27 @@ export function CreateTaskDialog({
     
     console.log('Template found:', template);
     console.log('Template includeCustomFields:', template.includeCustomFields);
-    console.log('Available customFields:', customFields);
+    console.log('Available customFields from context:', customFields);
+    console.log('Available customFields count:', customFields.length);
+    
+    // If customFields is empty, let's try to fetch them directly
+    if (customFields.length === 0) {
+      console.warn('CustomFields array is empty in context - this might be why template fields are not showing');
+    }
     
     // Return only the custom fields that are included in this template
-    const templateFields = customFields.filter(field => 
-      field.applicableTo.includes('tasks') && 
-      template.includeCustomFields.includes(field.id)
-    );
+    const templateFields = customFields.filter(field => {
+      const isApplicableToTasks = field.applicableTo.includes('tasks');
+      const isIncludedInTemplate = template.includeCustomFields.includes(field.id);
+      
+      console.log(`Field ${field.name} (${field.id}):`, {
+        isApplicableToTasks,
+        isIncludedInTemplate,
+        applicableTo: field.applicableTo
+      });
+      
+      return isApplicableToTasks && isIncludedInTemplate;
+    });
     
     console.log('Filtered template fields:', templateFields);
     return templateFields;
@@ -738,12 +759,16 @@ export function CreateTaskDialog({
                     </div>
                   )}
                   
-                  {/* Debug info for troubleshooting */}
+                  {/* Enhanced debug info for troubleshooting */}
                   {selectedTemplate !== "default" && (
                     <div className="text-xs text-muted-foreground p-2 bg-muted rounded">
                       <p>Debug: Template "{selectedTemplate}" selected</p>
                       <p>Custom fields in template: {currentTemplate?.includeCustomFields?.length || 0}</p>
+                      <p>Custom fields available in context: {customFields.length}</p>
                       <p>Custom fields to show: {orderedFieldsToShow.length}</p>
+                      {customFields.length === 0 && (
+                        <p className="text-red-500 font-medium">⚠️ No custom fields loaded from context - this is likely the issue</p>
+                      )}
                     </div>
                   )}
                 </form>
