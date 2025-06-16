@@ -124,17 +124,13 @@ const TimeTracking = () => {
   const filteredTimeEntries = timeEntries.filter(entry => {
     console.log('🔍 Filtering entry:', entry);
     
-    const task = tasks.find(t => t.id === entry.taskId);
-    if (!task) {
-      console.log('❌ No task found for entry:', entry.taskId);
-      return false;
-    }
+    // Get task and project (but don't filter out if missing)
+    const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
+    const project = task ? projects.find(p => p.id === task.projectId) : 
+                   (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
     
-    const project = projects.find(p => p.id === task.projectId);
-    if (!project) {
-      console.log('❌ No project found for task:', task.projectId);
-      return false;
-    }
+    console.log('🔍 Found task:', task);
+    console.log('🔍 Found project:', project);
     
     // Check user filter
     if (selectedFilters.user?.length > 0 && !selectedFilters.user.includes(entry.userId)) {
@@ -142,16 +138,22 @@ const TimeTracking = () => {
       return false;
     }
     
-    // Check project filter
-    if (selectedFilters.project?.length > 0 && !selectedFilters.project.includes(task.projectId)) {
-      console.log('❌ Project filter failed:', task.projectId, selectedFilters.project);
-      return false;
+    // Check project filter - only apply if we have projects and the filter is set
+    if (selectedFilters.project?.length > 0) {
+      const entryProjectId = task?.projectId || entry.projectId;
+      if (!entryProjectId || !selectedFilters.project.includes(entryProjectId)) {
+        console.log('❌ Project filter failed:', entryProjectId, selectedFilters.project);
+        return false;
+      }
     }
     
-    // Check client filter
-    if (selectedFilters.client?.length > 0 && project && !selectedFilters.client.includes(project.clientId)) {
-      console.log('❌ Client filter failed:', project.clientId, selectedFilters.client);
-      return false;
+    // Check client filter - try multiple ways to get client ID
+    if (selectedFilters.client?.length > 0) {
+      const entryClientId = project?.clientId || entry.clientId;
+      if (!entryClientId || !selectedFilters.client.includes(entryClientId)) {
+        console.log('❌ Client filter failed:', entryClientId, selectedFilters.client);
+        return false;
+      }
     }
     
     // Check date range
@@ -646,10 +648,11 @@ const TimeTracking = () => {
                 <CardContent>
                   <div className="space-y-3">
                     {entriesByDate[date].map(entry => {
-                      const task = tasks.find(t => t.id === entry.taskId);
-                      const project = task ? projects.find(p => p.id === task.projectId) : undefined;
+                      const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
+                      const project = task ? projects.find(p => p.id === task.projectId) : 
+                                     (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
                       const client = project ? clients.find(c => c.id === project.clientId) : 
-                                   clients.find(c => c.id === entry.clientId);
+                                   (entry.clientId ? clients.find(c => c.id === entry.clientId) : null);
                       const user = users.find(u => u.id === entry.userId);
                       
                       return (
@@ -666,7 +669,7 @@ const TimeTracking = () => {
                               <AvatarFallback>{user?.name.slice(0, 2) || "U"}</AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium">{task?.title || "No task"}</p>
+                              <p className="font-medium">{task?.title || "Manual Time Entry"}</p>
                               <div className="flex flex-col text-xs text-muted-foreground">
                                 <span>{project?.name || "No project"}</span>
                                 <span>{client?.name || "No client"}</span>
