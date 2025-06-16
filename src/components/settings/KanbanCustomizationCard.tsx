@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -163,14 +164,14 @@ export const KanbanCustomizationCard = () => {
       return;
     }
     
-    // Parse options for dropdown and multiselect types
-    const options = newField.type === 'dropdown' || newField.type === 'multiselect'
+    // Parse options for dropdown type only
+    const options = newField.type === 'dropdown'
       ? newField.options.split(',').map(opt => opt.trim()).filter(opt => opt)
       : undefined;
     
     addCustomField({
       name: newField.name,
-      type: newField.type as 'text' | 'number' | 'date' | 'dropdown' | 'multiselect' | 'checkbox',
+      type: newField.type as 'text' | 'number' | 'date' | 'dropdown' | 'checkbox',
       options,
       required: newField.required,
       applicableTo: ['tasks'],
@@ -503,13 +504,12 @@ export const KanbanCustomizationCard = () => {
                   <SelectItem value="number">Number</SelectItem>
                   <SelectItem value="date">Date</SelectItem>
                   <SelectItem value="dropdown">Dropdown</SelectItem>
-                  <SelectItem value="multiselect">Multi Select</SelectItem>
                   <SelectItem value="checkbox">Checkbox</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
-            {(newField.type === 'dropdown' || newField.type === 'multiselect') && (
+            {newField.type === 'dropdown' && (
               <div className="space-y-2">
                 <Label htmlFor="field-options">Options (comma separated)</Label>
                 <Input

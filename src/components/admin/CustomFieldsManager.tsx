@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,8 +21,7 @@ import {
   Calendar,
   ChevronDown,
   CheckSquare,
-  Hash,
-  List
+  Hash
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -49,7 +47,6 @@ const fieldTypeIcons = {
   text: Type,
   date: Calendar,
   dropdown: ChevronDown,
-  multiselect: List,
   checkbox: CheckSquare,
   number: Hash,
 };
@@ -58,7 +55,6 @@ const fieldTypeLabels = {
   text: "Text",
   date: "Date",
   dropdown: "Drop Down",
-  multiselect: "Multi Select",
   checkbox: "Tick Box",
   number: "Number",
 };
@@ -159,7 +155,7 @@ const CustomFieldForm = ({
       </div>
     </div>
 
-    {(newField.type === 'dropdown' || newField.type === 'multiselect') && (
+    {newField.type === 'dropdown' && (
       <div>
         <Label htmlFor="field-options">Options (one per line)</Label>
         <Textarea
@@ -306,7 +302,7 @@ export function CustomFieldsManager() {
         description: newField.description,
         required: newField.required,
         applicable_to: newField.applicableTo,
-        options: newField.type === 'dropdown' || newField.type === 'multiselect' 
+        options: newField.type === 'dropdown' 
           ? optionsText.split('\n').filter(opt => opt.trim()).map(opt => opt.trim())
           : null,
         reportable: newField.reportable,
@@ -406,7 +402,7 @@ export function CustomFieldsManager() {
         description: newField.description,
         required: newField.required,
         applicable_to: newField.applicableTo,
-        options: newField.type === 'dropdown' || newField.type === 'multiselect' 
+        options: newField.type === 'dropdown' 
           ? optionsText.split('\n').filter(opt => opt.trim()).map(opt => opt.trim())
           : null,
         reportable: newField.reportable,
