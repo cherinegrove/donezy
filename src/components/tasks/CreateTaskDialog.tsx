@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -192,7 +191,7 @@ export function CreateTaskDialog({
 
   // Get the selected template's custom fields
   const getTemplateCustomFields = () => {
-    if (!selectedTemplate || selectedTemplate === "default") {
+    if (!selectedTemplate || selectedTemplate === "default" || customFields.length === 0) {
       return [];
     }
     
@@ -205,11 +204,6 @@ export function CreateTaskDialog({
     console.log('Template includeCustomFields:', template.includeCustomFields);
     console.log('Available customFields from context:', customFields);
     console.log('Available customFields count:', customFields.length);
-    
-    // If customFields is empty, let's try to fetch them directly
-    if (customFields.length === 0) {
-      console.warn('CustomFields array is empty in context - this might be why template fields are not showing');
-    }
     
     // Return only the custom fields that are included in this template
     const templateFields = customFields.filter(field => {
@@ -672,8 +666,8 @@ export function CreateTaskDialog({
                     )}
                   />
                   
-                  {/* Custom Fields - Only show for user-created templates that include custom fields */}
-                  {orderedFieldsToShow.length > 0 && selectedTemplate !== "default" && (
+                  {/* Custom Fields - Only show when there are custom fields AND template has fields */}
+                  {orderedFieldsToShow.length > 0 && selectedTemplate !== "default" && customFields.length > 0 && (
                     <div className="space-y-4">
                       <Label>Template Custom Fields</Label>
                       <p className="text-sm text-muted-foreground">
