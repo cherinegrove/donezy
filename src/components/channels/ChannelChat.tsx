@@ -39,6 +39,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    console.log('ChannelChat loading for channel:', channelId);
     fetchChannelInfo();
     fetchMessages();
 
@@ -54,6 +55,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
           filter: `channel_id=eq.${channelId}`
         },
         () => {
+          console.log('Real-time message update received');
           fetchMessages();
         }
       )
@@ -70,7 +72,6 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
 
   const fetchChannelInfo = async () => {
     try {
-      // Use any type to bypass TypeScript issues with new table
       const { data, error } = await (supabase as any)
         .from('channels')
         .select('*')
@@ -78,6 +79,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
         .single();
 
       if (error) throw error;
+      console.log('Channel info loaded:', data);
       setChannel(data as Channel);
     } catch (error) {
       console.error('Error fetching channel info:', error);
@@ -93,6 +95,8 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
         .order('timestamp', { ascending: true });
 
       if (error) throw error;
+
+      console.log('Messages loaded:', data?.length || 0);
 
       // Enrich with user data and ensure mentioned_users is always an array
       const enrichedMessages = data?.map(message => {
@@ -118,7 +122,12 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
   };
 
   const handleSendMessage = async (content: string, mentionedUsers: string[]) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.error('No current user found');
+      return;
+    }
+
+    console.log('Sending message:', { content, mentionedUsers });
 
     try {
       const { error } = await supabase
@@ -134,6 +143,8 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
         });
 
       if (error) throw error;
+
+      console.log('Message sent successfully');
 
       // Create mention records if there are mentioned users
       if (mentionedUsers.length > 0) {
@@ -152,7 +163,6 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
             mentioned_user_id: userId,
           }));
 
-          // Use any type to bypass TypeScript issues with new table
           await (supabase as any).from('mentions').insert(mentions);
         }
       }
@@ -183,7 +193,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
     return (
       <Card className="h-full">
         <CardContent className="flex items-center justify-center h-full">
-          <div>Loading channel...</div>
+          <div>Loading chat...</div>
         </CardContent>
       </Card>
     );
@@ -251,8 +261,8 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
             {messages.length === 0 && (
               <div className="text-center text-muted-foreground py-8">
                 <Hash className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No messages yet</p>
-                <p className="text-xs">Start the conversation!</p>
+                <p className="text-sm mb-2">Welcome to #{channel.name}!</p>
+                <p className="text-xs">This is the beginning of your conversation. Start by sending a message below.</p>
               </div>
             )}
             

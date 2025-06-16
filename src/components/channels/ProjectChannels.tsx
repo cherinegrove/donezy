@@ -14,64 +14,57 @@ interface ProjectChannelsProps {
 export function ProjectChannels({ projectId }: ProjectChannelsProps) {
   const { currentUser } = useAppContext();
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
-  const [defaultChannelCreated, setDefaultChannelCreated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Create default "General" channel if none exist and auto-select it
+  // Auto-select the first available channel
   useEffect(() => {
-    const createDefaultChannelAndSelect = async () => {
-      if (!currentUser || defaultChannelCreated) return;
+    const loadAndSelectChannel = async () => {
+      if (!currentUser) return;
 
       try {
-        // Check if any channels exist for this project
+        // Fetch existing channels for this project
         const { data: existingChannels, error: checkError } = await (supabase as any)
           .from('channels')
           .select('id, name')
-          .eq('project_id', projectId);
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: true });
 
         if (checkError) throw checkError;
 
-        // If channels exist, auto-select the first one (should be the default chat channel)
+        // If channels exist, auto-select the first one
         if (existingChannels && existingChannels.length > 0) {
           setSelectedChannelId(existingChannels[0].id);
+          console.log('Auto-selected channel:', existingChannels[0].name);
         } else {
-          // If no channels exist, create a default one (this shouldn't happen with the trigger, but just in case)
-          const { data: channelData, error: channelError } = await (supabase as any)
-            .from('channels')
-            .insert({
-              project_id: projectId,
-              name: 'General Chat',
-              description: 'General project discussion',
-              is_private: false,
-              created_by: currentUser.id,
-            })
-            .select()
-            .single();
-
-          if (channelError) throw channelError;
-
-          // Add the creator as a member with admin role
-          const { error: memberError } = await (supabase as any)
-            .from('channel_members')
-            .insert({
-              channel_id: channelData.id,
-              user_id: currentUser.id,
-              role: 'admin',
-            });
-
-          if (memberError) throw memberError;
-
-          setSelectedChannelId(channelData.id);
+          console.log('No channels found for project:', projectId);
         }
         
-        setDefaultChannelCreated(true);
       } catch (error) {
-        console.error('Error setting up default channel:', error);
-        setDefaultChannelCreated(true); // Prevent infinite retries
+        console.error('Error loading channels:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    createDefaultChannelAndSelect();
-  }, [projectId, currentUser, defaultChannelCreated]);
+    loadAndSelectChannel();
+  }, [projectId, currentUser]);
+
+  const handleChannelSelect = (channelId: string) => {
+    console.log('Selected channel:', channelId);
+    setSelectedChannelId(channelId);
+  };
+
+  if (loading) {
+    return (
+      <div className="h-[600px] flex items-center justify-center">
+        <div className="text-center text-muted-foreground">
+          <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <h3 className="text-lg font-medium mb-2">Loading Channels</h3>
+          <p className="text-sm">Setting up your project chat...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[600px] flex gap-4">
@@ -80,7 +73,7 @@ export function ProjectChannels({ projectId }: ProjectChannelsProps) {
         <ChannelList
           projectId={projectId}
           selectedChannelId={selectedChannelId || undefined}
-          onChannelSelect={setSelectedChannelId}
+          onChannelSelect={handleChannelSelect}
         />
       </div>
       
@@ -92,8 +85,8 @@ export function ProjectChannels({ projectId }: ProjectChannelsProps) {
           <div className="h-full flex items-center justify-center border rounded-lg">
             <div className="text-center text-muted-foreground">
               <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-medium mb-2">Loading Channels</h3>
-              <p className="text-sm">Setting up your project chat...</p>
+              <h3 className="text-lg font-medium mb-2">No Channels Available</h3>
+              <p className="text-sm">Create a channel to start chatting</p>
             </div>
           </div>
         )}
