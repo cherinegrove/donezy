@@ -72,6 +72,17 @@ const TimeTracking = () => {
     to: undefined
   });
 
+  // Add debugging logs to understand what's happening with time entries
+  useEffect(() => {
+    console.log('🔍 TimeTracking Debug - All time entries:', timeEntries);
+    console.log('🔍 TimeTracking Debug - Time entries length:', timeEntries.length);
+    console.log('🔍 TimeTracking Debug - Active time entry:', activeTimeEntry);
+    console.log('🔍 TimeTracking Debug - Current user:', currentUser);
+    console.log('🔍 TimeTracking Debug - Tasks:', tasks);
+    console.log('🔍 TimeTracking Debug - Projects:', projects);
+    console.log('🔍 TimeTracking Debug - Clients:', clients);
+  }, [timeEntries, activeTimeEntry, currentUser, tasks, projects, clients]);
+
   // Update current time every second for active timer display
   useEffect(() => {
     const timer = setInterval(() => {
@@ -111,24 +122,35 @@ const TimeTracking = () => {
   
   // Filter time entries based on selected filters and date range
   const filteredTimeEntries = timeEntries.filter(entry => {
+    console.log('🔍 Filtering entry:', entry);
+    
     const task = tasks.find(t => t.id === entry.taskId);
-    if (!task) return false;
+    if (!task) {
+      console.log('❌ No task found for entry:', entry.taskId);
+      return false;
+    }
     
     const project = projects.find(p => p.id === task.projectId);
-    if (!project) return false;
+    if (!project) {
+      console.log('❌ No project found for task:', task.projectId);
+      return false;
+    }
     
     // Check user filter
     if (selectedFilters.user?.length > 0 && !selectedFilters.user.includes(entry.userId)) {
+      console.log('❌ User filter failed:', entry.userId, selectedFilters.user);
       return false;
     }
     
     // Check project filter
     if (selectedFilters.project?.length > 0 && !selectedFilters.project.includes(task.projectId)) {
+      console.log('❌ Project filter failed:', task.projectId, selectedFilters.project);
       return false;
     }
     
     // Check client filter
     if (selectedFilters.client?.length > 0 && project && !selectedFilters.client.includes(project.clientId)) {
+      console.log('❌ Client filter failed:', project.clientId, selectedFilters.client);
       return false;
     }
     
@@ -137,21 +159,37 @@ const TimeTracking = () => {
       const entryDate = new Date(entry.startTime);
       
       if (dateRange.from && dateRange.to) {
-        return isWithinInterval(entryDate, { start: dateRange.from, end: dateRange.to });
+        const inRange = isWithinInterval(entryDate, { start: dateRange.from, end: dateRange.to });
+        if (!inRange) {
+          console.log('❌ Date range filter failed:', entryDate, dateRange);
+          return false;
+        }
       } else if (dateRange.from) {
-        return entryDate >= dateRange.from;
+        if (entryDate < dateRange.from) {
+          console.log('❌ Start date filter failed:', entryDate, dateRange.from);
+          return false;
+        }
       } else if (dateRange.to) {
-        return entryDate <= dateRange.to;
+        if (entryDate > dateRange.to) {
+          console.log('❌ End date filter failed:', entryDate, dateRange.to);
+          return false;
+        }
       }
     }
     
+    console.log('✅ Entry passed filters:', entry);
     return true;
   });
+
+  console.log('🔍 Filtered time entries:', filteredTimeEntries);
+  console.log('🔍 Filtered time entries length:', filteredTimeEntries.length);
   
   // Get unique dates from filtered time entries
   const dates = [...new Set(filteredTimeEntries.map(entry => 
     format(new Date(entry.startTime), "yyyy-MM-dd")
   ))].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  
+  console.log('🔍 Unique dates:', dates);
   
   // Group filtered time entries by date
   const entriesByDate = dates.reduce((acc, date) => {
@@ -160,7 +198,9 @@ const TimeTracking = () => {
     );
     return acc;
   }, {} as Record<string, typeof filteredTimeEntries>);
-  
+
+  console.log('🔍 Entries by date:', entriesByDate);
+
   // Get active timer with live elapsed time calculation
   const getActiveTimer = () => {
     if (!activeTimeEntry) {
@@ -581,6 +621,20 @@ const TimeTracking = () => {
                 </Popover>
               </div>
             </div>
+
+            {/* Debug info */}
+            <Card className="bg-muted/20">
+              <CardHeader>
+                <CardTitle className="text-sm">Debug Information</CardTitle>
+              </CardHeader>
+              <CardContent className="text-xs space-y-2">
+                <p>Total time entries: {timeEntries.length}</p>
+                <p>Filtered time entries: {filteredTimeEntries.length}</p>
+                <p>Unique dates: {dates.length}</p>
+                <p>Active filters: {Object.keys(selectedFilters).filter(key => selectedFilters[key]?.length > 0).join(', ') || 'None'}</p>
+                <p>Date range: {dateRange.from ? format(dateRange.from, "yyyy-MM-dd") : 'None'} to {dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : 'None'}</p>
+              </CardContent>
+            </Card>
           </div>
           
           {dates.length > 0 ? (
@@ -706,7 +760,15 @@ const TimeTracking = () => {
           ) : (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
-                No time entries match the selected filters
+                <div className="space-y-2">
+                  <p className="text-lg">No time entries found</p>
+                  <p className="text-sm">
+                    {timeEntries.length === 0 
+                      ? "You haven't created any time entries yet. Start a timer from a task to create your first entry!"
+                      : "No time entries match the selected filters. Try adjusting your filters or date range."
+                    }
+                  </p>
+                </div>
               </CardContent>
             </Card>
           )}
