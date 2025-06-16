@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -702,7 +701,7 @@ export function CreateTaskDialog({
                         {orderedFieldsToShow.map((field) => (
                           <div key={field.id} className="space-y-2">
                             {field.type === 'checkbox' ? (
-                              // Special handling for checkbox - no separate label, just checkbox with integrated label
+                              // Checkbox field - show checkbox with label inline
                               <div className="flex items-center space-x-2">
                                 <Checkbox
                                   id={field.id}
@@ -715,12 +714,15 @@ export function CreateTaskDialog({
                                     });
                                   }}
                                 />
-                                <Label htmlFor={field.id} className="text-sm font-normal cursor-pointer">
+                                <Label 
+                                  htmlFor={field.id} 
+                                  className="text-sm font-normal cursor-pointer"
+                                >
                                   {field.name} {field.required && <span className="text-red-500">*</span>}
                                 </Label>
                               </div>
                             ) : (
-                              // For all other field types, show label first then the input
+                              // All other field types - show label above input
                               <>
                                 <Label htmlFor={field.id}>
                                   {field.name} {field.required && <span className="text-red-500">*</span>}
