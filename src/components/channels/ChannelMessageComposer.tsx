@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,11 +9,13 @@ import { User } from "@/types";
 interface ChannelMessageComposerProps {
   channelId: string;
   onSendMessage: (content: string, mentionedUsers: string[]) => void;
+  placeholder?: string;
 }
 
 export function ChannelMessageComposer({
   channelId,
   onSendMessage,
+  placeholder = "Type a message... Use @username to mention someone",
 }: ChannelMessageComposerProps) {
   const { users, currentUser } = useAppContext();
   const [content, setContent] = useState("");
@@ -151,7 +152,7 @@ export function ChannelMessageComposer({
         <div className="flex-1 relative">
           <Textarea
             ref={textareaRef}
-            placeholder="Type a message... Use @username to mention someone"
+            placeholder={placeholder}
             value={content}
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}

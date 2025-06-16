@@ -1,13 +1,14 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Hash, Lock } from "lucide-react";
-import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAppContext } from "@/contexts/AppContext";
 import { ChannelMessageComposer } from "./ChannelMessageComposer";
+import { MessageItem } from "./MessageItem";
+import { MessageThread } from "./MessageThread";
 
 interface Channel {
   id: string;
@@ -24,6 +25,8 @@ interface Message {
   mentioned_users: string[];
   sender_name?: string;
   sender_avatar?: string;
+  parent_message_id?: string;
+  reply_count?: number;
 }
 
 interface ChannelChatProps {
@@ -35,6 +38,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
   const [channel, setChannel] = useState<Channel | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedThread, setSelectedThread] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -95,10 +99,15 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
       console.log('Fetching messages for channel:', channelId);
       console.log('Session user ID:', session?.user?.id);
       
+      // Fetch main messages (not replies) and count their replies
       const { data, error } = await supabase
         .from('messages')
-        .select('*')
+        .select(`
+          *,
+          reply_count:messages!parent_message_id(count)
+        `)
         .eq('channel_id', channelId)
+        .is('parent_message_id', null)
         .order('timestamp', { ascending: true });
 
       if (error) {
@@ -108,7 +117,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
 
       console.log('Raw messages loaded:', data?.length || 0, data);
 
-      // Enrich with user data and ensure mentioned_users is always an array
+      // Enrich with user data and process reply counts
       const enrichedMessages = data?.map(message => {
         const sender = users.find(u => u.id === message.from_user_id);
         const enriched = {
@@ -116,6 +125,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
           mentioned_users: message.mentioned_users || [],
           sender_name: sender?.name || message.from_user_id || 'Unknown User',
           sender_avatar: sender?.avatar,
+          reply_count: message.reply_count?.[0]?.count || 0,
         };
         console.log('Enriched message:', enriched);
         return enriched;
@@ -168,11 +178,11 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
       const messageData = {
         channel_id: channelId,
         from_user_id: currentUser.id,
-        to_user_id: currentUser.id, // For channel messages, set this to the sender's ID
+        to_user_id: currentUser.id,
         subject: 'Channel Message',
         content,
         mentioned_users: mentionedUsers,
-        auth_user_id: session.user.id, // Use the actual auth user ID
+        auth_user_id: session.user.id,
       };
       
       console.log('Inserting message with data:', messageData);
@@ -236,6 +246,14 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
     return formattedContent;
   };
 
+  const handleReply = (message: Message) => {
+    setSelectedThread(message);
+  };
+
+  const handleCloseThread = () => {
+    setSelectedThread(null);
+  };
+
   if (loading) {
     return (
       <Card className="h-full">
@@ -256,6 +274,77 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
     );
   }
 
+  // If a thread is selected, show split view
+  if (selectedThread) {
+    return (
+      <div className="h-full flex gap-4">
+        {/* Main chat (50% width) */}
+        <div className="flex-1">
+          <Card className="h-full flex flex-col">
+            <CardHeader className="border-b">
+              <CardTitle className="flex items-center gap-2">
+                {channel.is_private ? (
+                  <Lock className="h-5 w-5" />
+                ) : (
+                  <Hash className="h-5 w-5" />
+                )}
+                {channel.name}
+                {channel.is_private && (
+                  <Badge variant="outline" className="text-xs">Private</Badge>
+                )}
+              </CardTitle>
+              {channel.description && (
+                <p className="text-sm text-muted-foreground">{channel.description}</p>
+              )}
+            </CardHeader>
+            
+            <CardContent className="flex-1 flex flex-col p-0">
+              <ScrollArea className="flex-1 p-4">
+                <div className="space-y-4">
+                  {messages.map(message => (
+                    <MessageItem
+                      key={message.id}
+                      message={message}
+                      onReply={handleReply}
+                      formatMessageContent={formatMessageContent}
+                    />
+                  ))}
+                  
+                  {messages.length === 0 && (
+                    <div className="text-center text-muted-foreground py-8">
+                      <Hash className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm mb-2">Welcome to #{channel.name}!</p>
+                      <p className="text-xs">This is the beginning of your conversation. Start by sending a message below.</p>
+                    </div>
+                  )}
+                  
+                  <div ref={messagesEndRef} />
+                </div>
+              </ScrollArea>
+              
+              <div className="border-t p-4">
+                <ChannelMessageComposer
+                  channelId={channelId}
+                  onSendMessage={handleSendMessage}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Thread view (50% width) */}
+        <div className="flex-1">
+          <MessageThread
+            parentMessage={selectedThread}
+            channelId={channelId}
+            onClose={handleCloseThread}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Default single view
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="border-b">
@@ -279,30 +368,12 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
             {messages.map(message => (
-              <div key={message.id} className="flex gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={message.sender_avatar} />
-                  <AvatarFallback>
-                    {message.sender_name?.slice(0, 2).toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium">{message.sender_name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(message.timestamp), "MMM d, yyyy 'at' h:mm a")}
-                    </span>
-                  </div>
-                  
-                  <div 
-                    className="text-sm"
-                    dangerouslySetInnerHTML={{ 
-                      __html: formatMessageContent(message.content, message.mentioned_users || [])
-                    }}
-                  />
-                </div>
-              </div>
+              <MessageItem
+                key={message.id}
+                message={message}
+                onReply={handleReply}
+                formatMessageContent={formatMessageContent}
+              />
             ))}
             
             {messages.length === 0 && (
