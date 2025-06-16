@@ -23,7 +23,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { MultiSelect } from "@/components/ui/multi-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 import React from "react";
 
 const teamSchema = z.object({
@@ -83,7 +91,7 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
   };
 
   // Enhanced user filtering and options mapping with safety checks
-  const userOptions = React.useMemo(() => {
+  const eligibleUsers = React.useMemo(() => {
     console.log("EditTeamDialog: Processing users for options", { users });
     
     if (!users || !Array.isArray(users)) {
@@ -92,7 +100,7 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
     }
     
     // Filter out guest users and client users from team assignment options
-    const eligibleUsers = users.filter(user => {
+    return users.filter(user => {
       if (!user || typeof user !== 'object') {
         console.warn("EditTeamDialog: Invalid user object", { user });
         return false;
@@ -110,20 +118,6 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
       }
       return true;
     });
-    
-    const validOptions = eligibleUsers.map(user => ({
-      value: user.id,
-      label: user.name
-    }));
-    
-    console.log("EditTeamDialog: Generated user options", { 
-      originalCount: users.length, 
-      eligibleCount: eligibleUsers.length,
-      validCount: validOptions.length,
-      validOptions 
-    });
-    
-    return validOptions;
   }, [users]);
 
   // Show loading state if users haven't loaded yet
@@ -192,26 +186,59 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
               render={({ field }) => {
                 // Ensure selectedValues is always a safe array of strings
                 const safeSelectedValues = Array.isArray(field.value) ? field.value : [];
-                
-                // Filter out any selected values that don't exist in current options
-                const validSelectedValues = safeSelectedValues.filter(
-                  (val) => userOptions.some((opt) => opt.value === val)
-                );
+
+                const handleMemberSelect = (userId: string) => {
+                  if (safeSelectedValues.includes(userId)) {
+                    field.onChange(safeSelectedValues.filter(id => id !== userId));
+                  } else {
+                    field.onChange([...safeSelectedValues, userId]);
+                  }
+                };
+
+                const removeMember = (userId: string) => {
+                  field.onChange(safeSelectedValues.filter(id => id !== userId));
+                };
 
                 return (
                   <FormItem>
                     <FormLabel>Team Members</FormLabel>
-                    <MultiSelect
-                      options={userOptions}
-                      selectedValues={validSelectedValues}
-                      onValueChange={(val) => {
-                        console.log("EditTeamDialog: Selected team members:", val);
-                        // Ensure we're always passing an array of strings
-                        const safeVal = Array.isArray(val) ? val : [];
-                        field.onChange(safeVal);
-                      }}
-                      placeholder="Select team members"
-                    />
+                    <Select value="" onValueChange={handleMemberSelect}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select team members" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {eligibleUsers.map((user) => (
+                          <SelectItem 
+                            key={user.id} 
+                            value={user.id}
+                            disabled={safeSelectedValues.includes(user.id)}
+                          >
+                            {user.name} {safeSelectedValues.includes(user.id) ? "✓" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Show selected members as badges */}
+                    {safeSelectedValues.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {safeSelectedValues.map((userId) => {
+                          const user = eligibleUsers.find(u => u.id === userId);
+                          return user ? (
+                            <Badge key={userId} variant="secondary" className="text-xs">
+                              {user.name}
+                              <button
+                                type="button"
+                                className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-offset-2"
+                                onClick={() => removeMember(userId)}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 );

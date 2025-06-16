@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,9 +30,10 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, ListChecks, Clock } from "lucide-react";
-import { MultiSelect } from "@/components/ui/multi-select";
 import { Label } from "@/components/ui/label";
 import { ProjectTemplate } from "@/types";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 
 const useTemplateSchema = z.object({
   name: z.string().min(1, "Project name is required"),
@@ -92,6 +92,18 @@ export function UseTemplateDialog({
     }
   }, [templateId, projectTemplates, form]);
 
+  const handleMemberSelect = (memberId: string) => {
+    if (selectedMembers.includes(memberId)) {
+      setSelectedMembers(selectedMembers.filter(id => id !== memberId));
+    } else {
+      setSelectedMembers([...selectedMembers, memberId]);
+    }
+  };
+
+  const removeMember = (memberId: string) => {
+    setSelectedMembers(selectedMembers.filter(id => id !== memberId));
+  };
+
   const onSubmit = (data: UseTemplateFormData) => {
     if (!selectedTemplate) return;
     
@@ -132,12 +144,6 @@ export function UseTemplateDialog({
       form.setValue("dueDate", dueDate.toISOString().split("T")[0]);
     }
   };
-
-  // Convert users to options for MultiSelect
-  const memberOptions = teamMembers.map(member => ({
-    value: member.id,
-    label: member.name
-  }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -233,12 +239,43 @@ export function UseTemplateDialog({
                     
                     <div className="space-y-2">
                       <Label>Assign Team Members</Label>
-                      <MultiSelect
-                        options={memberOptions}
-                        selectedValues={selectedMembers}
-                        onValueChange={setSelectedMembers}
-                        placeholder="Select team members"
-                      />
+                      <Select value="" onValueChange={handleMemberSelect}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select team members" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {teamMembers.map((member) => (
+                            <SelectItem 
+                              key={member.id} 
+                              value={member.id}
+                              disabled={selectedMembers.includes(member.id)}
+                            >
+                              {member.name} {selectedMembers.includes(member.id) ? "✓" : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      {/* Show selected members as badges */}
+                      {selectedMembers.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {selectedMembers.map((memberId) => {
+                            const member = teamMembers.find(m => m.id === memberId);
+                            return member ? (
+                              <Badge key={memberId} variant="secondary" className="text-xs">
+                                {member.name}
+                                <button
+                                  type="button"
+                                  className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-offset-2"
+                                  onClick={() => removeMember(memberId)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            ) : null;
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                   

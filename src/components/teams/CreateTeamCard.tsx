@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Plus, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/contexts/AppContext";
-import { MultiSelect } from "@/components/ui/multi-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 interface CreateTeamCardProps {
   onTeamCreated?: () => void;
@@ -74,8 +80,20 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
     setIsCreating(false);
   };
 
+  const handleMemberSelect = (userId: string) => {
+    if (memberIds.includes(userId)) {
+      setMemberIds(memberIds.filter(id => id !== userId));
+    } else {
+      setMemberIds([...memberIds, userId]);
+    }
+  };
+
+  const removeMember = (userId: string) => {
+    setMemberIds(memberIds.filter(id => id !== userId));
+  };
+
   // Enhanced user filtering and options mapping with safety checks
-  const userOptions = React.useMemo(() => {
+  const eligibleUsers = React.useMemo(() => {
     console.log("CreateTeamCard: Processing users for options", { users });
     
     if (!users || !Array.isArray(users)) {
@@ -84,7 +102,7 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
     }
     
     // Filter out guest users and client users from team assignment options
-    const eligibleUsers = users.filter(user => {
+    return users.filter(user => {
       if (!user || typeof user !== 'object') {
         console.warn("CreateTeamCard: Invalid user object", { user });
         return false;
@@ -102,20 +120,6 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
       }
       return true;
     });
-    
-    const validOptions = eligibleUsers.map(user => ({
-      value: user.id,
-      label: user.name
-    }));
-    
-    console.log("CreateTeamCard: Generated user options", { 
-      originalCount: users.length, 
-      eligibleCount: eligibleUsers.length,
-      validCount: validOptions.length,
-      validOptions 
-    });
-    
-    return validOptions;
   }, [users]);
 
   // Show loading state if users haven't loaded yet
@@ -163,17 +167,43 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
           </div>
           <div className="space-y-2">
             <Label>Team Members</Label>
-            <MultiSelect
-              options={userOptions}
-              selectedValues={Array.isArray(memberIds) ? memberIds : []}
-              onValueChange={(val) => {
-                console.log("CreateTeamCard: Selected team members:", val);
-                // Ensure we're always passing an array of strings
-                const safeVal = Array.isArray(val) ? val : [];
-                setMemberIds(safeVal);
-              }}
-              placeholder="Select team members (guests excluded)"
-            />
+            <Select value="" onValueChange={handleMemberSelect}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select team members (guests excluded)" />
+              </SelectTrigger>
+              <SelectContent>
+                {eligibleUsers.map((user) => (
+                  <SelectItem 
+                    key={user.id} 
+                    value={user.id}
+                    disabled={memberIds.includes(user.id)}
+                  >
+                    {user.name} {memberIds.includes(user.id) ? "✓" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Show selected members as badges */}
+            {memberIds.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {memberIds.map((userId) => {
+                  const user = eligibleUsers.find(u => u.id === userId);
+                  return user ? (
+                    <Badge key={userId} variant="secondary" className="text-xs">
+                      {user.name}
+                      <button
+                        type="button"
+                        className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-offset-2"
+                        onClick={() => removeMember(userId)}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ) : null;
+                })}
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="team-leader">Team Leader ID (Optional)</Label>
