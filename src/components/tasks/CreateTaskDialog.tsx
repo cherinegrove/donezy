@@ -86,6 +86,29 @@ interface CreateTaskDialogProps {
   defaultParentTaskId?: string;
 }
 
+// Correct normalizeOptions helper function for bulletproof data handling
+function normalizeOptions(rawOptions: any): { label: string; value: string }[] {
+  if (!Array.isArray(rawOptions)) {
+    console.warn("normalizeOptions: rawOptions is not an array", rawOptions);
+    return [];
+  }
+  
+  return rawOptions
+    .filter(opt => 
+      opt && 
+      (typeof opt === 'string' || (typeof opt === 'object' && (opt.value || opt.label)))
+    )
+    .map(opt => {
+      if (typeof opt === 'string') {
+        return { label: opt, value: opt };
+      }
+      return {
+        label: String(opt.label || opt.value || opt),
+        value: String(opt.value || opt.label || opt),
+      };
+    });
+}
+
 export function CreateTaskDialog({
   open,
   onOpenChange,
@@ -293,7 +316,7 @@ export function CreateTaskDialog({
                   break;
                 case 'dropdown':
                 case 'multiselect':
-                  customFieldsValue[fieldId] = '';
+                  customFieldsValue[fieldId] = field.type === 'multiselect' ? [] : '';
                   break;
                 default:
                   customFieldsValue[fieldId] = '';
@@ -693,7 +716,7 @@ export function CreateTaskDialog({
                     )}
                   />
                   
-                  {/* Custom Fields - Show when there are template fields available */}
+                  {/* Custom Fields - Show when there are template fields available with BULLETPROOF MultiSelect usage */}
                   {orderedFieldsToShow.length > 0 && (
                     <div className="space-y-4">
                       <Label>Custom Fields from Template</Label>
@@ -725,7 +748,7 @@ export function CreateTaskDialog({
                                 </Label>
                               </div>
                             ) : field.type === 'multiselect' ? (
-                              // Multi-select field - GUARANTEED SAFE DATA PASSING
+                              // Multi-select field - BULLETPROOF data handling
                               <>
                                 <Label htmlFor={field.id}>
                                   {field.name} {field.required && <span className="text-red-500">*</span>}
@@ -734,11 +757,8 @@ export function CreateTaskDialog({
                                   options={normalizeOptions(field.options || [])}
                                   selectedValues={(() => {
                                     const currentValue = form.watch("customFields")?.[field.id];
-                                    // ALWAYS return an array - never undefined/null
-                                    if (Array.isArray(currentValue)) {
-                                      return currentValue.map(v => String(v));
-                                    }
-                                    return [];
+                                    // Ensure we ALWAYS return an array - never undefined/null
+                                    return Array.isArray(currentValue) ? currentValue.map(v => String(v)) : [];
                                   })()}
                                   onValueChange={(values) => {
                                     console.log('MultiSelect onValueChange called with:', values);
@@ -866,27 +886,4 @@ export function CreateTaskDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-// Add normalizeOptions helper function
-function normalizeOptions(rawOptions: any): { label: string; value: string }[] {
-  if (!Array.isArray(rawOptions)) {
-    console.warn("normalizeOptions: rawOptions is not an array", rawOptions);
-    return [];
-  }
-  
-  return rawOptions
-    .filter(opt => 
-      opt && 
-      (typeof opt === 'string' || (typeof opt === 'object' && (opt.value || opt.label)))
-    )
-    .map(opt => {
-      if (typeof opt === 'string') {
-        return { label: opt, value: opt };
-      }
-      return {
-        label: String(opt.label || opt.value || opt),
-        value: String(opt.value || opt.label || opt),
-      };
-    });
 }

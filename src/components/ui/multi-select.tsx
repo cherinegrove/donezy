@@ -26,6 +26,35 @@ interface MultiSelectProps {
   onFileUpload?: (file: File) => void;
 }
 
+// Dev-only: catch undefined children being passed to Command
+const SafeCommand: React.FC<{ children: React.ReactNode; shouldFilter?: boolean; key?: string }> = ({ 
+  children, 
+  shouldFilter = false,
+  key 
+}) => {
+  if (children === undefined || children === null) {
+    console.error('[SafeCommand] Children are undefined or null.');
+    return <div className="p-4 text-center text-sm text-muted-foreground">Error: command children undefined</div>;
+  }
+
+  // Additional safety check for children array
+  if (Array.isArray(children) && children.some(child => child === undefined || child === null)) {
+    console.error('[SafeCommand] Some children in array are undefined or null.');
+    return <div className="p-4 text-center text-sm text-muted-foreground">Error: invalid command children</div>;
+  }
+
+  try {
+    return (
+      <Command shouldFilter={shouldFilter} key={key}>
+        {children}
+      </Command>
+    );
+  } catch (e) {
+    console.error('[SafeCommand] Render failure', e);
+    return <div className="p-4 text-center text-sm text-muted-foreground">Command failed to render</div>;
+  }
+};
+
 // Utility function to normalize options safely
 function normalizeOptions(rawOptions: any): Option[] {
   if (!Array.isArray(rawOptions)) {
@@ -74,29 +103,20 @@ export function MultiSelect({
   const [fileDialogOpen, setFileDialogOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  // Defensive checks
+  const isValidArray = (v: any) => Array.isArray(v);
+
   // Safely normalize all input data
   const safeOptions = React.useMemo(() => normalizeOptions(options), [options]);
   const safeSelectedValues = React.useMemo(() => normalizeSelectedValues(selectedValues), [selectedValues]);
 
-  // CRITICAL SAFETY CHECK: Prevent Command from rendering with invalid data
-  const canRenderCommand = React.useMemo(() => {
-    const optionsValid = Array.isArray(options);
-    const selectedValid = Array.isArray(selectedValues);
-    const hasOnValueChange = typeof onValueChange === 'function';
-    
-    if (!optionsValid || !selectedValid || !hasOnValueChange) {
-      console.warn("MultiSelect: Skipping Command render due to invalid props", {
-        optionsValid,
-        selectedValid,
-        hasOnValueChange,
-        options,
-        selectedValues
-      });
-      return false;
-    }
-    
-    return true;
-  }, [options, selectedValues, onValueChange]);
+  // Log warnings for invalid data
+  if (!isValidArray(options)) {
+    console.warn('[MultiSelect] Invalid "options" prop', options);
+  }
+  if (!isValidArray(selectedValues)) {
+    console.warn('[MultiSelect] Invalid "selectedValues" prop', selectedValues);
+  }
 
   // Early return if onValueChange is not provided
   if (!onValueChange || typeof onValueChange !== 'function') {
@@ -113,11 +133,11 @@ export function MultiSelect({
       if (!value || typeof value !== 'string') return;
       
       try {
-        const updatedValues = safeSelectedValues.includes(value) 
-          ? safeSelectedValues.filter((item) => item !== value)
+        const exists = safeSelectedValues.includes(value);
+        const next = exists
+          ? safeSelectedValues.filter((v) => v !== value)
           : [...safeSelectedValues, value];
-          
-        onValueChange(updatedValues);
+        onValueChange(next);
       } catch (error) {
         console.error("MultiSelect: Error in handleSelect", { error, value });
       }
@@ -197,9 +217,12 @@ export function MultiSelect({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-          {/* ONLY render Command when we have verified safe data */}
-          {canRenderCommand && open && safeOptions.length > 0 && (
-            <Command shouldFilter={false} key={`command-${safeOptions.length}-${safeSelectedValues.length}`}>
+          {/* BULLETPROOF Command rendering with SafeCommand wrapper */}
+          {open && safeOptions.length > 0 && (
+            <SafeCommand 
+              shouldFilter={false} 
+              key={`command-${safeOptions.length}-${safeSelectedValues.length}`}
+            >
               <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
               <CommandEmpty>No options found.</CommandEmpty>
               <CommandGroup className="max-h-64 overflow-auto">
@@ -266,13 +289,13 @@ export function MultiSelect({
                   </CommandItem>
                 )}
               </CommandGroup>
-            </Command>
+            </SafeCommand>
           )}
           
-          {/* Show message when no options available or data is invalid */}
-          {(!canRenderCommand || safeOptions.length === 0) && (
+          {/* Show message when no options available */}
+          {safeOptions.length === 0 && (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              {!canRenderCommand ? "Invalid data provided" : "No options available"}
+              No options available
             </div>
           )}
         </PopoverContent>
