@@ -782,7 +782,7 @@ export function CreateTaskDialog({
                               </div>
                             )}
                             
-                            {(field.type === 'select') && field.options && (
+                            {(field.type === 'select' || field.type === 'dropdown') && field.options && (
                               <Select
                                 value={form.watch("customFields")?.[field.id] || ""}
                                 onValueChange={(value) => {

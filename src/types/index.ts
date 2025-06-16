@@ -303,7 +303,7 @@ export interface ClientFile {
   uploadedAt: string;
 }
 
-export type CustomFieldType = 'text' | 'date' | 'dropdown' | 'multiselect' | 'checkbox' | 'number';
+export type CustomFieldType = 'text' | 'textarea' | 'date' | 'dropdown' | 'multiselect' | 'checkbox' | 'number' | 'select';
 
 export interface CustomField {
   id: string;
