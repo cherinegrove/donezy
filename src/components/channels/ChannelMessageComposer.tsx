@@ -46,49 +46,17 @@ export function ChannelMessageComposer({
     }
   };
 
-  const calculateMentionPosition = (cursorPos: number) => {
+  const calculateMentionPosition = () => {
     if (!textareaRef.current) return { top: 0, left: 0 };
     
     const textarea = textareaRef.current;
-    const textareaRect = textarea.getBoundingClientRect();
+    const rect = textarea.getBoundingClientRect();
     
-    // Create a temporary div to measure text position
-    const div = document.createElement('div');
-    const styles = window.getComputedStyle(textarea);
-    
-    // Copy relevant styles
-    div.style.position = 'absolute';
-    div.style.visibility = 'hidden';
-    div.style.whiteSpace = 'pre-wrap';
-    div.style.wordWrap = 'break-word';
-    div.style.fontSize = styles.fontSize;
-    div.style.fontFamily = styles.fontFamily;
-    div.style.lineHeight = styles.lineHeight;
-    div.style.padding = styles.padding;
-    div.style.width = textarea.offsetWidth + 'px';
-    
-    // Add text up to cursor position
-    const textBeforeCursor = content.substring(0, cursorPos);
-    div.textContent = textBeforeCursor;
-    
-    // Add a marker span at cursor position
-    const marker = document.createElement('span');
-    marker.textContent = '|';
-    div.appendChild(marker);
-    
-    document.body.appendChild(div);
-    
-    const markerRect = marker.getBoundingClientRect();
-    
-    // Calculate position relative to textarea
-    const position = {
-      top: markerRect.top - textareaRect.top + textarea.scrollTop,
-      left: markerRect.left - textareaRect.left
+    // Simple positioning - just below the textarea
+    return {
+      top: 40, // Position below the textarea
+      left: 0
     };
-    
-    document.body.removeChild(div);
-    
-    return position;
   };
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -122,8 +90,7 @@ export function ChannelMessageComposer({
           if (!query.includes(' ') && query.length <= 20) {
             setMentionQuery(query);
             setMentionOpen(true);
-            // Calculate position at the @ symbol location
-            setMentionPosition(calculateMentionPosition(atIndex));
+            setMentionPosition(calculateMentionPosition());
             console.log("Setting mention open with query:", query);
             return;
           }
@@ -193,14 +160,22 @@ export function ChannelMessageComposer({
           />
           
           {mentionOpen && (
-            <MentionDropdown
-              users={otherUsers}
-              onSelect={handleSelectUser}
-              isOpen={mentionOpen}
-              searchQuery={mentionQuery}
-              position={mentionPosition}
-              className="shadow-lg border"
-            />
+            <div 
+              className="absolute"
+              style={{
+                top: mentionPosition.top,
+                left: mentionPosition.left,
+                zIndex: 1000
+              }}
+            >
+              <MentionDropdown
+                users={otherUsers}
+                onSelect={handleSelectUser}
+                isOpen={mentionOpen}
+                searchQuery={mentionQuery}
+                className="shadow-lg border"
+              />
+            </div>
           )}
         </div>
         
