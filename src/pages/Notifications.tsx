@@ -25,7 +25,7 @@ export default function Notifications() {
   // Categorize notifications
   const unreadNotifications = allNotifications.filter(msg => !msg.read);
   const mentionNotifications = allNotifications.filter(msg => 
-    msg.content.includes(`@${currentUser?.name}`) || msg.mentionedUserIds?.includes(currentUser?.id || '')
+    msg.content.includes(`@${currentUser?.name}`) || (msg.mentioned_users && msg.mentioned_users.includes(currentUser?.id || ''))
   );
   const taskNotifications = allNotifications.filter(msg => msg.taskId);
   const projectNotifications = allNotifications.filter(msg => msg.projectId);
@@ -53,7 +53,7 @@ export default function Notifications() {
   };
 
   const getNotificationIcon = (message: Message) => {
-    if (message.content.includes(`@${currentUser?.name}`) || message.mentionedUserIds?.includes(currentUser?.id || '')) {
+    if (message.content.includes(`@${currentUser?.name}`) || (message.mentioned_users && message.mentioned_users.includes(currentUser?.id || ''))) {
       return <User className="h-4 w-4 text-blue-500" />;
     }
     if (message.taskId) {
