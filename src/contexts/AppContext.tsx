@@ -1,8 +1,9 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { AppContextType } from "./AppContextType";
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatus, TimeEntryStatus, TaskStatusDefinition, ProjectStatusDefinition, CustomField } from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatus, TimeEntryStatus, TaskStatusDefinition, ProjectStatusDefinition, CustomField, CustomFieldType } from "@/types";
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -144,7 +145,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
       const fields = data?.map(field => ({
         id: field.id,
         name: field.name,
-        type: field.type as 'text' | 'textarea' | 'number' | 'select' | 'checkbox' | 'date',
+        type: field.type as CustomFieldType,
         description: field.description,
         required: field.required,
         applicableTo: field.applicable_to as ('projects' | 'tasks')[],
