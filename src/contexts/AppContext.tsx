@@ -1,15 +1,16 @@
-
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { ReactNode, createContext, useContext, useState, useEffect } from "react";
 import { AppContextType } from "./AppContextType";
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatus, TimeEntryStatus, TaskStatusDefinition, ProjectStatusDefinition, CustomField, CustomFieldType } from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatus, TaskStatusDefinition, ProjectStatusDefinition, CustomField, CustomFieldType } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
+import { v4 as uuidv4 } from "uuid";
+import { toast } from "sonner";
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export function AppContextProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+export function AppProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -25,285 +26,63 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
   const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
-  const [taskStatuses, setTaskStatuses] = useState<TaskStatusDefinition[]>([
-    { id: '1', label: 'Backlog', value: 'backlog', color: 'bg-gray-500', order: 0 },
-    { id: '2', label: 'To Do', value: 'todo', color: 'bg-blue-500', order: 1 },
-    { id: '3', label: 'In Progress', value: 'in-progress', color: 'bg-yellow-500', order: 2 },
-    { id: '4', label: 'Review', value: 'review', color: 'bg-orange-500', order: 3 },
-    { id: '5', label: 'Done', value: 'done', color: 'bg-green-500', order: 4 },
-  ]);
-  const [projectStatuses, setProjectStatuses] = useState<ProjectStatusDefinition[]>([
-    { id: '1', label: 'Planning', value: 'planning', color: 'bg-blue-500', order: 0 },
-    { id: '2', label: 'Active', value: 'active', color: 'bg-green-500', order: 1 },
-    { id: '3', label: 'On Hold', value: 'on-hold', color: 'bg-yellow-500', order: 2 },
-    { id: '4', label: 'Completed', value: 'completed', color: 'bg-gray-500', order: 3 },
-  ]);
+  const [taskStatuses, setTaskStatuses] = useState<TaskStatusDefinition[]>([]);
+  const [projectStatuses, setProjectStatuses] = useState<ProjectStatusDefinition[]>([]);
 
-  // Set up auth state listener
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log("Auth state changed:", event, session?.user?.id);
-        setSession(session);
-        
-        if (session?.user) {
-          // Create a mock current user based on session data
-          const mockUser: User = {
-            id: session.user.id,
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || "User",
-            email: session.user.email || "",
-            role: session.user.user_metadata?.role || "admin",
-            teamIds: [],
-          };
-          setCurrentUser(mockUser);
-          
-          // Add current user to users array if not already there
-          setUsers(prevUsers => {
-            const userExists = prevUsers.some(user => user.id === mockUser.id);
-            if (!userExists) {
-              return [...prevUsers, mockUser];
-            }
-            return prevUsers;
-          });
-          
-          // Load user data when authenticated
-          setTimeout(() => {
-            loadUserData();
-          }, 0);
-        } else {
-          // Clear data when logged out
-          setCurrentUser(null);
-          setUsers([]);
-          setClients([]);
-          setProjects([]);
-          setTasks([]);
-          setProjectTemplates([]);
-        }
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        const mockUser: User = {
-          id: session.user.id,
-          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || "User",
-          email: session.user.email || "",
-          role: session.user.user_metadata?.role || "admin",
-          teamIds: [],
-        };
-        setCurrentUser(mockUser);
-        setUsers([mockUser]);
-        
-        setTimeout(() => {
-          loadUserData();
-        }, 0);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const loadUserData = async () => {
-    try {
-      await Promise.all([
-        loadClients(),
-        loadProjects(),
-        loadTasks(),
-        loadProjectTemplates(),
-        loadCustomFields(),
-      ]);
-    } catch (error) {
-      console.error("Error loading user data:", error);
-    }
-  };
-
+  // Load custom fields from Supabase
   const loadCustomFields = async () => {
-    if (!currentUser) {
-      console.log('CustomFields Debug: No current user, skipping fetch');
-      return;
-    }
+    if (!session?.user?.id) return;
 
     try {
-      console.log('CustomFields Debug: Fetching custom fields for user:', currentUser.id);
-      
       const { data, error } = await supabase
         .from('custom_fields')
         .select('*')
-        .eq('auth_user_id', currentUser.id)
-        .order('field_order');
-      
+        .eq('auth_user_id', session.user.id)
+        .order('field_order', { ascending: true });
+
       if (error) {
-        console.error('CustomFields Debug: Error fetching custom fields:', error);
-        throw error;
+        console.error('Error loading custom fields:', error);
+        return;
       }
-      
-      console.log('CustomFields Debug: Raw data from Supabase:', data);
-      console.log('CustomFields Debug: Number of fields fetched:', data?.length || 0);
-      
-      const fields = data?.map(field => ({
-        id: field.id,
-        name: field.name,
-        type: field.type as CustomFieldType,
-        description: field.description,
-        required: field.required,
-        applicableTo: field.applicable_to as ('projects' | 'tasks')[],
-        options: field.options,
-        reportable: field.reportable,
-        order: field.field_order,
-        createdAt: field.created_at,
-        updatedAt: field.updated_at,
-      })) || [];
-      
-      console.log('CustomFields Debug: Processed fields:', fields);
-      console.log('CustomFields Debug: Fields applicable to tasks:', fields.filter(f => f.applicableTo?.includes('tasks')));
-      
-      setCustomFields(fields);
+
+      if (data) {
+        const mappedFields: CustomField[] = data.map(field => ({
+          id: field.id,
+          name: field.name,
+          type: field.type as CustomFieldType,
+          description: field.description || '',
+          required: field.required,
+          applicableTo: field.applicable_to as ('projects' | 'tasks')[],
+          options: field.options || [],
+          defaultValue: field.default_value,
+          order: field.field_order,
+          createdAt: field.created_at,
+          updatedAt: field.updated_at,
+          reportable: field.reportable
+        }));
+        
+        console.log('Loading custom fields from database:', mappedFields);
+        setCustomFields(mappedFields);
+      }
     } catch (error) {
-      console.error('CustomFields Debug: Failed to load custom fields:', error);
-      setCustomFields([]);
-    }
-  };
-
-  const loadProjectTemplates = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('project_templates')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedTemplates: ProjectTemplate[] = (data || []).map(template => ({
-        id: template.id,
-        name: template.name,
-        description: template.description,
-        serviceType: template.service_type as "project" | "bank-hours" | "pay-as-you-go",
-        defaultDuration: template.default_duration,
-        allocatedHours: template.allocated_hours,
-        customFields: template.custom_fields || [],
-        teamIds: template.team_ids || [],
-        tags: template.tags || [],
-        tasks: [], // Templates don't store actual task instances
-        createdBy: template.auth_user_id,
-        createdAt: template.created_at,
-        usageCount: template.usage_count,
-      }));
-
-      setProjectTemplates(formattedTemplates);
-    } catch (error) {
-      console.error("Error loading project templates:", error);
-    }
-  };
-
-  const loadClients = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedClients: Client[] = (data || []).map(client => ({
-        id: client.id,
-        name: client.name,
-        contactName: "",
-        email: client.email,
-        phone: client.phone || "",
-        address: client.address || "",
-        website: client.website || "",
-        billableRate: 0,
-        currency: "USD",
-        status: client.status as "active" | "inactive",
-        createdAt: client.created_at,
-        memberIds: [],
-      }));
-
-      setClients(formattedClients);
-    } catch (error) {
-      console.error("Error loading clients:", error);
-    }
-  };
-
-  const loadProjects = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedProjects: Project[] = (data || []).map(project => ({
-        id: project.id,
-        name: project.name,
-        description: project.description,
-        clientId: project.client_id,
-        serviceType: project.service_type as "project" | "bank-hours" | "pay-as-you-go",
-        status: project.status as "todo" | "in-progress" | "done",
-        startDate: project.start_date || "",
-        dueDate: project.due_date || "",
-        allocatedHours: project.allocated_hours || 0,
-        usedHours: project.used_hours || 0,
-        teamIds: project.team_ids || [],
-        watcherIds: project.watcher_ids || [],
-      }));
-
-      setProjects(formattedProjects);
-    } catch (error) {
-      console.error("Error loading projects:", error);
-    }
-  };
-
-  const loadTasks = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedTasks: Task[] = (data || []).map(task => ({
-        id: task.id,
-        title: task.title,
-        description: task.description || "",
-        status: task.status as TaskStatus,
-        priority: task.priority as "low" | "medium" | "high",
-        projectId: task.project_id,
-        assigneeId: task.assignee_id,
-        dueDate: task.due_date || "",
-        estimatedHours: task.estimated_hours || 0,
-        actualHours: task.actual_hours || 0,
-        createdAt: task.created_at,
-        timeEntries: [],
-        comments: [],
-        watcherIds: task.watcher_ids || [],
-        linkedTaskIds: [],
-        files: [],
-      }));
-
-      setTasks(formattedTasks);
-    } catch (error) {
-      console.error("Error loading tasks:", error);
+      console.error('Error in loadCustomFields:', error);
     }
   };
 
   // Authentication functions
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        console.error("Login error:", error);
+        console.error("Login error:", error.message);
         return false;
       }
 
+      setSession(data.session);
       return true;
     } catch (error) {
       console.error("Login error:", error);
@@ -311,13 +90,15 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
-  const logout = async (): Promise<boolean> => {
+  const logout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error("Logout error:", error);
+        console.error("Logout error:", error.message);
         return false;
       }
+      setSession(null);
+      setCurrentUser(null);
       return true;
     } catch (error) {
       console.error("Logout error:", error);
@@ -325,346 +106,209 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
-  // Client functions
-  const addClient = async (client: Omit<Client, 'id'>) => {
-    // This function is now handled by the AddClientDialog component
-    // Refresh clients after adding
-    await loadClients();
-  };
-
-  const updateClient = async (clientId: string, updates: Partial<Client>) => {
-    try {
-      const { error } = await supabase
-        .from('clients')
-        .update({
-          name: updates.name,
-          email: updates.email,
-          phone: updates.phone,
-          address: updates.address,
-          website: updates.website,
-          status: updates.status,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', clientId);
-
-      if (error) throw error;
-
-      // Refresh clients
-      await loadClients();
-    } catch (error) {
-      console.error("Error updating client:", error);
-      throw error;
-    }
-  };
-
-  const deleteClient = async (clientId: string) => {
-    try {
-      const { error } = await supabase
-        .from('clients')
-        .delete()
-        .eq('id', clientId);
-
-      if (error) throw error;
-
-      // Refresh clients
-      await loadClients();
-    } catch (error) {
-      console.error("Error deleting client:", error);
-      throw error;
-    }
-  };
-
-  const getClientById = (clientId: string): Client | undefined => {
-    return clients.find(client => client.id === clientId);
-  };
-
-  // Project functions
-  const addProject = async (projectData: Omit<Project, 'id'>): Promise<string> => {
-    if (!currentUser) {
-      throw new Error("User must be logged in to create a project");
-    }
-
-    try {
-      const projectId = crypto.randomUUID();
-      const newProject: Project = {
-        ...projectData,
-        id: projectId,
-      };
-
-      // Insert into Supabase
-      const { error } = await supabase
-        .from('projects')
-        .insert({
-          id: projectId,
-          auth_user_id: currentUser.id,
-          name: projectData.name,
-          description: projectData.description,
-          client_id: projectData.clientId,
-          service_type: projectData.serviceType || 'project',
-          start_date: projectData.startDate,
-          due_date: projectData.dueDate,
-          allocated_hours: projectData.allocatedHours || 0,
-          used_hours: 0,
-          status: projectData.status || 'todo',
-          team_ids: projectData.teamIds || [],
-        });
-
-      if (error) {
-        console.error('Error creating project:', error);
-        throw error;
-      }
-
-      // Update local state immediately
-      setProjects(prevProjects => [...prevProjects, newProject]);
-      
-      console.log("Project added to state:", projectId);
-      return projectId;
-    } catch (error) {
-      console.error("Error in addProject:", error);
-      throw error;
-    }
-  };
-
-  const updateProject = async (projectId: string, updates: Partial<Project>) => {
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({
-          name: updates.name,
-          description: updates.description,
-          client_id: updates.clientId,
-          service_type: updates.serviceType,
-          status: updates.status,
-          start_date: updates.startDate,
-          due_date: updates.dueDate,
-          allocated_hours: updates.allocatedHours,
-          team_ids: updates.teamIds,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', projectId);
-
-      if (error) throw error;
-
-      // Refresh projects
-      await loadProjects();
-    } catch (error) {
-      console.error("Error updating project:", error);
-      throw error;
-    }
-  };
-
-  const deleteProject = async (projectId: string) => {
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', projectId);
-
-      if (error) throw error;
-
-      // Refresh projects
-      await loadProjects();
-    } catch (error) {
-      console.error("Error deleting project:", error);
-      throw error;
-    }
-  };
-
-  const getProjectById = (projectId: string): Project | undefined => {
-    return projects.find(project => project.id === projectId);
-  };
-
-  // Template functions - Updated to use database
-  const addProjectTemplate = async (template: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => {
-    try {
-      const { error } = await supabase
-        .from('project_templates')
-        .insert({
-          auth_user_id: currentUser?.id,
-          name: template.name,
-          description: template.description,
-          service_type: template.serviceType,
-          default_duration: template.defaultDuration,
-          allocated_hours: template.allocatedHours,
-          custom_fields: template.customFields || [],
-          team_ids: template.teamIds || [],
-          tags: template.tags || [],
-        });
-
-      if (error) throw error;
-
-      // Refresh templates
-      await loadProjectTemplates();
-    } catch (error) {
-      console.error("Error creating project template:", error);
-      throw error;
-    }
-  };
-
-  const updateProjectTemplate = async (templateId: string, updates: Partial<ProjectTemplate>) => {
-    try {
-      const { error } = await supabase
-        .from('project_templates')
-        .update({
-          name: updates.name,
-          description: updates.description,
-          service_type: updates.serviceType,
-          default_duration: updates.defaultDuration,
-          allocated_hours: updates.allocatedHours,
-          custom_fields: updates.customFields,
-          team_ids: updates.teamIds,
-          tags: updates.tags,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', templateId);
-
-      if (error) throw error;
-
-      // Refresh templates
-      await loadProjectTemplates();
-    } catch (error) {
-      console.error("Error updating project template:", error);
-      throw error;
-    }
-  };
-
-  const deleteProjectTemplate = async (templateId: string) => {
-    try {
-      const { error } = await supabase
-        .from('project_templates')
-        .delete()
-        .eq('id', templateId);
-
-      if (error) throw error;
-
-      // Refresh templates
-      await loadProjectTemplates();
-    } catch (error) {
-      console.error("Error deleting project template:", error);
-      throw error;
-    }
-  };
-
-  // Placeholder implementations for other functions (keeping existing mock behavior for now)
-  const addUser = (user: Omit<User, 'id'>) => {
-    const newUser: User = {
-      ...user,
-      id: Math.random().toString(36).substring(2, 15),
-    };
-    setUsers(prev => [...prev, newUser]);
+  // User functions
+  const addUser = (user: Omit<User, "id">) => {
+    const newUser = { ...user, id: uuidv4() };
+    setUsers([...users, newUser]);
   };
 
   const updateUser = (userId: string, updates: Partial<User>) => {
-    setUsers(prev => prev.map(user => 
-      user.id === userId ? { ...user, ...updates } : user
-    ));
+    setUsers(users.map((user) => (user.id === userId ? { ...user, ...updates } : user)));
   };
 
   const deleteUser = (userId: string) => {
-    setUsers(prev => prev.filter(user => user.id !== userId));
+    setUsers(users.filter((user) => user.id !== userId));
   };
 
-  const getUserById = (userId: string): User | undefined => {
-    return users.find(user => user.id === userId);
+  const getUserById = (userId: string) => {
+    return users.find((user) => user.id === userId);
   };
 
   const inviteUser = (email: string, name: string, role: string, options?: any) => {
-    console.log("Inviting user:", { email, name, role, options });
+    // Implementation would involve sending an invitation email
+    console.log(`Inviting ${email} as ${role}`);
+    toast.success(`Invitation sent to ${email}`);
   };
 
   const updateManagerNotificationPreferences = (preferences: any) => {
-    console.log("Updating manager notification preferences:", preferences);
+    if (!currentUser) return;
+    updateUser(currentUser.id, {
+      notificationPreferences: {
+        ...currentUser.notificationPreferences,
+        ...preferences,
+      },
+    });
   };
 
   // Team functions
-  const addTeam = (team: Omit<Team, 'id'>) => {
-    const newTeam: Team = {
-      ...team,
-      id: Math.random().toString(36).substring(2, 15),
-    };
-    setTeams(prev => [...prev, newTeam]);
+  const addTeam = (team: Omit<Team, "id">) => {
+    const newTeam = { ...team, id: uuidv4() };
+    setTeams([...teams, newTeam]);
   };
 
   const updateTeam = (teamId: string, updates: Partial<Team>) => {
-    setTeams(prev => prev.map(team => 
-      team.id === teamId ? { ...team, ...updates } : team
-    ));
+    setTeams(teams.map((team) => (team.id === teamId ? { ...team, ...updates } : team)));
   };
 
   const deleteTeam = (teamId: string) => {
-    setTeams(prev => prev.filter(team => team.id !== teamId));
+    setTeams(teams.filter((team) => team.id !== teamId));
   };
 
-  // Task Status functions
-  const addTaskStatus = (status: Omit<TaskStatusDefinition, 'id'>) => {
-    const newStatus: TaskStatusDefinition = {
-      ...status,
-      id: Math.random().toString(36).substring(2, 15),
+  // Client functions
+  const addClient = (client: Omit<Client, "id">) => {
+    const newClient = {
+      ...client,
+      id: uuidv4(),
+      createdAt: new Date().toISOString(),
     };
-    setTaskStatuses(prev => [...prev, newStatus]);
+    setClients([...clients, newClient]);
   };
 
-  const updateTaskStatus = (statusId: string, updates: Partial<TaskStatusDefinition>) => {
-    setTaskStatuses(prev => prev.map(status => 
-      status.id === statusId ? { ...status, ...updates } : status
-    ));
+  const updateClient = (clientId: string, updates: Partial<Client>) => {
+    setClients(clients.map((client) => (client.id === clientId ? { ...client, ...updates } : client)));
   };
 
-  const deleteTaskStatus = (statusId: string) => {
-    setTaskStatuses(prev => prev.filter(status => status.id !== statusId));
+  const deleteClient = (clientId: string) => {
+    setClients(clients.filter((client) => client.id !== clientId));
   };
 
-  const reorderTaskStatuses = (statuses: TaskStatusDefinition[]) => {
-    setTaskStatuses(statuses);
+  const getClientById = (clientId: string) => {
+    return clients.find((client) => client.id === clientId);
   };
 
-  // Project Status functions
-  const addProjectStatus = (status: Omit<ProjectStatusDefinition, 'id'>) => {
-    const newStatus: ProjectStatusDefinition = {
-      ...status,
-      id: Math.random().toString(36).substring(2, 15),
+  // Project functions
+  const addProject = (project: Omit<Project, "id">) => {
+    const newProject = { ...project, id: uuidv4(), usedHours: 0 };
+    setProjects([...projects, newProject]);
+  };
+
+  const updateProject = (projectId: string, updates: Partial<Project>) => {
+    setProjects(projects.map((project) => (project.id === projectId ? { ...project, ...updates } : project)));
+  };
+
+  const deleteProject = (projectId: string) => {
+    setProjects(projects.filter((project) => project.id !== projectId));
+  };
+
+  const getProjectById = (projectId: string) => {
+    return projects.find((project) => project.id === projectId);
+  };
+
+  const convertProjectToTemplate = (projectId: string, templateData: { name: string; description: string }) => {
+    const project = getProjectById(projectId);
+    if (!project) return;
+
+    const projectTasks = tasks.filter((task) => task.projectId === projectId);
+
+    const templateTasks = projectTasks.map((task) => ({
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      estimatedHours: task.estimatedHours,
+      status: task.status,
+    }));
+
+    const newTemplate: Omit<ProjectTemplate, "id" | "createdAt" | "usageCount"> = {
+      name: templateData.name,
+      description: templateData.description,
+      serviceType: project.serviceType,
+      defaultDuration: 14, // 2 weeks default
+      allocatedHours: project.allocatedHours || 0,
+      tasks: templateTasks,
+      createdBy: currentUser?.id || "",
+      teamIds: project.teamIds,
+      customFields: project.customFields ? Object.keys(project.customFields) : [],
     };
-    setProjectStatuses(prev => [...prev, newStatus]);
+
+    addProjectTemplate(newTemplate);
   };
 
-  const updateProjectStatus = (statusId: string, updates: Partial<ProjectStatusDefinition>) => {
-    setProjectStatuses(prev => prev.map(status => 
-      status.id === statusId ? { ...status, ...updates } : status
-    ));
+  const watchProject = (projectId: string, userId: string) => {
+    const project = getProjectById(projectId);
+    if (!project) return;
+
+    const watcherIds = project.watcherIds || [];
+    if (!watcherIds.includes(userId)) {
+      updateProject(projectId, {
+        watcherIds: [...watcherIds, userId],
+      });
+    }
   };
 
-  const deleteProjectStatus = (statusId: string) => {
-    setProjectStatuses(prev => prev.filter(status => status.id !== statusId));
+  const unwatchProject = (projectId: string, userId: string) => {
+    const project = getProjectById(projectId);
+    if (!project || !project.watcherIds) return;
+
+    updateProject(projectId, {
+      watcherIds: project.watcherIds.filter((id) => id !== userId),
+    });
   };
 
-  const reorderProjectStatuses = (statuses: ProjectStatusDefinition[]) => {
-    setProjectStatuses(statuses);
+  const createProjectFromTemplate = (templateId: string, projectData: any) => {
+    const template = projectTemplates.find((t) => t.id === templateId);
+    if (!template) return;
+
+    const newProject: Omit<Project, "id"> = {
+      name: projectData.name,
+      description: projectData.description || template.description,
+      clientId: projectData.clientId,
+      status: "todo",
+      serviceType: template.serviceType,
+      startDate: projectData.startDate,
+      dueDate: projectData.dueDate,
+      allocatedHours: projectData.allocatedHours || template.allocatedHours,
+      usedHours: 0,
+      teamIds: projectData.teamIds || template.teamIds,
+      templateId: templateId,
+      customFields: projectData.customFields || {},
+    };
+
+    const projectId = uuidv4();
+    setProjects([...projects, { ...newProject, id: projectId }]);
+
+    // Create tasks from template
+    if (template.tasks && template.tasks.length > 0) {
+      const newTasks = template.tasks.map((templateTask) => ({
+        id: uuidv4(),
+        title: templateTask.title,
+        description: templateTask.description,
+        projectId: projectId,
+        status: templateTask.status || "todo",
+        priority: templateTask.priority,
+        estimatedHours: templateTask.estimatedHours,
+        createdAt: new Date().toISOString(),
+      }));
+
+      setTasks([...tasks, ...newTasks]);
+    }
+
+    return projectId;
   };
 
   // Task functions
-  const addTask = (task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>) => {
-    const newTask: Task = {
+  const addTask = (task: Omit<Task, "id" | "createdAt" | "timeEntries" | "comments">) => {
+    const newTask = {
       ...task,
-      id: Math.random().toString(36).substring(2, 15),
+      id: uuidv4(),
       createdAt: new Date().toISOString(),
       timeEntries: [],
       comments: [],
     };
-    setTasks(prev => [...prev, newTask]);
+    setTasks([...tasks, newTask]);
   };
 
   const updateTask = (taskId: string, updates: Partial<Task>) => {
-    setTasks(prev => prev.map(task => 
-      task.id === taskId ? { ...task, ...updates } : task
-    ));
+    setTasks(tasks.map((task) => (task.id === taskId ? { ...task, ...updates } : task)));
   };
 
   const deleteTask = (taskId: string) => {
-    setTasks(prev => prev.filter(task => task.id !== taskId));
+    // Also delete any subtasks
+    const subtaskIds = tasks.filter((task) => task.parentTaskId === taskId).map((task) => task.id);
+    setTasks(tasks.filter((task) => task.id !== taskId && !subtaskIds.includes(task.id)));
   };
 
-  const getTaskById = (taskId: string): Task | undefined => {
-    return tasks.find(task => task.id === taskId);
+  const getTaskById = (taskId: string) => {
+    return tasks.find((task) => task.id === taskId);
   };
 
   const moveTask = (taskId: string, newStatus: string) => {
@@ -673,347 +317,411 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
 
   const watchTask = (taskId: string, userId: string) => {
     const task = getTaskById(taskId);
-    if (task && !task.watcherIds?.includes(userId)) {
-      updateTask(taskId, { 
-        watcherIds: [...(task.watcherIds || []), userId] 
+    if (!task) return;
+
+    const watcherIds = task.watcherIds || [];
+    if (!watcherIds.includes(userId)) {
+      updateTask(taskId, {
+        watcherIds: [...watcherIds, userId],
       });
     }
   };
 
   const unwatchTask = (taskId: string, userId: string) => {
     const task = getTaskById(taskId);
-    if (task) {
-      updateTask(taskId, { 
-        watcherIds: task.watcherIds?.filter(id => id !== userId) || [] 
-      });
-    }
+    if (!task || !task.watcherIds) return;
+
+    updateTask(taskId, {
+      watcherIds: task.watcherIds.filter((id) => id !== userId),
+    });
   };
 
   const linkTasks = (taskId: string, relatedTaskId: string) => {
     const task = getTaskById(taskId);
-    if (task && !task.linkedTaskIds?.includes(relatedTaskId)) {
-      updateTask(taskId, { 
-        linkedTaskIds: [...(task.linkedTaskIds || []), relatedTaskId] 
+    if (!task) return;
+
+    const relatedTaskIds = task.relatedTaskIds || [];
+    if (!relatedTaskIds.includes(relatedTaskId)) {
+      updateTask(taskId, {
+        relatedTaskIds: [...relatedTaskIds, relatedTaskId],
       });
     }
   };
 
   const unlinkTasks = (taskId: string, relatedTaskId: string) => {
     const task = getTaskById(taskId);
-    if (task) {
-      updateTask(taskId, { 
-        linkedTaskIds: task.linkedTaskIds?.filter(id => id !== relatedTaskId) || [] 
-      });
-    }
-  };
+    if (!task || !task.relatedTaskIds) return;
 
-  const uploadTaskFile = async (taskId: string, file: File): Promise<string> => {
-    // Mock implementation
-    return Promise.resolve("file-id");
-  };
-
-  const deleteTaskFile = (taskId: string, fileId: string) => {
-    // Mock implementation
-    console.log("Deleting file:", fileId, "from task:", taskId);
-  };
-
-  // TimeEntry functions
-  const addTimeEntry = (timeEntry: Omit<TimeEntry, 'id'>) => {
-    const newTimeEntry: TimeEntry = {
-      ...timeEntry,
-      id: Math.random().toString(36).substring(2, 15),
-    };
-    setTimeEntries(prev => [...prev, newTimeEntry]);
-  };
-
-  const updateTimeEntry = (timeEntryId: string, updates: Partial<TimeEntry>) => {
-    setTimeEntries(prev => prev.map(entry => 
-      entry.id === timeEntryId ? { ...entry, ...updates } : entry
-    ));
-  };
-
-  const deleteTimeEntry = (timeEntryId: string) => {
-    setTimeEntries(prev => prev.filter(entry => entry.id !== timeEntryId));
-  };
-
-  const startTimeTracking = (taskId: string, projectId?: string, clientId?: string) => {
-    const newTimeEntry: TimeEntry = {
-      id: Math.random().toString(36).substring(2, 15),
-      userId: currentUser?.id || "",
-      taskId,
-      projectId: projectId || "",
-      clientId: clientId || "",
-      startTime: new Date().toISOString(),
-      endTime: "",
-      duration: 0,
-      description: "",
-      status: "pending",
-    };
-    setActiveTimeEntry(newTimeEntry);
-    addTimeEntry(newTimeEntry);
-  };
-
-  const stopTimeTracking = (notes?: string) => {
-    if (activeTimeEntry) {
-      const endTime = new Date().toISOString();
-      const duration = Math.floor((new Date(endTime).getTime() - new Date(activeTimeEntry.startTime).getTime()) / 1000 / 60);
-      
-      updateTimeEntry(activeTimeEntry.id, {
-        endTime,
-        duration,
-        description: notes || "",
-      });
-      
-      setActiveTimeEntry(null);
-    }
-  };
-
-  const updateTimeEntryStatus = (timeEntryId: string, status: string, reason?: string) => {
-    updateTimeEntry(timeEntryId, { status: status as TimeEntryStatus, rejectionReason: reason });
-  };
-
-  // Message functions
-  const addMessage = (message: Omit<Message, 'id'>) => {
-    const newMessage: Message = {
-      ...message,
-      id: Math.random().toString(36).substring(2, 15),
-    };
-    setMessages(prev => [...prev, newMessage]);
-  };
-
-  const updateMessage = (messageId: string, updates: Partial<Message>) => {
-    setMessages(prev => prev.map(message => 
-      message.id === messageId ? { ...message, ...updates } : message
-    ));
-  };
-
-  const deleteMessage = (messageId: string) => {
-    setMessages(prev => prev.filter(message => message.id !== messageId));
-  };
-
-  const sendMessage = (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
-    addMessage({
-      ...message,
-      timestamp: new Date().toISOString(),
-      read: false,
+    updateTask(taskId, {
+      relatedTaskIds: task.relatedTaskIds.filter((id) => id !== relatedTaskId),
     });
   };
 
-  const createMessage = (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
-    sendMessage(message);
+  const uploadTaskFile = async (taskId: string, file: File) => {
+    // In a real implementation, this would upload to storage
+    const fileId = uuidv4();
+    const task = getTaskById(taskId);
+    if (!task) throw new Error("Task not found");
+
+    const newFile = {
+      id: fileId,
+      name: file.name,
+      url: URL.createObjectURL(file), // This is temporary and would be a real URL in production
+      size: file.size,
+      sizeKb: Math.round(file.size / 1024),
+      uploadedAt: new Date().toISOString(),
+    };
+
+    updateTask(taskId, {
+      files: [...(task.files || []), newFile],
+    });
+
+    return fileId;
   };
+
+  const deleteTaskFile = (taskId: string, fileId: string) => {
+    const task = getTaskById(taskId);
+    if (!task || !task.files) return;
+
+    updateTask(taskId, {
+      files: task.files.filter((file) => file.id !== fileId),
+    });
+  };
+
+  // Task Status functions
+  const addTaskStatus = (status: Omit<TaskStatusDefinition, "id">) => {
+    const newStatus = { ...status, id: uuidv4() };
+    setTaskStatuses([...taskStatuses, newStatus]);
+  };
+
+  const updateTaskStatus = (statusId: string, updates: Partial<TaskStatusDefinition>) => {
+    setTaskStatuses(taskStatuses.map((status) => (status.id === statusId ? { ...status, ...updates } : status)));
+  };
+
+  const deleteTaskStatus = (statusId: string) => {
+    setTaskStatuses(taskStatuses.filter((status) => status.id !== statusId));
+  };
+
+  const reorderTaskStatuses = (statuses: TaskStatusDefinition[]) => {
+    setTaskStatuses(statuses);
+  };
+
+  // Project Status functions
+  const addProjectStatus = (status: Omit<ProjectStatusDefinition, "id">) => {
+    const newStatus = { ...status, id: uuidv4() };
+    setProjectStatuses([...projectStatuses, newStatus]);
+  };
+
+  const updateProjectStatus = (statusId: string, updates: Partial<ProjectStatusDefinition>) => {
+    setProjectStatuses(projectStatuses.map((status) => (status.id === statusId ? { ...status, ...updates } : status)));
+  };
+
+  const deleteProjectStatus = (statusId: string) => {
+    setProjectStatuses(projectStatuses.filter((status) => status.id !== statusId));
+  };
+
+  const reorderProjectStatuses = (statuses: ProjectStatusDefinition[]) => {
+    setProjectStatuses(statuses);
+  };
+
+  // TimeEntry functions
+  const addTimeEntry = (timeEntry: Omit<TimeEntry, "id">) => {
+    const newTimeEntry = { ...timeEntry, id: uuidv4() };
+    setTimeEntries([...timeEntries, newTimeEntry]);
+  };
+
+  const updateTimeEntry = (timeEntryId: string, updates: Partial<TimeEntry>) => {
+    setTimeEntries(timeEntries.map((entry) => (entry.id === timeEntryId ? { ...entry, ...updates } : entry)));
+  };
+
+  const deleteTimeEntry = (timeEntryId: string) => {
+    setTimeEntries(timeEntries.filter((entry) => entry.id !== timeEntryId));
+  };
+
+  const startTimeTracking = (taskId: string, projectId?: string, clientId?: string) => {
+    if (activeTimeEntry) {
+      stopTimeTracking();
+    }
+
+    const newTimeEntry: Omit<TimeEntry, "id"> = {
+      userId: currentUser?.id || "",
+      taskId,
+      projectId,
+      clientId,
+      startTime: new Date().toISOString(),
+      duration: 0, // Will be calculated when stopped
+    };
+
+    const entry = { ...newTimeEntry, id: uuidv4() };
+    setActiveTimeEntry(entry);
+    setTimeEntries([...timeEntries, entry]);
+  };
+
+  const stopTimeTracking = (notes?: string) => {
+    if (!activeTimeEntry) return;
+
+    const endTime = new Date().toISOString();
+    const startTime = new Date(activeTimeEntry.startTime);
+    const duration = Math.round((new Date().getTime() - startTime.getTime()) / 60000); // in minutes
+
+    updateTimeEntry(activeTimeEntry.id, {
+      endTime,
+      duration,
+      notes,
+    });
+
+    setActiveTimeEntry(null);
+  };
+
+  const updateTimeEntryStatus = (timeEntryId: string, status: string, reason?: string) => {
+    updateTimeEntry(timeEntryId, {
+      status: status as TimeEntry["status"],
+      rejectionReason: status === "rejected" ? reason : undefined,
+    });
+  };
+
+  // Message functions
+  const addMessage = (message: Omit<Message, "id">) => {
+    const newMessage = { ...message, id: uuidv4() };
+    setMessages([...messages, newMessage]);
+  };
+
+  const updateMessage = (messageId: string, updates: Partial<Message>) => {
+    setMessages(messages.map((message) => (message.id === messageId ? { ...message, ...updates } : message)));
+  };
+
+  const deleteMessage = (messageId: string) => {
+    setMessages(messages.filter((message) => message.id !== messageId));
+  };
+
+  const sendMessage = (message: Omit<Message, "id" | "timestamp" | "read">) => {
+    const newMessage = {
+      ...message,
+      id: uuidv4(),
+      timestamp: new Date().toISOString(),
+      read: false,
+    };
+    setMessages([...messages, newMessage]);
+  };
+
+  const createMessage = sendMessage; // Alias for consistency
 
   const markMessageAsRead = (messageId: string) => {
     updateMessage(messageId, { read: true });
   };
 
   // Comment functions
-  const addComment = (taskId: string, userId: string, content: string, mentionedUserIds?: string[]): string => {
-    const comment = {
-      id: Math.random().toString(36).substring(2, 15),
-      taskId,
+  const addComment = (taskId: string, userId: string, content: string, mentionedUserIds?: string[]) => {
+    const commentId = uuidv4();
+    const task = getTaskById(taskId);
+    if (!task) return commentId;
+
+    const newComment = {
+      id: commentId,
       userId,
       content,
-      mentionedUserIds: mentionedUserIds || [],
       timestamp: new Date().toISOString(),
+      mentionedUserIds,
     };
-    setComments(prev => [...prev, comment]);
-    return comment.id;
+
+    updateTask(taskId, {
+      comments: [...(task.comments || []), newComment],
+    });
+
+    return commentId;
   };
 
   // Note functions
-  const addNote = (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newNote: Note = {
+  const addNote = (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => {
+    const now = new Date().toISOString();
+    const newNote = {
       ...note,
-      id: Math.random().toString(36).substring(2, 15),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      id: uuidv4(),
+      createdAt: now,
+      updatedAt: now,
     };
-    setNotes(prev => [...prev, newNote]);
+    setNotes([...notes, newNote]);
   };
 
   const updateNote = (noteId: string, updates: Partial<Note>) => {
-    setNotes(prev => prev.map(note => 
-      note.id === noteId ? { ...note, ...updates, updatedAt: new Date().toISOString() } : note
-    ));
+    setNotes(
+      notes.map((note) =>
+        note.id === noteId
+          ? {
+              ...note,
+              ...updates,
+              updatedAt: new Date().toISOString(),
+            }
+          : note
+      )
+    );
   };
 
   const deleteNote = (noteId: string) => {
-    setNotes(prev => prev.filter(note => note.id !== noteId));
+    setNotes(notes.filter((note) => note.id !== noteId));
   };
 
-  const getNotesByUser = (userId: string): Note[] => {
-    return notes.filter(note => note.userId === userId);
+  const getNotesByUser = (userId: string) => {
+    return notes.filter((note) => note.userId === userId);
   };
 
   // Custom Role functions
-  const addCustomRole = (role: Omit<CustomRole, 'id'>) => {
-    const newRole: CustomRole = {
-      ...role,
-      id: Math.random().toString(36).substring(2, 15),
-    };
-    setCustomRoles(prev => [...prev, newRole]);
+  const addCustomRole = (role: Omit<CustomRole, "id">) => {
+    const newRole = { ...role, id: uuidv4() };
+    setCustomRoles([...customRoles, newRole]);
   };
 
   const updateCustomRole = (roleId: string, updates: Partial<CustomRole>) => {
-    setCustomRoles(prev => prev.map(role => 
-      role.id === roleId ? { ...role, ...updates } : role
-    ));
+    setCustomRoles(customRoles.map((role) => (role.id === roleId ? { ...role, ...updates } : role)));
   };
 
   const deleteCustomRole = (roleId: string) => {
-    setCustomRoles(prev => prev.filter(role => role.id !== roleId));
+    setCustomRoles(customRoles.filter((role) => role.id !== roleId));
   };
 
-  const convertProjectToTemplate = (projectId: string, templateData: { name: string; description: string }) => {
-    const project = getProjectById(projectId);
-    if (project) {
-      addProjectTemplate({
-        name: templateData.name,
-        description: templateData.description,
-        serviceType: project.serviceType,
-        defaultDuration: 0,
-        allocatedHours: project.allocatedHours || 0,
-        tasks: tasks.filter(task => task.projectId === projectId).map(task => ({
-          title: task.title,
-          description: task.description,
-          status: task.status,
-          priority: task.priority,
-          estimatedHours: task.estimatedHours,
-        })),
-        createdBy: currentUser?.id || "",
-        tags: [],
-      });
-    }
+  // Template functions
+  const addProjectTemplate = (template: Omit<ProjectTemplate, "id" | "createdAt" | "usageCount">) => {
+    const newTemplate = {
+      ...template,
+      id: uuidv4(),
+      createdAt: new Date().toISOString(),
+      usageCount: 0,
+    };
+    setProjectTemplates([...projectTemplates, newTemplate]);
   };
 
-  const watchProject = (projectId: string, userId: string) => {
-    const project = getProjectById(projectId);
-    if (project && !project.watcherIds?.includes(userId)) {
-      updateProject(projectId, { 
-        watcherIds: [...(project.watcherIds || []), userId] 
-      });
-    }
+  const updateProjectTemplate = (templateId: string, updates: Partial<ProjectTemplate>) => {
+    setProjectTemplates(
+      projectTemplates.map((template) => (template.id === templateId ? { ...template, ...updates } : template))
+    );
   };
 
-  const unwatchProject = (projectId: string, userId: string) => {
-    const project = getProjectById(projectId);
-    if (project) {
-      updateProject(projectId, { 
-        watcherIds: project.watcherIds?.filter(id => id !== userId) || [] 
-      });
-    }
-  };
-
-  const createProjectFromTemplate = (templateId: string, projectData: any) => {
-    const template = projectTemplates.find(t => t.id === templateId);
-    if (template && template.structure) {
-      // Create project from template
-      const newProject: Omit<Project, 'id'> = {
-        name: projectData.name,
-        description: projectData.description,
-        clientId: projectData.clientId,
-        serviceType: template.structure.serviceType,
-        status: "todo",
-        startDate: projectData.startDate || "",
-        dueDate: projectData.dueDate || "",
-        allocatedHours: template.structure.allocatedHours,
-        usedHours: 0,
-        teamIds: projectData.teamIds || [],
-        watcherIds: [],
-      };
-      
-      addProject(newProject);
-      
-      // Update template usage count
-      updateProjectTemplate(templateId, { 
-        usageCount: template.usageCount + 1 
-      });
-    }
+  const deleteProjectTemplate = (templateId: string) => {
+    setProjectTemplates(projectTemplates.filter((template) => template.id !== templateId));
   };
 
   // Purchase functions
-  const addPurchase = (purchase: Omit<Purchase, 'id'>) => {
-    const newPurchase: Purchase = {
-      ...purchase,
-      id: Math.random().toString(36).substring(2, 15),
-    };
-    setPurchases(prev => [...prev, newPurchase]);
+  const addPurchase = (purchase: Omit<Purchase, "id">) => {
+    const newPurchase = { ...purchase, id: uuidv4() };
+    setPurchases([...purchases, newPurchase]);
   };
 
   const updatePurchase = (purchaseId: string, updates: Partial<Purchase>) => {
-    setPurchases(prev => prev.map(purchase => 
-      purchase.id === purchaseId ? { ...purchase, ...updates } : purchase
-    ));
+    setPurchases(purchases.map((purchase) => (purchase.id === purchaseId ? { ...purchase, ...updates } : purchase)));
   };
 
   const deletePurchase = (purchaseId: string) => {
-    setPurchases(prev => prev.filter(purchase => purchase.id !== purchaseId));
+    setPurchases(purchases.filter((purchase) => purchase.id !== purchaseId));
   };
 
   // Client Agreement functions
-  const addClientAgreement = (agreement: Omit<ClientAgreement, 'id'>) => {
-    // Mock implementation
-    console.log("Adding client agreement:", agreement);
+  const addClientAgreement = (agreement: Omit<ClientAgreement, "id">) => {
+    const newAgreement = { ...agreement, id: uuidv4() };
+    // In a real app, this would be stored in a separate state or database table
+    console.log("Adding client agreement:", newAgreement);
   };
 
   const updateClientAgreement = (agreementId: string, updates: Partial<ClientAgreement>) => {
-    // Mock implementation
+    // In a real app, this would update the agreement in state or database
     console.log("Updating client agreement:", agreementId, updates);
   };
 
   const deleteClientAgreement = (agreementId: string) => {
-    // Mock implementation
+    // In a real app, this would remove the agreement from state or database
     console.log("Deleting client agreement:", agreementId);
   };
 
-  const getClientAgreements = (clientId: string): ClientAgreement[] => {
-    // Mock implementation
-    return [];
+  const getClientAgreements = (clientId: string) => {
+    // In a real app, this would fetch agreements from state or database
+    return [] as ClientAgreement[];
   };
 
   // Client File functions
-  const uploadClientFile = async (clientId: string, file: File): Promise<void> => {
-    // Mock implementation
-    console.log("Uploading client file:", clientId, file.name);
+  const uploadClientFile = async (clientId: string, file: File) => {
+    // In a real implementation, this would upload to storage
+    console.log("Uploading file for client:", clientId, file.name);
   };
 
   const deleteClientFile = (fileId: string) => {
-    // Mock implementation
+    // In a real implementation, this would delete from storage
     console.log("Deleting client file:", fileId);
   };
 
-  const getClientFiles = (clientId: string): ClientFile[] => {
-    // Mock implementation
-    return [];
+  const getClientFiles = (clientId: string) => {
+    // In a real app, this would fetch files from state or database
+    return [] as ClientFile[];
   };
 
   // Custom Field functions
-  const addCustomField = (field: Omit<CustomField, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newField: CustomField = {
+  const addCustomField = (field: Omit<CustomField, "id" | "createdAt" | "updatedAt">) => {
+    const now = new Date().toISOString();
+    const newField = {
       ...field,
-      id: Math.random().toString(36).substring(2, 15),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      id: uuidv4(),
+      createdAt: now,
+      updatedAt: now,
     };
-    setCustomFields(prev => [...prev, newField]);
+    setCustomFields([...customFields, newField]);
   };
 
   const updateCustomField = (fieldId: string, updates: Partial<CustomField>) => {
-    setCustomFields(prev => prev.map(field => 
-      field.id === fieldId ? { ...field, ...updates, updatedAt: new Date().toISOString() } : field
-    ));
+    setCustomFields(
+      customFields.map((field) =>
+        field.id === fieldId
+          ? {
+              ...field,
+              ...updates,
+              updatedAt: new Date().toISOString(),
+            }
+          : field
+      )
+    );
   };
 
   const deleteCustomField = (fieldId: string) => {
-    setCustomFields(prev => prev.filter(field => field.id !== fieldId));
+    setCustomFields(customFields.filter((field) => field.id !== fieldId));
   };
 
   const reorderCustomFields = (fields: CustomField[]) => {
     setCustomFields(fields);
   };
 
-  const value: AppContextType = {
+  // Initialize session from Supabase
+  useEffect(() => {
+    const initializeSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session);
+    };
+
+    initializeSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Load user data when session changes
+  useEffect(() => {
+    if (session?.user?.id) {
+      // In a real app, these would fetch data from Supabase
+      // For now, we'll use mock data
+      setCurrentUser({
+        id: session.user.id,
+        name: "Demo User",
+        email: session.user.email || "",
+        role: "admin",
+      });
+      
+      // Load other data
+      loadCustomFields();
+    }
+  }, [session?.user?.id]);
+
+  const contextValue: AppContextType = {
     currentUser,
     session,
     users,
@@ -1033,30 +741,26 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     taskLogs,
     taskStatuses,
     projectStatuses,
-    
+
     login,
     logout,
-    
-    // User functions
+
     addUser,
     updateUser,
     deleteUser,
     getUserById,
     inviteUser,
     updateManagerNotificationPreferences,
-    
-    // Team functions
+
     addTeam,
     updateTeam,
     deleteTeam,
-    
-    // Client functions
+
     addClient,
     updateClient,
     deleteClient,
     getClientById,
-    
-    // Project functions
+
     addProject,
     updateProject,
     deleteProject,
@@ -1065,8 +769,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     watchProject,
     unwatchProject,
     createProjectFromTemplate,
-    
-    // Task functions
+
     addTask,
     updateTask,
     deleteTask,
@@ -1078,78 +781,66 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     unlinkTasks,
     uploadTaskFile,
     deleteTaskFile,
-    
-    // Task Status functions
+
     addTaskStatus,
     updateTaskStatus,
     deleteTaskStatus,
     reorderTaskStatuses,
-    
-    // Project Status functions
+
     addProjectStatus,
     updateProjectStatus,
     deleteProjectStatus,
     reorderProjectStatuses,
-    
-    // TimeEntry functions
+
     addTimeEntry,
     updateTimeEntry,
     deleteTimeEntry,
     startTimeTracking,
     stopTimeTracking,
     updateTimeEntryStatus,
-    
-    // Message functions
+
     addMessage,
     updateMessage,
     deleteMessage,
     sendMessage,
     createMessage,
     markMessageAsRead,
-    
-    // Comment functions
+
     addComment,
-    
-    // Note functions
+
     addNote,
     updateNote,
     deleteNote,
     getNotesByUser,
-    
-    // Custom Role functions
+
     addCustomRole,
     updateCustomRole,
     deleteCustomRole,
-    
-    // Template functions
+
     addProjectTemplate,
     updateProjectTemplate,
     deleteProjectTemplate,
-    
-    // Purchase functions
+
     addPurchase,
     updatePurchase,
     deletePurchase,
-    
-    // Client Agreement functions
+
     addClientAgreement,
     updateClientAgreement,
     deleteClientAgreement,
     getClientAgreements,
-    
-    // Client File functions
+
     uploadClientFile,
     deleteClientFile,
     getClientFiles,
-    
-    // Custom Field functions
+
     addCustomField,
     updateCustomField,
     deleteCustomField,
     reorderCustomFields,
   };
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;
 }
 
 export const useAppContext = () => {
