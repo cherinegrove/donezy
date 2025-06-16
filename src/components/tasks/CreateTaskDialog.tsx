@@ -103,6 +103,13 @@ export function CreateTaskDialog({
     console.log('CreateTaskDialog - AppContext customFields:', customFields);
     console.log('CreateTaskDialog - customFields length:', customFields.length);
     console.log('CreateTaskDialog - currentUser:', currentUser);
+    
+    // Additional debug: Check if customFields is actually being populated from AppContext
+    if (customFields.length === 0) {
+      console.warn('⚠️ CustomFields array is empty in CreateTaskDialog - checking AppContext state');
+    } else {
+      console.log('✅ CustomFields loaded successfully:', customFields.map(f => ({ id: f.id, name: f.name, applicableTo: f.applicableTo })));
+    }
   }, [customFields, currentUser]);
   
   // Use the appropriate schema based on whether we're creating a subtask
@@ -666,8 +673,8 @@ export function CreateTaskDialog({
                     )}
                   />
                   
-                  {/* Custom Fields - Only show when there are custom fields AND template has fields */}
-                  {orderedFieldsToShow.length > 0 && selectedTemplate !== "default" && customFields.length > 0 && (
+                  {/* Custom Fields - Only show when there are template fields AND custom fields available */}
+                  {orderedFieldsToShow.length > 0 && (
                     <div className="space-y-4">
                       <Label>Template Custom Fields</Label>
                       <p className="text-sm text-muted-foreground">
