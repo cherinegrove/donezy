@@ -56,7 +56,8 @@ export function ChannelMembersDialog({
 
   const fetchMembers = async () => {
     try {
-      const { data, error } = await supabase
+      // Use any type to bypass TypeScript issues with new table
+      const { data, error } = await (supabase as any)
         .from('channel_members')
         .select('*')
         .eq('channel_id', channel.id)
@@ -65,7 +66,7 @@ export function ChannelMembersDialog({
       if (error) throw error;
 
       // Enrich with user data
-      const enrichedMembers = data?.map(member => {
+      const enrichedMembers = data?.map((member: any) => {
         const user = users.find(u => u.id === member.user_id);
         return {
           ...member,
@@ -84,7 +85,8 @@ export function ChannelMembersDialog({
 
   const handleRemoveMember = async (memberId: string) => {
     try {
-      const { error } = await supabase
+      // Use any type to bypass TypeScript issues with new table
+      const { error } = await (supabase as any)
         .from('channel_members')
         .delete()
         .eq('id', memberId);

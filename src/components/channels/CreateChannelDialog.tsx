@@ -44,8 +44,8 @@ export function CreateChannelDialog({
 
     setLoading(true);
     try {
-      // Create the channel
-      const { data: channelData, error: channelError } = await supabase
+      // Create the channel - use any type to bypass TypeScript issues
+      const { data: channelData, error: channelError } = await (supabase as any)
         .from('channels')
         .insert({
           project_id: projectId,
@@ -60,7 +60,7 @@ export function CreateChannelDialog({
       if (channelError) throw channelError;
 
       // Add the creator as a member with admin role
-      const { error: memberError } = await supabase
+      const { error: memberError } = await (supabase as any)
         .from('channel_members')
         .insert({
           channel_id: channelData.id,

@@ -59,7 +59,8 @@ export function ChannelList({ projectId, selectedChannelId, onChannelSelect }: C
 
   const fetchChannels = async () => {
     try {
-      const { data, error } = await supabase
+      // Use any type to bypass TypeScript issues with new table
+      const { data, error } = await (supabase as any)
         .from('channels')
         .select(`
           *,
@@ -70,7 +71,7 @@ export function ChannelList({ projectId, selectedChannelId, onChannelSelect }: C
 
       if (error) throw error;
 
-      const channelsWithCount = data?.map(channel => ({
+      const channelsWithCount = data?.map((channel: any) => ({
         ...channel,
         member_count: channel.channel_members?.[0]?.count || 0
       })) || [];

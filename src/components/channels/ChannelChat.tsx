@@ -70,14 +70,15 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
 
   const fetchChannelInfo = async () => {
     try {
-      const { data, error } = await supabase
+      // Use any type to bypass TypeScript issues with new table
+      const { data, error } = await (supabase as any)
         .from('channels')
         .select('*')
         .eq('id', channelId)
         .single();
 
       if (error) throw error;
-      setChannel(data);
+      setChannel(data as Channel);
     } catch (error) {
       console.error('Error fetching channel info:', error);
     }
@@ -93,11 +94,12 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
 
       if (error) throw error;
 
-      // Enrich with user data
+      // Enrich with user data and ensure mentioned_users is always an array
       const enrichedMessages = data?.map(message => {
         const sender = users.find(u => u.id === message.from_user_id);
         return {
           ...message,
+          mentioned_users: message.mentioned_users || [],
           sender_name: sender?.name || 'Unknown User',
           sender_avatar: sender?.avatar,
         };
@@ -124,13 +126,16 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
         .insert({
           channel_id: channelId,
           from_user_id: currentUser.id,
+          to_user_id: '', // Required field, but not used for channel messages
+          subject: 'Channel Message',
           content,
           mentioned_users: mentionedUsers,
+          auth_user_id: currentUser.id,
         });
 
       if (error) throw error;
 
-      // Create mention records
+      // Create mention records if there are mentioned users
       if (mentionedUsers.length > 0) {
         const { data: messageData } = await supabase
           .from('messages')
@@ -147,7 +152,8 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
             mentioned_user_id: userId,
           }));
 
-          await supabase.from('mentions').insert(mentions);
+          // Use any type to bypass TypeScript issues with new table
+          await (supabase as any).from('mentions').insert(mentions);
         }
       }
     } catch (error) {
