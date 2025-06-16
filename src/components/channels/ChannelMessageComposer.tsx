@@ -38,6 +38,12 @@ export function ChannelMessageComposer({
       e.preventDefault();
       handleSend();
     }
+    
+    // Close mentions on Escape
+    if (e.key === 'Escape' && mentionOpen) {
+      setMentionOpen(false);
+      setMentionQuery("");
+    }
   };
 
   const calculateMentionPosition = () => {
@@ -48,37 +54,56 @@ export function ChannelMessageComposer({
     
     // Position dropdown above the textarea
     return {
-      top: -250, // Position above the textarea
-      left: 0
+      top: -220, // Position above the textarea with some margin
+      left: 10
     };
   };
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
-    setContent(text);
-    
     const cursorPos = e.target.selectionStart || 0;
+    
+    setContent(text);
     setCursorPosition(cursorPos);
+    
+    console.log("Text changed:", text);
+    console.log("Cursor position:", cursorPos);
     
     // Check for @ mentions
     if (cursorPos > 0) {
       const textBeforeCursor = text.substring(0, cursorPos);
       const atIndex = textBeforeCursor.lastIndexOf('@');
       
-      if (atIndex !== -1 && (atIndex === 0 || /\s/.test(textBeforeCursor[atIndex - 1]))) {
-        const query = textBeforeCursor.substring(atIndex + 1);
+      console.log("@ index:", atIndex);
+      console.log("Text before cursor:", textBeforeCursor);
+      
+      if (atIndex !== -1) {
+        // Check if @ is at start or preceded by whitespace
+        const charBeforeAt = atIndex > 0 ? textBeforeCursor[atIndex - 1] : ' ';
+        const isValidMentionStart = atIndex === 0 || /\s/.test(charBeforeAt);
         
-        // Only show mentions if there's no space after @ and query is reasonable length
-        if (!query.includes(' ') && query.length <= 20) {
-          setMentionQuery(query);
-          setMentionOpen(true);
-          setMentionPosition(calculateMentionPosition());
-          return;
+        if (isValidMentionStart) {
+          const query = textBeforeCursor.substring(atIndex + 1);
+          console.log("Mention query:", query);
+          
+          // Only show mentions if there's no space in the query (still typing the mention)
+          if (!query.includes(' ') && query.length <= 20) {
+            setMentionQuery(query);
+            setMentionOpen(true);
+            setMentionPosition(calculateMentionPosition());
+            console.log("Setting mention open with query:", query);
+            return;
+          }
         }
       }
     }
     
-    setMentionOpen(false);
+    // Close mentions if not in a valid mention context
+    if (mentionOpen) {
+      console.log("Closing mentions");
+      setMentionOpen(false);
+      setMentionQuery("");
+    }
   };
 
   const handleSelectUser = (user: User) => {
@@ -103,6 +128,7 @@ export function ChannelMessageComposer({
         setMentionedUsers([...mentionedUsers, user.id]);
       }
       
+      // Focus and set cursor position after the mention
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus();
@@ -133,14 +159,21 @@ export function ChannelMessageComposer({
             className="resize-none min-h-[40px] max-h-[120px]"
           />
           
-          <MentionDropdown
-            users={otherUsers}
-            onSelect={handleSelectUser}
-            isOpen={mentionOpen}
-            position={mentionPosition}
-            searchQuery={mentionQuery}
-            className="absolute z-50"
-          />
+          {mentionOpen && (
+            <div className="absolute" style={{ 
+              top: mentionPosition.top, 
+              left: mentionPosition.left,
+              zIndex: 1000 
+            }}>
+              <MentionDropdown
+                users={otherUsers}
+                onSelect={handleSelectUser}
+                isOpen={mentionOpen}
+                searchQuery={mentionQuery}
+                className="shadow-lg border"
+              />
+            </div>
+          )}
         </div>
         
         <Button onClick={handleSend} disabled={!content.trim()} size="sm">

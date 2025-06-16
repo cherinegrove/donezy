@@ -9,7 +9,6 @@ interface MentionDropdownProps {
   className?: string;
   style?: React.CSSProperties;
   isOpen?: boolean;
-  position?: { top: number; left: number; };
   searchQuery?: string;
 }
 
@@ -20,39 +19,48 @@ export function MentionDropdown({
   className,
   style,
   isOpen,
-  position,
-  searchQuery
+  searchQuery = ""
 }: MentionDropdownProps) {
   // Safety check - ensure users is always an array
   const safeUsers = Array.isArray(users) ? users : [];
   
-  // Filter users by search query if provided (case-insensitive)
+  console.log("MentionDropdown - isOpen:", isOpen, "searchQuery:", searchQuery, "users:", safeUsers.length);
+  
+  // Filter users by search query (case-insensitive)
+  // Show all users if no search query, or filter by name containing the query
   const filteredUsers = searchQuery 
     ? safeUsers.filter(user => 
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.name.toLowerCase().startsWith(searchQuery.toLowerCase())
+        user.name.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : safeUsers;
   
-  // Don't render if no users match, not open, or no search query
-  if (!isOpen || filteredUsers.length === 0 || !searchQuery) {
+  console.log("Filtered users:", filteredUsers.length);
+  
+  // Don't render if not open
+  if (!isOpen) {
     return null;
   }
 
-  // Apply position styling if provided
-  const positionStyle = position ? {
-    position: 'absolute' as const,
-    top: `${position.top}px`,
-    left: `${position.left}px`,
-    zIndex: 9999,
-    ...style
-  } as React.CSSProperties : { zIndex: 9999, ...style };
+  // Show "No users found" if no matches but still show the dropdown
+  if (filteredUsers.length === 0) {
+    return (
+      <div 
+        id={id}
+        className={`bg-white border border-gray-200 shadow-lg rounded-md overflow-hidden max-w-xs min-w-[200px] ${className || ''}`}
+        style={{ zIndex: 9999, ...style }}
+      >
+        <div className="p-3 text-sm text-gray-500 text-center">
+          No users found matching "{searchQuery}"
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
       id={id}
-      className={`bg-white border border-gray-200 shadow-lg rounded-md overflow-hidden max-w-xs ${className || ''}`}
-      style={positionStyle}
+      className={`bg-white border border-gray-200 shadow-lg rounded-md overflow-hidden max-w-xs min-w-[200px] ${className || ''}`}
+      style={{ zIndex: 9999, ...style }}
     >
       <div className="p-1">
         <div className="max-h-[200px] overflow-y-auto">
@@ -63,7 +71,7 @@ export function MentionDropdown({
               <div
                 key={user.id}
                 onClick={() => onSelect(user)}
-                className="flex items-center px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer"
+                className="flex items-center px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer rounded"
               >
                 {user.avatar ? (
                   <img 
