@@ -5,7 +5,7 @@ import { format, startOfMonth, endOfMonth, differenceInDays, isWithinInterval, p
 import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { TimeEntry, TimeEntryStatus } from "@/types";
 import { 
@@ -55,6 +55,7 @@ const TimeTracking = () => {
   const [selectedTimeEntry, setSelectedTimeEntry] = useState<TimeEntry | undefined>(undefined);
   const [isEditEntryDialogOpen, setIsEditEntryDialogOpen] = useState(false);
   const { toast } = useToast();
+  const [currentTime, setCurrentTime] = useState(new Date());
   
   // Filter state
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
@@ -70,6 +71,15 @@ const TimeTracking = () => {
     from: undefined,
     to: undefined
   });
+
+  // Update current time every second for active timer display
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, []);
 
   // Create filter options
   const filterOptions: FilterOption[] = [
@@ -151,47 +161,36 @@ const TimeTracking = () => {
     return acc;
   }, {} as Record<string, typeof filteredTimeEntries>);
   
-  // Get active timers (tasks that have active time entries)
-  const getActiveTimers = () => {
-    if (!activeTimeEntry) return [];
+  // Get active timer with live elapsed time calculation
+  const getActiveTimer = () => {
+    if (!activeTimeEntry) {
+      console.log('No active time entry found');
+      return null;
+    }
     
-    const activeTasks = tasks.filter(task => task.id === activeTimeEntry.taskId);
+    console.log('Active time entry found:', activeTimeEntry);
     
-    return activeTasks.map(task => {
-      const project = projects.find(p => p.id === task.projectId);
-      const client = project ? clients.find(c => c.id === project.clientId) : undefined;
-      const user = users.find(u => u.id === activeTimeEntry.userId);
-      
-      return {
-        task,
-        project,
-        client,
-        user,
-        timeEntry: activeTimeEntry
-      };
-    });
-  };
-  
-  // Get recently active tasks (tasks with time entries in the last week)
-  const getRecentlyActiveTasks = () => {
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
+    const task = tasks.find(t => t.id === activeTimeEntry.taskId);
+    const project = task ? projects.find(p => p.id === task.projectId) : undefined;
+    const client = project ? clients.find(c => c.id === project.clientId) : undefined;
+    const user = users.find(u => u.id === activeTimeEntry.userId);
     
-    const recentEntries = timeEntries
-      .filter(entry => new Date(entry.startTime) > weekAgo)
-      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-      
-    const recentTaskIds = [...new Set(recentEntries.map(e => e.taskId))];
+    // Calculate elapsed time
+    const startTime = new Date(activeTimeEntry.startTime);
+    const elapsedMs = currentTime.getTime() - startTime.getTime();
+    const elapsedMinutes = Math.floor(elapsedMs / (1000 * 60));
+    const hours = Math.floor(elapsedMinutes / 60);
+    const minutes = elapsedMinutes % 60;
+    const seconds = Math.floor((elapsedMs % (1000 * 60)) / 1000);
     
-    return recentTaskIds.slice(0, 5).map(taskId => {
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) return null;
-      
-      const project = projects.find(p => p.id === task.projectId);
-      const client = project ? clients.find(c => c.id === project.clientId) : undefined;
-      
-      return { task, project, client };
-    }).filter(Boolean);
+    return {
+      task,
+      project,
+      client,
+      user,
+      timeEntry: activeTimeEntry,
+      elapsedTime: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    };
   };
   
   // Get total duration for a given day
@@ -200,9 +199,8 @@ const TimeTracking = () => {
   };
   
   // Active timers and recent tasks for the Active tab
-  const activeTimers = getActiveTimers();
-  const recentlyActiveTasks = getRecentlyActiveTasks();
-    
+  const activeTimer = getActiveTimer();
+  
   // Generate monthly report data grouped by client
   const getMonthlyDataByClient = () => {
     const [year, month] = selectedMonth.split('-').map(Number);
@@ -384,6 +382,30 @@ const TimeTracking = () => {
     }
   };
 
+  // Get recently active tasks (tasks with time entries in the last week)
+  const getRecentlyActiveTasks = () => {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    
+    const recentEntries = timeEntries
+      .filter(entry => new Date(entry.startTime) > weekAgo)
+      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+      
+    const recentTaskIds = [...new Set(recentEntries.map(e => e.taskId))];
+    
+    return recentTaskIds.slice(0, 5).map(taskId => {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return null;
+      
+      const project = projects.find(p => p.id === task.projectId);
+      const client = project ? clients.find(c => c.id === project.clientId) : undefined;
+      
+      return { task, project, client };
+    }).filter(Boolean);
+  };
+
+  const recentlyActiveTasks = getRecentlyActiveTasks();
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -410,33 +432,41 @@ const TimeTracking = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle>Active Timers</CardTitle>
+                <CardTitle>Active Timer</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {activeTimers.length > 0 ? (
-                    activeTimers.map(({ task, project, client, timeEntry }) => (
-                      <div 
-                        key={timeEntry.id} 
-                        className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md"
-                      >
+                  {activeTimer ? (
+                    <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+                      <div className="flex items-center gap-3">
+                        <Clock className="h-5 w-5 text-green-600 dark:text-green-400 animate-pulse" />
                         <div>
-                          <h3 className="font-medium">{task.title}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {project?.name} • {client?.name}
+                          <h3 className="font-medium text-green-800 dark:text-green-200">
+                            {activeTimer.task?.title || "Unknown Task"}
+                          </h3>
+                          <p className="text-sm text-green-600 dark:text-green-400">
+                            {activeTimer.project?.name || "No project"} • {activeTimer.client?.name || "No client"}
+                          </p>
+                          <p className="text-xs text-green-500 dark:text-green-500">
+                            Started: {format(new Date(activeTimer.timeEntry.startTime), "HH:mm")}
                           </p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-medium">
-                            Started: {format(new Date(timeEntry.startTime), "HH:mm")}
-                          </span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-mono font-bold text-green-700 dark:text-green-300">
+                          {activeTimer.elapsedTime}
+                        </div>
+                        <div className="text-xs text-green-600 dark:text-green-400">
+                          Running by {activeTimer.user?.name || "Unknown"}
                         </div>
                       </div>
-                    ))
+                    </div>
                   ) : (
-                    <p className="text-center py-6 text-muted-foreground">
-                      No active timers
-                    </p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Clock className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p className="text-lg">No active timer</p>
+                      <p className="text-sm">Start a timer from a task or project to track your time</p>
+                    </div>
                   )}
                   
                   <div className="mt-6 border-t pt-4">
@@ -458,6 +488,7 @@ const TimeTracking = () => {
                               variant="outline"
                               onClick={() => startTimeTracking(item.task.id)}
                               className="border-primary/20 bg-primary/10 hover:bg-primary/20"
+                              disabled={!!activeTimeEntry}
                             >
                               <Play className="h-3 w-3 mr-1" />
                               Track
