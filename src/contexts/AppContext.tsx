@@ -1,6 +1,6 @@
 import { ReactNode, createContext, useContext, useState, useEffect } from "react";
 import { AppContextType } from "./AppContextType";
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatus, TaskStatusDefinition, ProjectStatusDefinition, CustomField, CustomFieldType } from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, TimeEntryStatus, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatus, TaskStatusDefinition, ProjectStatusDefinition, CustomField, CustomFieldType } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { v4 as uuidv4 } from "uuid";
@@ -494,10 +494,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setActiveTimeEntry(null);
     console.log('Active time entry cleared');
 
-    toast({
-      title: "Time Entry Saved",
-      description: `Logged ${Math.floor(durationInMinutes / 60)}h ${durationInMinutes % 60}m for this task.`,
-    });
+    toast.success(`Time Entry Saved - Logged ${Math.floor(durationInMinutes / 60)}h ${durationInMinutes % 60}m for this task.`);
   };
 
   const updateTimeEntryStatus = (timeEntryId: string, status: string, reason?: string) => {
