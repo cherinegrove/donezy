@@ -623,20 +623,6 @@ const TimeTracking = () => {
                 </Popover>
               </div>
             </div>
-
-            {/* Debug info */}
-            <Card className="bg-muted/20">
-              <CardHeader>
-                <CardTitle className="text-sm">Debug Information</CardTitle>
-              </CardHeader>
-              <CardContent className="text-xs space-y-2">
-                <p>Total time entries: {timeEntries.length}</p>
-                <p>Filtered time entries: {filteredTimeEntries.length}</p>
-                <p>Unique dates: {dates.length}</p>
-                <p>Active filters: {Object.keys(selectedFilters).filter(key => selectedFilters[key]?.length > 0).join(', ') || 'None'}</p>
-                <p>Date range: {dateRange.from ? format(dateRange.from, "yyyy-MM-dd") : 'None'} to {dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : 'None'}</p>
-              </CardContent>
-            </Card>
           </div>
           
           {dates.length > 0 ? (
