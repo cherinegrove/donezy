@@ -1,3 +1,4 @@
+
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -110,7 +111,7 @@ export function AppSidebar() {
               {!collapsed && <span>Tasks</span>}
             </NavLink>
             
-            {/* Notes */}
+            {/* My Notes */}
             <NavLink
               to="/notes"
               onClick={handleNavClick}
@@ -124,7 +125,7 @@ export function AppSidebar() {
               }
             >
               <StickyNote className="h-4 w-4" />
-              {!collapsed && <span>Notes</span>}
+              {!collapsed && <span>My Notes</span>}
             </NavLink>
             
             {/* Time */}
