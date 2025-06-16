@@ -78,6 +78,26 @@ export function MultiSelect({
   const safeOptions = React.useMemo(() => normalizeOptions(options), [options]);
   const safeSelectedValues = React.useMemo(() => normalizeSelectedValues(selectedValues), [selectedValues]);
 
+  // CRITICAL SAFETY CHECK: Prevent Command from rendering with invalid data
+  const canRenderCommand = React.useMemo(() => {
+    const optionsValid = Array.isArray(options);
+    const selectedValid = Array.isArray(selectedValues);
+    const hasOnValueChange = typeof onValueChange === 'function';
+    
+    if (!optionsValid || !selectedValid || !hasOnValueChange) {
+      console.warn("MultiSelect: Skipping Command render due to invalid props", {
+        optionsValid,
+        selectedValid,
+        hasOnValueChange,
+        options,
+        selectedValues
+      });
+      return false;
+    }
+    
+    return true;
+  }, [options, selectedValues, onValueChange]);
+
   // Early return if onValueChange is not provided
   if (!onValueChange || typeof onValueChange !== 'function') {
     console.warn("MultiSelect: No valid onValueChange provided");
@@ -177,8 +197,8 @@ export function MultiSelect({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-          {/* Only render Command when we have safe data and the popover is open */}
-          {open && safeOptions.length > 0 && (
+          {/* ONLY render Command when we have verified safe data */}
+          {canRenderCommand && open && safeOptions.length > 0 && (
             <Command shouldFilter={false} key={`command-${safeOptions.length}-${safeSelectedValues.length}`}>
               <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
               <CommandEmpty>No options found.</CommandEmpty>
@@ -249,10 +269,10 @@ export function MultiSelect({
             </Command>
           )}
           
-          {/* Show message when no options available */}
-          {safeOptions.length === 0 && (
+          {/* Show message when no options available or data is invalid */}
+          {(!canRenderCommand || safeOptions.length === 0) && (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              No options available
+              {!canRenderCommand ? "Invalid data provided" : "No options available"}
             </div>
           )}
         </PopoverContent>

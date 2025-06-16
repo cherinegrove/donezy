@@ -725,18 +725,16 @@ export function CreateTaskDialog({
                                 </Label>
                               </div>
                             ) : field.type === 'multiselect' ? (
-                              // Multi-select field - ensure we have valid data with enhanced safety
+                              // Multi-select field - GUARANTEED SAFE DATA PASSING
                               <>
                                 <Label htmlFor={field.id}>
                                   {field.name} {field.required && <span className="text-red-500">*</span>}
                                 </Label>
                                 <MultiSelect
-                                  options={Array.isArray(field.options) ? field.options.map(option => ({
-                                    value: String(option),
-                                    label: String(option)
-                                  })) : []}
+                                  options={normalizeOptions(field.options || [])}
                                   selectedValues={(() => {
                                     const currentValue = form.watch("customFields")?.[field.id];
+                                    // ALWAYS return an array - never undefined/null
                                     if (Array.isArray(currentValue)) {
                                       return currentValue.map(v => String(v));
                                     }
@@ -868,4 +866,27 @@ export function CreateTaskDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+// Add normalizeOptions helper function
+function normalizeOptions(rawOptions: any): { label: string; value: string }[] {
+  if (!Array.isArray(rawOptions)) {
+    console.warn("normalizeOptions: rawOptions is not an array", rawOptions);
+    return [];
+  }
+  
+  return rawOptions
+    .filter(opt => 
+      opt && 
+      (typeof opt === 'string' || (typeof opt === 'object' && (opt.value || opt.label)))
+    )
+    .map(opt => {
+      if (typeof opt === 'string') {
+        return { label: opt, value: opt };
+      }
+      return {
+        label: String(opt.label || opt.value || opt),
+        value: String(opt.value || opt.label || opt),
+      };
+    });
 }
