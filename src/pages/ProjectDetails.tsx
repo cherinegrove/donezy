@@ -10,9 +10,12 @@ import { Calendar, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TaskList } from "@/components/tasks/TaskList";
 import { ConvertToTemplateDialog } from "@/components/projects/ConvertToTemplateDialog";
 import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
+import { ProjectNotes } from "@/components/projects/ProjectNotes";
+import { ProjectChannels } from "@/components/channels/ProjectChannels";
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -76,7 +79,7 @@ export default function ProjectDetails() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">{project.name}</h1>
           <p className="text-muted-foreground">{project.description}</p>
@@ -96,7 +99,7 @@ export default function ProjectDetails() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardHeader>
             <CardTitle>Client</CardTitle>
@@ -135,12 +138,27 @@ export default function ProjectDetails() {
         </Card>
       </div>
 
-      <div className="mt-6">
-        <h2 className="text-xl font-bold mb-4">Tasks</h2>
-        <ScrollArea>
-          <TaskList tasks={projectTasks} />
-        </ScrollArea>
-      </div>
+      <Tabs defaultValue="tasks" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="chat">Chat</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="tasks">
+          <ScrollArea>
+            <TaskList tasks={projectTasks} />
+          </ScrollArea>
+        </TabsContent>
+        
+        <TabsContent value="chat">
+          <ProjectChannels projectId={projectId!} />
+        </TabsContent>
+        
+        <TabsContent value="notes">
+          <ProjectNotes projectId={projectId!} />
+        </TabsContent>
+      </Tabs>
       
       <ConvertToTemplateDialog
         project={project}
