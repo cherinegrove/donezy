@@ -815,6 +815,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.actualHours !== undefined) dbUpdates.actual_hours = updates.actualHours;
       if (updates.watcherIds !== undefined) dbUpdates.watcher_ids = updates.watcherIds;
       if (updates.comments !== undefined) dbUpdates.comments = updates.comments;
+      if (updates.collaboratorIds !== undefined) dbUpdates.collaborator_ids = updates.collaboratorIds;
 
       const { error } = await supabase
         .from('tasks')

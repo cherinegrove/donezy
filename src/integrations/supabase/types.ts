@@ -820,6 +820,7 @@ export type Database = {
           actual_hours: number | null
           assignee_id: string | null
           auth_user_id: string
+          collaborator_ids: string[] | null
           created_at: string
           description: string | null
           due_date: string | null
@@ -836,6 +837,7 @@ export type Database = {
           actual_hours?: number | null
           assignee_id?: string | null
           auth_user_id: string
+          collaborator_ids?: string[] | null
           created_at?: string
           description?: string | null
           due_date?: string | null
@@ -852,6 +854,7 @@ export type Database = {
           actual_hours?: number | null
           assignee_id?: string | null
           auth_user_id?: string
+          collaborator_ids?: string[] | null
           created_at?: string
           description?: string | null
           due_date?: string | null
