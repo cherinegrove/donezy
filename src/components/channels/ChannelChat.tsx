@@ -78,13 +78,6 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
     scrollToBottom();
   }, [messages]);
 
-  // Auto-select the first message as thread when messages load
-  useEffect(() => {
-    if (messages.length > 0 && !selectedThread) {
-      setSelectedThread(messages[0]);
-    }
-  }, [messages]);
-
   const fetchChannelInfo = async () => {
     try {
       const { data, error } = await supabase
@@ -277,11 +270,11 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
     );
   }
 
-  // Always show split view with main chat on left and thread on right
+  // Show split view only when thread is selected, otherwise show full-width chat
   return (
     <div className="h-full flex gap-4">
-      {/* Main chat (60% width) */}
-      <div className="flex-[3]">
+      {/* Main chat - full width when no thread, 60% when thread is open */}
+      <div className={selectedThread ? "flex-[3]" : "flex-1"}>
         <Card className="h-full flex flex-col">
           <CardHeader className="border-b">
             <CardTitle className="flex items-center gap-2">
@@ -334,25 +327,16 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
         </Card>
       </div>
 
-      {/* Thread view (40% width) - always visible */}
-      <div className="flex-[2]">
-        {selectedThread ? (
+      {/* Thread view (40% width) - only shown when selectedThread exists */}
+      {selectedThread && (
+        <div className="flex-[2]">
           <MessageThread
             parentMessage={selectedThread}
             channelId={channelId}
             onClose={() => setSelectedThread(null)}
           />
-        ) : (
-          <Card className="h-full">
-            <CardContent className="flex items-center justify-center h-full">
-              <div className="text-center text-muted-foreground">
-                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Select a message to view its thread</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
