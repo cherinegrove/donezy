@@ -759,19 +759,6 @@ export function CreateTaskDialog({
                       </div>
                     </div>
                   )}
-                  
-                  {/* Enhanced debug info for troubleshooting */}
-                  {selectedTemplate !== "default" && (
-                    <div className="text-xs text-muted-foreground p-2 bg-muted rounded">
-                      <p>Debug: Template "{selectedTemplate}" selected</p>
-                      <p>Custom fields in template: {currentTemplate?.includeCustomFields?.length || 0}</p>
-                      <p>Custom fields available in context: {customFields.length}</p>
-                      <p>Custom fields to show: {orderedFieldsToShow.length}</p>
-                      {customFields.length === 0 && (
-                        <p className="text-red-500 font-medium">⚠️ No custom fields loaded from context - this is likely the issue</p>
-                      )}
-                    </div>
-                  )}
                 </form>
               </Form>
             </div>
