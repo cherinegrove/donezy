@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -44,7 +45,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
 
     // Set up real-time subscription for messages
     const messagesSubscription = supabase
-      .channel('channel-messages')
+      .channel(`channel-messages-${channelId}`)
       .on(
         'postgres_changes',
         {
@@ -53,8 +54,9 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
           table: 'messages',
           filter: `channel_id=eq.${channelId}`
         },
-        () => {
-          console.log('Real-time message update received');
+        (payload) => {
+          console.log('Real-time message update received:', payload);
+          // Refetch messages to get the latest data
           fetchMessages();
         }
       )
@@ -87,27 +89,34 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
 
   const fetchMessages = async () => {
     try {
+      console.log('Fetching messages for channel:', channelId);
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .eq('channel_id', channelId)
         .order('timestamp', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching messages:', error);
+        throw error;
+      }
 
-      console.log('Messages loaded:', data?.length || 0);
+      console.log('Raw messages loaded:', data?.length || 0, data);
 
       // Enrich with user data and ensure mentioned_users is always an array
       const enrichedMessages = data?.map(message => {
         const sender = users.find(u => u.id === message.from_user_id);
-        return {
+        const enriched = {
           ...message,
           mentioned_users: message.mentioned_users || [],
-          sender_name: sender?.name || 'Unknown User',
+          sender_name: sender?.name || message.from_user_id || 'Unknown User',
           sender_avatar: sender?.avatar,
         };
+        console.log('Enriched message:', enriched);
+        return enriched;
       }) || [];
 
+      console.log('Final enriched messages:', enrichedMessages);
       setMessages(enrichedMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -115,6 +124,22 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
       setLoading(false);
     }
   };
+
+  // Refetch messages when users are loaded
+  useEffect(() => {
+    if (users.length > 0 && messages.length > 0) {
+      console.log('Users loaded, re-enriching messages');
+      const enrichedMessages = messages.map(message => {
+        const sender = users.find(u => u.id === message.from_user_id);
+        return {
+          ...message,
+          sender_name: sender?.name || message.from_user_id || 'Unknown User',
+          sender_avatar: sender?.avatar,
+        };
+      });
+      setMessages(enrichedMessages);
+    }
+  }, [users]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -126,7 +151,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
       return;
     }
 
-    console.log('Sending message:', { content, mentionedUsers });
+    console.log('Sending message:', { content, mentionedUsers, channelId, userId: currentUser.id });
 
     try {
       const { error } = await supabase
@@ -141,9 +166,17 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
           auth_user_id: currentUser.id,
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error sending message:', error);
+        throw error;
+      }
 
       console.log('Message sent successfully');
+
+      // Force a refetch of messages after sending
+      setTimeout(() => {
+        fetchMessages();
+      }, 100);
 
       // Create mention records if there are mentioned users
       if (mentionedUsers.length > 0) {
@@ -235,7 +268,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={message.sender_avatar} />
                   <AvatarFallback>
-                    {message.sender_name?.slice(0, 2)}
+                    {message.sender_name?.slice(0, 2).toUpperCase() || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 
