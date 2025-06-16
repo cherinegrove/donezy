@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAppContext } from "@/contexts/AppContext";
 import { ChannelMessageComposer } from "./ChannelMessageComposer";
 
-interface Message {
+interface ThreadMessage {
   id: string;
   content: string;
   from_user_id: string;
@@ -22,14 +22,14 @@ interface Message {
 }
 
 interface MessageThreadProps {
-  parentMessage: Message;
+  parentMessage: ThreadMessage;
   channelId: string;
   onClose: () => void;
 }
 
 export function MessageThread({ parentMessage, channelId, onClose }: MessageThreadProps) {
   const { users, currentUser, session } = useAppContext();
-  const [replies, setReplies] = useState<Message[]>([]);
+  const [replies, setReplies] = useState<ThreadMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -67,13 +67,17 @@ export function MessageThread({ parentMessage, channelId, onClose }: MessageThre
 
       if (error) throw error;
 
-      const enrichedReplies = data?.map(reply => {
+      const enrichedReplies: ThreadMessage[] = data?.map(reply => {
         const sender = users.find(u => u.id === reply.from_user_id);
         return {
-          ...reply,
+          id: reply.id,
+          content: reply.content,
+          from_user_id: reply.from_user_id,
+          timestamp: reply.timestamp,
           mentioned_users: reply.mentioned_users || [],
           sender_name: sender?.name || reply.from_user_id || 'Unknown User',
           sender_avatar: sender?.avatar,
+          parent_message_id: reply.parent_message_id,
         };
       }) || [];
 

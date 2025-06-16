@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 
-interface Message {
+interface MessageItemData {
   id: string;
   content: string;
   from_user_id: string;
@@ -17,8 +17,8 @@ interface Message {
 }
 
 interface MessageItemProps {
-  message: Message;
-  onReply: (message: Message) => void;
+  message: MessageItemData;
+  onReply: (message: MessageItemData) => void;
   formatMessageContent: (content: string, mentionedUsers: string[]) => string;
 }
 
