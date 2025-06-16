@@ -242,6 +242,58 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
+  // Add this debug logging right after the custom fields are loaded
+  useEffect(() => {
+    const fetchCustomFields = async () => {
+      if (!currentUser) {
+        console.log('CustomFields Debug: No current user, skipping fetch');
+        return;
+      }
+
+      try {
+        console.log('CustomFields Debug: Fetching custom fields for user:', currentUser.id);
+        
+        const { data, error } = await supabase
+          .from('custom_fields')
+          .select('*')
+          .eq('auth_user_id', currentUser.id)
+          .order('field_order');
+        
+        if (error) {
+          console.error('CustomFields Debug: Error fetching custom fields:', error);
+          throw error;
+        }
+        
+        console.log('CustomFields Debug: Raw data from Supabase:', data);
+        console.log('CustomFields Debug: Number of fields fetched:', data?.length || 0);
+        
+        const fields = data?.map(field => ({
+          id: field.id,
+          name: field.name,
+          type: field.type as CustomFieldType,
+          description: field.description,
+          required: field.required,
+          applicableTo: field.applicable_to as ('projects' | 'tasks')[],
+          options: field.options,
+          reportable: field.reportable,
+          order: field.field_order,
+          createdAt: field.created_at,
+          updatedAt: field.updated_at,
+        })) || [];
+        
+        console.log('CustomFields Debug: Processed fields:', fields);
+        console.log('CustomFields Debug: Fields applicable to tasks:', fields.filter(f => f.applicableTo?.includes('tasks')));
+        
+        setCustomFields(fields);
+      } catch (error) {
+        console.error('CustomFields Debug: Failed to load custom fields:', error);
+        setCustomFields([]);
+      }
+    };
+
+    fetchCustomFields();
+  }, [currentUser]);
+
   // Authentication functions
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
