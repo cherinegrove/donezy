@@ -109,7 +109,8 @@ export function CreateTaskDialog({
       id: f.id,
       name: f.name,
       type: f.type,
-      applicableTo: f.applicableTo
+      applicableTo: f.applicableTo,
+      options: f.options // Add options to debug
     })));
     console.log('currentUser:', currentUser);
     console.log('=== END DEBUG ===');
@@ -238,7 +239,8 @@ export function CreateTaskDialog({
         isApplicableToTasks,
         isIncludedInTemplate,
         applicableTo: field.applicableTo,
-        fieldType: field.type
+        fieldType: field.type,
+        options: field.options // Add options to debug
       });
       
       return isApplicableToTasks && isIncludedInTemplate;
@@ -723,26 +725,32 @@ export function CreateTaskDialog({
                                 </Label>
                               </div>
                             ) : field.type === 'multiselect' ? (
-                              // Multi-select field
+                              // Multi-select field - ensure we have valid data
                               <>
                                 <Label htmlFor={field.id}>
                                   {field.name} {field.required && <span className="text-red-500">*</span>}
                                 </Label>
                                 <MultiSelect
-                                  options={field.options?.map(option => ({
-                                    value: option,
-                                    label: option
-                                  })) || []}
-                                  selectedValues={Array.isArray(form.watch("customFields")?.[field.id]) 
-                                    ? form.watch("customFields")?.[field.id] 
-                                    : []
-                                  }
+                                  options={(field.options || []).map(option => ({
+                                    value: String(option),
+                                    label: String(option)
+                                  }))}
+                                  selectedValues={(() => {
+                                    const currentValue = form.watch("customFields")?.[field.id];
+                                    if (Array.isArray(currentValue)) {
+                                      return currentValue.map(v => String(v));
+                                    }
+                                    return [];
+                                  })()}
                                   onValueChange={(values) => {
-                                    const customFieldsValue = form.getValues("customFields");
-                                    form.setValue("customFields", {
+                                    console.log('MultiSelect onValueChange called with:', values);
+                                    const customFieldsValue = form.getValues("customFields") || {};
+                                    const newCustomFields = {
                                       ...customFieldsValue,
                                       [field.id]: values,
-                                    });
+                                    };
+                                    console.log('Setting custom fields to:', newCustomFields);
+                                    form.setValue("customFields", newCustomFields);
                                   }}
                                   placeholder={`Select ${field.name.toLowerCase()}...`}
                                 />
