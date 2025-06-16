@@ -3,11 +3,11 @@ import React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { 
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EllipsisVertical, MessageSquare, Heart, ThumbsUp, Smile, Zap } from "lucide-react";
 import { format } from "date-fns";
 
@@ -71,8 +71,8 @@ export function MessageItem({ message, onReply, formatMessageContent }: MessageI
             </Button>
           )}
           
-          <ContextMenu>
-            <ContextMenuTrigger asChild>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
@@ -80,30 +80,30 @@ export function MessageItem({ message, onReply, formatMessageContent }: MessageI
               >
                 <EllipsisVertical className="h-3 w-3" />
               </Button>
-            </ContextMenuTrigger>
-            <ContextMenuContent className="w-48">
-              <ContextMenuItem onClick={() => handleEmojiReact("👍")}>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-48">
+              <DropdownMenuItem onClick={() => handleEmojiReact("👍")}>
                 <ThumbsUp className="h-4 w-4 mr-2" />
                 👍 Thumbs up
-              </ContextMenuItem>
-              <ContextMenuItem onClick={() => handleEmojiReact("❤️")}>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEmojiReact("❤️")}>
                 <Heart className="h-4 w-4 mr-2" />
                 ❤️ Heart
-              </ContextMenuItem>
-              <ContextMenuItem onClick={() => handleEmojiReact("😄")}>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEmojiReact("😄")}>
                 <Smile className="h-4 w-4 mr-2" />
                 😄 Smile
-              </ContextMenuItem>
-              <ContextMenuItem onClick={() => handleEmojiReact("⚡")}>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEmojiReact("⚡")}>
                 <Zap className="h-4 w-4 mr-2" />
                 ⚡ Zap
-              </ContextMenuItem>
-              <ContextMenuItem onClick={() => onReply(message)}>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onReply(message)}>
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Reply in thread
-              </ContextMenuItem>
-            </ContextMenuContent>
-          </ContextMenu>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
