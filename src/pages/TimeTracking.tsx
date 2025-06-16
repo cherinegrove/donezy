@@ -414,76 +414,47 @@ const TimeTracking = () => {
         </TabsList>
         
         <TabsContent value="active" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle>Active Timer</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {activeTimer ? (
-                    <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
-                      <div className="flex items-center gap-3">
-                        <Clock className="h-5 w-5 text-green-600 dark:text-green-400 animate-pulse" />
-                        <div>
-                          <h3 className="font-medium text-green-800 dark:text-green-200">
-                            {activeTimer.task?.title || "Unknown Task"}
-                          </h3>
-                          <p className="text-sm text-green-600 dark:text-green-400">
-                            {activeTimer.project?.name || "No project"} • {activeTimer.client?.name || "No client"}
-                          </p>
-                          <p className="text-xs text-green-500 dark:text-green-500">
-                            Started: {format(new Date(activeTimer.timeEntry.startTime), "HH:mm")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-mono font-bold text-green-700 dark:text-green-300">
-                          {activeTimer.elapsedTime}
-                        </div>
-                        <div className="text-xs text-green-600 dark:text-green-400">
-                          Running by {activeTimer.user?.name || "Unknown"}
-                        </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Active Timer</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {activeTimer ? (
+                  <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-5 w-5 text-green-600 dark:text-green-400 animate-pulse" />
+                      <div>
+                        <h3 className="font-medium text-green-800 dark:text-green-200">
+                          {activeTimer.task?.title || "Unknown Task"}
+                        </h3>
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                          {activeTimer.project?.name || "No project"} • {activeTimer.client?.name || "No client"}
+                        </p>
+                        <p className="text-xs text-green-500 dark:text-green-500">
+                          Started: {format(new Date(activeTimer.timeEntry.startTime), "HH:mm")}
+                        </p>
                       </div>
                     </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Clock className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                      <p className="text-lg">No active timer</p>
-                      <p className="text-sm">Start a timer from a task or project to track your time</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Time Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {dates.slice(0, 7).map(date => {
-                    const entries = entriesByDate[date];
-                    const totalMinutes = getTotalDuration(entries);
-                    const hours = Math.floor(totalMinutes / 60);
-                    const minutes = totalMinutes % 60;
-                    
-                    return (
-                      <div key={date} className="flex justify-between items-center">
-                        <div className="text-sm">
-                          {format(new Date(date), "EEE, MMM d")}
-                        </div>
-                        <div className="font-mono font-medium">
-                          {hours}h {minutes}m
-                        </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-mono font-bold text-green-700 dark:text-green-300">
+                        {activeTimer.elapsedTime}
                       </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                      <div className="text-xs text-green-600 dark:text-green-400">
+                        Running by {activeTimer.user?.name || "Unknown"}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Clock className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p className="text-lg">No active timer</p>
+                    <p className="text-sm">Start a timer from a task or project to track your time</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
         
         <TabsContent value="timesheet" className="space-y-6">
