@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
@@ -14,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TaskList } from "@/components/tasks/TaskList";
 import { ConvertToTemplateDialog } from "@/components/projects/ConvertToTemplateDialog";
 import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
-import { ProjectNotes } from "@/components/projects/ProjectNotes";
 import { ProjectChannels } from "@/components/channels/ProjectChannels";
 
 export default function ProjectDetails() {
@@ -142,7 +140,6 @@ export default function ProjectDetails() {
         <TabsList>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="chat">Chat</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
         
         <TabsContent value="tasks">
@@ -153,10 +150,6 @@ export default function ProjectDetails() {
         
         <TabsContent value="chat">
           <ProjectChannels projectId={projectId!} />
-        </TabsContent>
-        
-        <TabsContent value="notes">
-          <ProjectNotes projectId={projectId!} />
         </TabsContent>
       </Tabs>
       
