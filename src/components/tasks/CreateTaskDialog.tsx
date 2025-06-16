@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAppContext } from "@/contexts/AppContext";
 import { useState, useEffect } from "react";
 import { z } from "zod";
@@ -696,7 +697,7 @@ export function CreateTaskDialog({
                       <p className="text-sm text-muted-foreground">
                         Fields from template: {currentTemplate?.name} ({orderedFieldsToShow.length} fields)
                       </p>
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="space-y-4">
                         {orderedFieldsToShow.map((field) => (
                           <div key={field.id} className="space-y-2">
                             <Label htmlFor={field.id}>
@@ -714,6 +715,21 @@ export function CreateTaskDialog({
                                     [field.id]: e.target.value,
                                   });
                                 }}
+                              />
+                            )}
+                            
+                            {field.type === 'textarea' && (
+                              <Textarea 
+                                id={field.id}
+                                value={form.watch("customFields")?.[field.id] || ""}
+                                onChange={(e) => {
+                                  const customFieldsValue = form.getValues("customFields");
+                                  form.setValue("customFields", {
+                                    ...customFieldsValue,
+                                    [field.id]: e.target.value,
+                                  });
+                                }}
+                                className="min-h-[80px]"
                               />
                             )}
                             
@@ -747,7 +763,26 @@ export function CreateTaskDialog({
                               />
                             )}
                             
-                            {(field.type === 'dropdown' || field.type === 'multiselect') && field.options && (
+                            {field.type === 'checkbox' && (
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={field.id}
+                                  checked={form.watch("customFields")?.[field.id] || false}
+                                  onCheckedChange={(checked) => {
+                                    const customFieldsValue = form.getValues("customFields");
+                                    form.setValue("customFields", {
+                                      ...customFieldsValue,
+                                      [field.id]: checked,
+                                    });
+                                  }}
+                                />
+                                <Label htmlFor={field.id} className="text-sm font-normal cursor-pointer">
+                                  {field.description || field.name}
+                                </Label>
+                              </div>
+                            )}
+                            
+                            {(field.type === 'select') && field.options && (
                               <Select
                                 value={form.watch("customFields")?.[field.id] || ""}
                                 onValueChange={(value) => {
