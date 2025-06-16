@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,7 +54,7 @@ interface AddClientDialogProps {
 }
 
 export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
-  const { session } = useAppContext();
+  const { session, addClient } = useAppContext();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -88,7 +87,7 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
     setIsSubmitting(true);
     
     try {
-      const { error } = await supabase
+      const { data: clientData, error } = await supabase
         .from('clients')
         .insert({
           auth_user_id: session.user.id,
@@ -98,14 +97,34 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
           address: data.address || null,
           website: data.website || null,
           status: data.status,
-        });
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error("Error creating client:", error);
         throw error;
       }
 
-      console.log("Client created successfully");
+      console.log("Client created successfully:", clientData);
+      
+      // Add client to context state
+      if (addClient && clientData) {
+        addClient({
+          id: clientData.id,
+          name: clientData.name,
+          email: clientData.email,
+          phone: clientData.phone || "",
+          address: clientData.address || "",
+          website: clientData.website || "",
+          status: clientData.status as "active" | "inactive",
+          contactName: data.contactName || "",
+          billableRate: data.billableRate || 0,
+          currency: data.currency || "USD",
+          createdAt: clientData.created_at,
+          updatedAt: clientData.updated_at,
+        });
+      }
       
       toast({
         title: "Client added",
@@ -114,9 +133,6 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
 
       form.reset();
       onOpenChange(false);
-      
-      // Force a page reload to refresh the client list
-      window.location.reload();
     } catch (error) {
       console.error("Error adding client:", error);
       toast({
