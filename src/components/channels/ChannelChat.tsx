@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -135,7 +134,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
         .insert({
           channel_id: channelId,
           from_user_id: currentUser.id,
-          to_user_id: '', // Required field, but not used for channel messages
+          to_user_id: currentUser.id, // For channel messages, set this to the sender's ID
           subject: 'Channel Message',
           content,
           mentioned_users: mentionedUsers,
