@@ -7,6 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { MentionDropdown } from "../messages/MentionDropdown";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { MessageSquare, X } from "lucide-react";
 
 interface CommentSectionProps {
   taskId: string;
@@ -16,6 +19,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   const { tasks, users, currentUser, addComment, createMessage } = useAppContext();
   const [comment, setComment] = useState("");
   const { toast } = useToast();
+  const [isThreadOpen, setIsThreadOpen] = useState(false);
   
   // Mention states
   const [mentionQuery, setMentionQuery] = useState("");
@@ -213,77 +217,181 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   
   // Filter users for mentions (exclude current user)
   const otherUsers = safeUsers.filter(user => user.id !== currentUser?.id);
+
+  // Format comment content with mentions
+  const formatCommentContent = (content: string, mentionedUsers: string[] = []) => {
+    let formattedContent = content;
+    
+    mentionedUsers.forEach(userId => {
+      const user = safeUsers.find(u => u.id === userId);
+      if (user) {
+        const mentionRegex = new RegExp(`@${user.name}`, 'g');
+        formattedContent = formattedContent.replace(
+          mentionRegex,
+          `<span class="bg-primary/20 text-primary px-1 rounded">@${user.name}</span>`
+        );
+      }
+    });
+
+    return formattedContent;
+  };
   
   return (
-    <div className="space-y-4">
-      {task.comments && task.comments.length > 0 ? (
-        <div className="space-y-4">
-          {task.comments.map(c => {
-            const commentUser = users.find(u => u.id === c.userId);
-            return (
-              <div key={c.id} className="flex gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={commentUser?.avatar} />
-                  <AvatarFallback>{commentUser?.name?.substring(0, 2)}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{commentUser?.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(c.timestamp), "MMM d, yyyy 'at' h:mm a")}
-                    </span>
+    <>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-medium">Comments</h3>
+          {task.comments && task.comments.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => setIsThreadOpen(true)}>
+              <MessageSquare className="h-4 w-4 mr-2" />
+              View Thread ({task.comments.length})
+            </Button>
+          )}
+        </div>
+        
+        {task.comments && task.comments.length > 0 ? (
+          <div className="space-y-4">
+            {/* Show only the latest 3 comments */}
+            {task.comments.slice(-3).map(c => {
+              const commentUser = users.find(u => u.id === c.userId);
+              return (
+                <div key={c.id} className="flex gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={commentUser?.avatar} />
+                    <AvatarFallback>{commentUser?.name?.substring(0, 2)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{commentUser?.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(c.timestamp), "MMM d, yyyy 'at' h:mm a")}
+                      </span>
+                    </div>
+                    <div 
+                      className="mt-1 whitespace-pre-wrap"
+                      dangerouslySetInnerHTML={{ 
+                        __html: formatCommentContent(c.content, c.mentionedUsers)
+                      }}
+                    />
                   </div>
-                  <p className="mt-1 whitespace-pre-wrap">{c.content}</p>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="text-center py-4 text-muted-foreground">
-          No comments yet
-        </div>
-      )}
-      
-      {currentUser && (
-        <form onSubmit={handleSubmitComment} className="space-y-2 relative">
-          <div className="relative">
-            <Textarea 
-              ref={textareaRef}
-              placeholder="Add a comment... (Use @ to mention users)" 
-              value={comment}
-              onChange={handleTextareaChange}
-              onBlur={handleBlur}
-              className="min-h-[80px]"
-            />
+              );
+            })}
             
-            {mentionOpen && (
-              <div 
-                className="absolute"
-                style={{
-                  top: mentionPosition.top,
-                  left: mentionPosition.left,
-                  zIndex: 1000
-                }}
-              >
-                <MentionDropdown
-                  users={otherUsers}
-                  onSelect={handleSelectUser}
-                  isOpen={mentionOpen}
-                  searchQuery={mentionQuery}
-                  className="shadow-lg border"
-                />
+            {task.comments.length > 3 && (
+              <div className="text-center">
+                <Button variant="ghost" size="sm" onClick={() => setIsThreadOpen(true)}>
+                  View all {task.comments.length} comments
+                </Button>
               </div>
             )}
           </div>
-          
-          <div className="flex justify-end">
-            <Button type="submit" disabled={!comment.trim()}>
-              Post Comment
-            </Button>
+        ) : (
+          <div className="text-center py-4 text-muted-foreground">
+            No comments yet
           </div>
-        </form>
-      )}
-    </div>
+        )}
+        
+        {currentUser && (
+          <form onSubmit={handleSubmitComment} className="space-y-2 relative">
+            <div className="relative">
+              <Textarea 
+                ref={textareaRef}
+                placeholder="Add a comment... (Use @ to mention users)" 
+                value={comment}
+                onChange={handleTextareaChange}
+                onBlur={handleBlur}
+                className="min-h-[80px]"
+              />
+              
+              {mentionOpen && (
+                <div 
+                  className="absolute"
+                  style={{
+                    top: mentionPosition.top,
+                    left: mentionPosition.left,
+                    zIndex: 1000
+                  }}
+                >
+                  <MentionDropdown
+                    users={otherUsers}
+                    onSelect={handleSelectUser}
+                    isOpen={mentionOpen}
+                    searchQuery={mentionQuery}
+                    className="shadow-lg border"
+                  />
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end">
+              <Button type="submit" disabled={!comment.trim()}>
+                Post Comment
+              </Button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* Thread Dialog */}
+      <Dialog open={isThreadOpen} onOpenChange={setIsThreadOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                <DialogTitle>Comment Thread</DialogTitle>
+                <span className="text-sm text-muted-foreground">
+                  {task.comments?.length || 0} {task.comments?.length === 1 ? 'comment' : 'comments'}
+                </span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setIsThreadOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-[calc(60vh-100px)] pr-4">
+              <div className="space-y-4 pb-6">
+                {task.comments && task.comments.length > 0 ? (
+                  task.comments.map((comment) => {
+                    const commentUser = users.find(u => u.id === comment.userId);
+                    
+                    return (
+                      <div key={comment.id} className="flex gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={commentUser?.avatar} />
+                          <AvatarFallback>
+                            {commentUser?.name?.substring(0, 2) || 'UN'}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">{commentUser?.name || 'Unknown'}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(comment.timestamp), "MMM d, yyyy 'at' h:mm a")}
+                            </span>
+                          </div>
+                          <div 
+                            className="text-sm whitespace-pre-wrap"
+                            dangerouslySetInnerHTML={{ 
+                              __html: formatCommentContent(comment.content, comment.mentionedUsers)
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-center text-muted-foreground py-4">No comments in this thread</p>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
