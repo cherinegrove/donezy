@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -86,23 +85,35 @@ const TaskTemplateForm = ({
   }, [template.includeCustomFields, template.fieldOrder]); // Removed template.id dependency to fix new template issue
 
   const handleFieldToggle = (fieldId: string) => {
-    const newSelected = selectedFields.includes(fieldId)
+    const isCurrentlySelected = selectedFields.includes(fieldId);
+    const newSelected = isCurrentlySelected
       ? selectedFields.filter(id => id !== fieldId)
       : [...selectedFields, fieldId];
     
+    console.log('Toggling field:', fieldId, 'Currently selected:', isCurrentlySelected, 'New selection:', newSelected);
+    
     setSelectedFields(newSelected);
-    setTemplate({ ...template, includeCustomFields: newSelected });
-
+    
     // Update field order
-    if (!selectedFields.includes(fieldId)) {
-      const newOrder = [...fieldOrder, fieldId];
-      setFieldOrder(newOrder);
-      setTemplate({ ...template, fieldOrder: newOrder });
+    let newOrder = [...fieldOrder];
+    if (!isCurrentlySelected) {
+      // Adding field - add to end of order if not already there
+      if (!newOrder.includes(fieldId)) {
+        newOrder = [...newOrder, fieldId];
+      }
     } else {
-      const newOrder = fieldOrder.filter(id => id !== fieldId);
-      setFieldOrder(newOrder);
-      setTemplate({ ...template, fieldOrder: newOrder });
+      // Removing field - remove from order
+      newOrder = newOrder.filter(id => id !== fieldId);
     }
+    
+    setFieldOrder(newOrder);
+    
+    // Update the parent template state
+    setTemplate({ 
+      ...template, 
+      includeCustomFields: newSelected,
+      fieldOrder: newOrder
+    });
   };
 
   const handleDragEnd = (result: DropResult) => {
