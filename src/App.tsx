@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,7 +24,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin"; 
-import { AppContextProvider, useAppContext } from "./contexts/AppContext";
+import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 
 // Protected route component - simplified and faster
@@ -215,11 +214,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <BrowserRouter>
-        <AppContextProvider>
+        <AppProvider>
           <Toaster />
           <Sonner />
           <AppRoutes />
-        </AppContextProvider>
+        </AppProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
