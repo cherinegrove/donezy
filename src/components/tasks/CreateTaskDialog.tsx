@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -700,70 +701,8 @@ export function CreateTaskDialog({
                       <div className="space-y-4">
                         {orderedFieldsToShow.map((field) => (
                           <div key={field.id} className="space-y-2">
-                            <Label htmlFor={field.id}>
-                              {field.name} {field.required && <span className="text-red-500">*</span>}
-                            </Label>
-                            
-                            {field.type === 'text' && (
-                              <Input 
-                                id={field.id}
-                                value={form.watch("customFields")?.[field.id] || ""}
-                                onChange={(e) => {
-                                  const customFieldsValue = form.getValues("customFields");
-                                  form.setValue("customFields", {
-                                    ...customFieldsValue,
-                                    [field.id]: e.target.value,
-                                  });
-                                }}
-                              />
-                            )}
-                            
-                            {field.type === 'textarea' && (
-                              <Textarea 
-                                id={field.id}
-                                value={form.watch("customFields")?.[field.id] || ""}
-                                onChange={(e) => {
-                                  const customFieldsValue = form.getValues("customFields");
-                                  form.setValue("customFields", {
-                                    ...customFieldsValue,
-                                    [field.id]: e.target.value,
-                                  });
-                                }}
-                                className="min-h-[80px]"
-                              />
-                            )}
-                            
-                            {field.type === 'number' && (
-                              <Input 
-                                id={field.id} 
-                                type="number"
-                                value={form.watch("customFields")?.[field.id] || ""}
-                                onChange={(e) => {
-                                  const customFieldsValue = form.getValues("customFields");
-                                  form.setValue("customFields", {
-                                    ...customFieldsValue,
-                                    [field.id]: parseFloat(e.target.value) || 0,
-                                  });
-                                }}
-                              />
-                            )}
-                            
-                            {field.type === 'date' && (
-                              <Input 
-                                id={field.id} 
-                                type="date"
-                                value={form.watch("customFields")?.[field.id] || ""}
-                                onChange={(e) => {
-                                  const customFieldsValue = form.getValues("customFields");
-                                  form.setValue("customFields", {
-                                    ...customFieldsValue,
-                                    [field.id]: e.target.value,
-                                  });
-                                }}
-                              />
-                            )}
-                            
-                            {field.type === 'checkbox' && (
+                            {field.type === 'checkbox' ? (
+                              // Special handling for checkbox - no separate label, just checkbox with integrated label
                               <div className="flex items-center space-x-2">
                                 <Checkbox
                                   id={field.id}
@@ -777,33 +716,99 @@ export function CreateTaskDialog({
                                   }}
                                 />
                                 <Label htmlFor={field.id} className="text-sm font-normal cursor-pointer">
-                                  {field.description || field.name}
+                                  {field.name} {field.required && <span className="text-red-500">*</span>}
                                 </Label>
                               </div>
-                            )}
-                            
-                            {(field.type === 'select' || field.type === 'dropdown') && field.options && (
-                              <Select
-                                value={form.watch("customFields")?.[field.id] || ""}
-                                onValueChange={(value) => {
-                                  const customFieldsValue = form.getValues("customFields");
-                                  form.setValue("customFields", {
-                                    ...customFieldsValue,
-                                    [field.id]: value,
-                                  });
-                                }}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {field.options.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                      {option}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                            ) : (
+                              // For all other field types, show label first then the input
+                              <>
+                                <Label htmlFor={field.id}>
+                                  {field.name} {field.required && <span className="text-red-500">*</span>}
+                                </Label>
+                                
+                                {field.type === 'text' && (
+                                  <Input 
+                                    id={field.id}
+                                    value={form.watch("customFields")?.[field.id] || ""}
+                                    onChange={(e) => {
+                                      const customFieldsValue = form.getValues("customFields");
+                                      form.setValue("customFields", {
+                                        ...customFieldsValue,
+                                        [field.id]: e.target.value,
+                                      });
+                                    }}
+                                  />
+                                )}
+                                
+                                {field.type === 'textarea' && (
+                                  <Textarea 
+                                    id={field.id}
+                                    value={form.watch("customFields")?.[field.id] || ""}
+                                    onChange={(e) => {
+                                      const customFieldsValue = form.getValues("customFields");
+                                      form.setValue("customFields", {
+                                        ...customFieldsValue,
+                                        [field.id]: e.target.value,
+                                      });
+                                    }}
+                                    className="min-h-[80px]"
+                                  />
+                                )}
+                                
+                                {field.type === 'number' && (
+                                  <Input 
+                                    id={field.id} 
+                                    type="number"
+                                    value={form.watch("customFields")?.[field.id] || ""}
+                                    onChange={(e) => {
+                                      const customFieldsValue = form.getValues("customFields");
+                                      form.setValue("customFields", {
+                                        ...customFieldsValue,
+                                        [field.id]: parseFloat(e.target.value) || 0,
+                                      });
+                                    }}
+                                  />
+                                )}
+                                
+                                {field.type === 'date' && (
+                                  <Input 
+                                    id={field.id} 
+                                    type="date"
+                                    value={form.watch("customFields")?.[field.id] || ""}
+                                    onChange={(e) => {
+                                      const customFieldsValue = form.getValues("customFields");
+                                      form.setValue("customFields", {
+                                        ...customFieldsValue,
+                                        [field.id]: e.target.value,
+                                      });
+                                    }}
+                                  />
+                                )}
+                                
+                                {(field.type === 'select' || field.type === 'dropdown') && field.options && (
+                                  <Select
+                                    value={form.watch("customFields")?.[field.id] || ""}
+                                    onValueChange={(value) => {
+                                      const customFieldsValue = form.getValues("customFields");
+                                      form.setValue("customFields", {
+                                        ...customFieldsValue,
+                                        [field.id]: value,
+                                      });
+                                    }}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {field.options.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                          {option}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </>
                             )}
                           </div>
                         ))}
