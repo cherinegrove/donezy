@@ -98,19 +98,20 @@ export function CreateTaskDialog({
   const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   
-  // Add debugging for custom fields
+  // Enhanced debugging for custom fields
   useEffect(() => {
-    console.log('CreateTaskDialog - AppContext customFields:', customFields);
-    console.log('CreateTaskDialog - customFields length:', customFields.length);
-    console.log('CreateTaskDialog - currentUser:', currentUser);
-    
-    // Additional debug: Check if customFields is actually being populated from AppContext
-    if (customFields.length === 0) {
-      console.warn('⚠️ CustomFields array is empty in CreateTaskDialog - checking AppContext state');
-    } else {
-      console.log('✅ CustomFields loaded successfully:', customFields.map(f => ({ id: f.id, name: f.name, applicableTo: f.applicableTo })));
-    }
-  }, [customFields, currentUser]);
+    console.log('=== CUSTOM FIELDS DEBUG ===');
+    console.log('AppContext customFields:', customFields);
+    console.log('customFields length:', customFields.length);
+    console.log('customFields details:', customFields.map(f => ({
+      id: f.id,
+      name: f.name,
+      type: f.type,
+      applicableTo: f.applicableTo
+    })));
+    console.log('currentUser:', currentUser);
+    console.log('=== END DEBUG ===');
+  }, [customFields, currentUser, open]);
   
   // Use the appropriate schema based on whether we're creating a subtask
   const schema = createTaskSchema(isSubtask);
@@ -196,37 +197,53 @@ export function CreateTaskDialog({
     }
   }, [open, currentUser]);
 
-  // Get the selected template's custom fields
+  // Get the selected template's custom fields with enhanced debugging
   const getTemplateCustomFields = () => {
-    if (!selectedTemplate || selectedTemplate === "default" || customFields.length === 0) {
+    console.log('=== getTemplateCustomFields START ===');
+    console.log('selectedTemplate:', selectedTemplate);
+    console.log('customFields available:', customFields.length);
+    
+    if (!selectedTemplate || selectedTemplate === "default") {
+      console.log('Returning empty - template is default or not selected');
+      return [];
+    }
+    
+    if (customFields.length === 0) {
+      console.log('Returning empty - no custom fields in context');
       return [];
     }
     
     const template = taskTemplates.find(t => t.id === selectedTemplate);
-    if (!template || !template.includeCustomFields || template.includeCustomFields.length === 0) {
+    if (!template) {
+      console.log('Returning empty - template not found');
       return [];
     }
     
-    console.log('Template found:', template);
-    console.log('Template includeCustomFields:', template.includeCustomFields);
-    console.log('Available customFields from context:', customFields);
-    console.log('Available customFields count:', customFields.length);
+    if (!template.includeCustomFields || template.includeCustomFields.length === 0) {
+      console.log('Returning empty - template has no custom fields');
+      return [];
+    }
     
-    // Return only the custom fields that are included in this template
+    console.log('Template found:', template.name);
+    console.log('Template includeCustomFields:', template.includeCustomFields);
+    
+    // Filter custom fields that are applicable to tasks and included in template
     const templateFields = customFields.filter(field => {
-      const isApplicableToTasks = field.applicableTo.includes('tasks');
+      const isApplicableToTasks = field.applicableTo && field.applicableTo.includes('tasks');
       const isIncludedInTemplate = template.includeCustomFields.includes(field.id);
       
       console.log(`Field ${field.name} (${field.id}):`, {
         isApplicableToTasks,
         isIncludedInTemplate,
-        applicableTo: field.applicableTo
+        applicableTo: field.applicableTo,
+        fieldType: field.type
       });
       
       return isApplicableToTasks && isIncludedInTemplate;
     });
     
-    console.log('Filtered template fields:', templateFields);
+    console.log('Filtered template fields:', templateFields.length);
+    console.log('=== getTemplateCustomFields END ===');
     return templateFields;
   };
 
@@ -236,7 +253,7 @@ export function CreateTaskDialog({
   useEffect(() => {
     const template = taskTemplates.find(t => t.id === selectedTemplate);
     if (template) {
-      console.log('Applying template:', template);
+      console.log('Applying template:', template.name);
       form.setValue("title", "");
       form.setValue("description", template.description || "");
       form.setValue("priority", template.defaultPriority);
@@ -245,13 +262,13 @@ export function CreateTaskDialog({
       // Reset custom fields first
       form.setValue("customFields", {});
       
-      // Apply template's custom fields in the specified order (only for non-default templates)
+      // Apply template's custom fields (only for non-default templates)
       if (selectedTemplate !== "default" && template.includeCustomFields && template.includeCustomFields.length > 0) {
         const orderedFields = template.fieldOrder && template.fieldOrder.length > 0 
           ? template.fieldOrder 
           : template.includeCustomFields;
         
-        console.log('Ordered fields for template:', orderedFields);
+        console.log('Setting up custom fields for template...');
         
         const customFieldsValue: Record<string, any> = {};
         orderedFields.forEach(fieldId => {
@@ -277,6 +294,8 @@ export function CreateTaskDialog({
                 default:
                   customFieldsValue[fieldId] = '';
               }
+            } else {
+              console.warn('Custom field not found in context:', fieldId);
             }
           }
         });
@@ -367,10 +386,7 @@ export function CreateTaskDialog({
         .filter(Boolean) as typeof customFields
     : templateCustomFields;
 
-  console.log('Current template:', currentTemplate);
-  console.log('Template custom fields:', templateCustomFields);
-  console.log('Ordered fields to show:', orderedFieldsToShow);
-  console.log('Selected template:', selectedTemplate);
+  console.log('Final render - orderedFieldsToShow:', orderedFieldsToShow.length);
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -673,12 +689,12 @@ export function CreateTaskDialog({
                     )}
                   />
                   
-                  {/* Custom Fields - Only show when there are template fields AND custom fields available */}
+                  {/* Custom Fields - Show when there are template fields available */}
                   {orderedFieldsToShow.length > 0 && (
                     <div className="space-y-4">
-                      <Label>Template Custom Fields</Label>
+                      <Label>Custom Fields from Template</Label>
                       <p className="text-sm text-muted-foreground">
-                        Fields from template: {currentTemplate?.name}
+                        Fields from template: {currentTemplate?.name} ({orderedFieldsToShow.length} fields)
                       </p>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {orderedFieldsToShow.map((field) => (
