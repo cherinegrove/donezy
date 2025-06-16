@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -373,28 +374,57 @@ export function CreateTaskDialog({
   }, [form.watch("clientId"), projects, selectedClientId]);
   
   const onSubmit = async (data: TaskFormData) => {
-    addTask({
-      title: data.title,
-      description: data.description,
-      projectId: data.projectId,
-      parentTaskId: data.parentTaskId,
-      assigneeId: data.assigneeId,
-      collaboratorIds: data.collaboratorIds,
-      status: data.status as TaskStatus,
-      priority: data.priority as "low" | "medium" | "high",
-      startDate: data.startDate,
-      dueDate: data.dueDate,
-      customFields: data.customFields || {},
-      subtasks: [],
-    });
+    console.log('=== TASK CREATION DEBUG ===');
+    console.log('Form data being submitted:', data);
+    console.log('Form validation state:', form.formState);
+    console.log('Form errors:', form.formState.errors);
     
-    // Update template usage count
-    await updateTemplateUsage(selectedTemplate);
-    
-    toast.success("Task created successfully");
-    form.reset();
-    setSelectedTemplate("default");
-    onOpenChange(false);
+    try {
+      console.log('Calling addTask with data:', {
+        title: data.title,
+        description: data.description,
+        projectId: data.projectId,
+        parentTaskId: data.parentTaskId,
+        assigneeId: data.assigneeId,
+        collaboratorIds: data.collaboratorIds,
+        status: data.status as TaskStatus,
+        priority: data.priority as "low" | "medium" | "high",
+        startDate: data.startDate,
+        dueDate: data.dueDate,
+        customFields: data.customFields || {},
+        subtasks: [],
+      });
+      
+      addTask({
+        title: data.title,
+        description: data.description,
+        projectId: data.projectId,
+        parentTaskId: data.parentTaskId,
+        assigneeId: data.assigneeId,
+        collaboratorIds: data.collaboratorIds,
+        status: data.status as TaskStatus,
+        priority: data.priority as "low" | "medium" | "high",
+        startDate: data.startDate,
+        dueDate: data.dueDate,
+        customFields: data.customFields || {},
+        subtasks: [],
+      });
+      
+      console.log('addTask completed successfully');
+      
+      // Update template usage count
+      await updateTemplateUsage(selectedTemplate);
+      
+      toast.success("Task created successfully");
+      form.reset();
+      setSelectedTemplate("default");
+      onOpenChange(false);
+      
+      console.log('Task creation process completed');
+    } catch (error) {
+      console.error('Error during task creation:', error);
+      toast.error("Failed to create task. Please try again.");
+    }
   };
   
   // Get tasks from selected project for parent task selection
