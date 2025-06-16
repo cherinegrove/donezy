@@ -10,6 +10,7 @@ interface MentionDropdownProps {
   style?: React.CSSProperties;
   isOpen?: boolean;
   searchQuery?: string;
+  position?: { top: number; left: number };
 }
 
 export function MentionDropdown({ 
@@ -19,7 +20,8 @@ export function MentionDropdown({
   className,
   style,
   isOpen,
-  searchQuery = ""
+  searchQuery = "",
+  position
 }: MentionDropdownProps) {
   // Safety check - ensure users is always an array
   const safeUsers = Array.isArray(users) ? users : [];
@@ -41,13 +43,20 @@ export function MentionDropdown({
     return null;
   }
 
+  // Combine position with style
+  const dropdownStyle = {
+    zIndex: 9999,
+    ...(position && { position: 'absolute' as const, top: position.top, left: position.left }),
+    ...style
+  };
+
   // Show "No users found" if no matches but still show the dropdown
   if (filteredUsers.length === 0) {
     return (
       <div 
         id={id}
         className={`bg-white border border-gray-200 shadow-lg rounded-md overflow-hidden max-w-xs min-w-[200px] ${className || ''}`}
-        style={{ zIndex: 9999, ...style }}
+        style={dropdownStyle}
       >
         <div className="p-3 text-sm text-gray-500 text-center">
           No users found matching "{searchQuery}"
@@ -60,7 +69,7 @@ export function MentionDropdown({
     <div 
       id={id}
       className={`bg-white border border-gray-200 shadow-lg rounded-md overflow-hidden max-w-xs min-w-[200px] ${className || ''}`}
-      style={{ zIndex: 9999, ...style }}
+      style={dropdownStyle}
     >
       <div className="p-1">
         <div className="max-h-[200px] overflow-y-auto">
