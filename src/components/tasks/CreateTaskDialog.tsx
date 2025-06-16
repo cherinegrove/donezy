@@ -194,11 +194,18 @@ export function CreateTaskDialog({
       return [];
     }
     
+    console.log('Template found:', template);
+    console.log('Template includeCustomFields:', template.includeCustomFields);
+    console.log('Available customFields:', customFields);
+    
     // Return only the custom fields that are included in this template
-    return customFields.filter(field => 
+    const templateFields = customFields.filter(field => 
       field.applicableTo.includes('tasks') && 
       template.includeCustomFields.includes(field.id)
     );
+    
+    console.log('Filtered template fields:', templateFields);
+    return templateFields;
   };
 
   const templateCustomFields = getTemplateCustomFields();
@@ -207,6 +214,7 @@ export function CreateTaskDialog({
   useEffect(() => {
     const template = taskTemplates.find(t => t.id === selectedTemplate);
     if (template) {
+      console.log('Applying template:', template);
       form.setValue("title", "");
       form.setValue("description", template.description || "");
       form.setValue("priority", template.defaultPriority);
@@ -216,16 +224,19 @@ export function CreateTaskDialog({
       form.setValue("customFields", {});
       
       // Apply template's custom fields in the specified order (only for non-default templates)
-      if (selectedTemplate !== "default") {
-        const orderedFields = template.fieldOrder.length > 0 
+      if (selectedTemplate !== "default" && template.includeCustomFields && template.includeCustomFields.length > 0) {
+        const orderedFields = template.fieldOrder && template.fieldOrder.length > 0 
           ? template.fieldOrder 
           : template.includeCustomFields;
+        
+        console.log('Ordered fields for template:', orderedFields);
         
         const customFieldsValue: Record<string, any> = {};
         orderedFields.forEach(fieldId => {
           if (template.includeCustomFields.includes(fieldId)) {
             const field = customFields.find(f => f.id === fieldId);
             if (field) {
+              console.log('Setting default value for field:', field.name, field.type);
               // Set default value based on field type
               switch (field.type) {
                 case 'text':
@@ -247,6 +258,8 @@ export function CreateTaskDialog({
             }
           }
         });
+        
+        console.log('Setting custom fields value:', customFieldsValue);
         form.setValue("customFields", customFieldsValue);
       }
     }
@@ -326,11 +339,16 @@ export function CreateTaskDialog({
   const currentTemplate = taskTemplates.find(t => t.id === selectedTemplate);
   
   // Order fields based on template (only for non-default templates)
-  const orderedFieldsToShow = currentTemplate?.fieldOrder.length && selectedTemplate !== "default"
+  const orderedFieldsToShow = currentTemplate && currentTemplate.fieldOrder && currentTemplate.fieldOrder.length > 0 && selectedTemplate !== "default"
     ? currentTemplate.fieldOrder
         .map(fieldId => templateCustomFields.find(f => f.id === fieldId))
         .filter(Boolean) as typeof customFields
     : templateCustomFields;
+
+  console.log('Current template:', currentTemplate);
+  console.log('Template custom fields:', templateCustomFields);
+  console.log('Ordered fields to show:', orderedFieldsToShow);
+  console.log('Selected template:', selectedTemplate);
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -637,6 +655,9 @@ export function CreateTaskDialog({
                   {orderedFieldsToShow.length > 0 && selectedTemplate !== "default" && (
                     <div className="space-y-4">
                       <Label>Template Custom Fields</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Fields from template: {currentTemplate?.name}
+                      </p>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {orderedFieldsToShow.map((field) => (
                           <div key={field.id} className="space-y-2">
@@ -714,6 +735,15 @@ export function CreateTaskDialog({
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+                  
+                  {/* Debug info for troubleshooting */}
+                  {selectedTemplate !== "default" && (
+                    <div className="text-xs text-muted-foreground p-2 bg-muted rounded">
+                      <p>Debug: Template "{selectedTemplate}" selected</p>
+                      <p>Custom fields in template: {currentTemplate?.includeCustomFields?.length || 0}</p>
+                      <p>Custom fields to show: {orderedFieldsToShow.length}</p>
                     </div>
                   )}
                 </form>
