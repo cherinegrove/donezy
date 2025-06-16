@@ -4,7 +4,6 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Play, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
 import { TimeEntryTable } from "./TimeEntryTable";
 
 interface TimerSectionProps {
@@ -79,13 +78,10 @@ export function TimerSection({ taskId }: TimerSectionProps) {
         </Button>
       </div>
       
-      {taskTimeEntries.length > 0 ? (
-        <TimeEntryTable taskId={taskId} />
-      ) : (
-        <div className="text-center py-4 text-muted-foreground">
-          No time entries for this task
-        </div>
-      )}
+      <div className="space-y-4">
+        <h4 className="text-md font-medium">Time Entries Log</h4>
+        <TimeEntryTable taskId={taskId} showAllDetails={true} />
+      </div>
     </div>
   );
 }
