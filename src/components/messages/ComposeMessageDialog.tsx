@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,6 @@ import { useState, useRef } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MentionDropdown } from "./MentionDropdown";
-import { getCaretCoordinates } from "@/utils/textUtils";
 import { User } from "@/types"; 
 
 interface ComposeMessageDialogProps {
@@ -85,6 +85,16 @@ export function ComposeMessageDialog({
   const handleRemoveRecipient = (userId: string) => {
     setRecipients(recipients.filter(id => id !== userId));
   };
+
+  const calculateMentionPosition = () => {
+    if (!textareaRef.current) return { top: 0, left: 0 };
+    
+    // Simple positioning - just below the textarea
+    return {
+      top: 40, // Position below the textarea
+      left: 0
+    };
+  };
   
   // Handle textarea content change to detect @ mentions
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -106,16 +116,7 @@ export function ComposeMessageDialog({
         if (!query.includes(' ')) {
           setMentionQuery(query);
           setMentionOpen(true);
-          
-          // Calculate mention dropdown position based on textarea and cursor
-          if (textareaRef.current) {
-            const cursorCoords = getCaretCoordinates(textareaRef.current, atIndex);
-            setMentionPosition({
-              top: cursorCoords.top + 20,  // Add some offset below the @
-              left: cursorCoords.left
-            });
-          }
-          
+          setMentionPosition(calculateMentionPosition());
           return;
         }
       }
@@ -221,14 +222,24 @@ export function ComposeMessageDialog({
               rows={5}
             />
             
-            {/* Updated MentionDropdown with correct props */}
-            <MentionDropdown
-              users={otherUsers}
-              onSelect={handleSelectUser}
-              isOpen={mentionOpen}
-              position={mentionPosition}
-              searchQuery={mentionQuery}
-            />
+            {mentionOpen && (
+              <div 
+                className="absolute"
+                style={{
+                  top: mentionPosition.top,
+                  left: mentionPosition.left,
+                  zIndex: 1000
+                }}
+              >
+                <MentionDropdown
+                  users={otherUsers}
+                  onSelect={handleSelectUser}
+                  isOpen={mentionOpen}
+                  searchQuery={mentionQuery}
+                  className="shadow-lg border"
+                />
+              </div>
+            )}
           </div>
         </div>
         
