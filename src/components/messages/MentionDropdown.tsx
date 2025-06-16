@@ -43,10 +43,13 @@ export function MentionDropdown({
     return null;
   }
 
-  // Combine position with style
+  // Combine position with style - position at cursor location
   const dropdownStyle = {
+    position: 'absolute' as const,
+    top: position?.top || 0,
+    left: position?.left || 0,
     zIndex: 9999,
-    ...(position && { position: 'absolute' as const, top: position.top, left: position.left }),
+    transform: 'translateY(20px)', // Position slightly below the cursor
     ...style
   };
 
