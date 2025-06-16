@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { MultiSelect } from "@/components/ui/multi-select";
 import { useAppContext } from "@/contexts/AppContext";
 import { useState, useEffect } from "react";
 import { z } from "zod";
@@ -133,7 +132,7 @@ export function CreateTaskDialog({
       name: f.name,
       type: f.type,
       applicableTo: f.applicableTo,
-      options: f.options // Add options to debug
+      options: f.options
     })));
     console.log('currentUser:', currentUser);
     console.log('=== END DEBUG ===');
@@ -263,7 +262,7 @@ export function CreateTaskDialog({
         isIncludedInTemplate,
         applicableTo: field.applicableTo,
         fieldType: field.type,
-        options: field.options // Add options to debug
+        options: field.options
       });
       
       return isApplicableToTasks && isIncludedInTemplate;
@@ -716,7 +715,7 @@ export function CreateTaskDialog({
                     )}
                   />
                   
-                  {/* Custom Fields - Show when there are template fields available with BULLETPROOF MultiSelect usage */}
+                  {/* Custom Fields - Show when there are template fields available - REMOVED MultiSelect usage */}
                   {orderedFieldsToShow.length > 0 && (
                     <div className="space-y-4">
                       <Label>Custom Fields from Template</Label>
@@ -748,30 +747,32 @@ export function CreateTaskDialog({
                                 </Label>
                               </div>
                             ) : field.type === 'multiselect' ? (
-                              // Multi-select field - BULLETPROOF data handling
+                              // Multi-select field - Replace with simple text input for multiple comma-separated values
                               <>
                                 <Label htmlFor={field.id}>
                                   {field.name} {field.required && <span className="text-red-500">*</span>}
                                 </Label>
-                                <MultiSelect
-                                  options={normalizeOptions(field.options || [])}
-                                  selectedValues={(() => {
+                                <Input
+                                  id={field.id}
+                                  placeholder="Enter multiple values separated by commas"
+                                  value={(() => {
                                     const currentValue = form.watch("customFields")?.[field.id];
-                                    // Ensure we ALWAYS return an array - never undefined/null
-                                    return Array.isArray(currentValue) ? currentValue.map(v => String(v)) : [];
+                                    return Array.isArray(currentValue) ? currentValue.join(", ") : currentValue || "";
                                   })()}
-                                  onValueChange={(values) => {
-                                    console.log('MultiSelect onValueChange called with:', values);
+                                  onChange={(e) => {
                                     const customFieldsValue = form.getValues("customFields") || {};
-                                    const newCustomFields = {
+                                    const values = e.target.value.split(",").map(v => v.trim()).filter(v => v);
+                                    form.setValue("customFields", {
                                       ...customFieldsValue,
-                                      [field.id]: Array.isArray(values) ? values : [],
-                                    };
-                                    console.log('Setting custom fields to:', newCustomFields);
-                                    form.setValue("customFields", newCustomFields);
+                                      [field.id]: values,
+                                    });
                                   }}
-                                  placeholder={`Select ${field.name.toLowerCase()}...`}
                                 />
+                                {field.options && field.options.length > 0 && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Available options: {field.options.join(", ")}
+                                  </p>
+                                )}
                               </>
                             ) : (
                               // All other field types - show label above input
