@@ -138,6 +138,111 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_roles: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          permissions: Json | null
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          permissions?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          permissions?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          auth_user_id: string
+          content: string
+          created_at: string
+          from_user_id: string
+          id: string
+          priority: string | null
+          read: boolean | null
+          subject: string
+          timestamp: string
+          to_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          content: string
+          created_at?: string
+          from_user_id: string
+          id?: string
+          priority?: string | null
+          read?: boolean | null
+          subject: string
+          timestamp?: string
+          to_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          content?: string
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          priority?: string | null
+          read?: boolean | null
+          subject?: string
+          timestamp?: string
+          to_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notes: {
+        Row: {
+          archived: boolean | null
+          auth_user_id: string
+          content: string | null
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean | null
+          auth_user_id: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean | null
+          auth_user_id?: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -159,6 +264,39 @@ export type Database = {
           display_name?: string | null
           id?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      project_status_definitions: {
+        Row: {
+          auth_user_id: string
+          color: string
+          created_at: string
+          id: string
+          is_final: boolean | null
+          name: string
+          order_index: number
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          color: string
+          created_at?: string
+          id?: string
+          is_final?: boolean | null
+          name: string
+          order_index?: number
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          color?: string
+          created_at?: string
+          id?: string
+          is_final?: boolean | null
+          name?: string
+          order_index?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -363,6 +501,120 @@ export type Database = {
           },
         ]
       }
+      purchases: {
+        Row: {
+          amount: number
+          approved: boolean | null
+          approved_by: string | null
+          auth_user_id: string
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          item_name: string
+          project_id: string | null
+          purchase_date: string
+          receipt_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          approved?: boolean | null
+          approved_by?: string | null
+          auth_user_id: string
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          item_name: string
+          project_id?: string | null
+          purchase_date: string
+          receipt_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approved?: boolean | null
+          approved_by?: string | null
+          auth_user_id?: string
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          item_name?: string
+          project_id?: string | null
+          purchase_date?: string
+          receipt_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      task_logs: {
+        Row: {
+          action: string
+          auth_user_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          task_id: string
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          auth_user_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          task_id: string
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          auth_user_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          task_id?: string
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      task_status_definitions: {
+        Row: {
+          auth_user_id: string
+          color: string
+          created_at: string
+          id: string
+          is_final: boolean | null
+          name: string
+          order_index: number
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          color: string
+          created_at?: string
+          id?: string
+          is_final?: boolean | null
+          name: string
+          order_index?: number
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          color?: string
+          created_at?: string
+          id?: string
+          is_final?: boolean | null
+          name?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       task_templates: {
         Row: {
           auth_user_id: string
@@ -463,6 +715,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      teams: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      time_entries: {
+        Row: {
+          auth_user_id: string
+          client_id: string | null
+          created_at: string
+          duration: number | null
+          end_time: string | null
+          id: string
+          notes: string | null
+          project_id: string | null
+          rejection_reason: string | null
+          start_time: string
+          status: string | null
+          task_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auth_user_id: string
+          client_id?: string | null
+          created_at?: string
+          duration?: number | null
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          rejection_reason?: string | null
+          start_time: string
+          status?: string | null
+          task_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auth_user_id?: string
+          client_id?: string | null
+          created_at?: string
+          duration?: number | null
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          rejection_reason?: string | null
+          start_time?: string
+          status?: string | null
+          task_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {
