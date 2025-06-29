@@ -50,9 +50,9 @@ export function AppSidebar() {
         <NavLink to="/" className="flex items-center gap-2 font-semibold">
           {/* Logo */}
           <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary">
-            <span className="text-primary-foreground text-sm">TH</span>
+            <span className="text-primary-foreground text-sm">TD</span>
           </div>
-          {!collapsed && <span className="text-lg">TaskTimerHQ</span>}
+          {!collapsed && <span className="text-lg">TimelyDone</span>}
         </NavLink>
       </div>
       

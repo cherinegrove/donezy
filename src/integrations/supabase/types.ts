@@ -12,12 +12,16 @@ export type Database = {
       account_subscriptions: {
         Row: {
           additional_guests: number
+          billing_period_end: string | null
+          billing_period_start: string | null
           created_at: string
           id: string
           max_guests: number
           max_users: number
           monthly_cost: number
+          plan_id: string | null
           plan_type: string
+          seats: number | null
           status: string
           stripe_subscription_id: string | null
           updated_at: string
@@ -25,12 +29,16 @@ export type Database = {
         }
         Insert: {
           additional_guests?: number
+          billing_period_end?: string | null
+          billing_period_start?: string | null
           created_at?: string
           id?: string
           max_guests?: number
           max_users?: number
           monthly_cost?: number
+          plan_id?: string | null
           plan_type?: string
+          seats?: number | null
           status?: string
           stripe_subscription_id?: string | null
           updated_at?: string
@@ -38,18 +46,30 @@ export type Database = {
         }
         Update: {
           additional_guests?: number
+          billing_period_end?: string | null
+          billing_period_start?: string | null
           created_at?: string
           id?: string
           max_guests?: number
           max_users?: number
           monthly_cost?: number
+          plan_id?: string | null
           plan_type?: string
+          seats?: number | null
           status?: string
           stripe_subscription_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "account_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       channel_members: {
         Row: {
@@ -241,6 +261,36 @@ export type Database = {
         }
         Relationships: []
       }
+      invitations: {
+        Row: {
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          token: string
+          used: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          token: string
+          used?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          token?: string
+          used?: boolean | null
+        }
+        Relationships: []
+      }
       mentions: {
         Row: {
           created_at: string
@@ -406,21 +456,30 @@ export type Database = {
           avatar_url: string | null
           created_at: string | null
           display_name: string | null
+          email: string | null
           id: string
+          invited_by: string | null
+          role: string
           updated_at: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
           display_name?: string | null
+          email?: string | null
           id: string
+          invited_by?: string | null
+          role?: string
           updated_at?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string | null
           display_name?: string | null
+          email?: string | null
           id?: string
+          invited_by?: string | null
+          role?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -707,6 +766,86 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_videos: {
+        Row: {
+          created_at: string
+          duration: number
+          expires_at: string
+          file_size: number
+          folder_id: string | null
+          id: string
+          storage_path: string
+          thumbnail_data: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration: number
+          expires_at?: string
+          file_size: number
+          folder_id?: string | null
+          id: string
+          storage_path: string
+          thumbnail_data?: string | null
+          title: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          duration?: number
+          expires_at?: string
+          file_size?: number
+          folder_id?: string | null
+          id?: string
+          storage_path?: string
+          thumbnail_data?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_videos_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "video_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_plans: {
+        Row: {
+          created_at: string | null
+          features: Json
+          id: string
+          is_active: boolean | null
+          min_seats: number | null
+          name: string
+          per_seat: boolean | null
+          price_monthly: number
+        }
+        Insert: {
+          created_at?: string | null
+          features: Json
+          id?: string
+          is_active?: boolean | null
+          min_seats?: number | null
+          name: string
+          per_seat?: boolean | null
+          price_monthly: number
+        }
+        Update: {
+          created_at?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean | null
+          min_seats?: number | null
+          name?: string
+          per_seat?: boolean | null
+          price_monthly?: number
+        }
+        Relationships: []
+      }
       task_logs: {
         Row: {
           action: string
@@ -955,6 +1094,36 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_tracking: {
+        Row: {
+          amount: number | null
+          billing_period_start: string
+          created_at: string | null
+          id: string
+          resource_id: string | null
+          resource_type: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          billing_period_start: string
+          created_at?: string | null
+          id?: string
+          resource_id?: string | null
+          resource_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          billing_period_start?: string
+          created_at?: string | null
+          id?: string
+          resource_id?: string | null
+          resource_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           auth_user_id: string | null
@@ -1039,11 +1208,43 @@ export type Database = {
         }
         Relationships: []
       }
+      video_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      can_user_perform_action: {
+        Args: { action_type: string; user_uuid?: string }
+        Returns: boolean
+      }
+      cleanup_expired_videos: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_account_limits: {
         Args: { account_user_id: string }
         Returns: {
@@ -1054,6 +1255,15 @@ export type Database = {
           can_add_user: boolean
           can_add_guest: boolean
         }[]
+      }
+      track_usage: {
+        Args: {
+          resource_type_param: string
+          resource_id_param?: string
+          amount_param?: number
+          user_uuid?: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
