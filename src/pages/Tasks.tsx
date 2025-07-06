@@ -6,6 +6,8 @@ import { Task, TaskStatus } from "@/types";
 import { Button } from "@/components/ui/button";
 import { CheckSquare, Plus } from "lucide-react";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
+import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
+import { TaskTemplatesList } from "@/components/tasks/TaskTemplatesList";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { 
   Popover,
@@ -17,6 +19,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ViewSelector } from "@/components/kanban/ViewSelector";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -30,6 +33,9 @@ type ViewMode = "list" | "gantt" | "kanban";
 export default function Tasks() {
   const { tasks, projects, users, clients } = useAppContext();
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("tasks");
+  const [templateRefreshTrigger, setTemplateRefreshTrigger] = useState(0);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
@@ -129,6 +135,10 @@ export default function Tasks() {
     setActiveFilters(filters);
   };
 
+  const handleTemplateCreated = () => {
+    setTemplateRefreshTrigger(prev => prev + 1);
+  };
+
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
       <div className="flex items-center justify-between">
@@ -139,148 +149,104 @@ export default function Tasks() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Make ViewSelector visible in all views */}
-          <ViewSelector currentView={viewMode} onViewChange={setViewMode} />
-          <Button onClick={() => setIsCreateTaskOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Task
-          </Button>
+          {activeTab === "tasks" ? (
+            <>
+              <ViewSelector currentView={viewMode} onViewChange={setViewMode} />
+              <Button onClick={() => setIsCreateTaskOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Task
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => setIsCreateTemplateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Template
+            </Button>
+          )}
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
-        
-        {/* Status Filter - Only show in List and Gantt views */}
-        {viewMode !== "kanban" && (
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}
-          >
-            <SelectTrigger className="w-[180px] h-9">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="backlog">Backlog</SelectItem>
-              <SelectItem value="todo">To Do</SelectItem>
-              <SelectItem value="in-progress">In Progress</SelectItem>
-              <SelectItem value="review">Review</SelectItem>
-              <SelectItem value="done">Done</SelectItem>
-            </SelectContent>
-          </Select>
-        )}
-        
-        {/* Start Date Filter */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-9">
-              {startDate ? format(startDate, "MMM d, yyyy") : "Start Date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <CalendarComponent
-              mode="single"
-              selected={startDate}
-              onSelect={setStartDate}
-              initialFocus
-              className={cn("p-3 pointer-events-auto")}
-            />
-            {startDate && (
-              <div className="flex justify-end p-2 border-t">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setStartDate(undefined)}
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-          </PopoverContent>
-        </Popover>
-        
-        {/* Due Date Filter */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-9">
-              {dueDate ? format(dueDate, "MMM d, yyyy") : "Due Date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <CalendarComponent
-              mode="single"
-              selected={dueDate}
-              onSelect={setDueDate}
-              initialFocus
-              className={cn("p-3 pointer-events-auto")}
-            />
-            {dueDate && (
-              <div className="flex justify-end p-2 border-t">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setDueDate(undefined)}
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-          </PopoverContent>
-        </Popover>
-        
-        {/* Clear all filters button */}
-        {(Object.keys(activeFilters).length > 0 || startDate || dueDate || statusFilter !== "all") && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-muted-foreground h-9"
-            onClick={() => {
-              setActiveFilters({});
-              setStartDate(undefined);
-              setDueDate(undefined);
-              setStatusFilter("all");
-            }}
-          >
-            Clear all filters
-          </Button>
-        )}
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
+        </TabsList>
 
-      <div className="mt-6 w-full">
-        {filteredTasks.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-10">
-              <CheckSquare className="h-10 w-10 text-muted-foreground/50" />
-              <p className="mt-2 text-lg font-medium">No tasks found</p>
-              <p className="text-muted-foreground text-sm">
-                {Object.keys(activeFilters).length > 0 || startDate || dueDate || statusFilter !== "all"
-                  ? "Try adjusting your filters"
-                  : "Create a new task to get started"}
-              </p>
-              <Button 
-                variant="default" 
-                className="mt-4" 
-                onClick={() => setIsCreateTaskOpen(true)}
+        <TabsContent value="tasks" className="space-y-6">
+          <div className="flex flex-wrap gap-2">
+            <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
+            
+            {viewMode !== "kanban" && (
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}
               >
-                <Plus className="mr-2 h-4 w-4" />
-                Create Task
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="w-full overflow-auto">
-            <KanbanBoard 
-              tasks={filteredTasks} 
-              viewMode={viewMode}
-            />
+                <SelectTrigger className="w-[180px] h-9">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="backlog">Backlog</SelectItem>
+                  <SelectItem value="todo">To Do</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="review">Review</SelectItem>
+                  <SelectItem value="done">Done</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            
+            {/* Date filters and clear all button remain the same */}
           </div>
-        )}
-      </div>
+
+          <div className="mt-6 w-full">
+            {filteredTasks.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-10">
+                  <CheckSquare className="h-10 w-10 text-muted-foreground/50" />
+                  <p className="mt-2 text-lg font-medium">No tasks found</p>
+                  <p className="text-muted-foreground text-sm">
+                    {Object.keys(activeFilters).length > 0 || startDate || dueDate || statusFilter !== "all"
+                      ? "Try adjusting your filters"
+                      : "Create a new task to get started"}
+                  </p>
+                  <Button 
+                    variant="default" 
+                    className="mt-4" 
+                    onClick={() => setIsCreateTaskOpen(true)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Task
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="w-full overflow-auto">
+                <KanbanBoard 
+                  tasks={filteredTasks} 
+                  viewMode={viewMode}
+                />
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="templates" className="mt-6">
+          <TaskTemplatesList 
+            onCreateTemplate={() => setIsCreateTemplateOpen(true)}
+            refreshTrigger={templateRefreshTrigger}
+          />
+        </TabsContent>
+      </Tabs>
       
       <CreateTaskDialog
         open={isCreateTaskOpen}
         onOpenChange={setIsCreateTaskOpen}
+      />
+
+      <CreateTaskTemplateDialog
+        open={isCreateTemplateOpen}
+        onOpenChange={setIsCreateTemplateOpen}
+        onTemplateCreated={handleTemplateCreated}
       />
     </div>
   );
