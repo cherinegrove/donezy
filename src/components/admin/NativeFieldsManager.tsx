@@ -22,7 +22,6 @@ interface NativeFieldConfig {
 }
 
 const TASK_FIELDS = [
-  { name: 'title', label: 'Title', type: 'text', defaultRequired: true },
   { name: 'description', label: 'Description', type: 'textarea', defaultRequired: false },
   { name: 'status', label: 'Status', type: 'select', defaultRequired: false },
   { name: 'priority', label: 'Priority', type: 'select', defaultRequired: false },
@@ -32,7 +31,6 @@ const TASK_FIELDS = [
 ];
 
 const PROJECT_FIELDS = [
-  { name: 'name', label: 'Name', type: 'text', defaultRequired: true },
   { name: 'description', label: 'Description', type: 'textarea', defaultRequired: false },
   { name: 'clientId', label: 'Client', type: 'select', defaultRequired: false },
   { name: 'status', label: 'Status', type: 'select', defaultRequired: false },
@@ -131,13 +129,12 @@ export function NativeFieldsManager() {
             <TableHead>Field Name</TableHead>
             <TableHead className="text-center">Required</TableHead>
             <TableHead className="text-center">Hidden</TableHead>
-            <TableHead className="text-center">System Required</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {fields.map((field) => {
             const config = getFieldConfig(entityType, field.name);
-            const isRequired = config?.required ?? field.defaultRequired;
+            const isRequired = config?.required ?? false;
             const isHidden = config?.hidden ?? false;
 
             return (
@@ -147,22 +144,13 @@ export function NativeFieldsManager() {
                   <Switch
                     checked={isRequired}
                     onCheckedChange={(checked) => updateFieldConfig(entityType, field.name, { required: checked })}
-                    disabled={field.defaultRequired}
                   />
                 </TableCell>
                 <TableCell className="text-center">
                   <Switch
                     checked={isHidden}
                     onCheckedChange={(checked) => updateFieldConfig(entityType, field.name, { hidden: checked })}
-                    disabled={field.defaultRequired}
                   />
-                </TableCell>
-                <TableCell className="text-center">
-                  {field.defaultRequired && (
-                    <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
-                      Yes
-                    </span>
-                  )}
                 </TableCell>
               </TableRow>
             );
