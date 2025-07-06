@@ -35,8 +35,6 @@ export function UserProfileDialog({
   const { toast } = useToast();
   const user = getUserById(userId);
 
-  console.log("🔥 UserProfileDialog rendering:", { open, userId, user });
-
   const [formData, setFormData] = useState({
     firstName: user?.name.split(' ')[0] || '',
     lastName: user?.name.split(' ').slice(1).join(' ') || '',
@@ -48,10 +46,7 @@ export function UserProfileDialog({
   const [previewImage, setPreviewImage] = useState<string | null>(user?.avatar || null);
   const [showAvatarOptions, setShowAvatarOptions] = useState(false);
 
-  if (!user) {
-    console.log("❌ UserProfileDialog: No user found, returning null");
-    return null;  
-  }
+  if (!user) return null;
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
