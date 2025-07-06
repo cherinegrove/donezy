@@ -76,6 +76,9 @@ interface TaskTemplate {
   includeCustomFields: string[];
   fieldOrder: string[];
   usageCount: number;
+  type: 'task_template' | 'project_template_task';
+  projectTemplateName?: string;
+  estimatedHours?: number;
 }
 
 interface CreateTaskDialogProps {
@@ -167,15 +170,33 @@ export function CreateTaskDialog({
 
       try {
         setLoadingTemplates(true);
-        const { data, error } = await supabase
+        
+        // Fetch standalone task templates
+        const { data: taskTemplatesData, error: taskTemplatesError } = await supabase
           .from('task_templates')
           .select('*')
           .eq('auth_user_id', currentUser.id)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (taskTemplatesError) throw taskTemplatesError;
 
-        const templates: TaskTemplate[] = data.map(template => ({
+        // Fetch project template tasks with project template info
+        const { data: projectTemplateTasksData, error: projectTemplateTasksError } = await supabase
+          .from('project_template_tasks')
+          .select(`
+            *,
+            project_templates!inner(
+              name,
+              auth_user_id
+            )
+          `)
+          .eq('project_templates.auth_user_id', currentUser.id)
+          .order('created_at', { ascending: false });
+
+        if (projectTemplateTasksError) throw projectTemplateTasksError;
+
+        // Convert standalone task templates
+        const templates: TaskTemplate[] = taskTemplatesData.map(template => ({
           id: template.id,
           name: template.name,
           description: template.description || "",
@@ -184,6 +205,22 @@ export function CreateTaskDialog({
           includeCustomFields: template.include_custom_fields || [],
           fieldOrder: template.field_order || [],
           usageCount: template.usage_count,
+          type: 'task_template' as const,
+        }));
+
+        // Convert project template tasks
+        const projectTaskTemplates: TaskTemplate[] = projectTemplateTasksData.map(task => ({
+          id: task.id,
+          name: task.name,
+          description: task.description || "",
+          defaultPriority: task.priority as 'low' | 'medium' | 'high',
+          defaultStatus: 'todo' as TaskStatus,
+          includeCustomFields: [],
+          fieldOrder: [],
+          usageCount: 0,
+          type: 'project_template_task' as const,
+          projectTemplateName: task.project_templates.name,
+          estimatedHours: task.estimated_hours,
         }));
 
         // Add default template at the beginning
@@ -196,9 +233,10 @@ export function CreateTaskDialog({
           includeCustomFields: [],
           fieldOrder: [],
           usageCount: 0,
+          type: 'task_template' as const,
         };
 
-        setTaskTemplates([defaultTemplate, ...templates]);
+        setTaskTemplates([defaultTemplate, ...templates, ...projectTaskTemplates]);
       } catch (error) {
         console.error('Error fetching task templates:', error);
         toast.error("Failed to load task templates");
@@ -212,6 +250,7 @@ export function CreateTaskDialog({
           includeCustomFields: [],
           fieldOrder: [],
           usageCount: 0,
+          type: 'task_template' as const,
         }]);
       } finally {
         setLoadingTemplates(false);
@@ -339,7 +378,7 @@ export function CreateTaskDialog({
 
     try {
       const template = taskTemplates.find(t => t.id === templateId);
-      if (template) {
+      if (template && template.type === 'task_template') {
         await supabase
           .from('task_templates')
           .update({ 
@@ -349,6 +388,7 @@ export function CreateTaskDialog({
           .eq('id', templateId)
           .eq('auth_user_id', currentUser.id);
       }
+      // Note: We don't update usage count for project template tasks
     } catch (error) {
       console.error('Error updating template usage:', error);
       // Don't show error to user as this is not critical
@@ -474,7 +514,8 @@ export function CreateTaskDialog({
                       <SelectValue placeholder={loadingTemplates ? "Loading templates..." : "Select a template"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {taskTemplates.map((template) => (
+                      {/* Group templates by type */}
+                      {taskTemplates.filter(t => t.type === 'task_template').map((template) => (
                         <SelectItem key={template.id} value={template.id}>
                           <div className="flex flex-col">
                             <span>{template.name}</span>
@@ -483,9 +524,37 @@ export function CreateTaskDialog({
                                 {template.description}
                               </span>
                             )}
+                            {template.id !== "default" && (
+                              <span className="text-xs text-blue-600">Task Template</span>
+                            )}
                           </div>
                         </SelectItem>
                       ))}
+                      
+                      {/* Show project template tasks if any exist */}
+                      {taskTemplates.filter(t => t.type === 'project_template_task').length > 0 && (
+                        <>
+                          <div className="px-2 py-1 text-xs font-medium text-muted-foreground border-t">
+                            From Project Templates
+                          </div>
+                          {taskTemplates.filter(t => t.type === 'project_template_task').map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              <div className="flex flex-col">
+                                <span>{template.name}</span>
+                                {template.description && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {template.description}
+                                  </span>
+                                )}
+                                <span className="text-xs text-green-600">
+                                  From: {template.projectTemplateName}
+                                  {template.estimatedHours && ` • ${template.estimatedHours}h`}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </CardContent>
