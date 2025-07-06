@@ -155,13 +155,10 @@ export default function Tasks() {
               <TabsTrigger value="templates">Templates</TabsTrigger>
             </TabsList>
             {activeTab === "tasks" ? (
-              <>
-                <ViewSelector currentView={viewMode} onViewChange={setViewMode} />
-                <Button onClick={() => setIsCreateTaskOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Task
-                </Button>
-              </>
+              <Button onClick={() => setIsCreateTaskOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Task
+              </Button>
             ) : (
               <Button onClick={() => setIsCreateTemplateOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -172,9 +169,12 @@ export default function Tasks() {
         </div>
 
         <TabsContent value="tasks" className="space-y-6">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex justify-between items-center mb-4">
             <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
-            
+            <ViewSelector currentView={viewMode} onViewChange={setViewMode} />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
             {viewMode !== "kanban" && (
               <Select
                 value={statusFilter}
