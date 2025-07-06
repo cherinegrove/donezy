@@ -1208,12 +1208,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const convertProjectToTemplate = async (projectId: string, templateData: { name: string; description: string }) => {
-    if (!currentUser) {
-      console.error('No current user found');
-      return;
-    }
-    
     try {
+      // Get the authenticated user from Supabase
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error('User not authenticated');
+      }
+
       // Find the project
       const project = projects.find(p => p.id === projectId);
       if (!project) {
@@ -1232,7 +1233,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           service_type: project.serviceType,
           default_duration: 30,
           allocated_hours: project.allocatedHours || 0,
-          auth_user_id: currentUser.id,
+          auth_user_id: user.id, // Use the actual Supabase auth user ID
           team_ids: project.teamIds || [],
           usage_count: 0
         })
@@ -1250,7 +1251,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           priority: task.priority,
           estimated_hours: task.estimatedHours || 0,
           order_index: index,
-          auth_user_id: currentUser.id
+          auth_user_id: user.id // Use the actual Supabase auth user ID
         }));
 
         const { error: tasksError } = await supabase
