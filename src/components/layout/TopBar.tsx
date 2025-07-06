@@ -36,16 +36,12 @@ export function TopBar() {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
-  const handleProfileClick = () => {
-    console.log("Profile menu item clicked");
-    console.log("Current user:", currentUser);
-    console.log("Setting profile dialog open to true");
-    setIsProfileDialogOpen(true);
-  };
-
-  const handleAvatarClick = () => {
+  const handleAvatarClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     console.log("Avatar clicked, opening profile dialog");
     console.log("Current user:", currentUser);
+    console.log("Setting isProfileDialogOpen to true");
     setIsProfileDialogOpen(true);
   };
   
@@ -122,15 +118,12 @@ export function TopBar() {
               </div>
               
               {/* User Avatar - Click to open profile dialog */}
-              <Button 
-                variant="ghost" 
-                className="h-8 w-8 rounded-full p-0"
+              <button 
                 onClick={handleAvatarClick}
+                className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium hover:bg-primary/20 transition-colors cursor-pointer"
               >
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
-                  {currentUser.name.charAt(0)}
-                </div>
-              </Button>
+                {currentUser.name.charAt(0)}
+              </button>
             </div>
           )}
         </div>
