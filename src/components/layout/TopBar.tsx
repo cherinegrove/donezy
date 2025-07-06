@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 import { UserProfileDialog } from "@/components/users/UserProfileDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function TopBar() {
   const { currentUser, clients } = useAppContext();
@@ -147,6 +148,18 @@ export function TopBar() {
         open={isNoteDialogOpen}
         onOpenChange={setIsNoteDialogOpen}
       />
+
+      {/* TEST DIALOG - Simple dialog to test if dialogs work at all */}
+      <Dialog open={true}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>🔥 TEST DIALOG - This should be visible!</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            <p>If you can see this, dialogs work!</p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {currentUser && (
         <UserProfileDialog
