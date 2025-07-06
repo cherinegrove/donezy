@@ -118,12 +118,14 @@ export function TopBar() {
               </div>
               
               {/* User Avatar - Click to open profile dialog */}
-              <button 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleAvatarClick}
-                className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium hover:bg-primary/20 transition-colors cursor-pointer"
+                className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium hover:bg-primary/20 transition-colors p-0"
               >
                 {currentUser.name.charAt(0)}
-              </button>
+              </Button>
             </div>
           )}
         </div>
