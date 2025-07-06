@@ -9,6 +9,7 @@ import AdminRoles from "@/components/admin/AdminRoles";
 import { TaskStatusManager } from "@/components/admin/TaskStatusManager";
 import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
+import { NativeFieldsManager } from "@/components/admin/NativeFieldsManager";
 import { TaskTemplateManager } from "@/components/admin/TaskTemplateManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -255,6 +256,7 @@ export default function Admin() {
                 <AccordionContent className="px-6 pb-6">
                   <div className="space-y-6">
                     <CustomFieldsManager />
+                    <NativeFieldsManager />
                     
                     <Card>
                       <CardHeader>

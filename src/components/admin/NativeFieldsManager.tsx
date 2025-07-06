@@ -60,20 +60,23 @@ export function NativeFieldsManager() {
 
   const fetchConfigs = async () => {
     try {
-      // Check if native_field_configs table exists, if not we'll use defaults
       const { data, error } = await supabase
         .from('native_field_configs')
         .select('*');
       
-      if (error && !error.message.includes('does not exist')) {
-        throw error;
-      }
+      if (error) throw error;
       
-      setConfigs(data || []);
+      setConfigs((data || []).map(item => ({
+        ...item,
+        entity_type: item.entity_type as 'tasks' | 'projects'
+      })));
     } catch (error) {
       console.error('Error fetching native field configs:', error);
-      // Use defaults if table doesn't exist yet
-      setConfigs([]);
+      toast({
+        title: "Error",
+        description: "Failed to load field configurations",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }

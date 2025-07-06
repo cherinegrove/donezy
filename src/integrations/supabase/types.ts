@@ -418,6 +418,42 @@ export type Database = {
           },
         ]
       }
+      native_field_configs: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          default_value: Json | null
+          entity_type: string
+          field_name: string
+          hidden: boolean
+          id: string
+          required: boolean
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          default_value?: Json | null
+          entity_type: string
+          field_name: string
+          hidden?: boolean
+          id?: string
+          required?: boolean
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          default_value?: Json | null
+          entity_type?: string
+          field_name?: string
+          hidden?: boolean
+          id?: string
+          required?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           archived: boolean | null
