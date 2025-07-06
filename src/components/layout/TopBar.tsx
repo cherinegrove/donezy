@@ -39,6 +39,7 @@ export function TopBar() {
   const handleAvatarClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    alert("Button clicked!"); // ← TEMP TEST
     console.log("🔥 Avatar clicked, opening profile dialog");
     console.log("Current user:", currentUser);
     console.log("Setting isProfileDialogOpen to true");
@@ -151,7 +152,7 @@ export function TopBar() {
 
       {currentUser && (
         <UserProfileDialog
-          open={isProfileDialogOpen}
+          open={true} // ← TEMP TEST - force dialog open
           onOpenChange={(open) => {
             console.log("Profile dialog onOpenChange called with:", open);
             setIsProfileDialogOpen(open);
