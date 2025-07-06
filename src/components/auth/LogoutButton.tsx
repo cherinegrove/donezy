@@ -3,28 +3,57 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client with fallback values
-// You should set these environment variables in your Supabase integration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from '@/integrations/supabase/client';
 
 type LogoutButtonProps = {
   variant?: 'button' | 'menuItem';
+};
+
+const cleanupAuthState = () => {
+  // Remove all Supabase auth keys from localStorage
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      localStorage.removeItem(key);
+    }
+  });
+  
+  // Remove from sessionStorage if present
+  Object.keys(sessionStorage || {}).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      sessionStorage.removeItem(key);
+    }
+  });
 };
 
 export function LogoutButton({ variant = 'button' }: LogoutButtonProps) {
   const { logout } = useAppContext();
 
   const handleLogout = async () => {
-    // Sign out from Supabase
-    await supabase.auth.signOut();
-    
-    // Also log out locally to maintain compatibility with the existing app
-    logout();
+    try {
+      console.log("Starting logout process...");
+      
+      // Clean up auth state first
+      cleanupAuthState();
+      
+      // Sign out from Supabase with global scope
+      await supabase.auth.signOut({ scope: 'global' });
+      
+      // Also log out locally to maintain compatibility
+      logout();
+      
+      console.log("Logout completed, redirecting...");
+      
+      // Force page reload to ensure clean state
+      window.location.href = '/';
+      
+    } catch (error) {
+      console.error("Error during logout:", error);
+      
+      // Even if there's an error, clean up and redirect
+      cleanupAuthState();
+      logout();
+      window.location.href = '/';
+    }
   };
 
   if (variant === 'menuItem') {
