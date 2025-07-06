@@ -110,7 +110,12 @@ export function TopBar() {
             <span className="sr-only">Toggle theme</span>
           </Button>
           
-          {currentUser && (
+          {/* DEBUG: Show current user state */}
+          <div className="text-xs bg-red-100 p-2 rounded mr-2">
+            User: {currentUser ? `${currentUser.name} (${currentUser.role})` : "NOT LOADED"}
+          </div>
+
+          {currentUser ? (
             <div className="flex items-center gap-3">
               <div className="hidden md:block text-right">
                 <p className="text-sm font-medium leading-none">{currentUser.name}</p>
@@ -123,10 +128,14 @@ export function TopBar() {
                 size="icon"
                 title="Open Profile Settings"
                 onClick={handleAvatarClick}
-                className="h-8 w-8 rounded-full bg-primary/10 hover:bg-primary/20 border-2 border-primary/30 hover:border-primary text-primary font-semibold transition-all duration-200 cursor-pointer hover:scale-105 focus:ring-2 focus:ring-primary/50 focus:outline-none"
+                className="h-10 w-10 rounded-full bg-primary text-primary-foreground border-2 border-primary hover:scale-110 text-lg font-bold transition-all duration-200 cursor-pointer"
               >
                 {currentUser.name.charAt(0)}
               </Button>
+            </div>
+          ) : (
+            <div className="text-sm text-red-500 bg-red-100 p-2 rounded">
+              ⚠️ User not loaded - you may need to refresh
             </div>
           )}
         </div>
