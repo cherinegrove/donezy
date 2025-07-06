@@ -1,9 +1,9 @@
-
 import React, { useEffect, useState } from "react";
 import { FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 const Index = () => {
   const [session, setSession] = useState(null);
@@ -37,9 +37,12 @@ const Index = () => {
   if (session) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Welcome to donezy</h1>
-          <p className="text-muted-foreground">Professional Time Tracking and Task Management Platform</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold">Welcome to donezy</h1>
+            <p className="text-muted-foreground">Professional Time Tracking and Task Management Platform</p>
+          </div>
+          <LogoutButton />
         </div>
         
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
