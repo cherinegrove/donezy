@@ -83,29 +83,49 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
   };
   
   const handleAvatarOptionSelect = (avatarUrl: string) => {
-    setPreviewImage(avatarUrl);
-    setFormData(prev => ({
-      ...prev,
-      avatar: avatarUrl
-    }));
-    // Add console logging to help debug
-    console.log("Selected avatar URL:", avatarUrl);
+    console.log("Avatar selection started:", avatarUrl);
+    try {
+      setPreviewImage(avatarUrl);
+      setFormData(prev => ({
+        ...prev,
+        avatar: avatarUrl
+      }));
+      console.log("Avatar selection completed successfully");
+    } catch (error) {
+      console.error("Error selecting avatar:", error);
+      toast({
+        title: "Avatar selection failed",
+        description: "There was an error selecting the avatar. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Form submission started with data:", formData);
     
-    updateUser(userId, {
-      name: `${formData.firstName} ${formData.lastName}`.trim(),
-      email: formData.email,
-      avatar: formData.avatar,
-      phone: formData.phone
-    });
-    
-    toast({
-      title: "Profile updated",
-      description: "Your profile information has been updated successfully."
-    });
+    try {
+      updateUser(userId, {
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        email: formData.email,
+        avatar: formData.avatar,
+        phone: formData.phone
+      });
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile information has been updated successfully."
+      });
+      console.log("Profile update completed successfully");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Profile update failed",
+        description: "There was an error updating your profile. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   return (

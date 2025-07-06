@@ -148,11 +148,22 @@ export function UserProfileDialog({
   };
   
   const handleAvatarOptionSelect = (avatarUrl: string) => {
-    setPreviewImage(avatarUrl);
-    setFormData(prev => ({
-      ...prev,
-      avatar: avatarUrl
-    }));
+    console.log("Avatar selection started:", avatarUrl);
+    try {
+      setPreviewImage(avatarUrl);
+      setFormData(prev => ({
+        ...prev,
+        avatar: avatarUrl
+      }));
+      console.log("Avatar selection completed successfully");
+    } catch (error) {
+      console.error("Error selecting avatar:", error);
+      toast({
+        title: "Avatar selection failed",
+        description: "There was an error selecting the avatar. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleSubmit = (e: React.FormEvent) => {
