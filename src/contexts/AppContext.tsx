@@ -308,7 +308,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Load all data when session is available
   useEffect(() => {
     if (session?.user) {
-      console.log('Session available, loading data...');
+      console.log('🔍 Session available, loading data...');
+      console.log('🔍 Session user email:', session.user.email);
+      console.log('🔍 Session user ID:', session.user.id);
       // Use setTimeout to prevent potential auth deadlocks
       setTimeout(() => {
         loadUsers();
@@ -319,6 +321,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         loadTeams();
         loadNotes();
       }, 100);
+    } else {
+      console.log('🔍 No session available');
     }
   }, [session]);
 
