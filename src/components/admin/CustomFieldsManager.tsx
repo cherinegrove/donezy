@@ -73,121 +73,201 @@ const CustomFieldForm = ({
   optionsText, 
   setOptionsText, 
   isEdit = false 
-}: CustomFieldFormProps) => (
-  <div className="space-y-4">
-    <div>
-      <Label htmlFor="field-name">Field Name</Label>
-      <Input
-        id="field-name"
-        value={newField.name || ""}
-        onChange={(e) => setNewField({ ...newField, name: e.target.value })}
-        placeholder="Enter field name"
-      />
-    </div>
+}: CustomFieldFormProps) => {
+  const handleDefaultValueChange = (value: any) => {
+    setNewField({ ...newField, defaultValue: value });
+  };
 
-    <div>
-      <Label htmlFor="field-type">Field Type</Label>
-      <Select 
-        value={newField.type} 
-        onValueChange={(value: CustomFieldType) => setNewField({ ...newField, type: value })}
-      >
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {Object.entries(fieldTypeLabels).map(([value, label]) => {
-            const Icon = fieldTypeIcons[value as CustomFieldType];
-            return (
-              <SelectItem key={value} value={value}>
-                <div className="flex items-center gap-2">
-                  <Icon className="w-4 h-4" />
-                  {label}
-                </div>
-              </SelectItem>
-            );
-          })}
-        </SelectContent>
-      </Select>
-    </div>
+  const renderDefaultValueInput = () => {
+    if (!newField.type) return null;
 
-    <div>
-      <Label htmlFor="field-description">Description (Optional)</Label>
-      <Textarea
-        id="field-description"
-        value={newField.description || ""}
-        onChange={(e) => setNewField({ ...newField, description: e.target.value })}
-        placeholder="Enter field description"
-        rows={2}
-      />
-    </div>
-
-    <div>
-      <Label>Applies To</Label>
-      <div className="flex gap-4 mt-2">
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="applies-projects"
-            checked={newField.applicableTo?.includes('projects')}
-            onCheckedChange={(checked) => {
-              const current = newField.applicableTo || [];
-              const updated = checked 
-                ? [...current.filter(item => item !== 'projects'), 'projects' as const]
-                : current.filter(item => item !== 'projects');
-              setNewField({ ...newField, applicableTo: updated });
-            }}
+    switch (newField.type) {
+      case 'text':
+        return (
+          <Input
+            value={newField.defaultValue || ""}
+            onChange={(e) => handleDefaultValueChange(e.target.value)}
+            placeholder="Enter default text value"
           />
-          <Label htmlFor="applies-projects">Projects</Label>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="applies-tasks"
-            checked={newField.applicableTo?.includes('tasks')}
-            onCheckedChange={(checked) => {
-              const current = newField.applicableTo || [];
-              const updated = checked 
-                ? [...current.filter(item => item !== 'tasks'), 'tasks' as const]
-                : current.filter(item => item !== 'tasks');
-              setNewField({ ...newField, applicableTo: updated });
-            }}
+        );
+      case 'number':
+        return (
+          <Input
+            type="number"
+            value={newField.defaultValue || ""}
+            onChange={(e) => handleDefaultValueChange(e.target.value ? Number(e.target.value) : "")}
+            placeholder="Enter default number value"
           />
-          <Label htmlFor="applies-tasks">Tasks</Label>
-        </div>
-      </div>
-    </div>
+        );
+      case 'date':
+        return (
+          <Input
+            type="date"
+            value={newField.defaultValue || ""}
+            onChange={(e) => handleDefaultValueChange(e.target.value)}
+          />
+        );
+      case 'dropdown':
+        const options = optionsText.split('\n').filter(opt => opt.trim()).map(opt => opt.trim());
+        return (
+          <Select 
+            value={newField.defaultValue || ""} 
+            onValueChange={handleDefaultValueChange}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select default option" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">No default</SelectItem>
+              {options.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      case 'checkbox':
+        return (
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={newField.defaultValue || false}
+              onCheckedChange={handleDefaultValueChange}
+            />
+            <Label>Default to checked</Label>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
-    {newField.type === 'dropdown' && (
+  return (
+    <div className="space-y-4">
       <div>
-        <Label htmlFor="field-options">Options (one per line)</Label>
-        <Textarea
-          id="field-options"
-          value={optionsText}
-          onChange={(e) => setOptionsText(e.target.value)}
-          placeholder="Option 1&#10;Option 2&#10;Option 3"
-          rows={4}
+        <Label htmlFor="field-name">Field Name</Label>
+        <Input
+          id="field-name"
+          value={newField.name || ""}
+          onChange={(e) => setNewField({ ...newField, name: e.target.value })}
+          placeholder="Enter field name"
         />
       </div>
-    )}
 
-    <div className="flex gap-4">
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="field-required"
-          checked={newField.required}
-          onCheckedChange={(checked) => setNewField({ ...newField, required: checked })}
-        />
-        <Label htmlFor="field-required">Required Field</Label>
+      <div>
+        <Label htmlFor="field-type">Field Type</Label>
+        <Select 
+          value={newField.type} 
+          onValueChange={(value: CustomFieldType) => setNewField({ ...newField, type: value, defaultValue: undefined })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(fieldTypeLabels).map(([value, label]) => {
+              const Icon = fieldTypeIcons[value as CustomFieldType];
+              return (
+                <SelectItem key={value} value={value}>
+                  <div className="flex items-center gap-2">
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </div>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
       </div>
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="field-reportable"
-          checked={newField.reportable}
-          onCheckedChange={(checked) => setNewField({ ...newField, reportable: checked })}
+
+      <div>
+        <Label htmlFor="field-description">Description (Optional)</Label>
+        <Textarea
+          id="field-description"
+          value={newField.description || ""}
+          onChange={(e) => setNewField({ ...newField, description: e.target.value })}
+          placeholder="Enter field description"
+          rows={2}
         />
-        <Label htmlFor="field-reportable">Include in Reports</Label>
+      </div>
+
+      <div>
+        <Label>Applies To</Label>
+        <div className="flex gap-4 mt-2">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="applies-projects"
+              checked={newField.applicableTo?.includes('projects')}
+              onCheckedChange={(checked) => {
+                const current = newField.applicableTo || [];
+                const updated = checked 
+                  ? [...current.filter(item => item !== 'projects'), 'projects' as const]
+                  : current.filter(item => item !== 'projects');
+                setNewField({ ...newField, applicableTo: updated });
+              }}
+            />
+            <Label htmlFor="applies-projects">Projects</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="applies-tasks"
+              checked={newField.applicableTo?.includes('tasks')}
+              onCheckedChange={(checked) => {
+                const current = newField.applicableTo || [];
+                const updated = checked 
+                  ? [...current.filter(item => item !== 'tasks'), 'tasks' as const]
+                  : current.filter(item => item !== 'tasks');
+                setNewField({ ...newField, applicableTo: updated });
+              }}
+            />
+            <Label htmlFor="applies-tasks">Tasks</Label>
+          </div>
+        </div>
+      </div>
+
+      {newField.type === 'dropdown' && (
+        <div>
+          <Label htmlFor="field-options">Options (one per line)</Label>
+          <Textarea
+            id="field-options"
+            value={optionsText}
+            onChange={(e) => setOptionsText(e.target.value)}
+            placeholder="Option 1&#10;Option 2&#10;Option 3"
+            rows={4}
+          />
+        </div>
+      )}
+
+      <div>
+        <Label>Default Value (Optional)</Label>
+        <div className="mt-2">
+          {renderDefaultValueInput()}
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          This value will be pre-filled when creating new {newField.applicableTo?.join(' and ')}.
+        </p>
+      </div>
+
+      <div className="flex gap-4">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="field-required"
+            checked={newField.required}
+            onCheckedChange={(checked) => setNewField({ ...newField, required: checked })}
+          />
+          <Label htmlFor="field-required">Required Field</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="field-reportable"
+            checked={newField.reportable}
+            onCheckedChange={(checked) => setNewField({ ...newField, reportable: checked })}
+          />
+          <Label htmlFor="field-reportable">Include in Reports</Label>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export function CustomFieldsManager() {
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
@@ -230,6 +310,7 @@ export function CustomFieldsManager() {
         options: field.options,
         reportable: field.reportable,
         order: field.field_order,
+        defaultValue: field.default_value,
         createdAt: field.created_at,
         updatedAt: field.updated_at,
       }));
@@ -306,6 +387,7 @@ export function CustomFieldsManager() {
           ? optionsText.split('\n').filter(opt => opt.trim()).map(opt => opt.trim())
           : null,
         reportable: newField.reportable,
+        default_value: newField.defaultValue,
         updated_at: new Date().toISOString(),
       };
 
@@ -406,6 +488,7 @@ export function CustomFieldsManager() {
           ? optionsText.split('\n').filter(opt => opt.trim()).map(opt => opt.trim())
           : null,
         reportable: newField.reportable,
+        default_value: newField.defaultValue,
         field_order: customFields.length,
       };
 
@@ -552,6 +635,16 @@ export function CustomFieldsManager() {
                               </div>
                               {field.description && (
                                 <p className="text-sm text-muted-foreground mt-1">{field.description}</p>
+                              )}
+                              {field.defaultValue && (
+                                <div className="text-sm text-muted-foreground mt-1">
+                                  <span className="font-medium">Default: </span>
+                                  <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">
+                                    {typeof field.defaultValue === 'boolean' 
+                                      ? (field.defaultValue ? 'Yes' : 'No')
+                                      : String(field.defaultValue)}
+                                  </span>
+                                </div>
                               )}
                             </div>
                             
