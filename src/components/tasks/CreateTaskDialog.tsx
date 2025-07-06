@@ -39,8 +39,8 @@ const createTaskSchema = (isSubtask: boolean) => {
   const baseSchema = {
     title: z.string().min(1, { message: "Title is required" }),
     description: z.string(),
-    clientId: z.string().min(1, { message: "Client is required" }),
-    projectId: z.string().min(1, { message: "Project is required" }),
+    clientId: z.string().optional(),
+    projectId: z.string().optional(),
     assigneeId: z.string().optional(),
     collaboratorIds: z.array(z.string()).optional(),
     status: z.string().min(1, { message: "Status is required" }),
@@ -395,11 +395,11 @@ export function CreateTaskDialog({
     }
   };
   
-  // Filter projects by selected client
+  // Filter projects by selected client - but also allow showing all projects when no client is selected
   useEffect(() => {
     const clientId = form.watch("clientId");
     if (!clientId) {
-      setClientProjects([]);
+      setClientProjects(projects); // Show all projects when no client is selected
       return;
     }
     
@@ -467,10 +467,10 @@ export function CreateTaskDialog({
     }
   };
   
-  // Get tasks from selected project for parent task selection
+  // Get tasks from selected project for parent task selection - allow all tasks if no project selected
   const projectTasks = form.watch("projectId") 
     ? tasks.filter(task => task.projectId === form.watch("projectId"))
-    : [];
+    : tasks; // Show all tasks if no project is selected
   
   // Get current template
   const currentTemplate = taskTemplates.find(t => t.id === selectedTemplate);
@@ -599,16 +599,17 @@ export function CreateTaskDialog({
                       name="clientId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Client *</FormLabel>
+                          <FormLabel>Client (Optional)</FormLabel>
                           <FormControl>
                             <Select 
                               value={field.value} 
                               onValueChange={field.onChange}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a client" />
+                                <SelectValue placeholder="Select a client (optional)" />
                               </SelectTrigger>
                               <SelectContent>
+                                <SelectItem value="">No client</SelectItem>
                                 {clients.map((client) => (
                                   <SelectItem key={client.id} value={client.id}>
                                     {client.name}
@@ -627,24 +628,19 @@ export function CreateTaskDialog({
                       name="projectId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Project</FormLabel>
+                          <FormLabel>Project (Optional)</FormLabel>
                           <FormControl>
                             <Select 
                               value={field.value} 
                               onValueChange={field.onChange}
-                              disabled={clientProjects.length === 0}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder={
-                                  !form.watch("clientId") 
-                                    ? "Select a client first" 
-                                    : clientProjects.length === 0 
-                                      ? "No projects for this client" 
-                                      : "Select a project"
-                                } />
+                                <SelectValue placeholder="Select a project (optional)" />
                               </SelectTrigger>
                               <SelectContent>
-                                {clientProjects.map((project) => (
+                                <SelectItem value="">No project</SelectItem>
+                                {/* Show all projects if no client selected, or filtered projects if client selected */}
+                                {(form.watch("clientId") ? clientProjects : projects).map((project) => (
                                   <SelectItem key={project.id} value={project.id}>
                                     {project.name}
                                   </SelectItem>
@@ -672,11 +668,9 @@ export function CreateTaskDialog({
                           >
                             <SelectTrigger>
                               <SelectValue placeholder={
-                                !form.watch("projectId") 
-                                  ? "Select a project first" 
-                                  : isSubtask 
-                                    ? "Select parent task" 
-                                    : "No parent task"
+                                isSubtask 
+                                  ? "Select parent task" 
+                                  : "No parent task"
                               } />
                             </SelectTrigger>
                             <SelectContent>
