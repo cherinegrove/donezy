@@ -7,7 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -72,6 +79,8 @@ export function EditTemplateDialog({
 }: EditTemplateDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [taskTemplates, setTaskTemplates] = useState<any[]>([]);
+  const [showTaskTemplateSelect, setShowTaskTemplateSelect] = useState(false);
 
   const form = useForm<TemplateFormData>({
     resolver: zodResolver(templateSchema),
@@ -89,6 +98,29 @@ export function EditTemplateDialog({
     control: form.control,
     name: "tasks"
   });
+
+  // Fetch task templates
+  useEffect(() => {
+    fetchTaskTemplates();
+  }, []);
+
+  const fetchTaskTemplates = async () => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) return;
+
+      const { data, error } = await supabase
+        .from('task_templates')
+        .select('*')
+        .eq('auth_user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTaskTemplates(data || []);
+    } catch (error) {
+      console.error('Error fetching task templates:', error);
+    }
+  };
 
   // Reset form when template changes
   useEffect(() => {
@@ -119,14 +151,34 @@ export function EditTemplateDialog({
   }, [template, form]);
 
   const addTask = () => {
-    appendTask({
-      name: "",
-      description: "",
-      estimatedHours: 0,
-      priority: "medium",
-      orderIndex: taskFields.length,
-      subtasks: [],
-    });
+    setShowTaskTemplateSelect(true);
+  };
+
+  const addTaskFromTemplate = (templateId?: string) => {
+    if (templateId) {
+      const template = taskTemplates.find(t => t.id === templateId);
+      if (template) {
+        appendTask({
+          name: template.name,
+          description: template.description,
+          estimatedHours: 0,
+          priority: template.default_priority || "medium",
+          orderIndex: taskFields.length,
+          subtasks: [],
+        });
+      }
+    } else {
+      // Add blank task
+      appendTask({
+        name: "",
+        description: "",
+        estimatedHours: 0,
+        priority: "medium",
+        orderIndex: taskFields.length,
+        subtasks: [],
+      });
+    }
+    setShowTaskTemplateSelect(false);
   };
 
   const addSubtask = (taskIndex: number) => {
@@ -368,10 +420,44 @@ export function EditTemplateDialog({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium">Tasks</h3>
-                <Button type="button" onClick={addTask} size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Task
-                </Button>
+                <DropdownMenu open={showTaskTemplateSelect} onOpenChange={setShowTaskTemplateSelect}>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Task
+                      <ChevronDown className="h-4 w-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56 bg-background border shadow-lg z-50">
+                    <DropdownMenuItem onClick={() => addTaskFromTemplate()}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Blank Task
+                    </DropdownMenuItem>
+                    {taskTemplates.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
+                          From Templates
+                        </div>
+                        {taskTemplates.map((template) => (
+                          <DropdownMenuItem 
+                            key={template.id}
+                            onClick={() => addTaskFromTemplate(template.id)}
+                          >
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">{template.name}</span>
+                              {template.description && (
+                                <span className="text-xs text-muted-foreground truncate max-w-full">
+                                  {template.description}
+                                </span>
+                              )}
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {taskFields.map((task, taskIndex) => (
