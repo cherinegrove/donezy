@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Plus, ListChecks, Clock, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { FileText, Plus, ListChecks, Clock, ChevronDown, ChevronRight, Trash2, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { ProjectTemplateWithTasks, ProjectTemplateTask, ProjectTemplateSubtask } from "@/types/projectTemplate";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { EditTemplateDialog } from "./EditTemplateDialog";
 
 interface TemplatesListProps {
   onCreateTemplate: () => void;
@@ -31,6 +32,7 @@ export function TemplatesList({ onCreateTemplate, onUseTemplate }: TemplatesList
   const { toast } = useToast();
   const [templates, setTemplates] = useState<ProjectTemplateWithTasks[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingTemplate, setEditingTemplate] = useState<ProjectTemplateWithTasks | null>(null);
 
   useEffect(() => {
     fetchTemplatesWithTasks();
@@ -168,6 +170,15 @@ export function TemplatesList({ onCreateTemplate, onUseTemplate }: TemplatesList
     }
   };
 
+  const handleEditTemplate = (template: ProjectTemplateWithTasks) => {
+    setEditingTemplate(template);
+  };
+
+  const handleTemplateUpdated = () => {
+    fetchTemplatesWithTasks();
+    setEditingTemplate(null);
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -198,12 +209,13 @@ export function TemplatesList({ onCreateTemplate, onUseTemplate }: TemplatesList
 
       <div className="grid grid-cols-1 gap-6">
         {templates.map((template) => (
-          <TemplateCard
-            key={template.id}
-            template={template}
-            onUseTemplate={() => onUseTemplate(template.id)}
-            onDeleteTemplate={handleDeleteTemplate}
-          />
+            <TemplateCard
+              key={template.id}
+              template={template}
+              onUseTemplate={() => onUseTemplate(template.id)}
+              onEditTemplate={() => handleEditTemplate(template)}
+              onDeleteTemplate={handleDeleteTemplate}
+            />
         ))}
 
         {/* Create new template card */}
@@ -238,6 +250,13 @@ export function TemplatesList({ onCreateTemplate, onUseTemplate }: TemplatesList
           </CardContent>
         </Card>
       )}
+
+      <EditTemplateDialog
+        template={editingTemplate}
+        open={!!editingTemplate}
+        onOpenChange={(open) => !open && setEditingTemplate(null)}
+        onTemplateUpdated={handleTemplateUpdated}
+      />
     </div>
   );
 }
@@ -245,10 +264,11 @@ export function TemplatesList({ onCreateTemplate, onUseTemplate }: TemplatesList
 interface TemplateCardProps {
   template: ProjectTemplateWithTasks;
   onUseTemplate: () => void;
+  onEditTemplate: () => void;
   onDeleteTemplate: (templateId: string, templateName: string) => void;
 }
 
-function TemplateCard({ template, onUseTemplate, onDeleteTemplate }: TemplateCardProps) {
+function TemplateCard({ template, onUseTemplate, onEditTemplate, onDeleteTemplate }: TemplateCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   
   const totalEstimatedHours = template.tasks.reduce((total, task) => {
@@ -288,6 +308,9 @@ function TemplateCard({ template, onUseTemplate, onDeleteTemplate }: TemplateCar
           <div className="flex items-center gap-2">
             <Button onClick={onUseTemplate} size="sm">
               Use Template
+            </Button>
+            <Button onClick={onEditTemplate} variant="outline" size="sm">
+              <Edit className="h-4 w-4" />
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
