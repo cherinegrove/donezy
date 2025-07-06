@@ -120,9 +120,10 @@ export function TopBar() {
               {/* User Avatar - Click to open profile dialog */}
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
+                title="Open Profile Settings"
                 onClick={handleAvatarClick}
-                className="h-8 w-8 rounded-full bg-primary/10 hover:bg-primary/20 border-primary/20 hover:border-primary/40 text-primary font-semibold transition-all duration-200 cursor-pointer p-0"
+                className="h-8 w-8 rounded-full bg-primary/10 hover:bg-primary/20 border-2 border-primary/30 hover:border-primary text-primary font-semibold transition-all duration-200 cursor-pointer hover:scale-105 focus:ring-2 focus:ring-primary/50 focus:outline-none"
               >
                 {currentUser.name.charAt(0)}
               </Button>
