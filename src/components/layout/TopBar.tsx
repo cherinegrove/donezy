@@ -38,7 +38,6 @@ export function TopBar() {
   const handleAvatarClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    alert("Button clicked!"); // ← TEMP TEST
     console.log("🔥 Avatar clicked, opening profile dialog");
     console.log("Current user:", currentUser);
     console.log("Setting isProfileDialogOpen to true");
@@ -149,32 +148,12 @@ export function TopBar() {
         onOpenChange={setIsNoteDialogOpen}
       />
 
-      {/* TEST DIALOG - Simple dialog to test if dialogs work at all */}
-      <Dialog open={true}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>🔥 TEST DIALOG - This should be visible!</DialogTitle>
-          </DialogHeader>
-          <div className="p-4">
-            <p>If you can see this, dialogs work!</p>
-            <p>🔍 currentUser: {currentUser ? JSON.stringify({ id: currentUser.id, name: currentUser.name }) : 'NULL/UNDEFINED'}</p>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {currentUser ? (
+      {currentUser && (
         <UserProfileDialog
-          open={true} // ← TEMP TEST - force dialog open
-          onOpenChange={(open) => {
-            console.log("Profile dialog onOpenChange called with:", open);
-            setIsProfileDialogOpen(open);
-          }}
+          open={isProfileDialogOpen}
+          onOpenChange={setIsProfileDialogOpen}
           userId={currentUser.id}
         />
-      ) : (
-        <div style={{ display: 'none' }}>
-          {/* currentUser is null/undefined */}
-        </div>
       )}
     </header>
   );
