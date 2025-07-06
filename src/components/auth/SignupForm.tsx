@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -69,7 +70,7 @@ export function SignupForm() {
         console.log("Global sign out during signup failed, continuing:", err);
       }
       
-      // Create the user in Supabase auth using the imported client with email confirmation enabled
+      // Create the user in Supabase auth - first user is always admin
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -89,12 +90,14 @@ export function SignupForm() {
       if (authData.user) {
         console.log("Supabase signup success for:", authData.user.email);
         
-        // Update the profiles table in Supabase - make sure to include the ID
+        // Update the profiles table in Supabase
         const { error: profileError } = await supabase
           .from('profiles')
           .upsert({
             id: authData.user.id,
             display_name: values.name,
+            role: 'admin', // Set as admin in profiles
+            email: values.email,
             avatar_url: `https://i.pravatar.cc/300?img=${Math.floor(Math.random() * 70)}`
           }, { onConflict: 'id' });
         
@@ -102,14 +105,14 @@ export function SignupForm() {
           console.error("Error updating user profile:", profileError);
         }
 
-        // Create user record in the users table
+        // Create user record in the users table with admin role
         const { error: userError } = await supabase
           .from('users')
           .insert({
             auth_user_id: authData.user.id,
             name: values.name,
             email: values.email,
-            role: 'admin',
+            role: 'admin', // Set as admin in users table
             avatar: `https://i.pravatar.cc/300?img=${Math.floor(Math.random() * 70)}`,
             team_ids: [],
             currency: 'USD'
@@ -120,8 +123,19 @@ export function SignupForm() {
           // Don't throw here, as the auth user was created successfully
         }
 
-        // If the user requires confirmation, show the confirmation message
-        if (authData.session === null) {
+        // If email confirmation is disabled or user is already confirmed
+        if (authData.session) {
+          console.log("User is already confirmed, redirecting to dashboard");
+          
+          toast({
+            title: "Account created successfully",
+            description: "Welcome to donezy! You now have admin access.",
+          });
+          
+          // Redirect to main dashboard - user is already logged in
+          navigate("/");
+        } else {
+          // Email verification required
           console.log("Email verification required");
           setSignupSuccess(true);
           
@@ -129,22 +143,6 @@ export function SignupForm() {
             title: "Verification email sent",
             description: "Please check your email to complete signup",
           });
-        } else {
-          // User is already confirmed or doesn't need confirmation
-          // Sign the user out completely after signup to ensure a clean login state
-          try {
-            await supabase.auth.signOut({ scope: 'global' });
-          } catch (err) {
-            console.log("Error signing out after signup:", err);
-          }
-          
-          toast({
-            title: "Account created successfully",
-            description: "You can now log in with your credentials",
-          });
-          
-          // Redirect to login page
-          navigate("/login");
         }
         
         // Reset the form
@@ -178,6 +176,7 @@ export function SignupForm() {
             <p className="mb-4">We've sent a verification email to:</p>
             <p className="font-medium text-lg mb-4">{userEmail}</p>
             <p>Please check your inbox and click the verification link to complete your registration.</p>
+            <p className="mt-2 text-sm text-muted-foreground">You will have admin access once verified.</p>
           </AlertDescription>
         </Alert>
         
@@ -214,6 +213,7 @@ export function SignupForm() {
         </div>
         <h1 className="text-2xl font-bold">Create an Account</h1>
         <p className="text-muted-foreground">Enter your details to get started</p>
+        <p className="text-xs text-muted-foreground">First user gets admin access</p>
       </div>
 
       <Form {...form}>
