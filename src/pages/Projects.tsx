@@ -1,20 +1,17 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
 import { useNavigate } from "react-router-dom";
-import { Progress } from "@/components/ui/progress";
-import { format } from "date-fns";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreateTemplateDialog } from "@/components/projects/CreateTemplateDialog";
 import { UseTemplateDialog } from "@/components/projects/UseTemplateDialog";
 import { TemplatesList } from "@/components/projects/TemplatesList";
 import { ViewSelector } from "@/components/kanban/ViewSelector";
-import { RecordActions } from "@/components/common/RecordActions";
+import { ProjectsViewContent } from "@/components/projects/ProjectsViewContent";
 import type { Project } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { CreateProjectTemplateDialog } from "@/components/projects/CreateProjectTemplateDialog";
@@ -86,6 +83,7 @@ const Projects = () => {
 
   console.log("Projects component: Filter options created");
 
+  // Helper functions
   const getProjectProgress = (projectId: string) => {
     const projectTasks = tasks.filter(task => task.projectId === projectId);
     const totalTasks = projectTasks.length;
@@ -98,20 +96,6 @@ const Projects = () => {
   const getClientName = (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
     return client?.name || "Unknown Client";
-  };
-
-  // Helper function to safely format dates
-  const formatDate = (dateString?: string) => {
-    if (!dateString || dateString.trim() === "") {
-      return null;
-    }
-    
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      return null;
-    }
-    
-    return format(date, "MMM d, yyyy");
   };
 
   console.log("Projects component: Helper functions defined");
@@ -249,209 +233,16 @@ const Projects = () => {
               <ViewSelector currentView={currentView} onViewChange={setCurrentView} />
             </div>
 
-            {currentView === "kanban" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-                {filteredProjects.map((project) => {
-                  console.log("Projects component: Rendering project card", project.id);
-                  const progress = getProjectProgress(project.id);
-                  const formattedStartDate = formatDate(project.startDate);
-                  const formattedDueDate = formatDate(project.dueDate);
-                  
-                  return (
-                    <Card 
-                      key={project.id} 
-                      className="cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => handleCardClick(project.id)}
-                    >
-                      <CardHeader className="flex flex-row justify-between items-start pb-2">
-                        <div>
-                          <CardTitle>{project.name}</CardTitle>
-                          <CardDescription>{project.description}</CardDescription>
-                        </div>
-                        <div className="flex items-center">
-                          <RecordActions
-                            recordId={project.id}
-                            recordType="Project"
-                            recordName={project.name}
-                            onEdit={() => handleEditProject(project.id)}
-                            onDelete={() => handleDeleteProject(project.id)}
-                            disableDuplicate={true}
-                          />
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div>
-                          <div className="flex justify-between mb-1 text-sm">
-                            <span>Client</span>
-                            <span className="font-medium">{getClientName(project.clientId)}</span>
-                          </div>
-                          <div className="flex justify-between mb-1 text-sm">
-                            <span>Status</span>
-                            <span className="capitalize font-medium">{project.status.replace("-", " ")}</span>
-                          </div>
-                          {formattedStartDate && (
-                            <div className="flex justify-between mb-1 text-sm">
-                              <span>Start Date</span>
-                              <span>{formattedStartDate}</span>
-                            </div>
-                          )}
-                          {formattedDueDate && (
-                            <div className="flex justify-between mb-1 text-sm">
-                              <span>Due Date</span>
-                              <span>{formattedDueDate}</span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-sm">Progress</span>
-                            <span className="text-sm font-medium">{progress}%</span>
-                          </div>
-                          <Progress value={progress} className="h-2" />
-                        </div>
-                        
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Hours: {project.usedHours || 0}h</span>
-                          {project.allocatedHours && (
-                            <span className="text-muted-foreground">/ {project.allocatedHours}h</span>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-
-                {/* New Project Card */}
-                <Card
-                  className="cursor-pointer hover:shadow-md transition-shadow border-dashed flex flex-col items-center justify-center min-h-[260px]"
-                  onClick={() => {
-                    console.log("Projects component: New project card clicked");
-                    setIsCreateDialogOpen(true);
-                  }}
-                >
-                  <CardContent className="flex flex-col items-center justify-center h-full py-10">
-                    <div className="rounded-full bg-muted p-3 mb-3">
-                      <Plus className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-lg font-medium">Create New Project</h3>
-                    <p className="text-sm text-muted-foreground mt-2 text-center max-w-[180px]">
-                      Start tracking time and tasks for a new project
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {currentView === "list" && (
-              <div className="space-y-4 mt-6">
-                {filteredProjects.map((project) => {
-                  const progress = getProjectProgress(project.id);
-                  const formattedStartDate = formatDate(project.startDate);
-                  const formattedDueDate = formatDate(project.dueDate);
-                  
-                  return (
-                    <Card 
-                      key={project.id} 
-                      className="cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => handleCardClick(project.id)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-4">
-                              <div className="flex-1">
-                                <h3 className="font-semibold text-lg">{project.name}</h3>
-                                <p className="text-muted-foreground text-sm">{project.description}</p>
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                <span className="font-medium">{getClientName(project.clientId)}</span>
-                              </div>
-                              <div className="text-sm">
-                                <span className="capitalize font-medium">{project.status.replace("-", " ")}</span>
-                              </div>
-                              <div className="flex items-center gap-2 min-w-[100px]">
-                                <Progress value={progress} className="h-2 flex-1" />
-                                <span className="text-sm font-medium">{progress}%</span>
-                              </div>
-                              <div className="text-sm text-muted-foreground min-w-[80px]">
-                                {project.usedHours || 0}h{project.allocatedHours && ` / ${project.allocatedHours}h`}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center ml-4">
-                            <RecordActions
-                              recordId={project.id}
-                              recordType="Project"
-                              recordName={project.name}
-                              onEdit={() => handleEditProject(project.id)}
-                              onDelete={() => handleDeleteProject(project.id)}
-                              disableDuplicate={true}
-                            />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-
-            {currentView === "gantt" && (
-              <div className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Project Timeline</CardTitle>
-                    <CardDescription>Gantt chart view of project schedules</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {filteredProjects.map((project) => {
-                        const progress = getProjectProgress(project.id);
-                        const startDate = project.startDate ? new Date(project.startDate) : new Date();
-                        const dueDate = project.dueDate ? new Date(project.dueDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-                        const totalDays = Math.max(1, Math.ceil((dueDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-                        const daysPassed = Math.max(0, Math.ceil((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-                        const progressWidth = Math.min(100, (progress / 100) * 100);
-                        
-                        return (
-                          <div key={project.id} className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <h4 className="font-medium text-sm">{project.name}</h4>
-                                <span className="text-xs text-muted-foreground">{getClientName(project.clientId)}</span>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <span className="text-xs text-muted-foreground">
-                                  {formatDate(project.startDate)} - {formatDate(project.dueDate)}
-                                </span>
-                                <span className="text-xs font-medium">{progress}%</span>
-                                <RecordActions
-                                  recordId={project.id}
-                                  recordType="Project"
-                                  recordName={project.name}
-                                  onEdit={() => handleEditProject(project.id)}
-                                  onDelete={() => handleDeleteProject(project.id)}
-                                  disableDuplicate={true}
-                                />
-                              </div>
-                            </div>
-                            <div className="relative">
-                              <div className="w-full bg-muted h-6 rounded">
-                                <div 
-                                  className="h-full bg-primary rounded transition-all duration-300"
-                                  style={{width: `${progressWidth}%`}}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+            <ProjectsViewContent
+              currentView={currentView}
+              projects={filteredProjects}
+              getProjectProgress={getProjectProgress}
+              getClientName={getClientName}
+              onEdit={handleEditProject}
+              onDelete={handleDeleteProject}
+              onCardClick={handleCardClick}
+              onCreateProject={() => setIsCreateDialogOpen(true)}
+            />
           </TabsContent>
 
           <TabsContent value="templates" className="mt-6">
