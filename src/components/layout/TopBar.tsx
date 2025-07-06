@@ -18,7 +18,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
-import { useNavigate } from "react-router-dom";
 import { UserProfileDialog } from "@/components/users/UserProfileDialog";
 
 export function TopBar() {
@@ -29,7 +28,6 @@ export function TopBar() {
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
-  const navigate = useNavigate();
   
   // Toggle between light and dark mode
   const toggleTheme = () => {
