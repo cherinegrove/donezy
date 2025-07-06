@@ -688,7 +688,7 @@ export function TaskTemplateManager() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            Task Templates
+            Task Create Form Template
           </CardTitle>
           <CardDescription>Loading...</CardDescription>
         </CardHeader>
@@ -703,7 +703,7 @@ export function TaskTemplateManager() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
-              Task Templates
+              Task Create Form Template
             </CardTitle>
             <CardDescription>
               Create and manage task templates for consistent task creation
