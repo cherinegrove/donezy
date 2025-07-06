@@ -157,11 +157,12 @@ export function TopBar() {
           </DialogHeader>
           <div className="p-4">
             <p>If you can see this, dialogs work!</p>
+            <p>🔍 currentUser: {currentUser ? JSON.stringify({ id: currentUser.id, name: currentUser.name }) : 'NULL/UNDEFINED'}</p>
           </div>
         </DialogContent>
       </Dialog>
 
-      {currentUser && (
+      {currentUser ? (
         <UserProfileDialog
           open={true} // ← TEMP TEST - force dialog open
           onOpenChange={(open) => {
@@ -170,6 +171,10 @@ export function TopBar() {
           }}
           userId={currentUser.id}
         />
+      ) : (
+        <div style={{ display: 'none' }}>
+          {/* currentUser is null/undefined */}
+        </div>
       )}
     </header>
   );
