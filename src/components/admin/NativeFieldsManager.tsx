@@ -1,17 +1,15 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -20,7 +18,6 @@ interface NativeFieldConfig {
   entity_type: 'tasks' | 'projects';
   field_name: string;
   required: boolean;
-  default_value: any;
   hidden: boolean;
 }
 
@@ -44,10 +41,6 @@ const PROJECT_FIELDS = [
   { name: 'dueDate', label: 'Due Date', type: 'date', defaultRequired: false },
   { name: 'allocatedHours', label: 'Allocated Hours', type: 'number', defaultRequired: false },
 ];
-
-const STATUS_OPTIONS = ['backlog', 'todo', 'in-progress', 'review', 'done'];
-const PRIORITY_OPTIONS = ['low', 'medium', 'high'];
-const SERVICE_TYPE_OPTIONS = ['project', 'bank-hours', 'pay-as-you-go'];
 
 export function NativeFieldsManager() {
   const [configs, setConfigs] = useState<NativeFieldConfig[]>([]);
@@ -130,105 +123,52 @@ export function NativeFieldsManager() {
     }
   };
 
-  const renderFieldConfig = (entityType: 'tasks' | 'projects', field: any) => {
-    const config = getFieldConfig(entityType, field.name);
-    const isRequired = config?.required ?? field.defaultRequired;
-    const defaultValue = config?.default_value ?? '';
-    const isHidden = config?.hidden ?? false;
-
-    const renderDefaultValueInput = () => {
-      switch (field.type) {
-        case 'text':
-        case 'textarea':
-          return (
-            <Input
-              value={defaultValue || ''}
-              onChange={(e) => updateFieldConfig(entityType, field.name, { default_value: e.target.value })}
-              placeholder={`Default ${field.label.toLowerCase()}`}
-            />
-          );
-        case 'number':
-          return (
-            <Input
-              type="number"
-              value={defaultValue || ''}
-              onChange={(e) => updateFieldConfig(entityType, field.name, { default_value: e.target.value ? Number(e.target.value) : null })}
-              placeholder={`Default ${field.label.toLowerCase()}`}
-            />
-          );
-        case 'date':
-          return (
-            <Input
-              type="date"
-              value={defaultValue || ''}
-              onChange={(e) => updateFieldConfig(entityType, field.name, { default_value: e.target.value })}
-            />
-          );
-        case 'select':
-          const options = field.name === 'status' ? STATUS_OPTIONS :
-                         field.name === 'priority' ? PRIORITY_OPTIONS :
-                         field.name === 'serviceType' ? SERVICE_TYPE_OPTIONS : [];
-          return (
-            <Select 
-              value={defaultValue || ''} 
-              onValueChange={(value) => updateFieldConfig(entityType, field.name, { default_value: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={`Default ${field.label.toLowerCase()}`} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">No default</SelectItem>
-                {options.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option.charAt(0).toUpperCase() + option.slice(1).replace('-', ' ')}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          );
-        default:
-          return null;
-      }
-    };
-
+  const renderFieldsTable = (entityType: 'tasks' | 'projects', fields: any[]) => {
     return (
-      <div key={field.name} className="p-4 border rounded-lg space-y-4">
-        <div className="flex items-center justify-between">
-          <h4 className="font-medium">{field.label}</h4>
-          {field.defaultRequired && (
-            <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
-              System Required
-            </span>
-          )}
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id={`${entityType}-${field.name}-required`}
-              checked={isRequired}
-              onCheckedChange={(checked) => updateFieldConfig(entityType, field.name, { required: checked })}
-              disabled={field.defaultRequired}
-            />
-            <Label htmlFor={`${entityType}-${field.name}-required`}>Required</Label>
-          </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Field Name</TableHead>
+            <TableHead className="text-center">Required</TableHead>
+            <TableHead className="text-center">Hidden</TableHead>
+            <TableHead className="text-center">System Required</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {fields.map((field) => {
+            const config = getFieldConfig(entityType, field.name);
+            const isRequired = config?.required ?? field.defaultRequired;
+            const isHidden = config?.hidden ?? false;
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id={`${entityType}-${field.name}-hidden`}
-              checked={isHidden}
-              onCheckedChange={(checked) => updateFieldConfig(entityType, field.name, { hidden: checked })}
-              disabled={field.defaultRequired}
-            />
-            <Label htmlFor={`${entityType}-${field.name}-hidden`}>Hidden</Label>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Default Value</Label>
-            {renderDefaultValueInput()}
-          </div>
-        </div>
-      </div>
+            return (
+              <TableRow key={field.name}>
+                <TableCell className="font-medium">{field.label}</TableCell>
+                <TableCell className="text-center">
+                  <Switch
+                    checked={isRequired}
+                    onCheckedChange={(checked) => updateFieldConfig(entityType, field.name, { required: checked })}
+                    disabled={field.defaultRequired}
+                  />
+                </TableCell>
+                <TableCell className="text-center">
+                  <Switch
+                    checked={isHidden}
+                    onCheckedChange={(checked) => updateFieldConfig(entityType, field.name, { hidden: checked })}
+                    disabled={field.defaultRequired}
+                  />
+                </TableCell>
+                <TableCell className="text-center">
+                  {field.defaultRequired && (
+                    <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
+                      Yes
+                    </span>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     );
   };
 
@@ -247,7 +187,7 @@ export function NativeFieldsManager() {
       <CardHeader>
         <CardTitle>Native Fields Configuration</CardTitle>
         <CardDescription>
-          Configure default values, required status, and visibility for system fields in tasks and projects.
+          Configure required status and visibility for system fields in tasks and projects.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -257,16 +197,12 @@ export function NativeFieldsManager() {
             <TabsTrigger value="projects">Project Fields</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="tasks" className="space-y-4">
-            <div className="space-y-4">
-              {TASK_FIELDS.map(field => renderFieldConfig('tasks', field))}
-            </div>
+          <TabsContent value="tasks" className="mt-6">
+            {renderFieldsTable('tasks', TASK_FIELDS)}
           </TabsContent>
           
-          <TabsContent value="projects" className="space-y-4">
-            <div className="space-y-4">
-              {PROJECT_FIELDS.map(field => renderFieldConfig('projects', field))}
-            </div>
+          <TabsContent value="projects" className="mt-6">
+            {renderFieldsTable('projects', PROJECT_FIELDS)}
           </TabsContent>
         </Tabs>
       </CardContent>
