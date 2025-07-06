@@ -131,7 +131,39 @@ export function TopBar() {
         </div>
       </div>
       
-      {/* Dialogs */}
+      {/* TEMPORARY EMERGENCY LOGOUT - Remove after user logs out */}
+      <Dialog open={true}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>🚨 Emergency Logout</DialogTitle>
+          </DialogHeader>
+          <div className="p-4 space-y-4">
+            <p>You're in an authentication limbo state. Click below to force logout:</p>
+            <Button 
+              onClick={async () => {
+                // Clean up auth state
+                Object.keys(localStorage).forEach((key) => {
+                  if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+                    localStorage.removeItem(key);
+                  }
+                });
+                Object.keys(sessionStorage || {}).forEach((key) => {
+                  if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+                    sessionStorage.removeItem(key);
+                  }
+                });
+                
+                // Force page reload
+                window.location.href = '/';
+              }}
+              className="w-full"
+              variant="destructive"
+            >
+              🔥 Force Logout & Reset
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <StartTimerDialog 
         open={isTimerDialogOpen} 
         onOpenChange={setIsTimerDialogOpen}
