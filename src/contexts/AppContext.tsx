@@ -1207,8 +1207,64 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('Update manager notification preferences not yet implemented');
   };
 
-  const convertProjectToTemplate = (projectId: string, templateData: { name: string; description: string }) => {
-    console.log('Convert project to template not yet implemented');
+  const convertProjectToTemplate = async (projectId: string, templateData: { name: string; description: string }) => {
+    if (!currentUser) {
+      console.error('No current user found');
+      return;
+    }
+    
+    try {
+      // Find the project
+      const project = projects.find(p => p.id === projectId);
+      if (!project) {
+        throw new Error('Project not found');
+      }
+
+      // Find tasks for this project
+      const projectTasks = tasks.filter(t => t.projectId === projectId);
+
+      // Create the template
+      const { data: template, error: templateError } = await supabase
+        .from('project_templates')
+        .insert({
+          name: templateData.name,
+          description: templateData.description,
+          service_type: project.serviceType,
+          default_duration: 30,
+          allocated_hours: project.allocatedHours || 0,
+          auth_user_id: currentUser.id,
+          team_ids: project.teamIds || [],
+          usage_count: 0
+        })
+        .select()
+        .single();
+
+      if (templateError) throw templateError;
+
+      // Create template tasks
+      if (projectTasks.length > 0) {
+        const templateTasks = projectTasks.map((task, index) => ({
+          template_id: template.id,
+          name: task.title,
+          description: task.description || '',
+          priority: task.priority,
+          estimated_hours: task.estimatedHours || 0,
+          order_index: index,
+          auth_user_id: currentUser.id
+        }));
+
+        const { error: tasksError } = await supabase
+          .from('project_template_tasks')
+          .insert(templateTasks);
+
+        if (tasksError) throw tasksError;
+      }
+
+      console.log('Template created successfully:', template);
+    } catch (error) {
+      console.error('Error converting project to template:', error);
+      throw error;
+    }
   };
 
   const watchProject = (projectId: string, userId: string) => {

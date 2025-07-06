@@ -53,7 +53,7 @@ export function ConvertToTemplateDialog({
     },
   });
 
-  const onSubmit = (data: TemplateFormData) => {
+  const onSubmit = async (data: TemplateFormData) => {
     if (!project) {
       toast({
         title: "Error",
@@ -63,18 +63,27 @@ export function ConvertToTemplateDialog({
       return;
     }
 
-    convertProjectToTemplate(project.id, {
-      name: data.name,
-      description: data.description,
-    });
+    try {
+      await convertProjectToTemplate(project.id, {
+        name: data.name,
+        description: data.description,
+      });
 
-    toast({
-      title: "Template created",
-      description: `Template "${data.name}" has been created from project "${project.name}".`,
-    });
+      toast({
+        title: "Template created",
+        description: `Template "${data.name}" has been created from project "${project.name}".`,
+      });
 
-    form.reset();
-    onOpenChange(false);
+      form.reset();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error creating template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create template. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Don't render if no project is provided
