@@ -19,7 +19,15 @@ const avatarOptions = [
   { id: 'avatar5', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Pirate', name: 'Pirate' },
   { id: 'avatar6', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Viking', name: 'Viking' },
   { id: 'avatar7', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Wizard', name: 'Wizard' },
-  { id: 'avatar8', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Superhero', name: 'Superhero' }
+  { id: 'avatar8', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Superhero', name: 'Superhero' },
+  { id: 'avatar9', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Knight', name: 'Knight' },
+  { id: 'avatar10', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Samurai', name: 'Samurai' },
+  { id: 'avatar11', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Cyborg', name: 'Cyborg' },
+  { id: 'avatar12', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Explorer', name: 'Explorer' },
+  { id: 'avatar13', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Detective', name: 'Detective' },
+  { id: 'avatar14', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Android', name: 'Android' },
+  { id: 'avatar15', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Archer', name: 'Archer' },
+  { id: 'avatar16', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Mage', name: 'Mage' }
 ];
 
 export function ProfileInformationCard({ userId }: { userId: string }) {
