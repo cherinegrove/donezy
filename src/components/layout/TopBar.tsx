@@ -42,6 +42,12 @@ export function TopBar() {
     console.log("Setting profile dialog open to true");
     setIsProfileDialogOpen(true);
   };
+
+  const handleAvatarClick = () => {
+    console.log("Avatar clicked, opening profile dialog");
+    console.log("Current user:", currentUser);
+    setIsProfileDialogOpen(true);
+  };
   
   return (
     <header className="border-b bg-background px-6 py-3">
@@ -115,30 +121,16 @@ export function TopBar() {
                 <p className="text-xs text-muted-foreground">{currentUser.role}</p>
               </div>
               
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 rounded-full p-0">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
-                      {currentUser.name.charAt(0)}
-                    </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="flex items-center justify-start p-2">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{currentUser.name}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{currentUser.email}</p>
-                    </div>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleProfileClick}>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>My Profile</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <LogoutButton variant="menuItem" />
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* User Avatar - Click to open profile dialog */}
+              <Button 
+                variant="ghost" 
+                className="h-8 w-8 rounded-full p-0"
+                onClick={handleAvatarClick}
+              >
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                  {currentUser.name.charAt(0)}
+                </div>
+              </Button>
             </div>
           )}
         </div>

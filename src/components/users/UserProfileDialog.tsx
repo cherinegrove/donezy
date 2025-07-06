@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Upload, Smile, UserRound } from "lucide-react";
+import { LogoutButton } from "@/components/auth/LogoutButton";
+import { Separator } from "@/components/ui/separator";
 
 // Predefined avatar options with fun cartoon avatars
 const avatarOptions = [
@@ -232,9 +234,14 @@ export function UserProfileDialog({
             </div>
           </div>
           
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit">Save Changes</Button>
+          <Separator />
+          
+          <div className="flex justify-between items-center">
+            <LogoutButton variant="button" />
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button type="submit">Save Changes</Button>
+            </div>
           </div>
         </form>
       </DialogContent>
