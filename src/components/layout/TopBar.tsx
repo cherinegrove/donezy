@@ -20,7 +20,6 @@ import {
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 import { UserProfileDialog } from "@/components/users/UserProfileDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
 
 export function TopBar() {
   const { currentUser, clients } = useAppContext();
@@ -39,46 +38,7 @@ export function TopBar() {
   const handleAvatarClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    alert("🎯 USER AVATAR CLICKED!"); // Temporary test
-    console.log("🔥 Avatar clicked, opening profile dialog");
-    console.log("Current user:", currentUser);
-    console.log("Setting isProfileDialogOpen to true");
     setIsProfileDialogOpen(true);
-  };
-
-  const forceLogout = async () => {
-    console.log('🚪 Force logout initiated...');
-    
-    // Clean up all auth-related storage
-    try {
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-          localStorage.removeItem(key);
-          console.log('🧹 Removed localStorage key:', key);
-        }
-      });
-      
-      Object.keys(sessionStorage || {}).forEach((key) => {
-        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-          sessionStorage.removeItem(key);
-          console.log('🧹 Removed sessionStorage key:', key);
-        }
-      });
-    } catch (e) {
-      console.log('🧹 Storage cleanup error:', e);
-    }
-    
-    // Attempt global sign out
-    try {
-      await supabase.auth.signOut({ scope: 'global' });
-      console.log('🚪 Supabase signOut completed');
-    } catch (err) {
-      console.log('🚪 Supabase signOut error (continuing anyway):', err);
-    }
-    
-    // Force page reload for clean state
-    console.log('🔄 Forcing page reload...');
-    window.location.href = '/login';
   };
   
   return (
@@ -144,21 +104,6 @@ export function TopBar() {
               <Moon className="h-5 w-5" />
             )}
             <span className="sr-only">Toggle theme</span>
-          </Button>
-          
-          {/* DEBUG: Show current user state */}
-          <div className="text-xs bg-red-100 p-2 rounded mr-2">
-            User: {currentUser ? `${currentUser.name} (${currentUser.role})` : "NOT LOADED"}
-          </div>
-
-          {/* TEMPORARY: Force Logout Button */}
-          <Button
-            onClick={forceLogout}
-            variant="destructive"
-            size="sm"
-            className="text-xs"
-          >
-            🚪 Force Logout
           </Button>
 
           {currentUser ? (
