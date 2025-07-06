@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Upload, Smile, UserRound } from "lucide-react";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
 
 // Predefined avatar options with fun cartoon avatars
 const avatarOptions = [
@@ -45,6 +46,7 @@ export function UserProfileDialog({
 
   const [previewImage, setPreviewImage] = useState<string | null>(user?.avatar || null);
   const [showAvatarOptions, setShowAvatarOptions] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   if (!user) return null;
   
@@ -56,24 +58,83 @@ export function UserProfileDialog({
     }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Create a URL for the uploaded file to show preview
-    const imageUrl = URL.createObjectURL(file);
-    setPreviewImage(imageUrl);
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file.",
+        variant: "destructive"
+      });
+      return;
+    }
     
-    // Convert image to base64 for storage
-    const reader = new FileReader();
-    reader.onloadend = () => {
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setUploading(true);
+    
+    try {
+      // Create unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      // Upload file to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) {
+        console.error('Upload error:', error);
+        toast({
+          title: "Upload failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+      
+      // Update preview and form data
+      setPreviewImage(publicUrl);
       setFormData(prev => ({
         ...prev,
-        avatar: reader.result as string
+        avatar: publicUrl
       }));
-    };
-    reader.readAsDataURL(file);
-    setShowAvatarOptions(false);
+      
+      setShowAvatarOptions(false);
+      
+      toast({
+        title: "Avatar uploaded",
+        description: "Your new avatar has been uploaded successfully."
+      });
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your avatar.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
   };
   
   const handleAvatarOptionSelect = (avatarUrl: string) => {
@@ -131,9 +192,10 @@ export function UserProfileDialog({
                 variant="outline" 
                 onClick={() => document.getElementById('avatar-upload')?.click()}
                 className="flex items-center gap-2"
+                disabled={uploading}
               >
                 <Upload className="h-4 w-4" />
-                Upload
+                {uploading ? 'Uploading...' : 'Upload'}
               </Button>
               <Button 
                 type="button" 
