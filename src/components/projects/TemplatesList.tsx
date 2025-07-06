@@ -33,22 +33,24 @@ export function TemplatesList({ onCreateTemplate, onUseTemplate }: TemplatesList
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (currentUser) {
-      fetchTemplatesWithTasks();
-    }
-  }, [currentUser]);
+    fetchTemplatesWithTasks();
+  }, []);
 
   const fetchTemplatesWithTasks = async () => {
-    if (!currentUser) return;
-
     try {
       setLoading(true);
+      
+      // Get the authenticated user from Supabase
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error('User not authenticated');
+      }
       
       // Fetch templates
       const { data: templatesData, error: templatesError } = await supabase
         .from('project_templates')
         .select('*')
-        .eq('auth_user_id', currentUser.id)
+        .eq('auth_user_id', user.id) // Use actual Supabase user ID
         .order('created_at', { ascending: false });
 
       if (templatesError) throw templatesError;
@@ -57,7 +59,7 @@ export function TemplatesList({ onCreateTemplate, onUseTemplate }: TemplatesList
       const { data: tasksData, error: tasksError } = await supabase
         .from('project_template_tasks')
         .select('*')
-        .eq('auth_user_id', currentUser.id)
+        .eq('auth_user_id', user.id) // Use actual Supabase user ID
         .order('order_index');
 
       if (tasksError) throw tasksError;
@@ -66,7 +68,7 @@ export function TemplatesList({ onCreateTemplate, onUseTemplate }: TemplatesList
       const { data: subtasksData, error: subtasksError } = await supabase
         .from('project_template_subtasks')
         .select('*')
-        .eq('auth_user_id', currentUser.id)
+        .eq('auth_user_id', user.id) // Use actual Supabase user ID
         .order('order_index');
 
       if (subtasksError) throw subtasksError;
@@ -134,12 +136,18 @@ export function TemplatesList({ onCreateTemplate, onUseTemplate }: TemplatesList
 
   const handleDeleteTemplate = async (templateId: string, templateName: string) => {
     try {
+      // Get the authenticated user from Supabase
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error('User not authenticated');
+      }
+
       // Delete the template (tasks and subtasks will be deleted automatically due to CASCADE)
       const { error } = await supabase
         .from('project_templates')
         .delete()
         .eq('id', templateId)
-        .eq('auth_user_id', currentUser?.id);
+        .eq('auth_user_id', user.id); // Use actual Supabase user ID
 
       if (error) throw error;
 
