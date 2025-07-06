@@ -141,36 +141,35 @@ export default function Tasks() {
 
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
-          <p className="text-muted-foreground">
-            Manage and track all your tasks across projects
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {activeTab === "tasks" ? (
-            <>
-              <ViewSelector currentView={viewMode} onViewChange={setViewMode} />
-              <Button onClick={() => setIsCreateTaskOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Task
-              </Button>
-            </>
-          ) : (
-            <Button onClick={() => setIsCreateTemplateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Template
-            </Button>
-          )}
-        </div>
-      </div>
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
+            <p className="text-muted-foreground">
+              Manage and track all your tasks across projects
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <TabsList>
+              <TabsTrigger value="tasks">Tasks</TabsTrigger>
+              <TabsTrigger value="templates">Templates</TabsTrigger>
+            </TabsList>
+            {activeTab === "tasks" ? (
+              <>
+                <ViewSelector currentView={viewMode} onViewChange={setViewMode} />
+                <Button onClick={() => setIsCreateTaskOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Task
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => setIsCreateTemplateOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Template
+              </Button>
+            )}
+          </div>
+        </div>
 
         <TabsContent value="tasks" className="space-y-6">
           <div className="flex flex-wrap gap-2">
