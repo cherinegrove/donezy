@@ -38,6 +38,7 @@ export function TopBar() {
   const handleAvatarClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    alert("🎯 USER AVATAR CLICKED!"); // Temporary test
     console.log("🔥 Avatar clicked, opening profile dialog");
     console.log("Current user:", currentUser);
     console.log("Setting isProfileDialogOpen to true");
