@@ -176,19 +176,18 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
             
             {showAvatarOptions && (
               <div className="mt-4 w-full">
-                <RadioGroup 
-                  value={formData.avatar}
-                  onValueChange={handleAvatarOptionSelect}
-                  className="grid grid-cols-2 gap-6 sm:grid-cols-4"
-                >
+                <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
                   {avatarOptions.map((avatar) => (
                     <div 
                       key={avatar.id} 
                       className="flex flex-col items-center space-y-2"
                     >
-                      <label 
-                        htmlFor={avatar.id}
-                        className="flex flex-col items-center cursor-pointer space-y-2 transition-all hover:scale-110"
+                      <button
+                        type="button"
+                        onClick={() => handleAvatarOptionSelect(avatar.url)}
+                        className={`flex flex-col items-center cursor-pointer space-y-2 transition-all hover:scale-110 p-2 rounded-lg ${
+                          formData.avatar === avatar.url ? 'ring-2 ring-primary' : ''
+                        }`}
                       >
                         <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-transparent hover:border-primary">
                           <Avatar className="h-16 w-16">
@@ -202,14 +201,11 @@ export function ProfileInformationCard({ userId }: { userId: string }) {
                             </AvatarFallback>
                           </Avatar>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          <RadioGroupItem id={avatar.id} value={avatar.url} className="sr-only" />
-                          <span className="text-xs font-medium">{avatar.name}</span>
-                        </div>
-                      </label>
+                        <span className="text-xs font-medium">{avatar.name}</span>
+                      </button>
                     </div>
                   ))}
-                </RadioGroup>
+                </div>
               </div>
             )}
           </div>
