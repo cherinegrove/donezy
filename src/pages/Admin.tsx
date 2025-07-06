@@ -223,7 +223,7 @@ export default function Admin() {
                           <div>
                             <CardTitle className="flex items-center gap-2">
                               <FileText className="h-5 w-5 text-primary" />
-                              Project Form Templates
+                              Project Create Form Template
                             </CardTitle>
                             <CardDescription>Create and manage project templates for efficient project setup</CardDescription>
                           </div>
