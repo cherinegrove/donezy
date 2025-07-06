@@ -2,7 +2,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +22,16 @@ const Projects = () => {
   console.log("Projects component: Starting render");
   
   const { projects, tasks, clients, teams, deleteProject } = useAppContext();
+
+  // Listen for template creation events to refresh the templates list
+  useEffect(() => {
+    const handleTemplateCreated = () => {
+      setTemplatesRefreshKey(prev => prev + 1);
+    };
+
+    window.addEventListener('templateCreated', handleTemplateCreated);
+    return () => window.removeEventListener('templateCreated', handleTemplateCreated);
+  }, []);
   console.log("Projects component: Context data", { 
     projectsCount: projects?.length || 0, 
     tasksCount: tasks?.length || 0, 
@@ -38,6 +48,7 @@ const Projects = () => {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const navigate = useNavigate();
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [templatesRefreshKey, setTemplatesRefreshKey] = useState(0);
 
   console.log("Projects component: State initialized");
 
@@ -328,6 +339,7 @@ const Projects = () => {
 
           <TabsContent value="templates" className="mt-6">
             <TemplatesList 
+              key={templatesRefreshKey}
               onCreateTemplate={() => setIsCreateTemplateDialogOpen(true)}
               onUseTemplate={handleUseTemplate}
             />

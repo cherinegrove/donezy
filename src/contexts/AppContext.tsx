@@ -1262,6 +1262,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       console.log('Template created successfully:', template);
+      
+      // Trigger a refresh of any template lists
+      window.dispatchEvent(new CustomEvent('templateCreated'));
     } catch (error) {
       console.error('Error converting project to template:', error);
       throw error;
