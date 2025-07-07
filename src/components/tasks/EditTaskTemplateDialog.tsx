@@ -492,13 +492,6 @@ export function EditTaskTemplateDialog({ open, onOpenChange, template, onTemplat
 
             {/* Task Form Configuration */}
             <div className="space-y-4">
-              <div>
-                <Label className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Task Form Configuration
-                </Label>
-                <p className="text-sm text-muted-foreground">Choose a task form template or configure individual fields</p>
-              </div>
               
               <DragDropContext onDragEnd={handleFormFieldDragEnd}>
                 <Droppable droppableId="form-fields">
