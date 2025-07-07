@@ -40,7 +40,7 @@ const createTaskSchema = (isSubtask: boolean) => {
     title: z.string().min(1, { message: "Title is required" }),
     description: z.string(),
     clientId: z.string().optional(),
-    projectId: z.string().optional(),
+    projectId: z.string().min(1, { message: "Project is required" }),
     assigneeId: z.string().optional(),
     collaboratorIds: z.array(z.string()).optional(),
     status: z.string().min(1, { message: "Status is required" }),
@@ -628,17 +628,16 @@ export function CreateTaskDialog({
                       name="projectId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Project (Optional)</FormLabel>
+                          <FormLabel>Project</FormLabel>
                           <FormControl>
                             <Select 
                               value={field.value} 
                               onValueChange={field.onChange}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a project (optional)" />
+                                <SelectValue placeholder="Select a project" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">No project</SelectItem>
                                 {/* Show all projects if no client selected, or filtered projects if client selected */}
                                 {(form.watch("clientId") ? clientProjects : projects).map((project) => (
                                   <SelectItem key={project.id} value={project.id}>
