@@ -37,6 +37,7 @@ interface TaskTemplate {
   fieldOrder: string[];
   createdAt: string;
   usageCount: number;
+  formFields?: any[];
 }
 
 interface TaskTemplatesListProps {
@@ -93,6 +94,7 @@ export function TaskTemplatesList({ onCreateTemplate, onUseTemplate, refreshTrig
         fieldOrder: template.field_order || [],
         createdAt: template.created_at,
         usageCount: template.usage_count || 0,
+        formFields: Array.isArray(template.form_fields) ? template.form_fields : [],
       }));
 
       setTemplates(taskTemplates);
@@ -121,6 +123,7 @@ export function TaskTemplatesList({ onCreateTemplate, onUseTemplate, refreshTrig
           default_status: template.defaultStatus,
           include_custom_fields: template.includeCustomFields,
           field_order: template.fieldOrder,
+          form_fields: template.formFields || [],
           auth_user_id: currentUser.id,
         });
 

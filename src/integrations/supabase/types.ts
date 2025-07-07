@@ -961,6 +961,7 @@ export type Database = {
           default_status: string
           description: string
           field_order: string[] | null
+          form_fields: Json | null
           id: string
           include_custom_fields: string[] | null
           name: string
@@ -974,6 +975,7 @@ export type Database = {
           default_status?: string
           description: string
           field_order?: string[] | null
+          form_fields?: Json | null
           id?: string
           include_custom_fields?: string[] | null
           name: string
@@ -987,6 +989,7 @@ export type Database = {
           default_status?: string
           description?: string
           field_order?: string[] | null
+          form_fields?: Json | null
           id?: string
           include_custom_fields?: string[] | null
           name?: string

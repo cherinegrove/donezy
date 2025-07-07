@@ -48,6 +48,13 @@ const taskTemplateSchema = z.object({
   defaultStatus: z.enum(["backlog", "todo", "in-progress", "review", "done"]).default("todo"),
   customFields: z.array(z.string()).default([]),
   fieldOrder: z.array(z.string()).default([]),
+  formFields: z.array(z.object({
+    name: z.string(),
+    type: z.string(),
+    required: z.boolean(),
+    hidden: z.boolean(),
+    order: z.number(),
+  })).default([]),
 });
 
 type TaskTemplateFormData = z.infer<typeof taskTemplateSchema>;
@@ -65,6 +72,18 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingFields, setLoadingFields] = useState(true);
   const [fieldOrder, setFieldOrder] = useState<string[]>([]);
+  const [formFields, setFormFields] = useState([]);
+
+  // Default task form fields
+  const defaultTaskFields = [
+    { name: 'title', type: 'text', required: true, hidden: false, order: 1 },
+    { name: 'description', type: 'textarea', required: false, hidden: false, order: 2 },
+    { name: 'priority', type: 'select', required: true, hidden: false, order: 3 },
+    { name: 'status', type: 'select', required: true, hidden: false, order: 4 },
+    { name: 'assignee', type: 'select', required: false, hidden: false, order: 5 },
+    { name: 'dueDate', type: 'date', required: false, hidden: false, order: 6 },
+    { name: 'estimatedHours', type: 'number', required: false, hidden: false, order: 7 },
+  ];
 
   const form = useForm<TaskTemplateFormData>({
     resolver: zodResolver(taskTemplateSchema),
@@ -75,6 +94,7 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
       defaultStatus: "todo",
       customFields: [],
       fieldOrder: [],
+      formFields: defaultTaskFields,
     },
   });
 
@@ -89,6 +109,7 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
   useEffect(() => {
     if (open) {
       fetchCustomFields();
+      setFormFields(defaultTaskFields);
     }
   }, [open]);
 
@@ -163,6 +184,33 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
     form.setValue("fieldOrder", items);
   };
 
+  const handleFormFieldDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(formFields);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update order values
+    const updatedItems = items.map((item, index) => ({
+      ...item,
+      order: index + 1,
+    }));
+
+    setFormFields(updatedItems);
+    form.setValue("formFields", updatedItems);
+  };
+
+  const handleFormFieldToggle = (fieldName: string, property: 'required' | 'hidden') => {
+    const updatedFields = formFields.map(field => 
+      field.name === fieldName 
+        ? { ...field, [property]: !field[property] }
+        : field
+    );
+    setFormFields(updatedFields);
+    form.setValue("formFields", updatedFields);
+  };
+
   const onSubmit = async (data: TaskTemplateFormData) => {
     if (!session?.user) {
       console.error('No authenticated session found');
@@ -186,6 +234,7 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
           default_status: data.defaultStatus,
           include_custom_fields: data.customFields,
           field_order: data.fieldOrder,
+          form_fields: data.formFields,
           auth_user_id: session.user.id,
         });
 
@@ -198,6 +247,7 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
 
       form.reset();
       setFieldOrder([]);
+      setFormFields(defaultTaskFields);
       onOpenChange(false);
       onTemplateCreated?.();
     } catch (error) {
@@ -404,6 +454,78 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
                 </div>
               </div>
             )}
+
+            {/* Task Form Configuration */}
+            <div className="space-y-4">
+              <div>
+                <Label className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Task Form Configuration
+                </Label>
+                <p className="text-sm text-muted-foreground">Configure which fields appear in the task creation form</p>
+              </div>
+              
+              <DragDropContext onDragEnd={handleFormFieldDragEnd}>
+                <Droppable droppableId="form-fields">
+                  {(provided) => (
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
+                      className="space-y-2"
+                    >
+                      {formFields
+                        .sort((a, b) => a.order - b.order)
+                        .map((field, index) => (
+                        <Draggable key={field.name} draggableId={field.name} index={index}>
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className="flex items-center gap-3 p-3 border rounded bg-background"
+                            >
+                              <div
+                                {...provided.dragHandleProps}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <GripVertical className="h-4 w-4" />
+                              </div>
+                              <span className="text-sm font-medium capitalize flex-1">
+                                {field.name.replace(/([A-Z])/g, ' $1').trim()}
+                              </span>
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center space-x-2">
+                                  <Switch
+                                    id={`${field.name}-required`}
+                                    checked={field.required}
+                                    onCheckedChange={() => handleFormFieldToggle(field.name, 'required')}
+                                    disabled={field.name === 'title'} // Title is always required
+                                  />
+                                  <Label htmlFor={`${field.name}-required`} className="text-xs">
+                                    Required
+                                  </Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Switch
+                                    id={`${field.name}-hidden`}
+                                    checked={field.hidden}
+                                    onCheckedChange={() => handleFormFieldToggle(field.name, 'hidden')}
+                                    disabled={field.name === 'title'} // Title cannot be hidden
+                                  />
+                                  <Label htmlFor={`${field.name}-hidden`} className="text-xs">
+                                    Hidden
+                                  </Label>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
+            </div>
             
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
