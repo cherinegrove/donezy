@@ -566,12 +566,7 @@ export function TaskTemplateManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!currentUser) return;
-
     try {
-      console.log('Deleting template with ID:', id);
-      console.log('Current user ID:', currentUser.id);
-      
       // Get current session to use the correct auth user ID
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
@@ -583,13 +578,14 @@ export function TaskTemplateManager() {
         return;
       }
 
+      console.log('Deleting template with ID:', id);
       console.log('Session user ID:', session.user.id);
 
       const { error } = await supabase
         .from('task_templates')
         .delete()
         .eq('id', id)
-        .eq('auth_user_id', session.user.id); // Use session user ID instead
+        .eq('auth_user_id', session.user.id); // Use session user ID
 
       if (error) {
         console.error('Delete error:', error);
