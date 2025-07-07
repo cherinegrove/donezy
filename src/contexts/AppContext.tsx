@@ -767,8 +767,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           estimated_hours: task.estimatedHours,
           actual_hours: task.actualHours,
           watcher_ids: task.watcherIds || [],
-          collaborator_ids: task.collaboratorIds || [],
-          comments: []
+          collaborator_ids: task.collaboratorIds || []
         })
         .select()
         .single();
