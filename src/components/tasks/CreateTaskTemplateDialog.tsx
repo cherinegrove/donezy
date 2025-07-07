@@ -60,6 +60,7 @@ interface CreateTaskTemplateDialogProps {
 
 export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated }: CreateTaskTemplateDialogProps) {
   const { currentUser } = useAppContext();
+  const [session, setSession] = useState<any>(null);
   const { toast } = useToast();
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingFields, setLoadingFields] = useState(true);
@@ -76,6 +77,13 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
       fieldOrder: [],
     },
   });
+
+  // Get current session
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+  }, []);
 
   // Fetch custom fields from Supabase
   useEffect(() => {
@@ -156,7 +164,7 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
   };
 
   const onSubmit = async (data: TaskTemplateFormData) => {
-    if (!currentUser) return;
+    if (!session?.user) return;
 
     try {
       const { error } = await supabase
@@ -168,7 +176,7 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
           default_status: data.defaultStatus,
           include_custom_fields: data.customFields,
           field_order: data.fieldOrder,
-          auth_user_id: currentUser.id,
+          auth_user_id: session.user.id,
         });
 
       if (error) throw error;
