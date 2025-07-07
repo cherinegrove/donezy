@@ -164,7 +164,17 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
   };
 
   const onSubmit = async (data: TaskTemplateFormData) => {
-    if (!session?.user) return;
+    if (!session?.user) {
+      console.error('No authenticated session found');
+      toast({
+        title: "Authentication Error",
+        description: "Please log in to create templates",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    console.log('Creating template with user ID:', session.user.id);
 
     try {
       const { error } = await supabase
