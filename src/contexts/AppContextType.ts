@@ -75,10 +75,10 @@ export interface AppContextType {
   reorderTaskStatuses: (statuses: TaskStatusDefinition[]) => void;
   
   // Project Status functions
-  addProjectStatus: (status: Omit<ProjectStatusDefinition, 'id'>) => void;
-  updateProjectStatus: (statusId: string, updates: Partial<ProjectStatusDefinition>) => void;
-  deleteProjectStatus: (statusId: string) => void;
-  reorderProjectStatuses: (statuses: ProjectStatusDefinition[]) => void;
+  addProjectStatus: (status: Omit<ProjectStatusDefinition, 'id'>) => Promise<void>;
+  updateProjectStatus: (statusId: string, updates: Partial<ProjectStatusDefinition>) => Promise<void>;
+  deleteProjectStatus: (statusId: string) => Promise<void>;
+  reorderProjectStatuses: (statuses: ProjectStatusDefinition[]) => Promise<void>;
   
   // TimeEntry functions
   addTimeEntry: (timeEntry: Omit<TimeEntry, 'id'>) => void;

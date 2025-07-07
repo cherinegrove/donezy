@@ -25,6 +25,8 @@ export function ProjectStatusManager() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingStatus, setEditingStatus] = useState<ProjectStatusDefinition | null>(null);
   const [newStatus, setNewStatus] = useState({ label: "", value: "", color: "bg-blue-500" });
+  const [isCreating, setIsCreating] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const colorOptions = [
     { value: "bg-gray-500", label: "Gray" },
@@ -37,9 +39,12 @@ export function ProjectStatusManager() {
     { value: "bg-pink-500", label: "Pink" },
   ];
 
-  const handleCreateStatus = () => {
-    if (newStatus.label && newStatus.value) {
-      addProjectStatus({
+  const handleCreateStatus = async () => {
+    if (!newStatus.label || !newStatus.value || isCreating) return;
+
+    setIsCreating(true);
+    try {
+      await addProjectStatus({
         label: newStatus.label,
         value: newStatus.value,
         color: newStatus.color,
@@ -47,19 +52,34 @@ export function ProjectStatusManager() {
       });
       setNewStatus({ label: "", value: "", color: "bg-blue-500" });
       setIsCreateDialogOpen(false);
+    } catch (error) {
+      console.error('Error creating status:', error);
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  const handleEditStatus = () => {
-    if (editingStatus) {
-      updateProjectStatus(editingStatus.id, editingStatus);
+  const handleEditStatus = async () => {
+    if (!editingStatus || isUpdating) return;
+
+    setIsUpdating(true);
+    try {
+      await updateProjectStatus(editingStatus.id, editingStatus);
       setIsEditDialogOpen(false);
       setEditingStatus(null);
+    } catch (error) {
+      console.error('Error updating status:', error);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  const handleDeleteStatus = (statusId: string) => {
-    deleteProjectStatus(statusId);
+  const handleDeleteStatus = async (statusId: string) => {
+    try {
+      await deleteProjectStatus(statusId);
+    } catch (error) {
+      console.error('Error deleting status:', error);
+    }
   };
 
   const handleDragEnd = (result: any) => {
@@ -162,10 +182,12 @@ export function ProjectStatusManager() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={isCreating}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreateStatus}>Create Status</Button>
+                <Button onClick={handleCreateStatus} disabled={isCreating}>
+                  {isCreating ? "Creating..." : "Create Status"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -274,10 +296,12 @@ export function ProjectStatusManager() {
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={isUpdating}>
                 Cancel
               </Button>
-              <Button onClick={handleEditStatus}>Save Changes</Button>
+              <Button onClick={handleEditStatus} disabled={isUpdating}>
+                {isUpdating ? "Saving..." : "Save Changes"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

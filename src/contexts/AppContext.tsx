@@ -305,6 +305,43 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  const loadProjectStatuses = async () => {
+    try {
+      console.log('🔍 Loading project statuses...');
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        console.log('🔍 No session for project statuses');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('project_status_definitions')
+        .select('*')
+        .eq('auth_user_id', session.user.id)
+        .order('order_index');
+
+      if (error) {
+        console.error('Error loading project statuses:', error);
+        return;
+      }
+
+      console.log('🔍 Project statuses loaded:', data?.length || 0);
+
+      const convertedStatuses: ProjectStatusDefinition[] = (data || []).map(status => ({
+        id: status.id,
+        label: status.name,
+        value: status.name.toLowerCase().replace(/\s+/g, '-'),
+        color: status.color,
+        order: status.order_index,
+      }));
+
+      setProjectStatuses(convertedStatuses);
+    } catch (error) {
+      console.error('Error loading project statuses:', error);
+    }
+  };
+
   // Load all data when session is available
   useEffect(() => {
     if (session?.user) {
@@ -320,6 +357,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         loadTimeEntries();
         loadTeams();
         loadNotes();
+        loadProjectStatuses();
       }, 100);
     } else {
       console.log('🔍 No session available');
@@ -1327,20 +1365,119 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('Reorder task statuses not yet implemented');
   };
 
-  const addProjectStatus = (status: Omit<ProjectStatusDefinition, 'id'>) => {
-    console.log('Add project status not yet implemented');
+  const addProjectStatus = async (status: Omit<ProjectStatusDefinition, 'id'>) => {
+    if (!currentUser) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const { data, error } = await supabase
+        .from('project_status_definitions')
+        .insert({
+          auth_user_id: session.user.id,
+          name: status.label,
+          color: status.color,
+          order_index: status.order,
+          is_final: false,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newStatus: ProjectStatusDefinition = {
+        id: data.id,
+        label: data.name,
+        value: status.value,
+        color: data.color,
+        order: data.order_index,
+      };
+
+      setProjectStatuses(prev => [...prev, newStatus]);
+    } catch (error) {
+      console.error('Error adding project status:', error);
+      throw error;
+    }
   };
 
-  const updateProjectStatus = (statusId: string, updates: Partial<ProjectStatusDefinition>) => {
-    console.log('Update project status not yet implemented');
+  const updateProjectStatus = async (statusId: string, updates: Partial<ProjectStatusDefinition>) => {
+    if (!currentUser) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const { error } = await supabase
+        .from('project_status_definitions')
+        .update({
+          name: updates.label,
+          color: updates.color,
+          order_index: updates.order,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', statusId)
+        .eq('auth_user_id', session.user.id);
+
+      if (error) throw error;
+
+      setProjectStatuses(prev => 
+        prev.map(status => 
+          status.id === statusId 
+            ? { ...status, ...updates }
+            : status
+        )
+      );
+    } catch (error) {
+      console.error('Error updating project status:', error);
+      throw error;
+    }
   };
 
-  const deleteProjectStatus = (statusId: string) => {
-    console.log('Delete project status not yet implemented');
+  const deleteProjectStatus = async (statusId: string) => {
+    if (!currentUser) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const { error } = await supabase
+        .from('project_status_definitions')
+        .delete()
+        .eq('id', statusId)
+        .eq('auth_user_id', session.user.id);
+
+      if (error) throw error;
+
+      setProjectStatuses(prev => prev.filter(status => status.id !== statusId));
+    } catch (error) {
+      console.error('Error deleting project status:', error);
+      throw error;
+    }
   };
 
-  const reorderProjectStatuses = (statuses: ProjectStatusDefinition[]) => {
-    console.log('Reorder project statuses not yet implemented');
+  const reorderProjectStatuses = async (statuses: ProjectStatusDefinition[]) => {
+    if (!currentUser) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      // Update the order in the database for each status
+      const updates = statuses.map((status, index) => 
+        supabase
+          .from('project_status_definitions')
+          .update({ order_index: index })
+          .eq('id', status.id)
+          .eq('auth_user_id', session.user.id)
+      );
+
+      await Promise.all(updates);
+      setProjectStatuses(statuses);
+    } catch (error) {
+      console.error('Error reordering project statuses:', error);
+      throw error;
+    }
   };
 
   // Comment functions
