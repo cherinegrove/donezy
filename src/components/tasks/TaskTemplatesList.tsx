@@ -64,11 +64,19 @@ export function TaskTemplatesList({ onCreateTemplate, onUseTemplate, refreshTrig
 
     try {
       setLoading(true);
+      console.log('Fetching templates for currentUser.id:', currentUser.id);
+      
+      // Get current session to compare
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log('Session user ID:', sessionData.session?.user?.id);
+      
       const { data, error } = await supabase
         .from('task_templates')
         .select('*')
-        .eq('auth_user_id', currentUser.id)
+        .eq('auth_user_id', sessionData.session?.user?.id || currentUser.id)
         .order('created_at', { ascending: false });
+      
+      console.log('Templates query result:', { data, error });
 
       if (error) throw error;
 
