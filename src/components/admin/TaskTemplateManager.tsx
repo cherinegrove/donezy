@@ -566,10 +566,14 @@ export function TaskTemplateManager() {
   };
 
   const handleDelete = async (id: string) => {
+    console.log('=== HANDLE DELETE CALLED ===');
+    console.log('Template ID to delete:', id);
+    
     try {
       // Get current session to use the correct auth user ID
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
+        console.error('No session found during delete');
         toast({
           title: "Error",
           description: "Not authenticated",
@@ -578,22 +582,30 @@ export function TaskTemplateManager() {
         return;
       }
 
-      console.log('Deleting template with ID:', id);
-      console.log('Session user ID:', session.user.id);
+      console.log('Session user ID for delete:', session.user.id);
+      console.log('Current templates before delete:', templates.length);
 
-      const { error } = await supabase
+      const { error, count } = await supabase
         .from('task_templates')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('id', id)
-        .eq('auth_user_id', session.user.id); // Use session user ID
+        .eq('auth_user_id', session.user.id);
+
+      console.log('Delete result - error:', error);
+      console.log('Delete result - count:', count);
 
       if (error) {
         console.error('Delete error:', error);
         throw error;
       }
 
-      console.log('Template deleted successfully');
-      setTemplates(prev => prev.filter(t => t.id !== id));
+      console.log('Templates deleted:', count);
+      setTemplates(prev => {
+        const newTemplates = prev.filter(t => t.id !== id);
+        console.log('Updated templates count:', newTemplates.length);
+        return newTemplates;
+      });
+      
       toast({
         title: "Success",
         description: "Task template deleted successfully",
