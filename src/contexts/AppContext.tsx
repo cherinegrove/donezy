@@ -1422,16 +1422,117 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   // Template functions
-  const addProjectTemplate = (template: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => {
-    console.log('Add project template not yet implemented');
+  const addProjectTemplate = async (template: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => {
+    if (!currentUser) return;
+
+    try {
+      // Get current session to use the correct auth user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        console.error('No session found');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('project_templates')
+        .insert({
+          auth_user_id: session.user.id,
+          name: template.name,
+          description: template.description,
+          service_type: template.serviceType,
+          default_duration: template.defaultDuration,
+          allocated_hours: template.allocatedHours,
+          custom_fields: template.customFields,
+          team_ids: template.teamIds,
+          tags: template.tags || [],
+          usage_count: 0,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newTemplate: ProjectTemplate = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        serviceType: data.service_type as 'project' | 'bank-hours' | 'pay-as-you-go',
+        defaultDuration: data.default_duration,
+        allocatedHours: data.allocated_hours,
+        customFields: data.custom_fields || [],
+        teamIds: data.team_ids || [],
+        tags: data.tags || [],
+        tasks: [],
+        createdAt: data.created_at,
+        createdBy: template.createdBy,
+        usageCount: data.usage_count,
+      };
+
+      setProjectTemplates(prev => [newTemplate, ...prev]);
+    } catch (error) {
+      console.error('Error adding project template:', error);
+      throw error;
+    }
   };
 
-  const updateProjectTemplate = (templateId: string, updates: Partial<ProjectTemplate>) => {
-    console.log('Update project template not yet implemented');
+  const updateProjectTemplate = async (templateId: string, updates: Partial<ProjectTemplate>) => {
+    if (!currentUser) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const { error } = await supabase
+        .from('project_templates')
+        .update({
+          name: updates.name,
+          description: updates.description,
+          service_type: updates.serviceType,
+          default_duration: updates.defaultDuration,
+          allocated_hours: updates.allocatedHours,
+          custom_fields: updates.customFields,
+          team_ids: updates.teamIds,
+          tags: updates.tags,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', templateId)
+        .eq('auth_user_id', session.user.id);
+
+      if (error) throw error;
+
+      setProjectTemplates(prev => 
+        prev.map(template => 
+          template.id === templateId 
+            ? { ...template, ...updates }
+            : template
+        )
+      );
+    } catch (error) {
+      console.error('Error updating project template:', error);
+      throw error;
+    }
   };
 
-  const deleteProjectTemplate = (templateId: string) => {
-    console.log('Delete project template not yet implemented');
+  const deleteProjectTemplate = async (templateId: string) => {
+    if (!currentUser) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const { error } = await supabase
+        .from('project_templates')
+        .delete()
+        .eq('id', templateId)
+        .eq('auth_user_id', session.user.id);
+
+      if (error) throw error;
+
+      setProjectTemplates(prev => prev.filter(template => template.id !== templateId));
+    } catch (error) {
+      console.error('Error deleting project template:', error);
+      throw error;
+    }
   };
 
   // Purchase functions

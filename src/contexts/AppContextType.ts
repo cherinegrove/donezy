@@ -111,9 +111,9 @@ export interface AppContextType {
   deleteCustomRole: (roleId: string) => void;
   
   // Template functions
-  addProjectTemplate: (template: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => void;
-  updateProjectTemplate: (templateId: string, updates: Partial<ProjectTemplate>) => void;
-  deleteProjectTemplate: (templateId: string) => void;
+  addProjectTemplate: (template: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => Promise<void>;
+  updateProjectTemplate: (templateId: string, updates: Partial<ProjectTemplate>) => Promise<void>;
+  deleteProjectTemplate: (templateId: string) => Promise<void>;
   
   // Purchase functions
   addPurchase: (purchase: Omit<Purchase, 'id'>) => void;

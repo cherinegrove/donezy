@@ -48,6 +48,7 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
   const { toast } = useToast();
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingFields, setLoadingFields] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<TemplateFormData>({
     resolver: zodResolver(templateSchema),
@@ -113,28 +114,40 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
     form.setValue("customFields", newFields);
   };
 
-  const onSubmit = (data: TemplateFormData) => {
-    if (!currentUser) return;
+  const onSubmit = async (data: TemplateFormData) => {
+    if (!currentUser || isSubmitting) return;
 
-    addProjectTemplate({
-      name: data.name,
-      description: data.description,
-      serviceType: "project",
-      defaultDuration: data.defaultDuration,
-      allocatedHours: 0,
-      tasks: [],
-      teamIds: [],
-      customFields: data.customFields,
-      createdBy: currentUser.id,
-    });
+    setIsSubmitting(true);
+    try {
+      await addProjectTemplate({
+        name: data.name,
+        description: data.description,
+        serviceType: "project",
+        defaultDuration: data.defaultDuration,
+        allocatedHours: 0,
+        tasks: [],
+        teamIds: [],
+        customFields: data.customFields,
+        createdBy: currentUser.id,
+      });
 
-    toast({
-      title: "Template created",
-      description: `${data.name} template has been created successfully.`,
-    });
+      toast({
+        title: "Template created",
+        description: `${data.name} template has been created successfully.`,
+      });
 
-    form.reset();
-    onOpenChange(false);
+      form.reset();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error creating template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create template. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -254,10 +267,12 @@ export function CreateTemplateDialog({ open, onOpenChange }: CreateTemplateDialo
             )}
             
             <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type="submit">Create Template</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Creating..." : "Create Template"}
+              </Button>
             </div>
           </form>
         </Form>
