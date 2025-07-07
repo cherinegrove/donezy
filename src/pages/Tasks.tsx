@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CheckSquare, Plus } from "lucide-react";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
+import { EditTaskTemplateDialog } from "@/components/tasks/EditTaskTemplateDialog";
 import { TaskTemplatesList } from "@/components/tasks/TaskTemplatesList";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { 
@@ -34,6 +35,8 @@ export default function Tasks() {
   const { tasks, projects, users, clients } = useAppContext();
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
+  const [isEditTemplateOpen, setIsEditTemplateOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState(null);
   const [activeTab, setActiveTab] = useState("tasks");
   const [templateRefreshTrigger, setTemplateRefreshTrigger] = useState(0);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
@@ -139,6 +142,17 @@ export default function Tasks() {
     setTemplateRefreshTrigger(prev => prev + 1);
   };
 
+  const handleEditTemplate = (template) => {
+    setEditingTemplate(template);
+    setIsEditTemplateOpen(true);
+  };
+
+  const handleTemplateUpdated = () => {
+    setTemplateRefreshTrigger(prev => prev + 1);
+    setIsEditTemplateOpen(false);
+    setEditingTemplate(null);
+  };
+
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -232,6 +246,7 @@ export default function Tasks() {
         <TabsContent value="templates" className="mt-6">
           <TaskTemplatesList 
             onCreateTemplate={() => setIsCreateTemplateOpen(true)}
+            onEditTemplate={handleEditTemplate}
             refreshTrigger={templateRefreshTrigger}
           />
         </TabsContent>
@@ -246,6 +261,13 @@ export default function Tasks() {
         open={isCreateTemplateOpen}
         onOpenChange={setIsCreateTemplateOpen}
         onTemplateCreated={handleTemplateCreated}
+      />
+
+      <EditTaskTemplateDialog
+        open={isEditTemplateOpen}
+        onOpenChange={setIsEditTemplateOpen}
+        template={editingTemplate}
+        onTemplateUpdated={handleTemplateUpdated}
       />
     </div>
   );

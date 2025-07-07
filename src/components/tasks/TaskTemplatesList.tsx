@@ -43,15 +43,18 @@ interface TaskTemplatesListProps {
   onCreateTemplate: () => void;
   onUseTemplate?: (templateId: string) => void;
   refreshTrigger?: number;
+  onEditTemplate?: (template: TaskTemplate) => void;
 }
 
-export function TaskTemplatesList({ onCreateTemplate, onUseTemplate, refreshTrigger }: TaskTemplatesListProps) {
+export function TaskTemplatesList({ onCreateTemplate, onUseTemplate, refreshTrigger, onEditTemplate }: TaskTemplatesListProps) {
   const { currentUser } = useAppContext();
   const { toast } = useToast();
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [templateToEdit, setTemplateToEdit] = useState<TaskTemplate | null>(null);
 
   useEffect(() => {
     if (currentUser) {
@@ -174,6 +177,18 @@ export function TaskTemplatesList({ onCreateTemplate, onUseTemplate, refreshTrig
     setDeleteDialogOpen(true);
   };
 
+  const openEditDialog = (template: TaskTemplate) => {
+    setTemplateToEdit(template);
+    setEditDialogOpen(true);
+    onEditTemplate?.(template);
+  };
+
+  const handleTemplateUpdated = () => {
+    fetchTemplates();
+    setEditDialogOpen(false);
+    setTemplateToEdit(null);
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -228,6 +243,14 @@ export function TaskTemplatesList({ onCreateTemplate, onUseTemplate, refreshTrig
                   </CardDescription>
                 </div>
                 <div className="flex gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    onClick={() => openEditDialog(template)}
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
                   <Button 
                     variant="ghost" 
                     size="sm" 
