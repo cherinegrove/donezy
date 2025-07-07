@@ -480,7 +480,24 @@ export function EditTaskTemplateDialog({ open, onOpenChange, template, onTemplat
                   <Settings className="h-4 w-4" />
                   Task Form Configuration
                 </Label>
-                <p className="text-sm text-muted-foreground">Configure which fields appear in the task creation form</p>
+                <p className="text-sm text-muted-foreground">Choose a task form template or configure individual fields</p>
+              </div>
+              
+              {/* Task Form Template Selection */}
+              <div className="space-y-2">
+                <Label>Task Form Template</Label>
+                <Select defaultValue="default">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a form template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default Form</SelectItem>
+                    {/* TODO: Add task form templates from account settings */}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  Select a predefined form template or use "Default Form" to configure individual fields below
+                </p>
               </div>
               
               <DragDropContext onDragEnd={handleFormFieldDragEnd}>
