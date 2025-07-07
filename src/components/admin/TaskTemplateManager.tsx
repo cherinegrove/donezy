@@ -427,13 +427,25 @@ export function TaskTemplateManager() {
 
     try {
       setLoading(true);
+      
+      // Get current session to use the correct auth user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        console.error('No session found');
+        return;
+      }
+
+      console.log('Fetching templates for session user ID:', session.user.id);
+
       const { data, error } = await supabase
         .from('task_templates')
         .select('*')
-        .eq('auth_user_id', currentUser.id)
+        .eq('auth_user_id', session.user.id) // Use session user ID
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
+      console.log('Templates fetched:', data);
 
       const taskTemplates: TaskTemplate[] = data.map(template => ({
         id: template.id,
@@ -483,6 +495,17 @@ export function TaskTemplateManager() {
     if (!editingId || !newTemplate.name?.trim() || !currentUser) return;
     
     try {
+      // Get current session to use the correct auth user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast({
+          title: "Error",
+          description: "Not authenticated",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('task_templates')
         .update({
@@ -495,7 +518,7 @@ export function TaskTemplateManager() {
           updated_at: new Date().toISOString(),
         })
         .eq('id', editingId)
-        .eq('auth_user_id', currentUser.id);
+        .eq('auth_user_id', session.user.id); // Use session user ID
 
       if (error) throw error;
 
@@ -546,14 +569,34 @@ export function TaskTemplateManager() {
     if (!currentUser) return;
 
     try {
+      console.log('Deleting template with ID:', id);
+      console.log('Current user ID:', currentUser.id);
+      
+      // Get current session to use the correct auth user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast({
+          title: "Error",
+          description: "Not authenticated",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Session user ID:', session.user.id);
+
       const { error } = await supabase
         .from('task_templates')
         .delete()
         .eq('id', id)
-        .eq('auth_user_id', currentUser.id);
+        .eq('auth_user_id', session.user.id); // Use session user ID instead
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
 
+      console.log('Template deleted successfully');
       setTemplates(prev => prev.filter(t => t.id !== id));
       toast({
         title: "Success",
@@ -580,10 +623,21 @@ export function TaskTemplateManager() {
     }
 
     try {
+      // Get current session to use the correct auth user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast({
+          title: "Error",
+          description: "Not authenticated",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from('task_templates')
         .insert({
-          auth_user_id: currentUser.id,
+          auth_user_id: session.user.id, // Use session user ID
           name: newTemplate.name,
           description: newTemplate.description || "",
           default_priority: newTemplate.defaultPriority || "medium",
@@ -638,10 +692,21 @@ export function TaskTemplateManager() {
     if (!currentUser) return;
 
     try {
+      // Get current session to use the correct auth user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast({
+          title: "Error",
+          description: "Not authenticated",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from('task_templates')
         .insert({
-          auth_user_id: currentUser.id,
+          auth_user_id: session.user.id, // Use session user ID
           name: `${template.name} (Copy)`,
           description: template.description,
           default_priority: template.defaultPriority,
