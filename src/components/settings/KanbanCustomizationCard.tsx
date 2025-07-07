@@ -90,6 +90,7 @@ export const KanbanCustomizationCard = () => {
   const { customFields, addCustomField, deleteCustomField } = useAppContext();
   const [addStatusDialogOpen, setAddStatusDialogOpen] = useState(false);
   const [addFieldDialogOpen, setAddFieldDialogOpen] = useState(false);
+  const [isCreatingField, setIsCreatingField] = useState(false);
   
   const [newField, setNewField] = useState<CustomFieldForm>({
     name: "",
@@ -154,45 +155,53 @@ export const KanbanCustomizationCard = () => {
     setNewField(prev => ({ ...prev, [key]: value }));
   };
   
-  const handleAddField = () => {
-    if (!newField.name.trim()) {
-      toast({
-        title: "Error",
-        description: "Field name is required",
-        variant: "destructive"
-      });
+  const handleAddField = async () => {
+    if (!newField.name.trim() || isCreatingField) {
+      if (!newField.name.trim()) {
+        toast({
+          title: "Error",
+          description: "Field name is required",
+          variant: "destructive"
+        });
+      }
       return;
     }
     
-    // Parse options for dropdown type only
-    const options = newField.type === 'dropdown'
-      ? newField.options.split(',').map(opt => opt.trim()).filter(opt => opt)
-      : undefined;
+    setIsCreatingField(true);
     
-    addCustomField({
-      name: newField.name,
-      type: newField.type as 'text' | 'number' | 'date' | 'dropdown' | 'checkbox',
-      options,
-      required: newField.required,
-      applicableTo: ['tasks'],
-      reportable: true,
-      order: 0
-    });
-    
-    // Reset form
-    setNewField({
-      name: "",
-      type: "text",
-      options: "",
-      required: false
-    });
-    
-    setAddFieldDialogOpen(false);
-    
-    toast({
-      title: "Custom Field Added",
-      description: `The field "${newField.name}" has been added`
-    });
+    try {
+      // Parse options for dropdown type only
+      const options = newField.type === 'dropdown'
+        ? newField.options.split(',').map(opt => opt.trim()).filter(opt => opt)
+        : undefined;
+      
+      addCustomField({
+        name: newField.name,
+        type: newField.type as 'text' | 'number' | 'date' | 'dropdown' | 'checkbox',
+        options,
+        required: newField.required,
+        applicableTo: ['tasks'],
+        reportable: true,
+        order: 0
+      });
+      
+      // Reset form
+      setNewField({
+        name: "",
+        type: "text",
+        options: "",
+        required: false
+      });
+      
+      setAddFieldDialogOpen(false);
+      
+      toast({
+        title: "Custom Field Added",
+        description: `The field "${newField.name}" has been added`
+      });
+    } finally {
+      setIsCreatingField(false);
+    }
   };
   
   const handleDeleteField = (id: string, name: string) => {
@@ -537,7 +546,9 @@ export const KanbanCustomizationCard = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddFieldDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddField}>Add Field</Button>
+            <Button onClick={handleAddField} disabled={isCreatingField}>
+              {isCreatingField ? "Creating..." : "Add Field"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
