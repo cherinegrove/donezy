@@ -62,7 +62,7 @@ const Dashboard = () => {
   // Recent activity (using time entries as proxy)
   const recentActivity = tasks
     .flatMap(task => 
-      task.timeEntries.map(entry => ({
+      (task.timeEntries || []).map(entry => ({
         taskId: task.id,
         taskTitle: task.title,
         ...entry
