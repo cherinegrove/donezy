@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Users } from "lucide-react";
 import { format } from "date-fns";
 import type { Project } from "@/types";
+import { useAppContext } from "@/contexts/AppContext";
 
 interface ProjectItemProps {
   project: Project;
