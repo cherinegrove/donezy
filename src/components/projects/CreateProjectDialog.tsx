@@ -43,6 +43,7 @@ const projectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   description: z.string().min(1, "Description is required"),
   clientId: z.string().min(1, "Client is required"),
+  status: z.string().min(1, "Status is required"),
   startDate: z.date().optional(),
   dueDate: z.date().optional(),
   customFields: z.array(z.string()).default([]),
@@ -57,7 +58,7 @@ interface CreateProjectDialogProps {
 }
 
 export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
-  const { addProject, clients, projectTemplates, currentUser } = useAppContext();
+  const { addProject, clients, projectTemplates, currentUser, projectStatuses } = useAppContext();
   const { toast } = useToast();
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
@@ -69,6 +70,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       name: "",
       description: "",
       clientId: "",
+      status: "",
       customFields: [],
       customFieldValues: {},
     },
@@ -310,7 +312,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
         startDate: data.startDate?.toISOString(),
         dueDate: data.dueDate?.toISOString(),
         allocatedHours: 0,
-        status: "todo",
+        status: data.status,
         usedHours: 0,
         templateId: selectedTemplate !== "system-default" ? selectedTemplate : undefined,
         customFields: data.customFieldValues,
@@ -502,6 +504,34 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                       {clients.map((client) => (
                         <SelectItem key={client.id} value={client.id}>
                           {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {projectStatuses.map((status) => (
+                        <SelectItem key={status.id} value={status.value}>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${status.color}`}></div>
+                            {status.label}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>

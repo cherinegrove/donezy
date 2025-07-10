@@ -11,15 +11,11 @@ interface ProjectItemProps {
 }
 
 export function ProjectItem({ project }: ProjectItemProps) {
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case "done":
-        return "default";
-      case "in-progress":
-        return "secondary";
-      default:
-        return "outline";
-    }
+  const { projectStatuses } = useAppContext();
+  
+  const getStatusInfo = (status: string) => {
+    const statusDef = projectStatuses.find(s => s.value === status);
+    return statusDef || { label: status, color: 'bg-gray-500' };
   };
 
   return (
@@ -34,8 +30,11 @@ export function ProjectItem({ project }: ProjectItemProps) {
               {project.name}
             </Link>
           </CardTitle>
-          <Badge variant={getStatusVariant(project.status)}>
-            {project.status}
+          <Badge variant="outline" className="border-0 text-white">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${getStatusInfo(project.status).color}`}></div>
+              {getStatusInfo(project.status).label}
+            </div>
           </Badge>
         </div>
       </CardHeader>

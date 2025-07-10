@@ -32,7 +32,7 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, onClick }: ProjectCardProps) {
-  const { clients, deleteProject } = useAppContext();
+  const { clients, deleteProject, projectStatuses } = useAppContext();
   const { toast } = useToast();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -41,13 +41,9 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
   
   const progress = project.allocatedHours ? (project.usedHours / project.allocatedHours) * 100 : 0;
   
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'todo': return 'bg-gray-100 text-gray-800';
-      case 'in-progress': return 'bg-blue-100 text-blue-800';
-      case 'done': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const getStatusInfo = (status: string) => {
+    const statusDef = projectStatuses.find(s => s.value === status);
+    return statusDef || { label: status, color: 'bg-gray-500' };
   };
 
   const handleDelete = () => {
@@ -102,8 +98,11 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge className={getStatusColor(project.status)}>
-              {project.status.replace('-', ' ')}
+            <Badge variant="outline" className="border-0 text-white">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${getStatusInfo(project.status).color}`}></div>
+                {getStatusInfo(project.status).label}
+              </div>
             </Badge>
             <Badge variant="outline">{project.serviceType}</Badge>
           </div>

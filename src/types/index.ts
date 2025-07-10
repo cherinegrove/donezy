@@ -101,7 +101,7 @@ export interface Project {
   name: string;
   description: string;
   clientId: string;
-  status: 'todo' | 'in-progress' | 'done';
+  status: string;
   serviceType: 'project' | 'bank-hours' | 'pay-as-you-go';
   startDate?: string;
   dueDate?: string;

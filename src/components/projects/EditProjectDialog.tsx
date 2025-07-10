@@ -38,7 +38,7 @@ const projectSchema = z.object({
   description: z.string().min(1, "Description is required"),
   clientId: z.string().min(1, "Client is required"),
   serviceType: z.enum(["project", "bank-hours", "pay-as-you-go"]),
-  status: z.enum(["todo", "in-progress", "done"]),
+  status: z.string().min(1, "Status is required"),
   startDate: z.string().optional(),
   dueDate: z.string().optional(),
   allocatedHours: z.preprocess(
@@ -56,7 +56,7 @@ interface EditProjectDialogProps {
 }
 
 export function EditProjectDialog({ project, open, onClose }: EditProjectDialogProps) {
-  const { updateProject, clients } = useAppContext();
+  const { updateProject, clients, projectStatuses } = useAppContext();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -67,7 +67,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
       description: "",
       clientId: "",
       serviceType: "project",
-      status: "todo",
+      status: "",
       startDate: "",
       dueDate: "",
       allocatedHours: undefined,
@@ -82,7 +82,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
         description: project.description || "",
         clientId: project.clientId || "",
         serviceType: project.serviceType || "project",
-        status: project.status || "todo",
+        status: project.status || projectStatuses[0]?.value || "",
         startDate: project.startDate || "",
         dueDate: project.dueDate || "",
         allocatedHours: project.allocatedHours || undefined,
@@ -246,9 +246,14 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="todo">Todo</SelectItem>
-                      <SelectItem value="in-progress">In Progress</SelectItem>
-                      <SelectItem value="done">Done</SelectItem>
+                      {projectStatuses.map((status) => (
+                        <SelectItem key={status.id} value={status.value}>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${status.color}`}></div>
+                            {status.label}
+                          </div>
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

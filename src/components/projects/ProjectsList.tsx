@@ -3,6 +3,7 @@ import { Progress } from "@/components/ui/progress";
 import { RecordActions } from "@/components/common/RecordActions";
 import { format } from "date-fns";
 import type { Project } from "@/types";
+import { useAppContext } from "@/contexts/AppContext";
 
 interface ProjectsListProps {
   projects: Project[];
@@ -21,6 +22,13 @@ export function ProjectsList({
   onDelete,
   onCardClick
 }: ProjectsListProps) {
+  const { projectStatuses } = useAppContext();
+  
+  const getStatusInfo = (status: string) => {
+    const statusDef = projectStatuses.find(s => s.value === status);
+    return statusDef || { label: status, color: 'bg-gray-500' };
+  };
+
   const formatDate = (dateString?: string) => {
     if (!dateString || dateString.trim() === "") {
       return null;
@@ -57,7 +65,10 @@ export function ProjectsList({
                       <span className="font-medium">{getClientName(project.clientId)}</span>
                     </div>
                     <div className="text-sm">
-                      <span className="capitalize font-medium">{project.status.replace("-", " ")}</span>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${getStatusInfo(project.status).color}`}></div>
+                        <span className="font-medium">{getStatusInfo(project.status).label}</span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 min-w-[100px]">
                       <Progress value={progress} className="h-2 flex-1" />
