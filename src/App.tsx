@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 import { AppLayout } from "./components/layout/AppLayout";
-import Dashboard from "./pages/Dashboard";
+import Home from "./pages/Home";
 import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
 import Clients from "./pages/Clients";
@@ -168,7 +168,7 @@ const AppRoutes = () => {
       
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
-        <Route index element={<Dashboard />} />
+        <Route index element={<Home />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:projectId" element={<ProjectDetails />} />
         <Route path="/tasks" element={<Tasks />} />
