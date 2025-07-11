@@ -8,12 +8,19 @@ import { AlertTriangle, Calendar, Clock, User } from "lucide-react";
 import { TaskList } from "@/components/tasks/TaskList";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
 import { Task, Project } from "@/types";
+import { CardSelector, CardType } from "@/components/dashboard/CardSelector";
+import { CollaboratorTasksCard } from "@/components/dashboard/cards/CollaboratorTasksCard";
+import { TimeLogsCard } from "@/components/dashboard/cards/TimeLogsCard";
+import { NotesCard } from "@/components/dashboard/cards/NotesCard";
+import { RecentTasksCard } from "@/components/dashboard/cards/RecentTasksCard";
+import { NotificationsCard } from "@/components/dashboard/cards/NotificationsCard";
 
 const Home = () => {
   const { tasks, projects, users, currentUser } = useAppContext();
   const [selectedUserId, setSelectedUserId] = useState<string>("me");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedCards, setSelectedCards] = useState<CardType[]>(["time-logs", "notes"]);
 
   const today = startOfToday();
   const isAdminOrManager = currentUser?.role === "admin" || currentUser?.role === "manager";
@@ -93,6 +100,33 @@ const Home = () => {
     setIsEditDialogOpen(true);
   };
 
+  const handleCardToggle = (cardId: CardType) => {
+    setSelectedCards(prev => 
+      prev.includes(cardId) 
+        ? prev.filter(id => id !== cardId)
+        : [...prev, cardId]
+    );
+  };
+
+  const renderCard = (cardType: CardType) => {
+    const onRemove = () => handleCardToggle(cardType);
+    
+    switch (cardType) {
+      case "collaborator-tasks":
+        return <CollaboratorTasksCard key={cardType} onRemove={onRemove} />;
+      case "time-logs":
+        return <TimeLogsCard key={cardType} onRemove={onRemove} />;
+      case "notes":
+        return <NotesCard key={cardType} onRemove={onRemove} />;
+      case "recent-tasks":
+        return <RecentTasksCard key={cardType} onRemove={onRemove} />;
+      case "notifications":
+        return <NotificationsCard key={cardType} onRemove={onRemove} />;
+      default:
+        return null;
+    }
+  };
+
   const getProjectStatusColor = (status: string) => {
     switch (status) {
       case "completed":
@@ -114,11 +148,17 @@ const Home = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Home</h1>
-        <p className="text-muted-foreground mt-1">
-          Welcome back, {currentUser?.name}!
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Home</h1>
+          <p className="text-muted-foreground mt-1">
+            Welcome back, {currentUser?.name}!
+          </p>
+        </div>
+        <CardSelector 
+          selectedCards={selectedCards} 
+          onCardToggle={handleCardToggle} 
+        />
       </div>
 
       {/* User Filter for Admin/Manager */}
@@ -220,6 +260,13 @@ const Home = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dashboard Cards */}
+      {selectedCards.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {selectedCards.map(renderCard)}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* All Tasks */}
