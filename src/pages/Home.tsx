@@ -62,6 +62,10 @@ const Home = () => {
     task.dueDate && isToday(parseISO(task.dueDate)) && task.status !== "done"
   );
 
+  console.log("Tasks due today:", tasksDueToday);
+  console.log("All filtered tasks:", filteredTasks);
+  console.log("Tasks with due dates:", filteredTasks.filter(t => t.dueDate));
+
   // Overdue high priority tasks
   const overdueHighRiskTasks = filteredTasks.filter(task => 
     task.dueDate && 
@@ -69,6 +73,9 @@ const Home = () => {
     task.status !== "done" &&
     task.priority === "high"
   );
+
+  console.log("Overdue high risk tasks:", overdueHighRiskTasks);
+  console.log("Today:", today);
 
   // All user tasks (excluding done)
   const activeTasks = filteredTasks.filter(task => task.status !== "done");
@@ -138,16 +145,16 @@ const Home = () => {
         </Card>
       )}
 
-      {/* Tasks Due Today */}
-      {tasksDueToday.length > 0 && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-800">
-              <Calendar className="h-5 w-5" />
-              Tasks Due Today ({tasksDueToday.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      {/* Tasks Due Today - Always show section */}
+      <Card className="border-orange-200 bg-orange-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-orange-800">
+            <Calendar className="h-5 w-5" />
+            Tasks Due Today ({tasksDueToday.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {tasksDueToday.length > 0 ? (
             <div className="space-y-3">
               {tasksDueToday.map((task) => (
                 <div 
@@ -167,20 +174,24 @@ const Home = () => {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <p className="text-center py-6 text-muted-foreground">
+              No tasks due today
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* High Risk Overdue Items */}
-      {overdueHighRiskTasks.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-800">
-              <AlertTriangle className="h-5 w-5" />
-              High Risk Overdue Tasks ({overdueHighRiskTasks.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      {/* High Risk Overdue Items - Always show section */}
+      <Card className="border-red-200 bg-red-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-red-800">
+            <AlertTriangle className="h-5 w-5" />
+            High Risk Overdue Tasks ({overdueHighRiskTasks.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {overdueHighRiskTasks.length > 0 ? (
             <div className="space-y-3">
               {overdueHighRiskTasks.map((task) => (
                 <div 
@@ -202,9 +213,13 @@ const Home = () => {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <p className="text-center py-6 text-muted-foreground">
+              No high-risk overdue tasks
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* All Tasks */}
