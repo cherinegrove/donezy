@@ -40,7 +40,8 @@ interface ActivityLog {
 const generateMockActivity = (
   users: any[], 
   tasks: any[], 
-  timeEntries: any[]
+  timeEntries: any[],
+  currentUser: any
 ): ActivityLog[] => {
   const activities: ActivityLog[] = [];
   
@@ -66,7 +67,7 @@ const generateMockActivity = (
   tasks.forEach(task => {
     activities.push({
       id: `task-create-${task.id}`,
-      userId: task.assigneeIds[0] || users[0].id,
+      userId: task.assigneeId || users[0]?.id || currentUser?.id || 'unknown',
       type: 'task_create',
       details: `Created task: ${task.title}`,
       timestamp: task.createdAt,
@@ -75,7 +76,7 @@ const generateMockActivity = (
     
     activities.push({
       id: `task-update-${task.id}`,
-      userId: task.assigneeIds[0] || users[0].id,
+      userId: task.assigneeId || users[0]?.id || currentUser?.id || 'unknown',
       type: 'task_update',
       details: `Updated task status to: ${task.status}`,
       timestamp: new Date(new Date(task.createdAt).getTime() + 86400000).toISOString(),
@@ -111,13 +112,13 @@ const generateMockActivity = (
 };
 
 export default function AdminActivity() {
-  const { users, tasks, timeEntries } = useAppContext();
+  const { users, tasks, timeEntries, currentUser } = useAppContext();
   const [searchTerm, setSearchTerm] = useState("");
   const [activityType, setActivityType] = useState<string>("all");
   const [userId, setUserId] = useState<string>("all");
   
   // Generate mock activities based on real data
-  const allActivities = generateMockActivity(users, tasks, timeEntries);
+  const allActivities = generateMockActivity(users, tasks, timeEntries, currentUser);
   
   // Filter activities based on search term, activity type, and user
   const filteredActivities = allActivities.filter(activity => {
