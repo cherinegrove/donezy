@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
 import { Task, TaskStatus } from "@/types";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, Plus } from "lucide-react";
+import { CheckSquare, Plus, Upload } from "lucide-react";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { EditTaskTemplateDialog } from "@/components/tasks/EditTaskTemplateDialog";
+import { BulkImportTasksDialog } from "@/components/tasks/BulkImportTasksDialog";
 import { TaskTemplatesList } from "@/components/tasks/TaskTemplatesList";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { 
@@ -36,6 +37,7 @@ export default function Tasks() {
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
   const [isEditTemplateOpen, setIsEditTemplateOpen] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [activeTab, setActiveTab] = useState("tasks");
   const [templateRefreshTrigger, setTemplateRefreshTrigger] = useState(0);
@@ -169,10 +171,16 @@ export default function Tasks() {
               <TabsTrigger value="templates">Templates</TabsTrigger>
             </TabsList>
             {activeTab === "tasks" ? (
-              <Button onClick={() => setIsCreateTaskOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Task
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setIsBulkImportOpen(true)}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Import Tasks
+                </Button>
+                <Button onClick={() => setIsCreateTaskOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Task
+                </Button>
+              </div>
             ) : (
               <Button onClick={() => setIsCreateTemplateOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -268,6 +276,11 @@ export default function Tasks() {
         onOpenChange={setIsEditTemplateOpen}
         template={editingTemplate}
         onTemplateUpdated={handleTemplateUpdated}
+      />
+
+      <BulkImportTasksDialog
+        open={isBulkImportOpen}
+        onOpenChange={setIsBulkImportOpen}
       />
     </div>
   );
