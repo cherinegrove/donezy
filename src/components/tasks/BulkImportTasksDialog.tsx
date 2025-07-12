@@ -258,13 +258,130 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
   };
 
   const handleImport = async () => {
-    if (previewTasks.length === 0) {
-      toast({
-        title: "Error",
-        description: "No tasks to import. Please preview first.",
-        variant: "destructive",
-      });
-      return;
+    let tasksToImport = previewTasks;
+    
+    // If no preview data, generate it first
+    if (tasksToImport.length === 0) {
+      // Generate preview data directly
+      try {
+        let tasks: Partial<Task>[] = [];
+        
+        if (importData.trim().startsWith('[') || importData.trim().startsWith('{')) {
+          // JSON format
+          const parsed = JSON.parse(importData);
+          const items = Array.isArray(parsed) ? parsed : [parsed];
+          
+          tasks = items.map(item => {
+            const task: Partial<Task> = {};
+            
+            Object.entries(columnMapping).forEach(([column, field]) => {
+              if (field && item[column] !== undefined) {
+                switch (field) {
+                  case 'title':
+                    task.title = item[column];
+                    break;
+                  case 'description':
+                    task.description = item[column];
+                    break;
+                  case 'projectId':
+                    const project = projects.find(p => p.name === item[column]);
+                    task.projectId = project?.id || projects[0]?.id;
+                    break;
+                  case 'priority':
+                    task.priority = item[column] as "low" | "medium" | "high";
+                    break;
+                  case 'status':
+                    task.status = item[column] as any;
+                    break;
+                  case 'assigneeId':
+                    task.assigneeId = item[column];
+                    break;
+                  case 'dueDate':
+                    task.dueDate = item[column];
+                    break;
+                  case 'estimatedHours':
+                    task.estimatedHours = parseInt(item[column]);
+                    break;
+                  default:
+                    // Handle custom fields
+                    if (!task.customFields) task.customFields = {};
+                    task.customFields[field] = item[column];
+                }
+              }
+            });
+            
+            return task;
+          }).filter(task => task.title);
+        } else {
+          // CSV format
+          const lines = importData.trim().split('\n');
+          const headers = lines[0].split(',').map(h => h.trim());
+          
+          for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',').map(v => v.trim());
+            const task: Partial<Task> = {};
+            
+            headers.forEach((header, index) => {
+              const field = columnMapping[header];
+              if (field && values[index]) {
+                switch (field) {
+                  case 'title':
+                    task.title = values[index];
+                    break;
+                  case 'description':
+                    task.description = values[index];
+                    break;
+                  case 'projectId':
+                    const project = projects.find(p => p.name === values[index]);
+                    task.projectId = project?.id || projects[0]?.id;
+                    break;
+                  case 'priority':
+                    task.priority = values[index] as "low" | "medium" | "high";
+                    break;
+                  case 'status':
+                    task.status = values[index] as any;
+                    break;
+                  case 'assigneeId':
+                    task.assigneeId = values[index];
+                    break;
+                  case 'dueDate':
+                    task.dueDate = values[index];
+                    break;
+                  case 'estimatedHours':
+                    task.estimatedHours = parseInt(values[index]);
+                    break;
+                  default:
+                    // Handle custom fields
+                    if (!task.customFields) task.customFields = {};
+                    task.customFields[field] = values[index];
+                }
+              }
+            });
+            
+            if (task.title) {
+              tasks.push(task);
+            }
+          }
+        }
+        
+        tasksToImport = tasks;
+        
+        if (tasksToImport.length === 0) {
+          toast({
+            title: "Error",
+            description: "No valid tasks found to import.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to process import data.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setIsProcessing(true);
@@ -272,7 +389,7 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
     try {
       let successCount = 0;
       
-      for (const taskData of previewTasks) {
+      for (const taskData of tasksToImport) {
         if (taskData.title && taskData.projectId) {
           const newTask: Omit<Task, 'id'> = {
             title: taskData.title,
@@ -437,18 +554,18 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
             )}
             <Button 
               onClick={handleImport} 
-              disabled={previewTasks.length === 0 || isProcessing}
-              className={previewTasks.length > 0 ? "bg-primary" : ""}
+              disabled={!showMapping || !Object.values(columnMapping).some(v => v === 'title') || isProcessing}
+              className="bg-primary"
             >
               <Upload className="h-4 w-4 mr-2" />
-              {isProcessing ? "Importing..." : `Import ${previewTasks.length} Tasks`}
+              {isProcessing ? "Importing..." : "Import Tasks"}
             </Button>
           </div>
 
-          {showMapping && previewTasks.length === 0 && (
+          {showMapping && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-sm text-blue-800">
-                <strong>Next step:</strong> Map at least one column to "Title" and click "Generate Preview" to enable import.
+                <strong>Ready to import:</strong> Map at least one column to "Title" to enable direct import, or generate a preview first.
               </p>
             </div>
           )}
@@ -532,10 +649,7 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
               2. Map your columns to the correct fields (including custom fields)
             </div>
             <div>
-              3. Generate preview to verify the mapping
-            </div>
-            <div>
-              4. Import your tasks
+              3. Import directly or generate preview first (optional)
             </div>
             <div>
               <strong>Note:</strong> Only "Title" field is required. All other fields are optional.
