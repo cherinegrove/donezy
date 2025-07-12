@@ -258,49 +258,51 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }
         {renderDisplayOptionsButton()}
       </div>
       
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {columns.map((column) => (
-          <div
-            key={column.id}
-            className="flex-1 min-w-[250px]"
-            onDragOver={handleDragOver}
-            onDrop={() => handleDrop(column.id)}
-          >
-            <div 
-              className="rounded-lg p-3 h-full"
-              style={{ backgroundColor: columnColors[column.id] }}
+      <div className="overflow-x-auto">
+        <div className="flex gap-4 min-w-max pb-4">
+          {columns.map((column) => (
+            <div
+              key={column.id}
+              className="flex-1 min-w-[250px]"
+              onDragOver={handleDragOver}
+              onDrop={() => handleDrop(column.id)}
             >
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-medium text-sm">{column.title}</h3>
-                <span className="text-xs bg-background/40 px-2 py-1 rounded-full">
-                  {tasksByStatus[column.id].length}
-                </span>
-              </div>
-              
-              <div className="space-y-3 min-h-[500px]">
-                {tasksByStatus[column.id].map(task => (
-                  <div
-                    key={task.id}
-                    draggable
-                    onDragStart={() => handleDragStart(task)}
-                  >
-                    <TaskCard 
-                      task={task} 
-                      onClick={() => handleTaskClick(task)}
-                      displayOptions={displayOptions}
-                    />
-                  </div>
-                ))}
+              <div 
+                className="rounded-lg p-3 h-full"
+                style={{ backgroundColor: columnColors[column.id] }}
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-medium text-sm">{column.title}</h3>
+                  <span className="text-xs bg-background/40 px-2 py-1 rounded-full">
+                    {tasksByStatus[column.id].length}
+                  </span>
+                </div>
                 
-                {tasksByStatus[column.id].length === 0 && (
-                  <div className="border-2 border-dashed border-muted rounded-md h-20 flex items-center justify-center bg-background/40">
-                    <p className="text-sm text-muted-foreground">Drop tasks here</p>
-                  </div>
-                )}
+                <div className="space-y-3 min-h-[500px]">
+                  {tasksByStatus[column.id].map(task => (
+                    <div
+                      key={task.id}
+                      draggable
+                      onDragStart={() => handleDragStart(task)}
+                    >
+                      <TaskCard 
+                        task={task} 
+                        onClick={() => handleTaskClick(task)}
+                        displayOptions={displayOptions}
+                      />
+                    </div>
+                  ))}
+                  
+                  {tasksByStatus[column.id].length === 0 && (
+                    <div className="border-2 border-dashed border-muted rounded-md h-20 flex items-center justify-center bg-background/40">
+                      <p className="text-sm text-muted-foreground">Drop tasks here</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
       
       {selectedTask && (
