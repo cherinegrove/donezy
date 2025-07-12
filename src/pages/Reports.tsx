@@ -45,8 +45,8 @@ export default function Reports() {
   });
 
   // Calculate metrics
-  const totalHours = filteredTimeEntries.reduce((sum, entry) => sum + entry.duration, 0) / 60;
-  const billableHours = filteredTimeEntries.filter(entry => entry.billable).reduce((sum, entry) => sum + entry.duration, 0) / 60;
+  const totalHours = filteredTimeEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60;
+  const billableHours = filteredTimeEntries.filter(entry => entry.status === 'approved').reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60;
   const totalProjects = filteredProjects.length;
   const completedProjects = filteredProjects.filter(p => p.status === "done").length;
   const totalTasks = filteredTasks.length;
@@ -71,16 +71,16 @@ export default function Reports() {
   // Time tracking by day
   const timeByDay = filteredTimeEntries.reduce((acc, entry) => {
     const date = new Date(entry.startTime).toLocaleDateString();
-    const hours = entry.duration / 60;
+    const hours = (entry.duration || 0) / 60;
     const existing = acc.find(item => item.date === date);
     if (existing) {
       existing.hours += hours;
-      if (entry.billable) existing.billableHours += hours;
+      if (entry.status === 'approved') existing.billableHours += hours;
     } else {
       acc.push({
         date,
         hours,
-        billableHours: entry.billable ? hours : 0
+        billableHours: entry.status === 'approved' ? hours : 0
       });
     }
     return acc;
@@ -88,27 +88,28 @@ export default function Reports() {
 
   // Team productivity
   const teamProductivity = teams.map(team => {
+    const teamMembers = users.filter(user => user.teamIds?.includes(team.id));
     const teamTimeEntries = filteredTimeEntries.filter(entry => 
-      team.memberIds.includes(entry.userId)
+      teamMembers.some(member => member.id === entry.userId)
     );
     const teamTasks = filteredTasks.filter(task => 
-      task.assigneeId && team.memberIds.includes(task.assigneeId)
+      task.assigneeId && teamMembers.some(member => member.id === task.assigneeId)
     );
     
     return {
       name: team.name,
-      hours: teamTimeEntries.reduce((sum, entry) => sum + entry.duration, 0) / 60,
+      hours: teamTimeEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60,
       completedTasks: teamTasks.filter(task => task.status === "done").length,
       totalTasks: teamTasks.length,
-      members: team.memberIds.length
+      members: teamMembers.length
     };
   });
 
   // Client revenue (simplified calculation)
   const clientRevenue = clients.map(client => {
     const clientTimeEntries = filteredTimeEntries.filter(entry => entry.clientId === client.id);
-    const billableTime = clientTimeEntries.filter(entry => entry.billable).reduce((sum, entry) => sum + entry.duration, 0) / 60;
-    const revenue = billableTime * (client.billableRate || 100); // Default rate if not set
+    const billableTime = clientTimeEntries.filter(entry => entry.status === 'approved').reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60;
+    const revenue = billableTime * 100; // Default rate of $100/hour
     
     return {
       name: client.name,
