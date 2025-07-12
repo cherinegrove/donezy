@@ -28,14 +28,15 @@ const Home = () => {
     | "user-filter"
     | "tasks-due-today" 
     | "overdue-tasks"
-    | "dashboard-cards"
-    | "main-content";
-    
+    | "main-content"
+    | CardType;
+     
   const [sectionOrder, setSectionOrder] = useState<DashboardSection[]>([
     "user-filter",
     "tasks-due-today",
     "overdue-tasks", 
-    "dashboard-cards",
+    "time-logs",
+    "notes",
     "main-content"
   ]);
 
@@ -135,11 +136,18 @@ const Home = () => {
   };
 
   const handleCardToggle = (cardId: CardType) => {
-    setSelectedCards(prev => 
-      prev.includes(cardId) 
-        ? prev.filter(id => id !== cardId)
-        : [...prev, cardId]
-    );
+    setSectionOrder(prev => {
+      if (prev.includes(cardId)) {
+        // Remove the card
+        return prev.filter(id => id !== cardId);
+      } else {
+        // Add the card before main-content
+        const mainContentIndex = prev.indexOf("main-content");
+        const newOrder = [...prev];
+        newOrder.splice(mainContentIndex, 0, cardId);
+        return newOrder;
+      }
+    });
   };
 
   const renderCard = (cardType: CardType) => {
@@ -147,15 +155,75 @@ const Home = () => {
     
     switch (cardType) {
       case "collaborator-tasks":
-        return <CollaboratorTasksCard key={cardType} onRemove={onRemove} />;
+        return (
+          <Card key={cardType}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                Collaborator Tasks
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CollaboratorTasksCard onRemove={onRemove} />
+            </CardContent>
+          </Card>
+        );
       case "time-logs":
-        return <TimeLogsCard key={cardType} onRemove={onRemove} />;
+        return (
+          <Card key={cardType}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                Time Logs
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TimeLogsCard onRemove={onRemove} />
+            </CardContent>
+          </Card>
+        );
       case "notes":
-        return <NotesCard key={cardType} onRemove={onRemove} />;
+        return (
+          <Card key={cardType}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                Notes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <NotesCard onRemove={onRemove} />
+            </CardContent>
+          </Card>
+        );
       case "recent-tasks":
-        return <RecentTasksCard key={cardType} onRemove={onRemove} />;
+        return (
+          <Card key={cardType}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                Recent Tasks
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RecentTasksCard onRemove={onRemove} />
+            </CardContent>
+          </Card>
+        );
       case "notifications":
-        return <NotificationsCard key={cardType} onRemove={onRemove} />;
+        return (
+          <Card key={cardType}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                Notifications
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <NotificationsCard onRemove={onRemove} />
+            </CardContent>
+          </Card>
+        );
       default:
         return null;
     }
@@ -303,22 +371,12 @@ const Home = () => {
             </Card>
           );
 
-        case "dashboard-cards":
-          return selectedCards.length > 0 ? (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                  Dashboard Cards
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {selectedCards.map(renderCard)}
-                </div>
-              </CardContent>
-            </Card>
-          ) : null;
+        case "collaborator-tasks":
+        case "time-logs":
+        case "notes":
+        case "recent-tasks":
+        case "notifications":
+          return renderCard(sectionId as CardType);
 
         case "main-content":
           return (
@@ -437,7 +495,9 @@ const Home = () => {
           </p>
         </div>
         <CardSelector 
-          selectedCards={selectedCards} 
+          selectedCards={sectionOrder.filter(section => 
+            ["collaborator-tasks", "time-logs", "notes", "recent-tasks", "notifications"].includes(section)
+          ) as CardType[]} 
           onCardToggle={handleCardToggle} 
         />
       </div>
