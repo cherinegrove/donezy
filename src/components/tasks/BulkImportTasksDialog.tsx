@@ -116,6 +116,10 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
       setAvailableColumns(columns);
       setShowMapping(true);
       
+      console.log("=== IMPORT DEBUG ===");
+      console.log("Available columns:", columns);
+      console.log("Import data preview:", importData.substring(0, 200));
+      
       toast({
         title: "Ready for Mapping",
         description: `Found ${columns.length} columns. Please map them to the correct fields.`,
@@ -130,6 +134,10 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
   };
 
   const processImportWithMapping = () => {
+    console.log("=== PROCESSING IMPORT ===");
+    console.log("Column mapping:", columnMapping);
+    console.log("Available columns:", availableColumns);
+    
     try {
       let tasks: Partial<Task>[] = [];
       
@@ -230,6 +238,10 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
           }
         }
       }
+      
+      console.log("=== PREVIEW TASKS GENERATED ===");
+      console.log("Number of tasks:", tasks.length);
+      console.log("First task:", tasks[0]);
       
       setPreviewTasks(tasks);
       toast({
@@ -414,7 +426,11 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
               Parse & Map Fields
             </Button>
             {showMapping && (
-              <Button onClick={processImportWithMapping} variant="outline">
+              <Button 
+                onClick={processImportWithMapping} 
+                variant="outline"
+                disabled={!Object.values(columnMapping).some(v => v === 'title')}
+              >
                 <FileText className="h-4 w-4 mr-2" />
                 Generate Preview
               </Button>
@@ -422,11 +438,20 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
             <Button 
               onClick={handleImport} 
               disabled={previewTasks.length === 0 || isProcessing}
+              className={previewTasks.length > 0 ? "bg-primary" : ""}
             >
               <Upload className="h-4 w-4 mr-2" />
               {isProcessing ? "Importing..." : `Import ${previewTasks.length} Tasks`}
             </Button>
           </div>
+
+          {showMapping && previewTasks.length === 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-800">
+                <strong>Next step:</strong> Map at least one column to "Title" and click "Generate Preview" to enable import.
+              </p>
+            </div>
+          )}
 
           {showMapping && (
             <div className="border rounded-lg p-4">
