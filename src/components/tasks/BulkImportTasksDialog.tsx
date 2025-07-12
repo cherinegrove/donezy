@@ -388,34 +388,67 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
     
     try {
       let successCount = 0;
+      let failedCount = 0;
+      const errors: string[] = [];
       
       for (const taskData of tasksToImport) {
-        if (taskData.title && taskData.projectId) {
-          const newTask: Omit<Task, 'id'> = {
-            title: taskData.title,
-            description: taskData.description || "",
-            projectId: taskData.projectId || projects[0]?.id,
-            status: taskData.status || "todo",
-            priority: taskData.priority || "medium",
-            assigneeId: taskData.assigneeId,
-            dueDate: taskData.dueDate,
-            estimatedHours: taskData.estimatedHours,
-            createdAt: new Date().toISOString(),
-            collaboratorIds: taskData.collaboratorIds || [],
-            subtasks: taskData.subtasks || [],
-            watcherIds: taskData.watcherIds || [],
-            customFields: taskData.customFields || {},
-          };
-          
-          addTask(newTask);
-          successCount++;
+        if (taskData.title) {
+          try {
+            // Ensure we have a valid project ID
+            const projectId = taskData.projectId || projects[0]?.id;
+            
+            if (!projectId) {
+              errors.push(`Task "${taskData.title}": No project available`);
+              failedCount++;
+              continue;
+            }
+            
+            const newTask: Omit<Task, 'id'> = {
+              title: taskData.title,
+              description: taskData.description || "",
+              projectId: projectId,
+              status: taskData.status || "todo",
+              priority: taskData.priority || "medium",
+              assigneeId: taskData.assigneeId,
+              dueDate: taskData.dueDate,
+              estimatedHours: taskData.estimatedHours,
+              createdAt: new Date().toISOString(),
+              collaboratorIds: taskData.collaboratorIds || [],
+              subtasks: taskData.subtasks || [],
+              watcherIds: taskData.watcherIds || [],
+              customFields: taskData.customFields || {},
+            };
+            
+            console.log('=== ADDING TASK ===', newTask);
+            addTask(newTask);
+            successCount++;
+          } catch (error) {
+            console.error('Failed to add task:', error);
+            errors.push(`Task "${taskData.title}": ${error instanceof Error ? error.message : 'Unknown error'}`);
+            failedCount++;
+          }
+        } else {
+          errors.push('Task missing title');
+          failedCount++;
         }
       }
       
-      toast({
-        title: "Import Successful",
-        description: `Successfully imported ${successCount} tasks.`,
-      });
+      if (errors.length > 0) {
+        console.error('Import errors:', errors);
+      }
+      
+      if (successCount > 0) {
+        toast({
+          title: "Import Successful",
+          description: `Successfully imported ${successCount} tasks.${failedCount > 0 ? ` ${failedCount} tasks failed.` : ''}`,
+        });
+      } else {
+        toast({
+          title: "Import Failed",
+          description: failedCount > 0 ? `${failedCount} tasks failed to import. Check console for details.` : "No tasks were imported.",
+          variant: "destructive",
+        });
+      }
       
       setImportData("");
       setPreviewTasks([]);
