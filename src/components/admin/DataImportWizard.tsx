@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -7,10 +7,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Download, FileText, X, ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { Upload, Download, FileText, X, ChevronRight, ChevronLeft, Check, File } from "lucide-react";
 import { Task } from "@/types";
 import { Progress } from "@/components/ui/progress";
 
@@ -27,13 +26,16 @@ export function DataImportWizard({ open, onOpenChange, importType }: DataImportW
   // Step management
   const [currentStep, setCurrentStep] = useState(1);
   const [importData, setImportData] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [availableColumns, setAvailableColumns] = useState<string[]>([]);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const steps = [
-    { id: 1, title: "Import Data", description: "Upload or paste your data" },
+    { id: 1, title: "Upload File", description: "Upload CSV or JSON file" },
     { id: 2, title: "Map Fields", description: "Map columns to system fields" },
     { id: 3, title: "Preview", description: "Review data before importing" },
     { id: 4, title: "Complete", description: "Import data to system" }
@@ -109,16 +111,66 @@ export function DataImportWizard({ open, onOpenChange, importType }: DataImportW
 
   const config = getImportConfig();
 
-  const parseData = () => {
+  const handleFileSelect = async (file: File) => {
+    if (!file) return;
+    
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+    if (!['csv', 'json'].includes(fileExtension || '')) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload a CSV or JSON file.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setSelectedFile(file);
+    
+    try {
+      const text = await file.text();
+      setImportData(text);
+      parseData(text);
+    } catch (error) {
+      toast({
+        title: "File Read Error",
+        description: "Failed to read the file. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const parseData = (data?: string) => {
+    const dataToUse = data || importData;
+    
     try {
       let columns: string[] = [];
       
-      if (importData.trim().startsWith('[') || importData.trim().startsWith('{')) {
-        const parsed = JSON.parse(importData);
+      if (dataToUse.trim().startsWith('[') || dataToUse.trim().startsWith('{')) {
+        const parsed = JSON.parse(dataToUse);
         const firstItem = Array.isArray(parsed) ? parsed[0] : parsed;
         columns = Object.keys(firstItem || {});
       } else {
-        const lines = importData.trim().split('\n');
+        const lines = dataToUse.trim().split('\n');
         columns = lines[0].split(',').map(h => h.trim());
       }
       
@@ -126,13 +178,13 @@ export function DataImportWizard({ open, onOpenChange, importType }: DataImportW
       setCurrentStep(2);
       
       toast({
-        title: "Data Parsed Successfully",
+        title: "File Parsed Successfully",
         description: `Found ${columns.length} columns to map.`,
       });
     } catch (error) {
       toast({
         title: "Parse Error",
-        description: "Failed to parse data. Please check the format.",
+        description: "Failed to parse file. Please check the format.",
         variant: "destructive",
       });
     }
@@ -249,10 +301,12 @@ export function DataImportWizard({ open, onOpenChange, importType }: DataImportW
   const handleReset = () => {
     setCurrentStep(1);
     setImportData("");
+    setSelectedFile(null);
     setColumnMapping({});
     setAvailableColumns([]);
     setPreviewData([]);
     setIsProcessing(false);
+    setIsDragOver(false);
   };
 
   const canProceedToNext = () => {
@@ -308,15 +362,90 @@ export function DataImportWizard({ open, onOpenChange, importType }: DataImportW
           {/* Step 1: Import Data */}
           {currentStep === 1 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Step 1: Import Your Data</h3>
-              <div>
-                <label className="text-sm font-medium">Paste your CSV or JSON data</label>
-                <Textarea
-                  placeholder="Paste your data here..."
-                  value={importData}
-                  onChange={(e) => setImportData(e.target.value)}
-                  className="min-h-[300px] font-mono text-sm mt-2"
-                />
+              <h3 className="text-lg font-semibold">Step 1: Upload Your File</h3>
+              
+              {/* File Upload Area */}
+              <div
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  isDragOver 
+                    ? 'border-primary bg-primary/10' 
+                    : selectedFile 
+                      ? 'border-green-500 bg-green-50' 
+                      : 'border-muted-foreground hover:border-primary'
+                }`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+              >
+                {selectedFile ? (
+                  <div className="space-y-2">
+                    <File className="w-12 h-12 mx-auto text-green-600" />
+                    <p className="text-lg font-medium text-green-700">{selectedFile.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {(selectedFile.size / 1024).toFixed(1)} KB • {selectedFile.type || 'Unknown type'}
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setImportData("");
+                        setAvailableColumns([]);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = '';
+                        }
+                      }}
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Remove File
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <Upload className="w-12 h-12 mx-auto text-muted-foreground" />
+                    <div>
+                      <p className="text-lg font-medium">
+                        Drag & drop your file here
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Supports CSV and JSON files
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Button 
+                        onClick={() => fileInputRef.current?.click()}
+                        variant="outline"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Choose File
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Maximum file size: 10MB
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Hidden File Input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.json"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileSelect(file);
+                }}
+                className="hidden"
+              />
+
+              {/* File Format Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-medium text-blue-900 mb-2">Supported Formats:</h4>
+                <div className="text-sm text-blue-800 space-y-1">
+                  <p><strong>CSV:</strong> Comma-separated values with headers in the first row</p>
+                  <p><strong>JSON:</strong> Array of objects or single object with consistent structure</p>
+                </div>
               </div>
             </div>
           )}
