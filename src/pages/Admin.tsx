@@ -11,9 +11,10 @@ import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
 import { NativeFieldsManager } from "@/components/admin/NativeFieldsManager";
 import { TaskTemplateManager } from "@/components/admin/TaskTemplateManager";
+import { DataImportManager } from "@/components/admin/DataImportManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AreaChart, BarChart3, Box, Database, Settings, ShieldAlert, Users, FileText, Plus, CheckSquare, Folder } from "lucide-react";
+import { AreaChart, BarChart3, Box, Database, Settings, ShieldAlert, Users, FileText, Plus, CheckSquare, Folder, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Clients from "@/pages/Clients";
 import { ProjectStatusManager } from "@/components/admin/ProjectStatusManager";
@@ -57,6 +58,7 @@ export default function Admin() {
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="user-management">User Management</TabsTrigger>
           <TabsTrigger value="subscription">Subscription & Billing</TabsTrigger>
+          <TabsTrigger value="data-import">Data Import</TabsTrigger>
           <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="roles">Roles</TabsTrigger>
@@ -157,6 +159,10 @@ export default function Admin() {
 
         <TabsContent value="user-management" className="space-y-6">
           <AdminUsers />
+        </TabsContent>
+
+        <TabsContent value="data-import" className="space-y-6">
+          <DataImportManager />
         </TabsContent>
 
         <TabsContent value="subscription" className="space-y-6">

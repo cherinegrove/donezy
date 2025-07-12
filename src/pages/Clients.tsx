@@ -40,7 +40,7 @@ import {
 import { AddClientDialog } from "@/components/clients/AddClientDialog";
 import { EditClientDialog } from "@/components/clients/EditClientDialog";
 import { BulkImportClientsDialog } from "@/components/clients/BulkImportClientsDialog";
-import { MoreVertical, Edit, Trash2, Upload } from "lucide-react";
+import { MoreVertical, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Clients() {
@@ -98,13 +98,7 @@ export default function Clients() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Clients</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            Import Clients
-          </Button>
-          <Button onClick={() => setAddDialogOpen(true)}>Add Client</Button>
-        </div>
+        <Button onClick={() => setAddDialogOpen(true)}>Add Client</Button>
       </div>
 
       <div className="flex items-center space-x-4 mb-4">
@@ -202,11 +196,6 @@ export default function Clients() {
           onClose={() => setEditingClient(null)}
         />
       )}
-
-      <BulkImportClientsDialog
-        open={importDialogOpen}
-        onOpenChange={setImportDialogOpen}
-      />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
