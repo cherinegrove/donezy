@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,7 +10,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Download, FileText } from "lucide-react";
+import { Upload, Download, FileText, X } from "lucide-react";
 import { Client } from "@/types";
 
 interface BulkImportClientsDialogProps {
@@ -21,9 +21,76 @@ interface BulkImportClientsDialogProps {
 export function BulkImportClientsDialog({ open, onOpenChange }: BulkImportClientsDialogProps) {
   const { addClient } = useAppContext();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [importData, setImportData] = useState("");
   const [previewClients, setPreviewClients] = useState<Partial<Client>[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+
+  const handleFileRead = (content: string, fileName: string) => {
+    setImportData(content);
+    setUploadedFileName(fileName);
+    toast({
+      title: "File Uploaded",
+      description: `${fileName} has been loaded successfully.`,
+    });
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      handleFileRead(content, file.name);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(false);
+    
+    const file = event.dataTransfer.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.json')) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload a CSV or JSON file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      handleFileRead(content, file.name);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const clearData = () => {
+    setImportData("");
+    setPreviewClients([]);
+    setUploadedFileName(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handlePreview = () => {
     try {
@@ -126,6 +193,10 @@ export function BulkImportClientsDialog({ open, onOpenChange }: BulkImportClient
       
       setImportData("");
       setPreviewClients([]);
+      setUploadedFileName(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       onOpenChange(false);
     } catch (error) {
       toast({
@@ -167,10 +238,53 @@ export function BulkImportClientsDialog({ open, onOpenChange }: BulkImportClient
               <Download className="h-4 w-4" />
               Download CSV Template
             </Button>
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Upload File
+            </Button>
+            {(importData || uploadedFileName) && (
+              <Button variant="outline" onClick={clearData} className="flex items-center gap-2">
+                <X className="h-4 w-4" />
+                Clear
+              </Button>
+            )}
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.json"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+
+          <div
+            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+              isDragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
+            }`}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+          >
+            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground mb-2">
+              Drag and drop your CSV or JSON file here, or{" "}
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="text-primary hover:underline"
+              >
+                browse files
+              </button>
+            </p>
+            {uploadedFileName && (
+              <p className="text-sm font-medium text-primary">
+                Uploaded: {uploadedFileName}
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="text-sm font-medium">Import Data</label>
+            <label className="text-sm font-medium">Or paste your data directly</label>
             <Textarea
               placeholder="Paste your CSV or JSON data here..."
               value={importData}
