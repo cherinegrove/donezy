@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { subDays, isAfter, isBefore, isEqual } from "date-fns";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,7 +26,9 @@ export default function Reports() {
     purchases 
   } = useAppContext();
   
-  const [dateRange, setDateRange] = useState("30");
+  // Initialize with last 30 days
+  const [startDate, setStartDate] = useState<Date | undefined>(() => subDays(new Date(), 30));
+  const [endDate, setEndDate] = useState<Date | undefined>(() => new Date());
   const [selectedClient, setSelectedClient] = useState<string>("all");
   const [selectedProject, setSelectedProject] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<ReportTab>("projects");
@@ -41,11 +44,18 @@ export default function Reports() {
 
   const filteredTimeEntries = timeEntries.filter(entry => {
     const entryDate = new Date(entry.startTime);
-    const daysAgo = parseInt(dateRange);
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
     
-    let matchesDateRange = entryDate >= cutoffDate;
+    // Date range filtering
+    let matchesDateRange = true;
+    if (startDate && endDate) {
+      matchesDateRange = (isAfter(entryDate, startDate) || isEqual(entryDate, startDate)) && 
+                        (isBefore(entryDate, endDate) || isEqual(entryDate, endDate));
+    } else if (startDate) {
+      matchesDateRange = isAfter(entryDate, startDate) || isEqual(entryDate, startDate);
+    } else if (endDate) {
+      matchesDateRange = isBefore(entryDate, endDate) || isEqual(entryDate, endDate);
+    }
+    
     let matchesClient = selectedClient === "all" || entry.clientId === selectedClient;
     let matchesProject = selectedProject === "all" || entry.projectId === selectedProject;
     
@@ -84,7 +94,8 @@ export default function Reports() {
         completedTasks
       },
       tab: activeTab,
-      dateRange,
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString(),
       selectedClient,
       selectedProject
     };
@@ -111,10 +122,12 @@ export default function Reports() {
 
       {/* Global Filters */}
       <ReportsFilters
-        dateRange={dateRange}
+        startDate={startDate}
+        endDate={endDate}
         selectedClient={selectedClient}
         selectedProject={selectedProject}
-        onDateRangeChange={setDateRange}
+        onStartDateChange={setStartDate}
+        onEndDateChange={setEndDate}
         onClientChange={setSelectedClient}
         onProjectChange={setSelectedProject}
         clients={clients}
