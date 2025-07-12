@@ -253,12 +253,12 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }
   
   // Default: Render Kanban view
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full">
       <div className="flex justify-end mb-4">
         {renderDisplayOptionsButton()}
       </div>
       
-      <div className="flex min-w-[800px] gap-4">
+      <div className="flex gap-4 overflow-x-auto pb-4">
         {columns.map((column) => (
           <div
             key={column.id}
