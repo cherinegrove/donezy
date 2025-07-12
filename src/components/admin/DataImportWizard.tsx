@@ -246,12 +246,38 @@ export function DataImportWizard({ open, onOpenChange, importType }: DataImportW
     
     try {
       let successCount = 0;
+      let failedCount = 0;
+      const errors: string[] = [];
+      
+      console.log('=== STARTING IMPORT ===');
+      console.log('Import type:', importType);
+      console.log('Preview data:', previewData);
+      console.log('Projects available:', projects);
       
       if (importType === "tasks") {
-        for (const taskData of previewData) {
+        for (let i = 0; i < previewData.length; i++) {
+          const taskData = previewData[i];
+          console.log(`Processing task ${i + 1}:`, taskData);
+          
           const projectId = taskData.projectId || projects[0]?.id;
           
-          if (projectId && taskData.title) {
+          if (!projectId) {
+            const error = `Task "${taskData.title}": No project available`;
+            errors.push(error);
+            console.error(error);
+            failedCount++;
+            continue;
+          }
+          
+          if (!taskData.title) {
+            const error = `Task ${i + 1}: Missing title`;
+            errors.push(error);
+            console.error(error);
+            failedCount++;
+            continue;
+          }
+          
+          try {
             const newTask: Omit<Task, 'id'> = {
               title: taskData.title,
               description: taskData.description || "",
@@ -268,18 +294,38 @@ export function DataImportWizard({ open, onOpenChange, importType }: DataImportW
               customFields: {},
             };
             
+            console.log(`Adding task ${i + 1}:`, newTask);
             await addTask(newTask);
+            console.log(`Task ${i + 1} added successfully`);
             successCount++;
+          } catch (taskError) {
+            const error = `Task "${taskData.title}": ${taskError instanceof Error ? taskError.message : 'Unknown error'}`;
+            errors.push(error);
+            console.error(`Failed to add task ${i + 1}:`, taskError);
+            failedCount++;
           }
         }
       }
       
+      console.log('=== IMPORT COMPLETE ===');
+      console.log('Success count:', successCount);
+      console.log('Failed count:', failedCount);
+      console.log('Errors:', errors);
+      
       setCurrentStep(4);
       
-      toast({
-        title: "Import Complete",
-        description: `Successfully imported ${successCount} ${importType}.`,
-      });
+      if (successCount > 0) {
+        toast({
+          title: "Import Complete",
+          description: `Successfully imported ${successCount} ${importType}.${failedCount > 0 ? ` ${failedCount} failed.` : ''}`,
+        });
+      } else {
+        toast({
+          title: "Import Failed",
+          description: failedCount > 0 ? `${failedCount} ${importType} failed to import. Check console for details.` : "No data was imported.",
+          variant: "destructive",
+        });
+      }
       
       // Auto-close after a delay
       setTimeout(() => {
@@ -288,9 +334,10 @@ export function DataImportWizard({ open, onOpenChange, importType }: DataImportW
       }, 2000);
       
     } catch (error) {
+      console.error('Import process failed:', error);
       toast({
         title: "Import Failed",
-        description: "An error occurred during import.",
+        description: "An error occurred during import. Check console for details.",
         variant: "destructive",
       });
     } finally {
