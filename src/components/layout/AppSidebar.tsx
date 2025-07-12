@@ -42,7 +42,7 @@ export function AppSidebar() {
     <div
       className={cn(
         "fixed inset-y-0 z-30 md:relative flex-col bg-background border-r border-border transition-transform md:flex",
-        collapsed ? "md:w-[80px] w-0" : "md:w-[240px] w-[270px]",
+        collapsed ? "md:w-[90px] w-0" : "md:w-[280px] w-[280px]",
         !collapsed && !isMobile ? "flex translate-x-0" : "flex md:translate-x-0 -translate-x-full"
       )}
     >
