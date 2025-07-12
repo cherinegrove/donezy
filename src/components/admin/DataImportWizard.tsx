@@ -211,11 +211,80 @@ export function DataImportWizard({ open, onOpenChange, importType }: DataImportW
         }
       }
 
+      // Helper function to normalize status values
+      const normalizeStatus = (status: string): string => {
+        if (!status) return "todo";
+        
+        const normalized = status.toLowerCase().trim();
+        const statusMap: Record<string, string> = {
+          "to do": "todo",
+          "todo": "todo",
+          "to-do": "todo",
+          "pending": "todo",
+          "new": "todo",
+          "open": "todo",
+          "in progress": "in-progress",
+          "in-progress": "in-progress",
+          "inprogress": "in-progress",
+          "working": "in-progress",
+          "active": "in-progress",
+          "doing": "in-progress",
+          "review": "review",
+          "reviewing": "review",
+          "testing": "review",
+          "qa": "review",
+          "done": "done",
+          "completed": "done",
+          "finished": "done",
+          "closed": "done",
+          "complete": "done",
+          "backlog": "backlog",
+          "planned": "backlog",
+          "future": "backlog"
+        };
+        
+        return statusMap[normalized] || "todo";
+      };
+
+      // Helper function to normalize priority values
+      const normalizePriority = (priority: string): "low" | "medium" | "high" => {
+        if (!priority) return "medium";
+        
+        const normalized = priority.toLowerCase().trim();
+        const priorityMap: Record<string, "low" | "medium" | "high"> = {
+          "low": "low",
+          "l": "low",
+          "1": "low",
+          "minor": "low",
+          "medium": "medium",
+          "med": "medium",
+          "m": "medium",
+          "2": "medium",
+          "normal": "medium",
+          "high": "high",
+          "h": "high",
+          "3": "high",
+          "urgent": "high",
+          "critical": "high"
+        };
+        
+        return priorityMap[normalized] || "medium";
+      };
+
       const mappedData = items.map(item => {
         const mapped: any = {};
         Object.entries(columnMapping).forEach(([column, field]) => {
           if (field && item[column] !== undefined) {
-            mapped[field] = item[column];
+            let value = item[column];
+            
+            // Apply special normalization for certain fields
+            if (field === 'status') {
+              value = normalizeStatus(value);
+            } else if (field === 'priority') {
+              value = normalizePriority(value);
+            }
+            
+            mapped[field] = value;
           }
         });
         return mapped;
