@@ -39,7 +39,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AddClientDialog } from "@/components/clients/AddClientDialog";
 import { EditClientDialog } from "@/components/clients/EditClientDialog";
-import { MoreVertical, Edit, Trash2 } from "lucide-react";
+import { BulkImportClientsDialog } from "@/components/clients/BulkImportClientsDialog";
+import { MoreVertical, Edit, Trash2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Clients() {
@@ -51,6 +52,7 @@ export default function Clients() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   console.log("Clients page rendering with clients:", clients);
 
@@ -96,7 +98,13 @@ export default function Clients() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Clients</h1>
-        <Button onClick={() => setAddDialogOpen(true)}>Add Client</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Import Clients
+          </Button>
+          <Button onClick={() => setAddDialogOpen(true)}>Add Client</Button>
+        </div>
       </div>
 
       <div className="flex items-center space-x-4 mb-4">
@@ -194,6 +202,11 @@ export default function Clients() {
           onClose={() => setEditingClient(null)}
         />
       )}
+
+      <BulkImportClientsDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+      />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
