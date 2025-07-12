@@ -34,6 +34,14 @@ type ViewMode = "list" | "gantt" | "kanban";
 
 export default function Tasks() {
   const { tasks, projects, users, clients } = useAppContext();
+  
+  // Debug logging to help identify why tasks aren't showing
+  React.useEffect(() => {
+    console.log('=== TASKS DEBUG ===');
+    console.log('Total tasks:', tasks.length);
+    console.log('Tasks:', tasks);
+    console.log('Projects:', projects.length);
+  }, [tasks, projects]);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
   const [isEditTemplateOpen, setIsEditTemplateOpen] = useState(false);

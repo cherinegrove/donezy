@@ -2,11 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, Users, Building, FolderPlus, CheckSquare, Shield } from "lucide-react";
-import { BulkImportClientsDialog } from "@/components/clients/BulkImportClientsDialog";
-import { BulkImportTasksDialog } from "@/components/tasks/BulkImportTasksDialog";
-import { BulkImportProjectsDialog } from "@/components/admin/BulkImportProjectsDialog";
-import { BulkImportTeamsDialog } from "@/components/admin/BulkImportTeamsDialog";
-import { BulkImportRolesDialog } from "@/components/admin/BulkImportRolesDialog";
+import { DataImportWizard } from "./DataImportWizard";
 
 export function DataImportManager() {
   const [activeDialog, setActiveDialog] = useState<string | null>(null);
@@ -146,30 +142,11 @@ export function DataImportManager() {
         </CardContent>
       </Card>
 
-      {/* Import Dialogs */}
-      <BulkImportClientsDialog
-        open={activeDialog === "clients"}
-        onOpenChange={(open) => setActiveDialog(open ? "clients" : null)}
-      />
-      
-      <BulkImportTasksDialog
-        open={activeDialog === "tasks"}
-        onOpenChange={(open) => setActiveDialog(open ? "tasks" : null)}
-      />
-      
-      <BulkImportProjectsDialog
-        open={activeDialog === "projects"}
-        onOpenChange={(open) => setActiveDialog(open ? "projects" : null)}
-      />
-      
-      <BulkImportTeamsDialog
-        open={activeDialog === "teams"}
-        onOpenChange={(open) => setActiveDialog(open ? "teams" : null)}
-      />
-      
-      <BulkImportRolesDialog
-        open={activeDialog === "roles"}
-        onOpenChange={(open) => setActiveDialog(open ? "roles" : null)}
+      {/* Import Wizard */}
+      <DataImportWizard
+        open={activeDialog !== null}
+        onOpenChange={(open) => setActiveDialog(open ? activeDialog : null)}
+        importType={activeDialog as "tasks" | "clients" | "projects" | "teams" | "roles"}
       />
     </div>
   );

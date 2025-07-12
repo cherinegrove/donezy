@@ -420,7 +420,7 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
             };
             
             console.log('=== ADDING TASK ===', newTask);
-            addTask(newTask);
+            await addTask(newTask);
             successCount++;
           } catch (error) {
             console.error('Failed to add task:', error);
