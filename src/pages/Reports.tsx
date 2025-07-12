@@ -1,11 +1,18 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Calendar, Download, TrendingUp, Clock, Users, DollarSign } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Download, Clock, TrendingUp, Users, DollarSign } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import { ReportsFilters } from "@/components/reports/ReportsFilters";
+import { ProjectsReports } from "@/components/reports/ProjectsReports";
+import { TasksReports } from "@/components/reports/TasksReports";
+import { TimeReports } from "@/components/reports/TimeReports";
+import { BillingReports } from "@/components/reports/BillingReports";
+
+type ReportTab = 'projects' | 'tasks' | 'time' | 'billing';
 
 export default function Reports() {
   const { 
@@ -21,6 +28,7 @@ export default function Reports() {
   const [dateRange, setDateRange] = useState("30");
   const [selectedClient, setSelectedClient] = useState<string>("all");
   const [selectedProject, setSelectedProject] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<ReportTab>("projects");
 
   // Filter data based on selected filters
   const filteredProjects = selectedClient === "all" 
@@ -52,60 +60,7 @@ export default function Reports() {
   const totalTasks = filteredTasks.length;
   const completedTasks = filteredTasks.filter(t => t.status === "done").length;
 
-  // Project status distribution
-  const projectStatusData = [
-    { name: "To Do", value: filteredProjects.filter(p => p.status === "todo").length, color: "#8884d8" },
-    { name: "In Progress", value: filteredProjects.filter(p => p.status === "in-progress").length, color: "#82ca9d" },
-    { name: "Done", value: filteredProjects.filter(p => p.status === "done").length, color: "#ffc658" }
-  ];
-
-  // Task status distribution
-  const taskStatusData = [
-    { name: "Backlog", value: filteredTasks.filter(t => t.status === "backlog").length, color: "#8884d8" },
-    { name: "To Do", value: filteredTasks.filter(t => t.status === "todo").length, color: "#82ca9d" },
-    { name: "In Progress", value: filteredTasks.filter(t => t.status === "in-progress").length, color: "#ffc658" },
-    { name: "Review", value: filteredTasks.filter(t => t.status === "review").length, color: "#ff7300" },
-    { name: "Done", value: filteredTasks.filter(t => t.status === "done").length, color: "#00ff00" }
-  ];
-
-  // Time tracking by day
-  const timeByDay = filteredTimeEntries.reduce((acc, entry) => {
-    const date = new Date(entry.startTime).toLocaleDateString();
-    const hours = (entry.duration || 0) / 60;
-    const existing = acc.find(item => item.date === date);
-    if (existing) {
-      existing.hours += hours;
-      if (entry.status === 'approved') existing.billableHours += hours;
-    } else {
-      acc.push({
-        date,
-        hours,
-        billableHours: entry.status === 'approved' ? hours : 0
-      });
-    }
-    return acc;
-  }, [] as { date: string; hours: number; billableHours: number }[]);
-
-  // Team productivity
-  const teamProductivity = teams.map(team => {
-    const teamMembers = users.filter(user => user.teamIds?.includes(team.id));
-    const teamTimeEntries = filteredTimeEntries.filter(entry => 
-      teamMembers.some(member => member.id === entry.userId)
-    );
-    const teamTasks = filteredTasks.filter(task => 
-      task.assigneeId && teamMembers.some(member => member.id === task.assigneeId)
-    );
-    
-    return {
-      name: team.name,
-      hours: teamTimeEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60,
-      completedTasks: teamTasks.filter(task => task.status === "done").length,
-      totalTasks: teamTasks.length,
-      members: teamMembers.length
-    };
-  });
-
-  // Client revenue (simplified calculation)
+  // Client revenue calculation
   const clientRevenue = clients.map(client => {
     const clientTimeEntries = filteredTimeEntries.filter(entry => entry.clientId === client.id);
     const billableTime = clientTimeEntries.filter(entry => entry.status === 'approved').reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60;
@@ -118,20 +73,6 @@ export default function Reports() {
     };
   }).filter(item => item.revenue > 0);
 
-  // Project progress
-  const projectProgress = filteredProjects.map(project => {
-    const projectTasks = allTasks.filter(task => task.projectId === project.id);
-    const completedTasks = projectTasks.filter(task => task.status === "done").length;
-    const progress = projectTasks.length > 0 ? (completedTasks / projectTasks.length) * 100 : 0;
-    
-    return {
-      name: project.name,
-      progress: Math.round(progress),
-      totalTasks: projectTasks.length,
-      completedTasks
-    };
-  });
-
   const exportReport = () => {
     const reportData = {
       summary: {
@@ -142,17 +83,15 @@ export default function Reports() {
         totalTasks,
         completedTasks
       },
-      projectStatus: projectStatusData,
-      taskStatus: taskStatusData,
-      timeTracking: timeByDay,
-      teamProductivity,
-      clientRevenue,
-      projectProgress
+      tab: activeTab,
+      dateRange,
+      selectedClient,
+      selectedProject
     };
     
     const dataStr = JSON.stringify(reportData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = `report-${new Date().toISOString().split('T')[0]}.json`;
+    const exportFileDefaultName = `${activeTab}-report-${new Date().toISOString().split('T')[0]}.json`;
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
@@ -166,64 +105,21 @@ export default function Reports() {
         <h1 className="text-3xl font-bold">Reports & Analytics</h1>
         <Button onClick={exportReport} variant="outline">
           <Download className="h-4 w-4 mr-2" />
-          Export Report
+          Export {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report
         </Button>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Date Range</label>
-              <Select value={dateRange} onValueChange={setDateRange}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7">Last 7 days</SelectItem>
-                  <SelectItem value="30">Last 30 days</SelectItem>
-                  <SelectItem value="90">Last 90 days</SelectItem>
-                  <SelectItem value="365">Last year</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium mb-2 block">Client</label>
-              <Select value={selectedClient} onValueChange={setSelectedClient}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Clients</SelectItem>
-                  {clients.map(client => (
-                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium mb-2 block">Project</label>
-              <Select value={selectedProject} onValueChange={setSelectedProject}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Projects</SelectItem>
-                  {filteredProjects.map(project => (
-                    <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Global Filters */}
+      <ReportsFilters
+        dateRange={dateRange}
+        selectedClient={selectedClient}
+        selectedProject={selectedProject}
+        onDateRangeChange={setDateRange}
+        onClientChange={setSelectedClient}
+        onProjectChange={setSelectedProject}
+        clients={clients}
+        projects={filteredProjects}
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -282,128 +178,31 @@ export default function Reports() {
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Project Status Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={projectStatusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {projectStatusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {/* Tabbed Reports */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ReportTab)}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="projects">Projects</TabsTrigger>
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="time">Time</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Task Status Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={taskStatusData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="projects" className="space-y-6">
+          <ProjectsReports projects={filteredProjects} tasks={filteredTasks} />
+        </TabsContent>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Time Tracking Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={timeByDay}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="hours" stroke="#8884d8" name="Total Hours" />
-                <Line type="monotone" dataKey="billableHours" stroke="#82ca9d" name="Billable Hours" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <TabsContent value="tasks" className="space-y-6">
+          <TasksReports tasks={filteredTasks} />
+        </TabsContent>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Team Productivity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={teamProductivity}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="hours" fill="#8884d8" name="Hours" />
-                <Bar dataKey="completedTasks" fill="#82ca9d" name="Completed Tasks" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="time" className="space-y-6">
+          <TimeReports timeEntries={filteredTimeEntries} users={users} teams={teams} />
+        </TabsContent>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Client Revenue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={clientRevenue}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Revenue']} />
-                <Bar dataKey="revenue" fill="#ffc658" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Project Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={projectProgress}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => [`${value}%`, 'Progress']} />
-                <Bar dataKey="progress" fill="#ff7300" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="billing" className="space-y-6">
+          <BillingReports timeEntries={filteredTimeEntries} clients={clients} purchases={purchases} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
