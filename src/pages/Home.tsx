@@ -28,7 +28,8 @@ const Home = () => {
     | "user-filter"
     | "tasks-due-today" 
     | "overdue-tasks"
-    | "main-content"
+    | "tasks"
+    | "projects"
     | CardType;
      
   const [sectionOrder, setSectionOrder] = useState<DashboardSection[]>([
@@ -37,7 +38,8 @@ const Home = () => {
     "overdue-tasks", 
     "time-logs",
     "notes",
-    "main-content"
+    "tasks",
+    "projects"
   ]);
 
   // Load saved order from localStorage on mount
@@ -141,10 +143,10 @@ const Home = () => {
         // Remove the card
         return prev.filter(id => id !== cardId);
       } else {
-        // Add the card before main-content
-        const mainContentIndex = prev.indexOf("main-content");
+        // Add the card before tasks section
+        const tasksIndex = prev.indexOf("tasks");
         const newOrder = [...prev];
-        newOrder.splice(mainContentIndex, 0, cardId);
+        newOrder.splice(tasksIndex, 0, cardId);
         return newOrder;
       }
     });
@@ -378,75 +380,70 @@ const Home = () => {
         case "notifications":
           return renderCard(sectionId as CardType);
 
-        case "main-content":
+        case "tasks":
           return (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
                   <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                  Tasks & Projects
+                  {selectedUserName} Tasks ({activeTasks.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* All Tasks */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{selectedUserName} Tasks ({activeTasks.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {activeTasks.length > 0 ? (
-                        <TaskList tasks={activeTasks} />
-                      ) : (
-                        <p className="text-center py-6 text-muted-foreground">
-                          No active tasks found
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
+                {activeTasks.length > 0 ? (
+                  <TaskList tasks={activeTasks} />
+                ) : (
+                  <p className="text-center py-6 text-muted-foreground">
+                    No active tasks found
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
 
-                  {/* Projects by Due Date */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{selectedUserName} Projects ({projectsSortedByDueDate.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {projectsSortedByDueDate.length > 0 ? (
-                        <div className="space-y-3">
-                          {projectsSortedByDueDate.map((project) => (
-                            <div key={project.id} className="p-3 border rounded-md">
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-medium">{project.name}</h4>
-                                <Badge className={getProjectStatusColor(project.status)}>
-                                  {project.status}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-muted-foreground mb-2">
-                                {project.description}
-                              </p>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                {project.dueDate && (
-                                  <div className="flex items-center">
-                                    <Calendar className="h-4 w-4 mr-1" />
-                                    Due: {format(parseISO(project.dueDate), "MMM dd, yyyy")}
-                                  </div>
-                                )}
-                                <div className="flex items-center">
-                                  <Clock className="h-4 w-4 mr-1" />
-                                  {project.usedHours}/{project.allocatedHours || 0}h
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+        case "projects":
+          return (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                  {selectedUserName} Projects ({projectsSortedByDueDate.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {projectsSortedByDueDate.length > 0 ? (
+                  <div className="space-y-3">
+                    {projectsSortedByDueDate.map((project) => (
+                      <div key={project.id} className="p-3 border rounded-md">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium">{project.name}</h4>
+                          <Badge className={getProjectStatusColor(project.status)}>
+                            {project.status}
+                          </Badge>
                         </div>
-                      ) : (
-                        <p className="text-center py-6 text-muted-foreground">
-                          No projects found
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {project.description}
                         </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          {project.dueDate && (
+                            <div className="flex items-center">
+                              <Calendar className="h-4 w-4 mr-1" />
+                              Due: {format(parseISO(project.dueDate), "MMM dd, yyyy")}
+                            </div>
+                          )}
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 mr-1" />
+                            {project.usedHours}/{project.allocatedHours || 0}h
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center py-6 text-muted-foreground">
+                    No projects found
+                  </p>
+                )}
               </CardContent>
             </Card>
           );
