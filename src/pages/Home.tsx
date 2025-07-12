@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format, isBefore, isToday, parseISO, startOfToday } from "date-fns";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Calendar, Clock, User } from "lucide-react";
+import { AlertTriangle, Calendar, Clock, User, GripVertical } from "lucide-react";
 import { TaskList } from "@/components/tasks/TaskList";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
 import { Task, Project } from "@/types";
@@ -14,6 +14,7 @@ import { TimeLogsCard } from "@/components/dashboard/cards/TimeLogsCard";
 import { NotesCard } from "@/components/dashboard/cards/NotesCard";
 import { RecentTasksCard } from "@/components/dashboard/cards/RecentTasksCard";
 import { NotificationsCard } from "@/components/dashboard/cards/NotificationsCard";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 
 const Home = () => {
   const { tasks, projects, users, currentUser } = useAppContext();
@@ -21,6 +22,39 @@ const Home = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedCards, setSelectedCards] = useState<CardType[]>(["time-logs", "notes"]);
+  
+  // Dashboard section ordering
+  type DashboardSection = 
+    | "user-filter"
+    | "tasks-due-today" 
+    | "overdue-tasks"
+    | "dashboard-cards"
+    | "main-content";
+    
+  const [sectionOrder, setSectionOrder] = useState<DashboardSection[]>([
+    "user-filter",
+    "tasks-due-today",
+    "overdue-tasks", 
+    "dashboard-cards",
+    "main-content"
+  ]);
+
+  // Load saved order from localStorage on mount
+  useEffect(() => {
+    const savedOrder = localStorage.getItem('dashboard-section-order');
+    if (savedOrder) {
+      try {
+        setSectionOrder(JSON.parse(savedOrder));
+      } catch (error) {
+        console.error('Failed to parse saved section order:', error);
+      }
+    }
+  }, []);
+
+  // Save order to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('dashboard-section-order', JSON.stringify(sectionOrder));
+  }, [sectionOrder]);
 
   const today = startOfToday();
   const isAdminOrManager = currentUser?.role === "admin" || currentUser?.role === "manager";
@@ -142,9 +176,248 @@ const Home = () => {
     }
   };
 
+  // Handle drag and drop reordering
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(sectionOrder);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setSectionOrder(items);
+  };
+
   const selectedUserName = selectedUserId === "me" 
     ? "My" 
     : users.find(u => u.id === selectedUserId)?.name || "User";
+
+  // Render individual sections
+  const renderSection = (sectionId: DashboardSection, index: number) => {
+    const content = (() => {
+      switch (sectionId) {
+        case "user-filter":
+          return isAdminOrManager ? (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                  View Data For
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="me">Myself</SelectItem>
+                    {users.filter(user => user.id !== currentUser?.id).map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+          ) : null;
+
+        case "tasks-due-today":
+          return (
+            <Card className="border-orange-200 bg-orange-50">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-orange-800">
+                  <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                  <Calendar className="h-5 w-5" />
+                  Tasks Due Today ({tasksDueToday.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {tasksDueToday.length > 0 ? (
+                  <div className="space-y-3">
+                    {tasksDueToday.map((task) => (
+                      <div 
+                        key={task.id}
+                        className="p-3 bg-white rounded-md border border-orange-200 cursor-pointer hover:bg-orange-25"
+                        onClick={() => handleTaskClick(task)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{task.title}</h4>
+                            <p className="text-sm text-muted-foreground">{task.description}</p>
+                          </div>
+                          <Badge variant="outline" className="border-orange-300 text-orange-700">
+                            {task.priority}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center py-6 text-muted-foreground">
+                    No tasks due today
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
+
+        case "overdue-tasks":
+          return (
+            <Card className="border-red-200 bg-red-50">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-red-800">
+                  <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                  <AlertTriangle className="h-5 w-5" />
+                  High Risk Overdue Tasks ({overdueHighRiskTasks.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {overdueHighRiskTasks.length > 0 ? (
+                  <div className="space-y-3">
+                    {overdueHighRiskTasks.map((task) => (
+                      <div 
+                        key={task.id}
+                        className="p-3 bg-white rounded-md border border-red-200 cursor-pointer hover:bg-red-25"
+                        onClick={() => handleTaskClick(task)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{task.title}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Due: {task.dueDate && format(parseISO(task.dueDate), "MMM dd, yyyy")}
+                            </p>
+                          </div>
+                          <Badge variant="destructive">
+                            Overdue
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center py-6 text-muted-foreground">
+                    No high-risk overdue tasks
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
+
+        case "dashboard-cards":
+          return selectedCards.length > 0 ? (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                  Dashboard Cards
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {selectedCards.map(renderCard)}
+                </div>
+              </CardContent>
+            </Card>
+          ) : null;
+
+        case "main-content":
+          return (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                  Tasks & Projects
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* All Tasks */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{selectedUserName} Tasks ({activeTasks.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {activeTasks.length > 0 ? (
+                        <TaskList tasks={activeTasks} />
+                      ) : (
+                        <p className="text-center py-6 text-muted-foreground">
+                          No active tasks found
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Projects by Due Date */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{selectedUserName} Projects ({projectsSortedByDueDate.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {projectsSortedByDueDate.length > 0 ? (
+                        <div className="space-y-3">
+                          {projectsSortedByDueDate.map((project) => (
+                            <div key={project.id} className="p-3 border rounded-md">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-medium">{project.name}</h4>
+                                <Badge className={getProjectStatusColor(project.status)}>
+                                  {project.status}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-2">
+                                {project.description}
+                              </p>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                {project.dueDate && (
+                                  <div className="flex items-center">
+                                    <Calendar className="h-4 w-4 mr-1" />
+                                    Due: {format(parseISO(project.dueDate), "MMM dd, yyyy")}
+                                  </div>
+                                )}
+                                <div className="flex items-center">
+                                  <Clock className="h-4 w-4 mr-1" />
+                                  {project.usedHours}/{project.allocatedHours || 0}h
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center py-6 text-muted-foreground">
+                          No projects found
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </CardContent>
+            </Card>
+          );
+
+        default:
+          return null;
+      }
+    })();
+
+    if (!content) return null;
+
+    return (
+      <Draggable key={sectionId} draggableId={sectionId} index={index}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            className={`transition-all duration-200 ${
+              snapshot.isDragging ? 'opacity-50 rotate-2 scale-105' : 'opacity-100'
+            }`}
+          >
+            {content}
+          </div>
+        )}
+      </Draggable>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -152,7 +425,7 @@ const Home = () => {
         <div>
           <h1 className="text-3xl font-bold">Home</h1>
           <p className="text-muted-foreground mt-1">
-            Welcome back, {currentUser?.name}!
+            Welcome back, {currentUser?.name}! Drag the grip icons to reorder sections.
           </p>
         </div>
         <CardSelector 
@@ -161,172 +434,23 @@ const Home = () => {
         />
       </div>
 
-      {/* User Filter for Admin/Manager */}
-      {isAdminOrManager && (
-        <Card>
-          <CardHeader>
-            <CardTitle>View Data For</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select user" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="me">Myself</SelectItem>
-                {users.filter(user => user.id !== currentUser?.id).map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Tasks Due Today - Always show section */}
-      <Card className="border-orange-200 bg-orange-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-orange-800">
-            <Calendar className="h-5 w-5" />
-            Tasks Due Today ({tasksDueToday.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {tasksDueToday.length > 0 ? (
-            <div className="space-y-3">
-              {tasksDueToday.map((task) => (
-                <div 
-                  key={task.id}
-                  className="p-3 bg-white rounded-md border border-orange-200 cursor-pointer hover:bg-orange-25"
-                  onClick={() => handleTaskClick(task)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">{task.title}</h4>
-                      <p className="text-sm text-muted-foreground">{task.description}</p>
-                    </div>
-                    <Badge variant="outline" className="border-orange-300 text-orange-700">
-                      {task.priority}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+      {/* Drag and Drop Dashboard */}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="dashboard-sections">
+          {(provided, snapshot) => (
+            <div
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className={`space-y-6 transition-colors duration-200 rounded-lg p-2 ${
+                snapshot.isDraggingOver ? 'bg-muted/50' : ''
+              }`}
+            >
+              {sectionOrder.map((sectionId, index) => renderSection(sectionId, index))}
+              {provided.placeholder}
             </div>
-          ) : (
-            <p className="text-center py-6 text-muted-foreground">
-              No tasks due today
-            </p>
           )}
-        </CardContent>
-      </Card>
-
-      {/* High Risk Overdue Items - Always show section */}
-      <Card className="border-red-200 bg-red-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-800">
-            <AlertTriangle className="h-5 w-5" />
-            High Risk Overdue Tasks ({overdueHighRiskTasks.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {overdueHighRiskTasks.length > 0 ? (
-            <div className="space-y-3">
-              {overdueHighRiskTasks.map((task) => (
-                <div 
-                  key={task.id}
-                  className="p-3 bg-white rounded-md border border-red-200 cursor-pointer hover:bg-red-25"
-                  onClick={() => handleTaskClick(task)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">{task.title}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Due: {task.dueDate && format(parseISO(task.dueDate), "MMM dd, yyyy")}
-                      </p>
-                    </div>
-                    <Badge variant="destructive">
-                      Overdue
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center py-6 text-muted-foreground">
-              No high-risk overdue tasks
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Dashboard Cards */}
-      {selectedCards.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {selectedCards.map(renderCard)}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* All Tasks */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{selectedUserName} Tasks ({activeTasks.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {activeTasks.length > 0 ? (
-              <TaskList tasks={activeTasks} />
-            ) : (
-              <p className="text-center py-6 text-muted-foreground">
-                No active tasks found
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Projects by Due Date */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{selectedUserName} Projects ({projectsSortedByDueDate.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {projectsSortedByDueDate.length > 0 ? (
-              <div className="space-y-3">
-                {projectsSortedByDueDate.map((project) => (
-                  <div key={project.id} className="p-3 border rounded-md">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium">{project.name}</h4>
-                      <Badge className={getProjectStatusColor(project.status)}>
-                        {project.status}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {project.description}
-                    </p>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      {project.dueDate && (
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          Due: {format(parseISO(project.dueDate), "MMM dd, yyyy")}
-                        </div>
-                      )}
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1" />
-                        {project.usedHours}/{project.allocatedHours || 0}h
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center py-6 text-muted-foreground">
-                No projects found
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+        </Droppable>
+      </DragDropContext>
 
       {selectedTask && (
         <EditTaskDialog
