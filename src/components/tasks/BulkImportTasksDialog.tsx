@@ -19,7 +19,7 @@ interface BulkImportTasksDialogProps {
 }
 
 export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDialogProps) {
-  const { addTask, projects } = useAppContext();
+  const { addTask, projects, customFields } = useAppContext();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importData, setImportData] = useState("");
@@ -27,6 +27,9 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [showMapping, setShowMapping] = useState(false);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  const [availableColumns, setAvailableColumns] = useState<string[]>([]);
 
   const handleFileRead = (content: string, fileName: string) => {
     setImportData(content);
@@ -87,6 +90,9 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
     setImportData("");
     setPreviewTasks([]);
     setUploadedFileName(null);
+    setShowMapping(false);
+    setColumnMapping({});
+    setAvailableColumns([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -94,31 +100,105 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
 
   const handlePreview = () => {
     try {
+      let columns: string[] = [];
+      
+      if (importData.trim().startsWith('[') || importData.trim().startsWith('{')) {
+        // JSON format - extract keys from first object
+        const parsed = JSON.parse(importData);
+        const firstItem = Array.isArray(parsed) ? parsed[0] : parsed;
+        columns = Object.keys(firstItem || {});
+      } else {
+        // CSV format - get headers
+        const lines = importData.trim().split('\n');
+        columns = lines[0].split(',').map(h => h.trim());
+      }
+      
+      setAvailableColumns(columns);
+      setShowMapping(true);
+      
+      toast({
+        title: "Ready for Mapping",
+        description: `Found ${columns.length} columns. Please map them to the correct fields.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to parse import data. Please check the format.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const processImportWithMapping = () => {
+    try {
       let tasks: Partial<Task>[] = [];
       
       if (importData.trim().startsWith('[') || importData.trim().startsWith('{')) {
         // JSON format
         const parsed = JSON.parse(importData);
-        tasks = Array.isArray(parsed) ? parsed : [parsed];
+        const items = Array.isArray(parsed) ? parsed : [parsed];
+        
+        tasks = items.map(item => {
+          const task: Partial<Task> = {};
+          
+          Object.entries(columnMapping).forEach(([column, field]) => {
+            if (field && item[column] !== undefined) {
+              switch (field) {
+                case 'title':
+                  task.title = item[column];
+                  break;
+                case 'description':
+                  task.description = item[column];
+                  break;
+                case 'projectId':
+                  const project = projects.find(p => p.name === item[column]);
+                  task.projectId = project?.id || projects[0]?.id;
+                  break;
+                case 'priority':
+                  task.priority = item[column] as "low" | "medium" | "high";
+                  break;
+                case 'status':
+                  task.status = item[column] as any;
+                  break;
+                case 'assigneeId':
+                  task.assigneeId = item[column];
+                  break;
+                case 'dueDate':
+                  task.dueDate = item[column];
+                  break;
+                case 'estimatedHours':
+                  task.estimatedHours = parseInt(item[column]);
+                  break;
+                default:
+                  // Handle custom fields
+                  if (!task.customFields) task.customFields = {};
+                  task.customFields[field] = item[column];
+              }
+            }
+          });
+          
+          return task;
+        }).filter(task => task.title); // Only include tasks with titles
       } else {
         // CSV format
         const lines = importData.trim().split('\n');
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const headers = lines[0].split(',').map(h => h.trim());
         
         for (let i = 1; i < lines.length; i++) {
           const values = lines[i].split(',').map(v => v.trim());
           const task: Partial<Task> = {};
           
           headers.forEach((header, index) => {
-            if (values[index]) {
-              switch (header) {
+            const field = columnMapping[header];
+            if (field && values[index]) {
+              switch (field) {
                 case 'title':
                   task.title = values[index];
                   break;
                 case 'description':
                   task.description = values[index];
                   break;
-                case 'project':
+                case 'projectId':
                   const project = projects.find(p => p.name === values[index]);
                   task.projectId = project?.id || projects[0]?.id;
                   break;
@@ -128,20 +208,24 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
                 case 'status':
                   task.status = values[index] as any;
                   break;
-                case 'assignee':
+                case 'assigneeId':
                   task.assigneeId = values[index];
                   break;
-                case 'due date':
+                case 'dueDate':
                   task.dueDate = values[index];
                   break;
-                case 'estimated hours':
+                case 'estimatedHours':
                   task.estimatedHours = parseInt(values[index]);
                   break;
+                default:
+                  // Handle custom fields
+                  if (!task.customFields) task.customFields = {};
+                  task.customFields[field] = values[index];
               }
             }
           });
           
-          if (task.title && task.projectId) {
+          if (task.title) {
             tasks.push(task);
           }
         }
@@ -155,7 +239,7 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to parse import data. Please check the format.",
+        description: "Failed to process mapped data. Please check your mappings.",
         variant: "destructive",
       });
     }
@@ -181,16 +265,17 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
           const newTask: Omit<Task, 'id'> = {
             title: taskData.title,
             description: taskData.description || "",
-            projectId: taskData.projectId,
+            projectId: taskData.projectId || projects[0]?.id,
             status: taskData.status || "todo",
             priority: taskData.priority || "medium",
             assigneeId: taskData.assigneeId,
             dueDate: taskData.dueDate,
             estimatedHours: taskData.estimatedHours,
             createdAt: new Date().toISOString(),
-            collaboratorIds: [],
-            subtasks: [],
-            watcherIds: [],
+            collaboratorIds: taskData.collaboratorIds || [],
+            subtasks: taskData.subtasks || [],
+            watcherIds: taskData.watcherIds || [],
+            customFields: taskData.customFields || {},
           };
           
           addTask(newTask);
@@ -206,6 +291,9 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
       setImportData("");
       setPreviewTasks([]);
       setUploadedFileName(null);
+      setShowMapping(false);
+      setColumnMapping({});
+      setAvailableColumns([]);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -220,6 +308,21 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
       setIsProcessing(false);
     }
   };
+
+  const availableFields = [
+    { value: 'title', label: 'Title *' },
+    { value: 'description', label: 'Description' },
+    { value: 'projectId', label: 'Project' },
+    { value: 'priority', label: 'Priority' },
+    { value: 'status', label: 'Status' },
+    { value: 'assigneeId', label: 'Assignee' },
+    { value: 'dueDate', label: 'Due Date' },
+    { value: 'estimatedHours', label: 'Estimated Hours' },
+    ...customFields.filter(cf => cf.applicableTo.includes('tasks')).map(cf => ({
+      value: cf.name,
+      label: `${cf.name} (Custom)`,
+    })),
+  ];
 
   const downloadTemplate = () => {
     const csvTemplate = "title,description,project,priority,status,assignee,due date,estimated hours\nFix login bug,Update authentication system,Project Alpha,high,todo,john@example.com,2024-01-15,4";
@@ -306,10 +409,16 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={handlePreview} variant="outline">
+            <Button onClick={handlePreview} variant="outline" disabled={!importData.trim()}>
               <FileText className="h-4 w-4 mr-2" />
-              Preview
+              Parse & Map Fields
             </Button>
+            {showMapping && (
+              <Button onClick={processImportWithMapping} variant="outline">
+                <FileText className="h-4 w-4 mr-2" />
+                Generate Preview
+              </Button>
+            )}
             <Button 
               onClick={handleImport} 
               disabled={previewTasks.length === 0 || isProcessing}
@@ -318,6 +427,41 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
               {isProcessing ? "Importing..." : `Import ${previewTasks.length} Tasks`}
             </Button>
           </div>
+
+          {showMapping && (
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-4">Map Your Columns to Fields</h3>
+              <div className="space-y-3">
+                {availableColumns.map((column) => (
+                  <div key={column} className="flex items-center gap-4">
+                    <div className="w-1/3">
+                      <label className="text-sm font-medium">{column}</label>
+                    </div>
+                    <div className="w-2/3">
+                      <select
+                        value={columnMapping[column] || ''}
+                        onChange={(e) => setColumnMapping(prev => ({
+                          ...prev,
+                          [column]: e.target.value
+                        }))}
+                        className="w-full p-2 border rounded-md bg-background"
+                      >
+                        <option value="">Skip this column</option>
+                        {availableFields.map((field) => (
+                          <option key={field.value} value={field.value}>
+                            {field.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 text-sm text-muted-foreground">
+                <strong>* Required field:</strong> At least one column must be mapped to "Title"
+              </div>
+            </div>
+          )}
 
           {previewTasks.length > 0 && (
             <div className="border rounded-lg p-4">
@@ -354,13 +498,22 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
 
           <div className="text-sm text-muted-foreground space-y-2">
             <div>
-              <strong>CSV Format:</strong> title,description,project,priority,status,assignee,due date,estimated hours
+              <strong>How to use:</strong>
             </div>
             <div>
-              <strong>JSON Format:</strong> Array of objects with properties: title, description, project, priority, status, assignee, dueDate, estimatedHours
+              1. Upload or paste your data (CSV or JSON format)
             </div>
             <div>
-              <strong>Required fields:</strong> title, project
+              2. Map your columns to the correct fields (including custom fields)
+            </div>
+            <div>
+              3. Generate preview to verify the mapping
+            </div>
+            <div>
+              4. Import your tasks
+            </div>
+            <div>
+              <strong>Note:</strong> Only "Title" field is required. All other fields are optional.
             </div>
           </div>
         </div>
