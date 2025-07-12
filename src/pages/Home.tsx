@@ -200,7 +200,6 @@ const Home = () => {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
-                  <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                   View Data For
                 </CardTitle>
               </CardHeader>
@@ -400,6 +399,15 @@ const Home = () => {
     })();
 
     if (!content) return null;
+
+    // Make user-filter section non-draggable
+    if (sectionId === "user-filter") {
+      return (
+        <div key={sectionId}>
+          {content}
+        </div>
+      );
+    }
 
     return (
       <Draggable key={sectionId} draggableId={sectionId} index={index}>
