@@ -12,7 +12,7 @@ import { CustomReportVisualization } from "./CustomReportVisualization";
 import { useAppContext } from "@/contexts/AppContext";
 
 export function CustomReportBuilder() {
-  const { customFields } = useAppContext();
+  const { customFields, users, projects, tasks, clients, notes, teams } = useAppContext();
   const dataSources = useReportDataSources(customFields);
   const [reportConfig, setReportConfig] = useState<ReportConfig>({
     name: "",
@@ -60,13 +60,9 @@ export function CustomReportBuilder() {
     
     setIsRunning(true);
     try {
-      // This would integrate with your data fetching logic
-      // For now, we'll simulate the report generation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Generate mock data based on config
-      const mockData = generateMockReportData(reportConfig, selectedDataSource);
-      setReportData(mockData);
+      // Generate real data based on config using context data
+      const reportData = generateReportData(reportConfig, selectedDataSource);
+      setReportData(reportData);
     } catch (error) {
       console.error("Error running report:", error);
     } finally {
@@ -74,41 +70,151 @@ export function CustomReportBuilder() {
     }
   };
 
-  const generateMockReportData = (config: ReportConfig, dataSource: DataSource | undefined) => {
+  const generateReportData = (config: ReportConfig, dataSource: DataSource | undefined) => {
     if (!dataSource) return null;
+
+    // Get the actual data from context based on the data source
+    let sourceData: any[] = [];
+    switch (config.dataSource) {
+      case 'users':
+        sourceData = users || [];
+        break;
+      case 'projects':
+        sourceData = projects || [];
+        break;
+      case 'tasks':
+        sourceData = tasks || [];
+        break;
+      case 'clients':
+        sourceData = clients || [];
+        break;
+      case 'notes':
+        sourceData = notes || [];
+        break;
+      case 'teams':
+        sourceData = teams || [];
+        break;
+      default:
+        sourceData = [];
+    }
+
+    console.log(`Report data for ${config.dataSource}:`, sourceData.length, 'records');
 
     switch (config.reportType) {
       case 'number':
+        if (config.aggregationType === 'count') {
+          return {
+            value: sourceData.length,
+            formattedValue: sourceData.length.toLocaleString()
+          };
+        } else if (config.yAxisField && config.aggregationType) {
+          const values = sourceData
+            .map(item => {
+              const value = item[config.yAxisField!];
+              return typeof value === 'number' ? value : 0;
+            })
+            .filter(v => !isNaN(v));
+          
+          let result = 0;
+          switch (config.aggregationType) {
+            case 'sum':
+              result = values.reduce((sum, val) => sum + val, 0);
+              break;
+            case 'average':
+              result = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : 0;
+              break;
+            case 'min':
+              result = values.length > 0 ? Math.min(...values) : 0;
+              break;
+            case 'max':
+              result = values.length > 0 ? Math.max(...values) : 0;
+              break;
+            default:
+              result = values.length;
+          }
+          return {
+            value: result,
+            formattedValue: result.toLocaleString()
+          };
+        }
         return {
-          value: Math.floor(Math.random() * 1000),
-          formattedValue: Math.floor(Math.random() * 1000).toLocaleString()
+          value: sourceData.length,
+          formattedValue: sourceData.length.toLocaleString()
         };
+
       case 'pie':
+        if (config.groupByField) {
+          const groupCounts: Record<string, number> = {};
+          sourceData.forEach(item => {
+            const groupValue = item[config.groupByField!] || 'Unknown';
+            groupCounts[groupValue] = (groupCounts[groupValue] || 0) + 1;
+          });
+          
+          const labels = Object.keys(groupCounts);
+          const data = Object.values(groupCounts);
+          
+          return {
+            labels,
+            datasets: [{
+              data,
+              backgroundColor: labels.map((_, i) => `hsl(${(i * 137.5) % 360}, 70%, 50%)`)
+            }]
+          };
+        }
         return {
-          labels: ['Active', 'Completed', 'On Hold'],
+          labels: ['Total'],
           datasets: [{
-            data: [30, 50, 20],
-            backgroundColor: ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--muted))']
+            data: [sourceData.length],
+            backgroundColor: ['hsl(var(--primary))']
           }]
         };
+
       case 'graph':
+        if (config.groupByField) {
+          const groupCounts: Record<string, number> = {};
+          sourceData.forEach(item => {
+            const groupValue = item[config.groupByField!] || 'Unknown';
+            groupCounts[groupValue] = (groupCounts[groupValue] || 0) + 1;
+          });
+          
+          const labels = Object.keys(groupCounts);
+          const data = Object.values(groupCounts);
+          
+          return {
+            labels,
+            datasets: [{
+              label: config.yAxisField || 'Count',
+              data,
+              borderColor: 'hsl(var(--primary))',
+              backgroundColor: 'hsl(var(--primary) / 0.1)'
+            }]
+          };
+        }
         return {
-          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+          labels: [config.dataSource],
           datasets: [{
-            label: config.yAxisField || 'Value',
-            data: [12, 19, 8, 15, 22],
+            label: 'Count',
+            data: [sourceData.length],
             borderColor: 'hsl(var(--primary))',
             backgroundColor: 'hsl(var(--primary) / 0.1)'
           }]
         };
+
       case 'list':
-        return {
-          rows: [
-            { id: 1, name: 'Item 1', status: 'Active', count: 5 },
-            { id: 2, name: 'Item 2', status: 'Completed', count: 8 },
-            { id: 3, name: 'Item 3', status: 'On Hold', count: 2 }
-          ]
-        };
+        const displayFields = config.selectedFields.length > 0 ? config.selectedFields : ['id', 'name'];
+        const rows = sourceData.slice(0, 100).map(item => {
+          const row: any = {};
+          displayFields.forEach(fieldId => {
+            const field = dataSource.fields.find(f => f.id === fieldId);
+            if (field) {
+              row[field.name] = item[fieldId] || '';
+            }
+          });
+          return row;
+        });
+        
+        return { rows };
+
       default:
         return null;
     }
