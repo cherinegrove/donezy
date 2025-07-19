@@ -12,8 +12,9 @@ import { ProjectsReports } from "@/components/reports/ProjectsReports";
 import { TasksReports } from "@/components/reports/TasksReports";
 import { TimeReports } from "@/components/reports/TimeReports";
 import { BillingReports } from "@/components/reports/BillingReports";
+import { CustomReportBuilder } from "@/components/reports/CustomReportBuilder";
 
-type ReportTab = 'projects' | 'tasks' | 'time' | 'billing';
+type ReportTab = 'projects' | 'tasks' | 'time' | 'billing' | 'custom';
 
 export default function Reports() {
   const { 
@@ -193,11 +194,12 @@ export default function Reports() {
 
       {/* Tabbed Reports */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ReportTab)}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="projects">Projects</TabsTrigger>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="time">Time</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
+          <TabsTrigger value="custom">Custom Reports</TabsTrigger>
         </TabsList>
 
         <TabsContent value="projects" className="space-y-6">
@@ -219,6 +221,10 @@ export default function Reports() {
 
         <TabsContent value="billing" className="space-y-6">
           <BillingReports timeEntries={filteredTimeEntries} clients={clients} purchases={purchases} />
+        </TabsContent>
+
+        <TabsContent value="custom" className="space-y-6">
+          <CustomReportBuilder />
         </TabsContent>
       </Tabs>
     </div>
