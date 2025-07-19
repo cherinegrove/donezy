@@ -1,37 +1,48 @@
+
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { ReportTile } from "./ReportTile";
-import { Project, Task } from "@/types";
+import { Project, Task, Client, Team } from "@/types";
 
 interface ProjectsReportsProps {
   projects: Project[];
   tasks: Task[];
+  clients?: Client[];
+  teams?: Team[];
 }
 
-export function ProjectsReports({ projects, tasks }: ProjectsReportsProps) {
-  // Project status distribution
+export function ProjectsReports({ projects, tasks, clients = [], teams = [] }: ProjectsReportsProps) {
+  // 1. Number of Projects by status
   const projectStatusData = [
     { name: "To Do", value: projects.filter(p => p.status === "todo").length, color: "#8884d8" },
     { name: "In Progress", value: projects.filter(p => p.status === "in-progress").length, color: "#82ca9d" },
-    { name: "Done", value: projects.filter(p => p.status === "done").length, color: "#ffc658" }
-  ];
+    { name: "Done", value: projects.filter(p => p.status === "done").length, color: "#ffc658" },
+    { name: "On Hold", value: projects.filter(p => p.status === "on-hold").length, color: "#ff7300" },
+    { name: "Cancelled", value: projects.filter(p => p.status === "cancelled").length, color: "#ff0000" }
+  ].filter(item => item.value > 0);
 
-  // Project progress
-  const projectProgress = projects.map(project => {
-    const projectTasks = tasks.filter(task => task.projectId === project.id);
-    const completedTasks = projectTasks.filter(task => task.status === "done").length;
-    const progress = projectTasks.length > 0 ? (completedTasks / projectTasks.length) * 100 : 0;
-    
+  // 2. Total Projects by Client
+  const projectsByClient = clients.map(client => {
+    const clientProjects = projects.filter(project => project.clientId === client.id);
     return {
-      name: project.name,
-      progress: Math.round(progress),
-      totalTasks: projectTasks.length,
-      completedTasks
+      name: client.name,
+      projects: clientProjects.length
     };
-  });
+  }).filter(item => item.projects > 0);
+
+  // 3. Total Projects by Team
+  const projectsByTeam = teams.map(team => {
+    const teamProjects = projects.filter(project => 
+      project.teamIds && project.teamIds.includes(team.id)
+    );
+    return {
+      name: team.name,
+      projects: teamProjects.length
+    };
+  }).filter(item => item.projects > 0);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <ReportTile title="Project Status Distribution">
+      <ReportTile title="Projects by Status">
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
@@ -39,7 +50,7 @@ export function ProjectsReports({ projects, tasks }: ProjectsReportsProps) {
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              label={({ name, value }) => `${name}: ${value}`}
               outerRadius={80}
               fill="#8884d8"
               dataKey="value"
@@ -53,14 +64,26 @@ export function ProjectsReports({ projects, tasks }: ProjectsReportsProps) {
         </ResponsiveContainer>
       </ReportTile>
 
-      <ReportTile title="Project Progress">
+      <ReportTile title="Projects by Client">
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={projectProgress}>
+          <BarChart data={projectsByClient}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
             <YAxis />
-            <Tooltip formatter={(value) => [`${value}%`, 'Progress']} />
-            <Bar dataKey="progress" fill="#ff7300" />
+            <Tooltip />
+            <Bar dataKey="projects" fill="#82ca9d" />
+          </BarChart>
+        </ResponsiveContainer>
+      </ReportTile>
+
+      <ReportTile title="Projects by Team" className="lg:col-span-2">
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={projectsByTeam}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="projects" fill="#ff7300" />
           </BarChart>
         </ResponsiveContainer>
       </ReportTile>

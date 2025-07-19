@@ -201,7 +201,12 @@ export default function Reports() {
         </TabsList>
 
         <TabsContent value="projects" className="space-y-6">
-          <ProjectsReports projects={filteredProjects} tasks={filteredTasks} />
+          <ProjectsReports 
+            projects={filteredProjects} 
+            tasks={filteredTasks} 
+            clients={clients}
+            teams={teams}
+          />
         </TabsContent>
 
         <TabsContent value="tasks" className="space-y-6">
