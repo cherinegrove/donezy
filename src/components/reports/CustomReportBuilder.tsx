@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Play, Save } from "lucide-react";
 import { ReportConfig, ReportFilter, DataSource } from "@/types/reportBuilder";
@@ -116,268 +115,320 @@ export function CustomReportBuilder() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Configuration Panel */}
       <Card>
         <CardHeader>
-          <CardTitle>Custom Report Builder</CardTitle>
+          <CardTitle>Report Configuration</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="config" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="config">Configuration</TabsTrigger>
-              <TabsTrigger value="preview">Preview</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="config" className="space-y-6">
-              {/* Basic Configuration */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="reportName">Report Name</Label>
-                  <Input
-                    id="reportName"
-                    value={reportConfig.name}
-                    onChange={(e) => setReportConfig(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Enter report name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="reportType">Report Type</Label>
-                  <Select
-                    value={reportConfig.reportType}
-                    onValueChange={(value: any) => setReportConfig(prev => ({ ...prev, reportType: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="graph">Graph (X/Y Axis)</SelectItem>
-                      <SelectItem value="list">List</SelectItem>
-                      <SelectItem value="pie">Pie Chart</SelectItem>
-                      <SelectItem value="number">Number/Value</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+        <CardContent className="space-y-6">
+          {/* Basic Configuration */}
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <Label htmlFor="reportName">Report Name</Label>
+              <Input
+                id="reportName"
+                value={reportConfig.name}
+                onChange={(e) => setReportConfig(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter report name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="reportType">Report Type</Label>
+              <Select
+                value={reportConfig.reportType}
+                onValueChange={(value: any) => setReportConfig(prev => ({ ...prev, reportType: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="graph">Graph (X/Y Axis)</SelectItem>
+                  <SelectItem value="list">List</SelectItem>
+                  <SelectItem value="pie">Pie Chart</SelectItem>
+                  <SelectItem value="number">Number/Value</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-              {/* Data Source Selection */}
-              <div>
-                <Label htmlFor="dataSource">Data Source</Label>
-                <Select
-                  value={reportConfig.dataSource}
-                  onValueChange={(value) => setReportConfig(prev => ({ ...prev, dataSource: value, selectedFields: [] }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select data source" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dataSources.map(source => (
-                      <SelectItem key={source.id} value={source.id}>
-                        {source.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Data Source Selection */}
+          <div>
+            <Label htmlFor="dataSource">Data Source</Label>
+            <Select
+              value={reportConfig.dataSource}
+              onValueChange={(value) => setReportConfig(prev => ({ ...prev, dataSource: value, selectedFields: [] }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select data source" />
+              </SelectTrigger>
+              <SelectContent>
+                {dataSources.map(source => (
+                  <SelectItem key={source.id} value={source.id}>
+                    {source.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-              {/* Field Configuration */}
-              {selectedDataSource && (
-                <div className="space-y-4">
-                  {(reportConfig.reportType === 'graph' || reportConfig.reportType === 'pie') && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="xAxis">X-Axis Field</Label>
-                        <Select
-                          value={reportConfig.xAxisField || ""}
-                          onValueChange={(value) => setReportConfig(prev => ({ ...prev, xAxisField: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select field" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {selectedDataSource.fields.map(field => (
-                              <SelectItem key={field.id} value={field.id}>
-                                {field.name} {field.isCustomField && <Badge variant="secondary" className="ml-1">Custom</Badge>}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="yAxis">Y-Axis Field</Label>
-                        <Select
-                          value={reportConfig.yAxisField || ""}
-                          onValueChange={(value) => setReportConfig(prev => ({ ...prev, yAxisField: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select field" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {selectedDataSource.fields.filter(f => f.type === 'number').map(field => (
-                              <SelectItem key={field.id} value={field.id}>
-                                {field.name} {field.isCustomField && <Badge variant="secondary" className="ml-1">Custom</Badge>}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  )}
-
-                  {reportConfig.reportType === 'number' && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="valueField">Value Field</Label>
-                        <Select
-                          value={reportConfig.yAxisField || ""}
-                          onValueChange={(value) => setReportConfig(prev => ({ ...prev, yAxisField: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select field" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {selectedDataSource.fields.filter(f => f.type === 'number').map(field => (
-                              <SelectItem key={field.id} value={field.id}>
-                                {field.name} {field.isCustomField && <Badge variant="secondary" className="ml-1">Custom</Badge>}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="aggregation">Aggregation</Label>
-                        <Select
-                          value={reportConfig.aggregationType || "count"}
-                          onValueChange={(value: any) => setReportConfig(prev => ({ ...prev, aggregationType: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="count">Count</SelectItem>
-                            <SelectItem value="sum">Sum</SelectItem>
-                            <SelectItem value="average">Average</SelectItem>
-                            <SelectItem value="min">Minimum</SelectItem>
-                            <SelectItem value="max">Maximum</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  )}
-
-                  {reportConfig.reportType === 'list' && (
-                    <div>
-                      <Label>Select Fields to Display</Label>
-                      <div className="grid grid-cols-3 gap-2 mt-2">
-                        {selectedDataSource.fields.map(field => (
-                          <label key={field.id} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={reportConfig.selectedFields.includes(field.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setReportConfig(prev => ({
-                                    ...prev,
-                                    selectedFields: [...prev.selectedFields, field.id]
-                                  }));
-                                } else {
-                                  setReportConfig(prev => ({
-                                    ...prev,
-                                    selectedFields: prev.selectedFields.filter(id => id !== field.id)
-                                  }));
-                                }
-                              }}
-                            />
-                            <span className="text-sm">{field.name}</span>
-                            {field.isCustomField && <Badge variant="secondary" className="ml-1">Custom</Badge>}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Filters */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Filters</Label>
-                  <Button onClick={addFilter} variant="outline" size="sm">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Filter
-                  </Button>
-                </div>
-                
-                {reportConfig.filters.map(filter => (
-                  <div key={filter.id} className="flex items-center space-x-2 p-3 border rounded-lg">
+          {/* Field Configuration */}
+          {selectedDataSource && (
+            <div className="space-y-4">
+              {reportConfig.reportType === 'graph' && (
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <Label htmlFor="xAxis">X-Axis Field (Category)</Label>
                     <Select
-                      value={filter.fieldId}
-                      onValueChange={(value) => updateFilter(filter.id, { fieldId: value })}
+                      value={reportConfig.xAxisField || ""}
+                      onValueChange={(value) => setReportConfig(prev => ({ ...prev, xAxisField: value }))}
                     >
-                      <SelectTrigger className="w-48">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select field" />
                       </SelectTrigger>
                       <SelectContent>
-                        {selectedDataSource?.fields.map(field => (
+                        {selectedDataSource.fields.filter(f => f.type === 'text').map(field => (
                           <SelectItem key={field.id} value={field.id}>
-                            {field.name}
+                            {field.name} {field.isCustomField && <Badge variant="secondary" className="ml-1">Custom</Badge>}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    
+                  </div>
+                  <div>
+                    <Label htmlFor="yAxis">Y-Axis Field (Value)</Label>
                     <Select
-                      value={filter.operator}
-                      onValueChange={(value: any) => updateFilter(filter.id, { operator: value })}
+                      value={reportConfig.yAxisField || ""}
+                      onValueChange={(value) => setReportConfig(prev => ({ ...prev, yAxisField: value }))}
                     >
-                      <SelectTrigger className="w-40">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select field" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedDataSource.fields.filter(f => f.type === 'number').map(field => (
+                          <SelectItem key={field.id} value={field.id}>
+                            {field.name} {field.isCustomField && <Badge variant="secondary" className="ml-1">Custom</Badge>}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="aggregation">Aggregation</Label>
+                    <Select
+                      value={reportConfig.aggregationType || "count"}
+                      onValueChange={(value: any) => setReportConfig(prev => ({ ...prev, aggregationType: value }))}
+                    >
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="equals">Equals</SelectItem>
-                        <SelectItem value="not_equals">Not Equals</SelectItem>
-                        <SelectItem value="contains">Contains</SelectItem>
-                        <SelectItem value="greater_than">Greater Than</SelectItem>
-                        <SelectItem value="less_than">Less Than</SelectItem>
+                        <SelectItem value="count">Count</SelectItem>
+                        <SelectItem value="sum">Sum</SelectItem>
+                        <SelectItem value="average">Average</SelectItem>
+                        <SelectItem value="min">Minimum</SelectItem>
+                        <SelectItem value="max">Maximum</SelectItem>
                       </SelectContent>
                     </Select>
-                    
-                    <Input
-                      value={filter.value}
-                      onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
-                      placeholder="Filter value"
-                      className="flex-1"
-                    />
-                    
-                    <Button
-                      onClick={() => removeFilter(filter.id)}
-                      variant="outline"
-                      size="icon"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
 
-              {/* Actions */}
-              <div className="flex space-x-2">
-                <Button onClick={runReport} disabled={!reportConfig.dataSource || isRunning}>
-                  <Play className="h-4 w-4 mr-1" />
-                  {isRunning ? "Running..." : "Run Report"}
-                </Button>
-                <Button variant="outline" disabled={!reportConfig.name}>
-                  <Save className="h-4 w-4 mr-1" />
-                  Save Report
-                </Button>
-              </div>
-            </TabsContent>
+              {reportConfig.reportType === 'pie' && (
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <Label htmlFor="groupBy">Group By Field</Label>
+                    <Select
+                      value={reportConfig.groupByField || ""}
+                      onValueChange={(value) => setReportConfig(prev => ({ ...prev, groupByField: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select field" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedDataSource.fields.filter(f => f.type === 'text').map(field => (
+                          <SelectItem key={field.id} value={field.id}>
+                            {field.name} {field.isCustomField && <Badge variant="secondary" className="ml-1">Custom</Badge>}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="aggregation">Aggregation</Label>
+                    <Select
+                      value={reportConfig.aggregationType || "count"}
+                      onValueChange={(value: any) => setReportConfig(prev => ({ ...prev, aggregationType: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="count">Count</SelectItem>
+                        <SelectItem value="sum">Sum</SelectItem>
+                        <SelectItem value="average">Average</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {reportConfig.reportType === 'number' && (
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <Label htmlFor="valueField">Value Field</Label>
+                    <Select
+                      value={reportConfig.yAxisField || ""}
+                      onValueChange={(value) => setReportConfig(prev => ({ ...prev, yAxisField: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select field" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedDataSource.fields.map(field => (
+                          <SelectItem key={field.id} value={field.id}>
+                            {field.name} {field.isCustomField && <Badge variant="secondary" className="ml-1">Custom</Badge>}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="aggregation">Aggregation</Label>
+                    <Select
+                      value={reportConfig.aggregationType || "count"}
+                      onValueChange={(value: any) => setReportConfig(prev => ({ ...prev, aggregationType: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="count">Count</SelectItem>
+                        <SelectItem value="sum">Sum</SelectItem>
+                        <SelectItem value="average">Average</SelectItem>
+                        <SelectItem value="min">Minimum</SelectItem>
+                        <SelectItem value="max">Maximum</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {reportConfig.reportType === 'list' && (
+                <div>
+                  <Label>Select Fields to Display</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-2 max-h-48 overflow-y-auto">
+                    {selectedDataSource.fields.map(field => (
+                      <label key={field.id} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={reportConfig.selectedFields.includes(field.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setReportConfig(prev => ({
+                                ...prev,
+                                selectedFields: [...prev.selectedFields, field.id]
+                              }));
+                            } else {
+                              setReportConfig(prev => ({
+                                ...prev,
+                                selectedFields: prev.selectedFields.filter(id => id !== field.id)
+                              }));
+                            }
+                          }}
+                        />
+                        <span className="text-sm">{field.name}</span>
+                        {field.isCustomField && <Badge variant="secondary" className="text-xs">Custom</Badge>}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Filters */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label>Filters</Label>
+              <Button onClick={addFilter} variant="outline" size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Add Filter
+              </Button>
+            </div>
             
-            <TabsContent value="preview">
-              <CustomReportVisualization config={reportConfig} data={reportData} />
-            </TabsContent>
-          </Tabs>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {reportConfig.filters.map(filter => (
+                <div key={filter.id} className="flex items-center space-x-2 p-2 border rounded-lg">
+                  <Select
+                    value={filter.fieldId}
+                    onValueChange={(value) => updateFilter(filter.id, { fieldId: value })}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Field" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedDataSource?.fields.map(field => (
+                        <SelectItem key={field.id} value={field.id}>
+                          {field.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select
+                    value={filter.operator}
+                    onValueChange={(value: any) => updateFilter(filter.id, { operator: value })}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="equals">Equals</SelectItem>
+                      <SelectItem value="not_equals">Not Equals</SelectItem>
+                      <SelectItem value="contains">Contains</SelectItem>
+                      <SelectItem value="greater_than">Greater Than</SelectItem>
+                      <SelectItem value="less_than">Less Than</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Input
+                    value={filter.value}
+                    onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
+                    placeholder="Value"
+                    className="flex-1"
+                  />
+                  
+                  <Button
+                    onClick={() => removeFilter(filter.id)}
+                    variant="outline"
+                    size="icon"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex space-x-2">
+            <Button onClick={runReport} disabled={!reportConfig.dataSource || isRunning}>
+              <Play className="h-4 w-4 mr-1" />
+              {isRunning ? "Running..." : "Run Report"}
+            </Button>
+            <Button variant="outline" disabled={!reportConfig.name}>
+              <Save className="h-4 w-4 mr-1" />
+              Save Report
+            </Button>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Preview Panel */}
+      <div className="space-y-4">
+        <CustomReportVisualization config={reportConfig} data={reportData} />
+      </div>
     </div>
   );
 }
