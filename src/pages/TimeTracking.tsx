@@ -224,13 +224,13 @@ const TimeTracking = () => {
     
     // Group entries by client first
     const entriesByClient: Record<string, { 
-      client: typeof clients[0],
+      client: typeof clients[0] | { id: string, name: string },
       totalMinutes: number,
       projectDetails: Record<string, {
-        project: typeof projects[0],
+        project: typeof projects[0] | { id: string, name: string },
         totalMinutes: number,
         taskDetails: Record<string, {
-          task: typeof tasks[0],
+          task: typeof tasks[0] | { id: string, title: string },
           totalMinutes: number,
           entries: typeof timeEntries
         }>
@@ -239,51 +239,54 @@ const TimeTracking = () => {
     
     // Process all entries
     monthEntries.forEach(entry => {
-      const task = tasks.find(t => t.id === entry.taskId);
-      if (!task) return;
+      // Try to get task, project, and client, but use fallbacks if not found
+      const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
+      const project = task ? projects.find(p => p.id === task.projectId) : 
+                     (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
+      const client = project ? clients.find(c => c.id === project.clientId) : 
+                    (entry.clientId ? clients.find(c => c.id === entry.clientId) : null);
       
-      const project = projects.find(p => p.id === task.projectId);
-      if (!project) return;
-      
-      const client = clients.find(c => c.id === project.clientId);
-      if (!client) return;
+      // Use fallbacks for missing data
+      const finalTask = task || { id: 'manual-' + entry.id, title: 'Manual Time Entry' };
+      const finalProject = project || { id: 'no-project-' + entry.id, name: 'No Project' };
+      const finalClient = client || { id: 'no-client-' + entry.id, name: 'No Client' };
       
       // Initialize client entry if needed
-      if (!entriesByClient[client.id]) {
-        entriesByClient[client.id] = { 
-          client, 
+      if (!entriesByClient[finalClient.id]) {
+        entriesByClient[finalClient.id] = { 
+          client: finalClient, 
           totalMinutes: 0,
           projectDetails: {}
         };
       }
       
       // Add to client total
-      entriesByClient[client.id].totalMinutes += entry.duration;
+      entriesByClient[finalClient.id].totalMinutes += entry.duration;
       
       // Initialize project entry if needed
-      if (!entriesByClient[client.id].projectDetails[project.id]) {
-        entriesByClient[client.id].projectDetails[project.id] = {
-          project,
+      if (!entriesByClient[finalClient.id].projectDetails[finalProject.id]) {
+        entriesByClient[finalClient.id].projectDetails[finalProject.id] = {
+          project: finalProject,
           totalMinutes: 0,
           taskDetails: {}
         };
       }
       
       // Add to project total
-      entriesByClient[client.id].projectDetails[project.id].totalMinutes += entry.duration;
+      entriesByClient[finalClient.id].projectDetails[finalProject.id].totalMinutes += entry.duration;
       
       // Initialize task entry if needed
-      if (!entriesByClient[client.id].projectDetails[project.id].taskDetails[task.id]) {
-        entriesByClient[client.id].projectDetails[project.id].taskDetails[task.id] = {
-          task,
+      if (!entriesByClient[finalClient.id].projectDetails[finalProject.id].taskDetails[finalTask.id]) {
+        entriesByClient[finalClient.id].projectDetails[finalProject.id].taskDetails[finalTask.id] = {
+          task: finalTask,
           totalMinutes: 0,
           entries: []
         };
       }
       
       // Add to task total and entries
-      entriesByClient[client.id].projectDetails[project.id].taskDetails[task.id].totalMinutes += entry.duration;
-      entriesByClient[client.id].projectDetails[project.id].taskDetails[task.id].entries.push(entry);
+      entriesByClient[finalClient.id].projectDetails[finalProject.id].taskDetails[finalTask.id].totalMinutes += entry.duration;
+      entriesByClient[finalClient.id].projectDetails[finalProject.id].taskDetails[finalTask.id].entries.push(entry);
     });
     
     return Object.values(entriesByClient).sort((a, b) => b.totalMinutes - a.totalMinutes);
