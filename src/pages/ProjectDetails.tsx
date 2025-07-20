@@ -10,7 +10,7 @@ import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TaskList } from "@/components/tasks/TaskList";
+import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ConvertToTemplateDialog } from "@/components/projects/ConvertToTemplateDialog";
 import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
 import { ProjectChannels } from "@/components/channels/ProjectChannels";
@@ -143,9 +143,7 @@ export default function ProjectDetails() {
         </TabsList>
         
         <TabsContent value="tasks">
-          <ScrollArea>
-            <TaskList tasks={projectTasks} />
-          </ScrollArea>
+          <KanbanBoard tasks={projectTasks} projectId={projectId} viewMode="kanban" />
         </TabsContent>
         
         <TabsContent value="chat">
