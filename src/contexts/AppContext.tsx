@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AppContextType } from './AppContextType';
 import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, TaskStatusDefinition, ProjectStatusDefinition, CustomField, TaskStatus, TimeEntryStatus } from "@/types";
+import { CustomDashboard, SavedReport } from "@/types/dashboard";
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 
@@ -39,6 +40,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
   const [taskStatuses, setTaskStatuses] = useState<TaskStatusDefinition[]>([]);
   const [projectStatuses, setProjectStatuses] = useState<ProjectStatusDefinition[]>([]);
+  const [customDashboards, setCustomDashboards] = useState<CustomDashboard[]>([]);
+  const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
 
   // Helper function to safely parse JSON fields
   const safeParseJson = (value: any, defaultValue: any = {}) => {
@@ -342,6 +345,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  // Initialize default dashboard if none exists
+  const initializeDefaultDashboard = () => {
+    // Only create default dashboard if none exist
+    if (customDashboards.length === 0) {
+      const defaultDashboard: CustomDashboard = {
+        id: 'default-dashboard',
+        name: 'My Dashboard',
+        description: 'Default dashboard for all your reports',
+        reportIds: [],
+        layout: [],
+        isDefault: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setCustomDashboards([defaultDashboard]);
+    }
+  };
+
   // Load all data when session is available
   useEffect(() => {
     if (session?.user) {
@@ -358,6 +379,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         loadTeams();
         loadNotes();
         loadProjectStatuses();
+        initializeDefaultDashboard();
       }, 100);
     } else {
       console.log('🔍 No session available');
@@ -1734,6 +1756,83 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('Reorder custom fields not yet implemented');
   };
 
+  // Dashboard and Report functions
+  const addCustomDashboard = (dashboard: Omit<CustomDashboard, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newDashboard: CustomDashboard = {
+      ...dashboard,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setCustomDashboards(prev => [...prev, newDashboard]);
+  };
+
+  const updateCustomDashboard = (dashboardId: string, updates: Partial<CustomDashboard>) => {
+    setCustomDashboards(prev => 
+      prev.map(dashboard => 
+        dashboard.id === dashboardId 
+          ? { ...dashboard, ...updates, updatedAt: new Date().toISOString() }
+          : dashboard
+      )
+    );
+  };
+
+  const deleteCustomDashboard = (dashboardId: string) => {
+    setCustomDashboards(prev => prev.filter(dashboard => dashboard.id !== dashboardId));
+    // Also remove any reports that were only in this dashboard
+    setSavedReports(prev => prev.filter(report => 
+      customDashboards.some(d => d.id !== dashboardId && d.reportIds.includes(report.id))
+    ));
+  };
+
+  const setDefaultDashboard = (dashboardId: string) => {
+    setCustomDashboards(prev => 
+      prev.map(dashboard => ({
+        ...dashboard,
+        isDefault: dashboard.id === dashboardId,
+        updatedAt: new Date().toISOString()
+      }))
+    );
+  };
+
+  const saveReport = (report: Omit<SavedReport, 'id' | 'createdAt' | 'updatedAt'>, dashboardId: string) => {
+    const newReport: SavedReport = {
+      ...report,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    setSavedReports(prev => [...prev, newReport]);
+    
+    // Add report to dashboard
+    updateCustomDashboard(dashboardId, {
+      reportIds: [...(customDashboards.find(d => d.id === dashboardId)?.reportIds || []), newReport.id]
+    });
+  };
+
+  const updateSavedReport = (reportId: string, updates: Partial<SavedReport>) => {
+    setSavedReports(prev => 
+      prev.map(report => 
+        report.id === reportId 
+          ? { ...report, ...updates, updatedAt: new Date().toISOString() }
+          : report
+      )
+    );
+  };
+
+  const deleteSavedReport = (reportId: string) => {
+    setSavedReports(prev => prev.filter(report => report.id !== reportId));
+    // Remove report from all dashboards
+    setCustomDashboards(prev => 
+      prev.map(dashboard => ({
+        ...dashboard,
+        reportIds: dashboard.reportIds.filter(id => id !== reportId),
+        updatedAt: new Date().toISOString()
+      }))
+    );
+  };
+
   const value: AppContextType = {
     currentUser,
     session,
@@ -1754,6 +1853,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     taskLogs,
     taskStatuses,
     projectStatuses,
+    customDashboards,
+    savedReports,
     
     login,
     logout,
@@ -1868,6 +1969,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updateCustomField,
     deleteCustomField,
     reorderCustomFields,
+    
+    // Dashboard and Report functions
+    addCustomDashboard,
+    updateCustomDashboard,
+    deleteCustomDashboard,
+    setDefaultDashboard,
+    saveReport,
+    updateSavedReport,
+    deleteSavedReport,
   };
 
   return (

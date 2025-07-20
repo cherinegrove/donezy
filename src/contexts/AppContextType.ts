@@ -1,5 +1,6 @@
 
 import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, ClientAgreement, ClientFile, TaskStatusDefinition, ProjectStatusDefinition, CustomField } from "@/types";
+import { CustomDashboard, SavedReport } from "@/types/dashboard";
 import { Session } from "@supabase/supabase-js";
 
 export interface AppContextType {
@@ -22,6 +23,8 @@ export interface AppContextType {
   taskLogs: TaskLog[];
   taskStatuses: TaskStatusDefinition[];
   projectStatuses: ProjectStatusDefinition[];
+  customDashboards: CustomDashboard[];
+  savedReports: SavedReport[];
   
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<boolean>;
@@ -136,4 +139,13 @@ export interface AppContextType {
   updateCustomField: (fieldId: string, updates: Partial<CustomField>) => void;
   deleteCustomField: (fieldId: string) => void;
   reorderCustomFields: (fields: CustomField[]) => void;
+  
+  // Dashboard and Report functions
+  addCustomDashboard: (dashboard: Omit<CustomDashboard, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateCustomDashboard: (dashboardId: string, updates: Partial<CustomDashboard>) => void;
+  deleteCustomDashboard: (dashboardId: string) => void;
+  setDefaultDashboard: (dashboardId: string) => void;
+  saveReport: (report: Omit<SavedReport, 'id' | 'createdAt' | 'updatedAt'>, dashboardId: string) => void;
+  updateSavedReport: (reportId: string, updates: Partial<SavedReport>) => void;
+  deleteSavedReport: (reportId: string) => void;
 }

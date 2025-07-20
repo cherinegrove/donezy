@@ -25,6 +25,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin"; 
+import Dashboards from "./pages/Dashboards";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 
@@ -194,8 +195,9 @@ const AppRoutes = () => {
         />
         <Route path="/time" element={<TimeTracking />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/settings" element={<Settings />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/dashboards" element={<Dashboards />} />
+                  <Route path="/settings" element={<Settings />} />
         <Route 
           path="/admin" 
           element={

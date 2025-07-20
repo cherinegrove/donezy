@@ -9,10 +9,13 @@ import { X, Plus, Play, Save } from "lucide-react";
 import { ReportConfig, ReportFilter, DataSource } from "@/types/reportBuilder";
 import { useReportDataSources } from "@/hooks/useReportDataSources";
 import { CustomReportVisualization } from "./CustomReportVisualization";
+import { SaveReportDialog } from "../dashboard/SaveReportDialog";
 import { useAppContext } from "@/contexts/AppContext";
+import { useToast } from "@/hooks/use-toast";
 
 export function CustomReportBuilder() {
-  const { customFields, users, projects, tasks, clients, notes, teams } = useAppContext();
+  const { customFields, users, projects, tasks, clients, notes, teams, customDashboards, saveReport } = useAppContext();
+  const { toast } = useToast();
   const dataSources = useReportDataSources(customFields);
   const [reportConfig, setReportConfig] = useState<ReportConfig>({
     name: "",
@@ -23,6 +26,7 @@ export function CustomReportBuilder() {
   });
   const [reportData, setReportData] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
   const selectedDataSource = dataSources.find(ds => ds.id === reportConfig.dataSource);
 
@@ -68,6 +72,28 @@ export function CustomReportBuilder() {
     } finally {
       setIsRunning(false);
     }
+  };
+
+  const handleSaveReport = (reportName: string, dashboardId: string) => {
+    if (!reportData || !reportConfig.dataSource) {
+      toast({
+        title: "Cannot save report",
+        description: "Please run the report first before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    saveReport({
+      name: reportName,
+      reportConfig,
+      reportData,
+    }, dashboardId);
+
+    toast({
+      title: "Report saved",
+      description: `Report "${reportName}" has been saved to your dashboard.`,
+    });
   };
 
   const generateReportData = (config: ReportConfig, dataSource: DataSource | undefined) => {
@@ -551,7 +577,11 @@ export function CustomReportBuilder() {
               <Play className="h-4 w-4 mr-1" />
               {isRunning ? "Running..." : "Run Report"}
             </Button>
-            <Button variant="outline" disabled={!reportConfig.name}>
+            <Button 
+              variant="outline" 
+              disabled={!reportConfig.name || !reportData}
+              onClick={() => setIsSaveDialogOpen(true)}
+            >
               <Save className="h-4 w-4 mr-1" />
               Save Report
             </Button>
@@ -563,6 +593,15 @@ export function CustomReportBuilder() {
       <div className="space-y-4">
         <CustomReportVisualization config={reportConfig} data={reportData} />
       </div>
+
+      {/* Save Report Dialog */}
+      <SaveReportDialog
+        open={isSaveDialogOpen}
+        onOpenChange={setIsSaveDialogOpen}
+        onSaveReport={handleSaveReport}
+        dashboards={customDashboards}
+        defaultReportName={reportConfig.name}
+      />
     </div>
   );
 }
