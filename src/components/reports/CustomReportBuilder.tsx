@@ -98,7 +98,35 @@ export function CustomReportBuilder() {
         sourceData = [];
     }
 
-    console.log(`Report data for ${config.dataSource}:`, sourceData.length, 'records');
+    // Apply filters to the source data
+    const filteredData = sourceData.filter(item => {
+      return config.filters.every(filter => {
+        if (!filter.fieldId || !filter.value) return true;
+        
+        const fieldValue = item[filter.fieldId];
+        const filterValue = filter.value;
+        
+        switch (filter.operator) {
+          case 'equals':
+            return String(fieldValue).toLowerCase() === String(filterValue).toLowerCase();
+          case 'not_equals':
+            return String(fieldValue).toLowerCase() !== String(filterValue).toLowerCase();
+          case 'contains':
+            return String(fieldValue).toLowerCase().includes(String(filterValue).toLowerCase());
+          case 'greater_than':
+            return Number(fieldValue) > Number(filterValue);
+          case 'less_than':
+            return Number(fieldValue) < Number(filterValue);
+          default:
+            return true;
+        }
+      });
+    });
+
+    console.log(`Report data for ${config.dataSource}: ${sourceData.length} total records, ${filteredData.length} after filtering`);
+
+    // Use filtered data instead of sourceData for all calculations
+    sourceData = filteredData;
 
     switch (config.reportType) {
       case 'number':
