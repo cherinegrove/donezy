@@ -12,6 +12,7 @@ import { UseTemplateDialog } from "@/components/projects/UseTemplateDialog";
 import { TemplatesList } from "@/components/projects/TemplatesList";
 import { ViewSelector } from "@/components/kanban/ViewSelector";
 import { ProjectsViewContent } from "@/components/projects/ProjectsViewContent";
+import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import type { Project } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { CreateProjectTemplateDialog } from "@/components/projects/CreateProjectTemplateDialog";
@@ -230,19 +231,32 @@ const Projects = () => {
           <TabsContent value="projects" className="mt-6">
             <div className="flex justify-between items-center mb-4">
               <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
-              <ViewSelector currentView={currentView} onViewChange={setCurrentView} />
+              <div className="flex items-center gap-4">
+                <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline">
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Project
+                </Button>
+                <ViewSelector currentView={currentView} onViewChange={setCurrentView} />
+              </div>
             </div>
 
-            <ProjectsViewContent
-              currentView={currentView}
-              projects={filteredProjects}
-              getProjectProgress={getProjectProgress}
-              getClientName={getClientName}
-              onEdit={handleEditProject}
-              onDelete={handleDeleteProject}
-              onCardClick={handleCardClick}
-              onCreateProject={() => setIsCreateDialogOpen(true)}
-            />
+            <div className="space-y-6">
+              <ProjectsViewContent
+                currentView={currentView}
+                projects={filteredProjects}
+                getProjectProgress={getProjectProgress}
+                getClientName={getClientName}
+                onEdit={handleEditProject}
+                onDelete={handleDeleteProject}
+                onCardClick={handleCardClick}
+                onCreateProject={() => setIsCreateDialogOpen(true)}
+              />
+              
+              <div className="border-t pt-6">
+                <h2 className="text-2xl font-semibold mb-4">All Tasks</h2>
+                <KanbanBoard viewMode="kanban" />
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="templates" className="mt-6">
