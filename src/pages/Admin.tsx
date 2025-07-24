@@ -21,6 +21,7 @@ import { ProjectStatusManager } from "@/components/admin/ProjectStatusManager";
 import { CreateTemplateDialog } from "@/components/projects/CreateTemplateDialog";
 import { ProjectTemplatesList } from "@/components/projects/ProjectTemplatesList";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { SystemPreferences } from "@/components/admin/SystemPreferences";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -264,40 +265,7 @@ export default function Admin() {
                     <CustomFieldsManager />
                     <NativeFieldsManager />
                     
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Settings className="h-5 w-5 text-primary" />
-                          System Settings
-                        </CardTitle>
-                        <CardDescription>Configure global account settings</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="grid gap-4">
-                          <div className="grid gap-2">
-                            <h3 className="font-medium">Maintenance Mode</h3>
-                            <p className="text-sm text-muted-foreground">When enabled, only administrators can access the system.</p>
-                            <div className="flex items-center justify-end">
-                              <Button variant="outline">Enable Maintenance Mode</Button>
-                            </div>
-                          </div>
-                          <div className="grid gap-2">
-                            <h3 className="font-medium">Database Backup</h3>
-                            <p className="text-sm text-muted-foreground">Create a full backup of all system data.</p>
-                            <div className="flex items-center justify-end">
-                              <Button variant="outline">Generate Backup</Button>
-                            </div>
-                          </div>
-                          <div className="grid gap-2">
-                            <h3 className="font-medium">System Cache</h3>
-                            <p className="text-sm text-muted-foreground">Clear system cache to resolve potential issues.</p>
-                            <div className="flex items-center justify-end">
-                              <Button variant="outline">Clear Cache</Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <SystemPreferences />
                   </div>
                 </AccordionContent>
               </AccordionItem>
