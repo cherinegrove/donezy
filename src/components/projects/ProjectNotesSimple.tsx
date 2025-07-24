@@ -5,7 +5,22 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Save, FileText, Calendar, Edit, Trash2, Bold, Italic, List, ListOrdered } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  Plus, 
+  Save, 
+  FileText, 
+  Calendar, 
+  Edit, 
+  Trash2, 
+  Bold, 
+  Italic, 
+  List, 
+  ListOrdered, 
+  Tag, 
+  X,
+  Filter
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,6 +28,7 @@ interface Note {
   id: string;
   title: string;
   content: string;
+  tags: string[];
   created_at: string;
   updated_at: string;
 }
@@ -24,16 +40,33 @@ interface ProjectNotesProps {
 export function ProjectNotesSimple({ projectId }: ProjectNotesProps) {
   const { toast } = useToast();
   const [notes, setNotes] = useState<Note[]>([]);
+  const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
+  const [noteTags, setNoteTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState('');
+  const [tagFilter, setTagFilter] = useState<string>('');
   const [loading, setLoading] = useState(false);
+
+  // Available tags from all notes
+  const allTags = Array.from(new Set(notes.flatMap(note => note.tags))).sort();
 
   useEffect(() => {
     // For now, just show some placeholder data since the table is just created
     setNotes([]);
+    setFilteredNotes([]);
   }, [projectId]);
+
+  // Filter notes based on selected tag
+  useEffect(() => {
+    if (tagFilter === '' || tagFilter === 'all') {
+      setFilteredNotes(notes);
+    } else {
+      setFilteredNotes(notes.filter(note => note.tags.includes(tagFilter)));
+    }
+  }, [notes, tagFilter]);
 
   const saveNote = () => {
     if (!noteTitle.trim()) {
@@ -53,6 +86,7 @@ export function ProjectNotesSimple({ projectId }: ProjectNotesProps) {
 
     setNoteTitle('');
     setNoteContent('');
+    setNoteTags([]);
     setSelectedNote(null);
     setIsCreating(false);
   };
@@ -61,6 +95,7 @@ export function ProjectNotesSimple({ projectId }: ProjectNotesProps) {
     setSelectedNote(null);
     setNoteTitle('');
     setNoteContent('');
+    setNoteTags([]);
     setIsCreating(true);
   };
 
@@ -68,6 +103,7 @@ export function ProjectNotesSimple({ projectId }: ProjectNotesProps) {
     setSelectedNote(note);
     setNoteTitle(note.title);
     setNoteContent(note.content);
+    setNoteTags(note.tags || []);
     setIsCreating(true);
   };
 
@@ -75,7 +111,26 @@ export function ProjectNotesSimple({ projectId }: ProjectNotesProps) {
     setSelectedNote(null);
     setNoteTitle('');
     setNoteContent('');
+    setNoteTags([]);
     setIsCreating(false);
+  };
+
+  const addTag = () => {
+    if (newTag.trim() && !noteTags.includes(newTag.trim())) {
+      setNoteTags([...noteTags, newTag.trim()]);
+      setNewTag('');
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setNoteTags(noteTags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleNewTagKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag();
+    }
   };
 
   return (
@@ -93,11 +148,32 @@ export function ProjectNotesSimple({ projectId }: ProjectNotesProps) {
               New Note
             </Button>
           </div>
+          
+          {/* Tag Filter */}
+          <div className="flex items-center gap-2 pt-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={tagFilter} onValueChange={setTagFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by tag" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Notes</SelectItem>
+                {allTags.map(tag => (
+                  <SelectItem key={tag} value={tag}>
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-3 w-3" />
+                      {tag}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[600px]">
             <div className="space-y-3">
-              {notes.map((note) => (
+              {filteredNotes.map((note) => (
                 <div
                   key={note.id}
                   className={`p-3 rounded-lg border cursor-pointer transition-colors hover:bg-muted/50 ${
@@ -114,6 +190,21 @@ export function ProjectNotesSimple({ projectId }: ProjectNotesProps) {
                           {format(new Date(note.updated_at), 'MMM dd, yyyy HH:mm')}
                         </span>
                       </div>
+                      {/* Tags */}
+                      {note.tags && note.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {note.tags.slice(0, 3).map(tag => (
+                            <Badge key={tag} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                          {note.tags.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{note.tags.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <Button
                       variant="ghost"
@@ -137,6 +228,14 @@ export function ProjectNotesSimple({ projectId }: ProjectNotesProps) {
                 </div>
               ))}
               
+              {filteredNotes.length === 0 && notes.length > 0 && (
+                <div className="text-center text-muted-foreground py-8">
+                  <Tag className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>No notes with this tag</p>
+                  <p className="text-sm">Try selecting a different tag filter</p>
+                </div>
+              )}
+
               {notes.length === 0 && !loading && (
                 <div className="text-center text-muted-foreground py-8">
                   <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -181,6 +280,50 @@ export function ProjectNotesSimple({ projectId }: ProjectNotesProps) {
                   onChange={(e) => setNoteTitle(e.target.value)}
                 />
               </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-2 block">Tags</label>
+                <div className="space-y-2">
+                  {/* Current Tags */}
+                  {noteTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {noteTags.map(tag => (
+                        <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                          <Tag className="h-3 w-3" />
+                          {tag}
+                          <button
+                            onClick={() => removeTag(tag)}
+                            className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Add New Tag */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add a tag..."
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                      onKeyPress={handleNewTagKeyPress}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addTag}
+                      disabled={!newTag.trim()}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="text-sm font-medium mb-2 block">Content</label>
                 <div className="border rounded-lg">
