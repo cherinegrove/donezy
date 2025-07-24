@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Note {
   id: string;
@@ -54,21 +55,42 @@ export function ProjectNotesSimple({ projectId }: ProjectNotesProps) {
   const allTags = Array.from(new Set(notes.flatMap(note => note.tags))).sort();
 
   useEffect(() => {
-    // For now, just show some placeholder data since the table is just created
-    setNotes([]);
-    setFilteredNotes([]);
+    loadNotes();
   }, [projectId]);
+
+  const loadNotes = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('project_notes')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      setNotes(data || []);
+    } catch (error) {
+      console.error('Error loading notes:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load notes",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter notes based on selected tag
   useEffect(() => {
     if (tagFilter === '' || tagFilter === 'all') {
       setFilteredNotes(notes);
     } else {
-      setFilteredNotes(notes.filter(note => note.tags.includes(tagFilter)));
+      setFilteredNotes(notes.filter(note => note.tags && note.tags.includes(tagFilter)));
     }
   }, [notes, tagFilter]);
 
-  const saveNote = () => {
+  const saveNote = async () => {
     if (!noteTitle.trim()) {
       toast({
         title: "Error", 
@@ -78,17 +100,62 @@ export function ProjectNotesSimple({ projectId }: ProjectNotesProps) {
       return;
     }
 
-    // For now, just show success message
-    toast({
-      title: "Note Saved",
-      description: "Note functionality will be available once the database is fully synced"
-    });
+    try {
+      setLoading(true);
+      
+      if (selectedNote) {
+        // Update existing note
+        const { error } = await supabase
+          .from('project_notes')
+          .update({
+            title: noteTitle,
+            content: noteContent,
+            tags: noteTags,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', selectedNote.id);
 
-    setNoteTitle('');
-    setNoteContent('');
-    setNoteTags([]);
-    setSelectedNote(null);
-    setIsCreating(false);
+        if (error) throw error;
+        
+        toast({
+          title: "Success",
+          description: "Note updated successfully"
+        });
+      } else {
+        // Create new note
+        const { error } = await supabase
+          .from('project_notes')
+          .insert({
+            project_id: projectId,
+            title: noteTitle,
+            content: noteContent,
+            tags: noteTags
+          });
+
+        if (error) throw error;
+        
+        toast({
+          title: "Success",
+          description: "Note saved successfully"
+        });
+      }
+
+      setNoteTitle('');
+      setNoteContent('');
+      setNoteTags([]);
+      setSelectedNote(null);
+      setIsCreating(false);
+      loadNotes();
+    } catch (error) {
+      console.error('Error saving note:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save note",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const startNewNote = () => {
@@ -130,6 +197,42 @@ export function ProjectNotesSimple({ projectId }: ProjectNotesProps) {
     if (e.key === 'Enter') {
       e.preventDefault();
       addTag();
+    }
+  };
+
+  const deleteNote = async (noteId: string) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('project_notes')
+        .delete()
+        .eq('id', noteId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Note deleted successfully"
+      });
+
+      if (selectedNote?.id === noteId) {
+        setSelectedNote(null);
+        setNoteTitle('');
+        setNoteContent('');
+        setNoteTags([]);
+        setIsCreating(false);
+      }
+      
+      loadNotes();
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete note",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -212,11 +315,7 @@ export function ProjectNotesSimple({ projectId }: ProjectNotesProps) {
                       className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Delete functionality placeholder
-                        toast({
-                          title: "Delete Note",
-                          description: "Delete functionality will be available once the database is fully synced"
-                        });
+                        deleteNote(note.id);
                       }}
                     >
                       <Trash2 className="h-3 w-3" />
