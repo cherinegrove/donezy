@@ -13,7 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ConvertToTemplateDialog } from "@/components/projects/ConvertToTemplateDialog";
 import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
-import { ProjectChannels } from "@/components/channels/ProjectChannels";
+import { ProjectNotesSimple } from "@/components/projects/ProjectNotesSimple";
+import { ProjectFiles } from "@/components/projects/ProjectFilesSimple";
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -139,15 +140,20 @@ export default function ProjectDetails() {
       <Tabs defaultValue="tasks" className="space-y-4">
         <TabsList>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="chat">Chat</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsTrigger value="files">Files</TabsTrigger>
         </TabsList>
         
         <TabsContent value="tasks">
           <KanbanBoard tasks={projectTasks} projectId={projectId} viewMode="kanban" />
         </TabsContent>
         
-        <TabsContent value="chat">
-          <ProjectChannels projectId={projectId!} />
+        <TabsContent value="notes">
+          <ProjectNotesSimple projectId={projectId!} />
+        </TabsContent>
+        
+        <TabsContent value="files">
+          <ProjectFiles projectId={projectId!} />
         </TabsContent>
       </Tabs>
       

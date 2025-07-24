@@ -525,6 +525,69 @@ export type Database = {
         }
         Relationships: []
       }
+      project_files: {
+        Row: {
+          auth_user_id: string
+          file_path: string
+          file_size: number
+          id: string
+          mime_type: string
+          name: string
+          project_id: string
+          uploaded_at: string
+        }
+        Insert: {
+          auth_user_id?: string
+          file_path: string
+          file_size: number
+          id?: string
+          mime_type: string
+          name: string
+          project_id: string
+          uploaded_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          name?: string
+          project_id?: string
+          uploaded_at?: string
+        }
+        Relationships: []
+      }
+      project_notes: {
+        Row: {
+          auth_user_id: string
+          content: string | null
+          created_at: string
+          id: string
+          project_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id?: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          project_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          project_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       project_status_definitions: {
         Row: {
           auth_user_id: string
