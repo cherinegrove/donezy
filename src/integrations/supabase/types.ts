@@ -528,9 +528,13 @@ export type Database = {
       project_files: {
         Row: {
           auth_user_id: string
-          file_path: string
-          file_size: number
+          external_provider: string | null
+          external_url: string | null
+          file_path: string | null
+          file_size: number | null
+          folder_id: string | null
           id: string
+          is_external_link: boolean | null
           mime_type: string
           name: string
           project_id: string
@@ -538,9 +542,13 @@ export type Database = {
         }
         Insert: {
           auth_user_id?: string
-          file_path: string
-          file_size: number
+          external_provider?: string | null
+          external_url?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          folder_id?: string | null
           id?: string
+          is_external_link?: boolean | null
           mime_type: string
           name: string
           project_id: string
@@ -548,15 +556,62 @@ export type Database = {
         }
         Update: {
           auth_user_id?: string
-          file_path?: string
-          file_size?: number
+          external_provider?: string | null
+          external_url?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          folder_id?: string | null
           id?: string
+          is_external_link?: boolean | null
           mime_type?: string
           name?: string
           project_id?: string
           uploaded_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_files_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "project_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_folders: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          id: string
+          name: string
+          parent_folder_id: string | null
+          project_id: string
+        }
+        Insert: {
+          auth_user_id?: string
+          created_at?: string
+          id?: string
+          name: string
+          parent_folder_id?: string | null
+          project_id: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          parent_folder_id?: string | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_folders_parent_folder_id_fkey"
+            columns: ["parent_folder_id"]
+            isOneToOne: false
+            referencedRelation: "project_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_notes: {
         Row: {

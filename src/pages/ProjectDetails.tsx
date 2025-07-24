@@ -14,7 +14,7 @@ import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ConvertToTemplateDialog } from "@/components/projects/ConvertToTemplateDialog";
 import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
 import { ProjectNotesSimple } from "@/components/projects/ProjectNotesSimple";
-import { ProjectFiles } from "@/components/projects/ProjectFilesSimple";
+import { ProjectFilesAdvanced } from "@/components/projects/ProjectFilesAdvanced";
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -153,7 +153,7 @@ export default function ProjectDetails() {
         </TabsContent>
         
         <TabsContent value="files">
-          <ProjectFiles projectId={projectId!} />
+          <ProjectFilesAdvanced projectId={projectId!} />
         </TabsContent>
       </Tabs>
       
