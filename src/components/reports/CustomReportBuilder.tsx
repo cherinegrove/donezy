@@ -75,7 +75,10 @@ export function CustomReportBuilder() {
   };
 
   const handleSaveReport = (reportName: string, dashboardId?: string) => {
+    console.log("handleSaveReport called with:", { reportName, dashboardId, reportData: !!reportData, dataSource: reportConfig.dataSource });
+    
     if (!reportData || !reportConfig.dataSource) {
+      console.log("Missing reportData or dataSource");
       toast({
         title: "Cannot save report",
         description: "Please run the report first before saving.",
@@ -94,9 +97,11 @@ export function CustomReportBuilder() {
         'purchases': 'billing-dashboard'
       };
       targetDashboardId = dashboardMap[reportConfig.dataSource];
+      console.log("Auto-determined dashboard:", targetDashboardId, "for data source:", reportConfig.dataSource);
     }
 
     if (!targetDashboardId) {
+      console.log("No target dashboard found");
       toast({
         title: "Cannot save report",
         description: "Unable to determine target dashboard.",
@@ -105,19 +110,33 @@ export function CustomReportBuilder() {
       return;
     }
 
-    saveReport({
-      name: reportName,
-      reportConfig,
-      reportData,
-    }, targetDashboardId);
-
-    const dashboardName = customDashboards.find(d => d.id === targetDashboardId)?.name || 'dashboard';
-    toast({
-      title: "Report saved",
-      description: `Report "${reportName}" has been saved to ${dashboardName}.`,
-    });
+    console.log("Calling saveReport with:", { reportName, targetDashboardId });
+    console.log("Available dashboards:", customDashboards.map(d => ({ id: d.id, name: d.name })));
     
-    setIsSaveDialogOpen(false);
+    try {
+      saveReport({
+        name: reportName,
+        reportConfig,
+        reportData,
+      }, targetDashboardId);
+
+      const dashboardName = customDashboards.find(d => d.id === targetDashboardId)?.name || 'dashboard';
+      console.log("Report saved successfully to:", dashboardName);
+      
+      toast({
+        title: "Report saved",
+        description: `Report "${reportName}" has been saved to ${dashboardName}.`,
+      });
+      
+      setIsSaveDialogOpen(false);
+    } catch (error) {
+      console.error("Error saving report:", error);
+      toast({
+        title: "Error saving report",
+        description: "There was an error saving the report. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const generateReportData = (config: ReportConfig, dataSource: DataSource | undefined) => {
