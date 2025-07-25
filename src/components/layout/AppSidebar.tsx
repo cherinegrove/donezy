@@ -125,7 +125,7 @@ export function AppSidebar() {
               }
             >
               <StickyNote className="h-4 w-4" />
-              {!collapsed && <span>My Notes</span>}
+              {!collapsed && <span>My Sticky Notes</span>}
             </NavLink>
             
             {/* Time */}
