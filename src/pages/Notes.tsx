@@ -30,7 +30,7 @@ export default function Notes() {
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
           <h1 className="text-3xl font-bold">
-            {showArchived ? 'Archived Notes' : 'My Notes'}
+            {showArchived ? 'Archived Notes' : 'My Sticky Notes'}
           </h1>
           {archivedCount > 0 && (
             <Button
