@@ -411,14 +411,14 @@ const Home = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
                   <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                  {selectedUserName} Projects ({projectsSortedByDueDate.length})
+                  All Projects ({filteredProjects.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {projectsSortedByDueDate.length > 0 ? (
+                {filteredProjects.length > 0 ? (
                   <div className="space-y-3">
-                    {projectsSortedByDueDate.map((project) => (
-                      <div key={project.id} className="p-3 border rounded-md">
+                    {filteredProjects.map((project) => (
+                      <div key={project.id} className="p-3 border rounded-md cursor-pointer hover:bg-muted/50" onClick={() => window.location.href = `/project/${project.id}`}>
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="font-medium">{project.name}</h4>
                           <Badge className={getProjectStatusColor(project.status)}>

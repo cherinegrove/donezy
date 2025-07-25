@@ -20,6 +20,7 @@ import {
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
 import { UserProfileDialog } from "@/components/users/UserProfileDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 
 export function TopBar() {
   const { currentUser, clients } = useAppContext();
@@ -28,6 +29,7 @@ export function TopBar() {
   const [isTimerDialogOpen, setIsTimerDialogOpen] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
+  const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   
   // Toggle between light and dark mode
@@ -78,6 +80,10 @@ export function TopBar() {
               <DropdownMenuItem onClick={() => setIsTimerDialogOpen(true)}>
                 <Timer className="mr-2 h-4 w-4" />
                 <span>Start Timer</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsProjectDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                <span>Create Project</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsTaskDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -139,6 +145,11 @@ export function TopBar() {
         onStartTimer={() => {}}
       />
       
+      <CreateProjectDialog
+        open={isProjectDialogOpen}
+        onOpenChange={setIsProjectDialogOpen}
+      />
+
       <CreateTaskDialog
         open={isTaskDialogOpen}
         onOpenChange={setIsTaskDialogOpen}
