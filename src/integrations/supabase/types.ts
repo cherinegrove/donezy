@@ -463,9 +463,12 @@ export type Database = {
         Row: {
           archived: boolean | null
           auth_user_id: string
+          client_id: string | null
           content: string | null
           created_at: string
           id: string
+          project_id: string | null
+          task_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -473,9 +476,12 @@ export type Database = {
         Insert: {
           archived?: boolean | null
           auth_user_id: string
+          client_id?: string | null
           content?: string | null
           created_at?: string
           id?: string
+          project_id?: string | null
+          task_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -483,14 +489,39 @@ export type Database = {
         Update: {
           archived?: boolean | null
           auth_user_id?: string
+          client_id?: string | null
           content?: string | null
           created_at?: string
           id?: string
+          project_id?: string | null
+          task_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

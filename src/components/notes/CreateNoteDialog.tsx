@@ -25,11 +25,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { CheckSquare, List } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const noteSchema = z.object({
   title: z.string().min(1, "Title is required"),
   content: z.string().min(1, "Content is required"),
   color: z.string().default("yellow"),
+  associationType: z.enum(["none", "project", "client", "task"]).default("none"),
+  associationId: z.string().optional(),
 });
 
 type NoteFormData = z.infer<typeof noteSchema>;
@@ -49,7 +52,7 @@ const COLOR_OPTIONS = [
 ];
 
 export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) {
-  const { addNote, currentUser } = useAppContext();
+  const { addNote, currentUser, projects, clients, tasks } = useAppContext();
   const { toast } = useToast();
   const [selectedColor, setSelectedColor] = useState("yellow");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -60,19 +63,32 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
       title: "",
       content: "",
       color: "yellow",
+      associationType: "none",
+      associationId: "",
     },
   });
 
   const onSubmit = (data: NoteFormData) => {
     if (!currentUser) return;
 
-    addNote({
+    const noteData: any = {
       title: data.title,
       content: data.content,
       color: selectedColor,
       userId: currentUser.id,
       archived: false,
-    });
+    };
+
+    // Add association fields based on selection
+    if (data.associationType === "project" && data.associationId) {
+      noteData.projectId = data.associationId;
+    } else if (data.associationType === "client" && data.associationId) {
+      noteData.clientId = data.associationId;
+    } else if (data.associationType === "task" && data.associationId) {
+      noteData.taskId = data.associationId;
+    }
+
+    addNote(noteData);
 
     toast({
       title: "Note created",
@@ -110,6 +126,21 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
         textareaRef.current.setSelectionRange(newContent.length, newContent.length);
       }
     }, 0);
+  };
+
+  const associationType = form.watch("associationType");
+
+  const getAssociationOptions = () => {
+    switch (associationType) {
+      case "project":
+        return projects.map(p => ({ id: p.id, name: p.name }));
+      case "client":
+        return clients.map(c => ({ id: c.id, name: c.name }));
+      case "task":
+        return tasks.map(t => ({ id: t.id, name: t.title }));
+      default:
+        return [];
+    }
   };
 
   return (
@@ -155,6 +186,59 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
                 ))}
               </div>
             </div>
+
+            <FormField
+              control={form.control}
+              name="associationType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Associate With</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select association type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="project">Project</SelectItem>
+                      <SelectItem value="client">Client</SelectItem>
+                      <SelectItem value="task">Task</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {associationType !== "none" && (
+              <FormField
+                control={form.control}
+                name="associationId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Select {associationType.charAt(0).toUpperCase() + associationType.slice(1)}
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={`Select ${associationType}`} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {getAssociationOptions().map((option) => (
+                          <SelectItem key={option.id} value={option.id}>
+                            {option.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
