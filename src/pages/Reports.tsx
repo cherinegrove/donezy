@@ -87,24 +87,21 @@ export default function Reports() {
     };
   }).filter(item => item.revenue > 0);
 
-  // Get saved reports for each tab
+  // Get saved reports for each tab based on their data source
   const getTabReports = (tabType: ReportTab) => {
-    const dashboardMap: Record<ReportTab, string> = {
-      'projects': 'projects-dashboard',
-      'tasks': 'tasks-dashboard',
-      'time': 'time-dashboard',
-      'billing': 'billing-dashboard',
-      'custom': 'custom-dashboard'
+    const dataSourceMap: Record<ReportTab, string[]> = {
+      'projects': ['projects'],
+      'tasks': ['tasks'],
+      'time': ['time_entries'],
+      'billing': ['purchases'],
+      'custom': [] // All reports appear in custom tab
     };
     
-    const dashboardId = dashboardMap[tabType];
-    const dashboard = customDashboards.find(d => d.id === dashboardId);
+    const validDataSources = dataSourceMap[tabType];
     
-    if (!dashboard) return [];
-    
-    return dashboard.reportIds
-      .map(reportId => savedReports.find(r => r.id === reportId))
-      .filter(Boolean);
+    return savedReports.filter(report => 
+      validDataSources.includes(report.reportConfig.dataSource)
+    );
   };
 
   const exportReport = () => {
