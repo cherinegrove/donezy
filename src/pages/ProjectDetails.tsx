@@ -271,13 +271,19 @@ export default function ProjectDetails() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-40">
+            <div className="text-center mb-4">
+              <h3 className={`text-2xl font-bold ${overdueTasks.length > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                {overdueTasks.length}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {overdueTasks.length === 0 ? 'All tasks on track' : 'Tasks overdue'}
+              </p>
+            </div>
+            
+            <div className="h-32">
               {overdueTasks.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <p className="text-green-500 font-medium">All tasks on track</p>
-                    <p className="text-sm text-muted-foreground">No overdue tasks</p>
-                  </div>
+                  <p className="text-sm text-muted-foreground">No overdue tasks to display</p>
                 </div>
               ) : (
                 <ScrollArea className="h-full">
