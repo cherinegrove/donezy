@@ -13,6 +13,7 @@ import { TasksReports } from "@/components/reports/TasksReports";
 import { TimeReports } from "@/components/reports/TimeReports";
 import { BillingReports } from "@/components/reports/BillingReports";
 import { CustomReportBuilder } from "@/components/reports/CustomReportBuilder";
+import { CustomReportVisualization } from "@/components/reports/CustomReportVisualization";
 
 type ReportTab = 'projects' | 'tasks' | 'time' | 'billing' | 'custom';
 
@@ -24,7 +25,9 @@ export default function Reports() {
     clients, 
     users, 
     teams,
-    purchases 
+    purchases,
+    savedReports,
+    customDashboards
   } = useAppContext();
   
   // Initialize with last 30 days
@@ -83,6 +86,26 @@ export default function Reports() {
       hours: billableTime
     };
   }).filter(item => item.revenue > 0);
+
+  // Get saved reports for each tab
+  const getTabReports = (tabType: ReportTab) => {
+    const dashboardMap: Record<ReportTab, string> = {
+      'projects': 'projects-dashboard',
+      'tasks': 'tasks-dashboard',
+      'time': 'time-dashboard',
+      'billing': 'billing-dashboard',
+      'custom': 'custom-dashboard'
+    };
+    
+    const dashboardId = dashboardMap[tabType];
+    const dashboard = customDashboards.find(d => d.id === dashboardId);
+    
+    if (!dashboard) return [];
+    
+    return dashboard.reportIds
+      .map(reportId => savedReports.find(r => r.id === reportId))
+      .filter(Boolean);
+  };
 
   const exportReport = () => {
     const reportData = {
@@ -209,18 +232,106 @@ export default function Reports() {
             clients={clients}
             teams={teams}
           />
+          
+          {/* Saved Reports Section */}
+          {getTabReports('projects').length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Saved Project Reports</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {getTabReports('projects').map((report) => (
+                  <Card key={report.id}>
+                    <CardHeader>
+                      <CardTitle className="text-base">{report.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CustomReportVisualization 
+                        config={report.reportConfig} 
+                        data={report.reportData} 
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="tasks" className="space-y-6">
           <TasksReports tasks={filteredTasks} />
+          
+          {/* Saved Reports Section */}
+          {getTabReports('tasks').length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Saved Task Reports</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {getTabReports('tasks').map((report) => (
+                  <Card key={report.id}>
+                    <CardHeader>
+                      <CardTitle className="text-base">{report.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CustomReportVisualization 
+                        config={report.reportConfig} 
+                        data={report.reportData} 
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="time" className="space-y-6">
           <TimeReports timeEntries={filteredTimeEntries} users={users} teams={teams} />
+          
+          {/* Saved Reports Section */}
+          {getTabReports('time').length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Saved Time Reports</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {getTabReports('time').map((report) => (
+                  <Card key={report.id}>
+                    <CardHeader>
+                      <CardTitle className="text-base">{report.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CustomReportVisualization 
+                        config={report.reportConfig} 
+                        data={report.reportData} 
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="billing" className="space-y-6">
           <BillingReports timeEntries={filteredTimeEntries} clients={clients} purchases={purchases} />
+          
+          {/* Saved Reports Section */}
+          {getTabReports('billing').length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Saved Billing Reports</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {getTabReports('billing').map((report) => (
+                  <Card key={report.id}>
+                    <CardHeader>
+                      <CardTitle className="text-base">{report.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CustomReportVisualization 
+                        config={report.reportConfig} 
+                        data={report.reportData} 
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="custom" className="space-y-6">
