@@ -46,7 +46,48 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     { id: '5', label: 'Done', value: 'done', color: 'bg-green-500', order: 4 },
   ]);
   const [projectStatuses, setProjectStatuses] = useState<ProjectStatusDefinition[]>([]);
-  const [customDashboards, setCustomDashboards] = useState<CustomDashboard[]>([]);
+  const [customDashboards, setCustomDashboards] = useState<CustomDashboard[]>([
+    {
+      id: 'projects-dashboard',
+      name: 'Projects Dashboard',
+      description: 'Custom reports for projects',
+      reportIds: [],
+      layout: [],
+      isDefault: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: 'tasks-dashboard', 
+      name: 'Tasks Dashboard',
+      description: 'Custom reports for tasks',
+      reportIds: [],
+      layout: [],
+      isDefault: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: 'time-dashboard',
+      name: 'Time Dashboard', 
+      description: 'Custom reports for time entries',
+      reportIds: [],
+      layout: [],
+      isDefault: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: 'billing-dashboard',
+      name: 'Billing Dashboard',
+      description: 'Custom reports for billing and purchases', 
+      reportIds: [],
+      layout: [],
+      isDefault: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ]);
   const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
 
   // Helper function to safely parse JSON fields

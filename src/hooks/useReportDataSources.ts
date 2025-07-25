@@ -49,7 +49,7 @@ export function useReportDataSources(customFields: CustomField[]): DataSource[] 
       },
       {
         id: "time_entries",
-        name: "Time Entries",
+        name: "Time Entries", 
         table: "time_entries",
         fields: [
           { id: "id", name: "ID", type: "text", source: {} as DataSource },
@@ -68,49 +68,9 @@ export function useReportDataSources(customFields: CustomField[]): DataSource[] 
         ]
       },
       {
-        id: "users",
-        name: "Users",
-        table: "users",
-        fields: [
-          { id: "id", name: "ID", type: "text", source: {} as DataSource },
-          { id: "name", name: "Name", type: "text", source: {} as DataSource },
-          { id: "email", name: "Email", type: "text", source: {} as DataSource },
-          { id: "role", name: "Role", type: "text", source: {} as DataSource },
-          { id: "job_title", name: "Job Title", type: "text", source: {} as DataSource },
-          { id: "phone", name: "Phone", type: "text", source: {} as DataSource },
-          { id: "employment_type", name: "Employment Type", type: "text", source: {} as DataSource },
-          { id: "billing_type", name: "Billing Type", type: "text", source: {} as DataSource },
-          { id: "hourly_rate", name: "Hourly Rate", type: "number", source: {} as DataSource },
-          { id: "monthly_rate", name: "Monthly Rate", type: "number", source: {} as DataSource },
-          { id: "billing_rate", name: "Billing Rate", type: "number", source: {} as DataSource },
-          { id: "currency", name: "Currency", type: "text", source: {} as DataSource },
-          { id: "team_ids", name: "Teams", type: "array", source: {} as DataSource },
-          { id: "is_guest", name: "Is Guest", type: "boolean", source: {} as DataSource },
-          { id: "client_role", name: "Client Role", type: "text", source: {} as DataSource },
-          { id: "created_at", name: "Created At", type: "date", source: {} as DataSource },
-          { id: "updated_at", name: "Updated At", type: "date", source: {} as DataSource },
-        ]
-      },
-      {
-        id: "clients",
-        name: "Clients",
-        table: "clients",
-        fields: [
-          { id: "id", name: "ID", type: "text", source: {} as DataSource },
-          { id: "name", name: "Name", type: "text", source: {} as DataSource },
-          { id: "email", name: "Email", type: "text", source: {} as DataSource },
-          { id: "phone", name: "Phone", type: "text", source: {} as DataSource },
-          { id: "website", name: "Website", type: "text", source: {} as DataSource },
-          { id: "address", name: "Address", type: "text", source: {} as DataSource },
-          { id: "status", name: "Status", type: "text", source: {} as DataSource },
-          { id: "created_at", name: "Created At", type: "date", source: {} as DataSource },
-          { id: "updated_at", name: "Updated At", type: "date", source: {} as DataSource },
-        ]
-      },
-      {
         id: "purchases",
-        name: "Purchases",
-        table: "purchases",
+        name: "Billing",
+        table: "purchases", 
         fields: [
           { id: "id", name: "ID", type: "text", source: {} as DataSource },
           { id: "item_name", name: "Item Name", type: "text", source: {} as DataSource },
@@ -122,51 +82,6 @@ export function useReportDataSources(customFields: CustomField[]): DataSource[] 
           { id: "approved", name: "Approved", type: "boolean", source: {} as DataSource },
           { id: "approved_by", name: "Approved By", type: "text", source: {} as DataSource },
           { id: "receipt_url", name: "Receipt URL", type: "text", source: {} as DataSource },
-          { id: "created_at", name: "Created At", type: "date", source: {} as DataSource },
-          { id: "updated_at", name: "Updated At", type: "date", source: {} as DataSource },
-        ]
-      },
-      {
-        id: "notes",
-        name: "Notes",
-        table: "notes",
-        fields: [
-          { id: "id", name: "ID", type: "text", source: {} as DataSource },
-          { id: "title", name: "Title", type: "text", source: {} as DataSource },
-          { id: "content", name: "Content", type: "text", source: {} as DataSource },
-          { id: "user_id", name: "User", type: "text", source: {} as DataSource },
-          { id: "archived", name: "Archived", type: "boolean", source: {} as DataSource },
-          { id: "created_at", name: "Created At", type: "date", source: {} as DataSource },
-          { id: "updated_at", name: "Updated At", type: "date", source: {} as DataSource },
-        ]
-      },
-      {
-        id: "messages",
-        name: "Messages",
-        table: "messages",
-        fields: [
-          { id: "id", name: "ID", type: "text", source: {} as DataSource },
-          { id: "subject", name: "Subject", type: "text", source: {} as DataSource },
-          { id: "content", name: "Content", type: "text", source: {} as DataSource },
-          { id: "from_user_id", name: "From User", type: "text", source: {} as DataSource },
-          { id: "to_user_id", name: "To User", type: "text", source: {} as DataSource },
-          { id: "channel_id", name: "Channel", type: "text", source: {} as DataSource },
-          { id: "priority", name: "Priority", type: "text", source: {} as DataSource },
-          { id: "read", name: "Read", type: "boolean", source: {} as DataSource },
-          { id: "mentioned_users", name: "Mentioned Users", type: "array", source: {} as DataSource },
-          { id: "timestamp", name: "Timestamp", type: "date", source: {} as DataSource },
-          { id: "created_at", name: "Created At", type: "date", source: {} as DataSource },
-          { id: "updated_at", name: "Updated At", type: "date", source: {} as DataSource },
-        ]
-      },
-      {
-        id: "teams",
-        name: "Teams",
-        table: "teams",
-        fields: [
-          { id: "id", name: "ID", type: "text", source: {} as DataSource },
-          { id: "name", name: "Name", type: "text", source: {} as DataSource },
-          { id: "description", name: "Description", type: "text", source: {} as DataSource },
           { id: "created_at", name: "Created At", type: "date", source: {} as DataSource },
           { id: "updated_at", name: "Updated At", type: "date", source: {} as DataSource },
         ]

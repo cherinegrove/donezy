@@ -14,7 +14,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
 
 export function CustomReportBuilder() {
-  const { customFields, users, projects, tasks, clients, notes, teams, customDashboards, saveReport } = useAppContext();
+  const { customFields, users, projects, tasks, clients, notes, teams, timeEntries, purchases, customDashboards, saveReport } = useAppContext();
   const { toast } = useToast();
   const dataSources = useReportDataSources(customFields);
   const [reportConfig, setReportConfig] = useState<ReportConfig>({
@@ -74,7 +74,7 @@ export function CustomReportBuilder() {
     }
   };
 
-  const handleSaveReport = (reportName: string, dashboardId: string) => {
+  const handleSaveReport = (reportName: string, dashboardId?: string) => {
     if (!reportData || !reportConfig.dataSource) {
       toast({
         title: "Cannot save report",
@@ -84,16 +84,40 @@ export function CustomReportBuilder() {
       return;
     }
 
+    // Auto-determine dashboard based on data source if not provided
+    let targetDashboardId = dashboardId;
+    if (!targetDashboardId) {
+      const dashboardMap: Record<string, string> = {
+        'projects': 'projects-dashboard',
+        'tasks': 'tasks-dashboard',
+        'time_entries': 'time-dashboard',
+        'purchases': 'billing-dashboard'
+      };
+      targetDashboardId = dashboardMap[reportConfig.dataSource];
+    }
+
+    if (!targetDashboardId) {
+      toast({
+        title: "Cannot save report",
+        description: "Unable to determine target dashboard.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     saveReport({
       name: reportName,
       reportConfig,
       reportData,
-    }, dashboardId);
+    }, targetDashboardId);
 
+    const dashboardName = customDashboards.find(d => d.id === targetDashboardId)?.name || 'dashboard';
     toast({
       title: "Report saved",
-      description: `Report "${reportName}" has been saved to your dashboard.`,
+      description: `Report "${reportName}" has been saved to ${dashboardName}.`,
     });
+    
+    setIsSaveDialogOpen(false);
   };
 
   const generateReportData = (config: ReportConfig, dataSource: DataSource | undefined) => {
@@ -102,23 +126,17 @@ export function CustomReportBuilder() {
     // Get the actual data from context based on the data source
     let sourceData: any[] = [];
     switch (config.dataSource) {
-      case 'users':
-        sourceData = users || [];
-        break;
       case 'projects':
         sourceData = projects || [];
         break;
       case 'tasks':
         sourceData = tasks || [];
         break;
-      case 'clients':
-        sourceData = clients || [];
+      case 'time_entries':
+        sourceData = timeEntries || [];
         break;
-      case 'notes':
-        sourceData = notes || [];
-        break;
-      case 'teams':
-        sourceData = teams || [];
+      case 'purchases':
+        sourceData = purchases || [];
         break;
       default:
         sourceData = [];
@@ -579,11 +597,14 @@ export function CustomReportBuilder() {
             </Button>
             <Button 
               variant="outline" 
-              disabled={!reportConfig.name || !reportData}
-              onClick={() => setIsSaveDialogOpen(true)}
+              disabled={!reportData}
+              onClick={() => {
+                const reportName = reportConfig.name || `${selectedDataSource?.name} Report`;
+                handleSaveReport(reportName);
+              }}
             >
               <Save className="h-4 w-4 mr-1" />
-              Save Report
+              Auto-Save Report
             </Button>
           </div>
         </CardContent>
