@@ -20,10 +20,9 @@ import { ProjectsReports } from "@/components/reports/ProjectsReports";
 import { TasksReports } from "@/components/reports/TasksReports";
 import { TimeReports } from "@/components/reports/TimeReports";
 import { BillingReports } from "@/components/reports/BillingReports";
-import { CustomReportBuilder } from "@/components/reports/CustomReportBuilder";
 import { CustomReportVisualization } from "@/components/reports/CustomReportVisualization";
 
-type ReportTab = 'projects' | 'tasks' | 'time' | 'billing' | 'custom';
+type ReportTab = 'projects' | 'tasks' | 'time' | 'billing';
 
 export default function Reports() {
   const { 
@@ -105,8 +104,7 @@ export default function Reports() {
       'projects': ['projects'],
       'tasks': ['tasks'],
       'time': ['time_entries'],
-      'billing': ['purchases'],
-      'custom': [] // All reports appear in custom tab
+      'billing': ['purchases']
     };
     
     const validDataSources = dataSourceMap[tabType];
@@ -128,7 +126,7 @@ export default function Reports() {
     // TODO: Implement edit functionality - for now just show a message
     toast({
       title: "Edit Report",
-      description: "Edit functionality coming soon. Use Custom Reports tab to create a new report.",
+      description: "Edit functionality coming soon.",
       variant: "default",
     });
   };
@@ -243,12 +241,11 @@ export default function Reports() {
 
       {/* Tabbed Reports */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ReportTab)}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="projects">Projects</TabsTrigger>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="time">Time</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
-          <TabsTrigger value="custom">Custom Reports</TabsTrigger>
         </TabsList>
 
         <TabsContent value="projects" className="space-y-6">
@@ -452,9 +449,6 @@ export default function Reports() {
           )}
         </TabsContent>
 
-        <TabsContent value="custom" className="space-y-6">
-          <CustomReportBuilder />
-        </TabsContent>
       </Tabs>
     </div>
   );
