@@ -5,7 +5,7 @@ import { Project } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Edit, Clock, AlertTriangle } from "lucide-react";
+import { Calendar, Edit, Clock, AlertTriangle, User, Users } from "lucide-react";
 import { format, differenceInDays, parseISO, isValid } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,7 +19,7 @@ import { ProjectFilesAdvanced } from "@/components/projects/ProjectFilesAdvanced
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { projects, clients, tasks, timeEntries } = useAppContext();
+  const { projects, clients, tasks, timeEntries, users } = useAppContext();
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
@@ -79,6 +79,23 @@ export default function ProjectDetails() {
 
   const daysLeft = calculateDaysLeft(project?.dueDate);
   const totalHoursFormatted = Math.round((totalHours / 60) * 10) / 10;
+
+  // Helper functions to get user details
+  const getOwnerName = () => {
+    if (!project?.ownerId) return "No owner assigned";
+    const owner = users.find(user => user.id === project.ownerId);
+    return owner ? owner.name : "Unknown user";
+  };
+
+  const getCollaboratorNames = () => {
+    if (!project?.collaboratorIds || project.collaboratorIds.length === 0) {
+      return [];
+    }
+    return project.collaboratorIds.map(id => {
+      const collaborator = users.find(user => user.id === id);
+      return collaborator ? collaborator.name : "Unknown user";
+    });
+  };
 
   // Show loading state while searching for project
   if (!project && projects.length > 0) {
@@ -148,7 +165,7 @@ export default function ProjectDetails() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card className="md:col-span-2 lg:col-span-1">
           <CardHeader>
             <CardTitle>Project Overview</CardTitle>
@@ -177,6 +194,71 @@ export default function ProjectDetails() {
               <span className="font-medium">
                 {project.dueDate ? format(new Date(project.dueDate), "MMM dd, yyyy") : "Not set"}
               </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Project Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Project Owner</span>
+              </div>
+              <p className="text-sm text-muted-foreground ml-6">{getOwnerName()}</p>
+            </div>
+            
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Collaborators</span>
+              </div>
+              <div className="ml-6">
+                {getCollaboratorNames().length > 0 ? (
+                  <div className="space-y-1">
+                    {getCollaboratorNames().map((name, index) => (
+                      <p key={index} className="text-sm text-muted-foreground">{name}</p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No collaborators assigned</p>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-2 border-t">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Hours Summary</span>
+              </div>
+              <div className="ml-6 space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Tracked:</span>
+                  <span className="font-medium">{totalHoursFormatted}h</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Allocated:</span>
+                  <span className="font-medium">{project.allocatedHours || 0}h</span>
+                </div>
+                {project.allocatedHours && project.allocatedHours > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Remaining:</span>
+                    <span className={`font-medium ${
+                      (project.allocatedHours - totalHoursFormatted) < 0 
+                        ? 'text-red-500' 
+                        : 'text-green-500'
+                    }`}>
+                      {Math.max(0, project.allocatedHours - totalHoursFormatted).toFixed(1)}h
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
