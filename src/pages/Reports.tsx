@@ -4,7 +4,15 @@ import { subDays, isAfter, isBefore, isEqual } from "date-fns";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Clock, TrendingUp, Users, DollarSign } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Download, Clock, TrendingUp, Users, DollarSign, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { ReportsFilters } from "@/components/reports/ReportsFilters";
@@ -27,8 +35,12 @@ export default function Reports() {
     teams,
     purchases,
     savedReports,
-    customDashboards
+    customDashboards,
+    deleteSavedReport,
+    updateSavedReport
   } = useAppContext();
+  
+  const { toast } = useToast();
   
   // Initialize with last 30 days
   const [startDate, setStartDate] = useState<Date | undefined>(() => subDays(new Date(), 30));
@@ -89,9 +101,6 @@ export default function Reports() {
 
   // Get saved reports for each tab based on their data source
   const getTabReports = (tabType: ReportTab) => {
-    console.log('Getting tab reports for:', tabType);
-    console.log('Available saved reports:', savedReports);
-    
     const dataSourceMap: Record<ReportTab, string[]> = {
       'projects': ['projects'],
       'tasks': ['tasks'],
@@ -101,14 +110,27 @@ export default function Reports() {
     };
     
     const validDataSources = dataSourceMap[tabType];
-    console.log('Valid data sources for', tabType, ':', validDataSources);
     
-    const filteredReports = savedReports.filter(report => 
+    return savedReports.filter(report => 
       validDataSources.includes(report.reportConfig.dataSource)
     );
-    console.log('Filtered reports:', filteredReports);
-    
-    return filteredReports;
+  };
+
+  const handleDeleteReport = (reportId: string, reportName: string) => {
+    deleteSavedReport(reportId);
+    toast({
+      title: "Report Deleted",
+      description: `"${reportName}" has been removed successfully.`,
+    });
+  };
+
+  const handleEditReport = (reportId: string) => {
+    // TODO: Implement edit functionality - for now just show a message
+    toast({
+      title: "Edit Report",
+      description: "Edit functionality coming soon. Use Custom Reports tab to create a new report.",
+      variant: "default",
+    });
   };
 
   const exportReport = () => {
@@ -245,7 +267,30 @@ export default function Reports() {
                 {getTabReports('projects').map((report) => (
                   <Card key={report.id}>
                     <CardHeader>
-                      <CardTitle className="text-base">{report.name}</CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">{report.name}</CardTitle>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditReport(report.id)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Report
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleDeleteReport(report.id, report.name)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Report
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <CustomReportVisualization 
@@ -271,7 +316,30 @@ export default function Reports() {
                 {getTabReports('tasks').map((report) => (
                   <Card key={report.id}>
                     <CardHeader>
-                      <CardTitle className="text-base">{report.name}</CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">{report.name}</CardTitle>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditReport(report.id)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Report
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleDeleteReport(report.id, report.name)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Report
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <CustomReportVisualization 
@@ -297,7 +365,30 @@ export default function Reports() {
                 {getTabReports('time').map((report) => (
                   <Card key={report.id}>
                     <CardHeader>
-                      <CardTitle className="text-base">{report.name}</CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">{report.name}</CardTitle>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditReport(report.id)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Report
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleDeleteReport(report.id, report.name)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Report
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <CustomReportVisualization 
@@ -323,7 +414,30 @@ export default function Reports() {
                 {getTabReports('billing').map((report) => (
                   <Card key={report.id}>
                     <CardHeader>
-                      <CardTitle className="text-base">{report.name}</CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">{report.name}</CardTitle>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditReport(report.id)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Report
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleDeleteReport(report.id, report.name)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Report
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <CustomReportVisualization 
