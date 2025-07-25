@@ -148,31 +148,36 @@ export default function ProjectDetails() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <Card className="md:col-span-2 lg:col-span-1">
           <CardHeader>
-            <CardTitle>Client</CardTitle>
+            <CardTitle>Project Overview</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center space-x-4">
-              <Avatar>
-                <AvatarImage src={client?.website} />
-                <AvatarFallback>{client?.name?.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <h3 className="font-medium">{client?.name}</h3>
-                <p className="text-sm text-muted-foreground">{client?.email}</p>
-              </div>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Client:</span>
+              <span className="font-medium">{client?.name}</span>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Badge variant="secondary">{project.status}</Badge>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Service Type:</span>
+              <span className="font-medium capitalize">{project.serviceType?.replace('-', ' ')}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Budget:</span>
+              <span className="font-medium">{project.allocatedHours || 0}h</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Start Date:</span>
+              <span className="font-medium">
+                {project.startDate ? format(new Date(project.startDate), "MMM dd, yyyy") : "Not set"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Due Date:</span>
+              <span className="font-medium">
+                {project.dueDate ? format(new Date(project.dueDate), "MMM dd, yyyy") : "Not set"}
+              </span>
+            </div>
           </CardContent>
         </Card>
 
