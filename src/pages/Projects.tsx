@@ -251,11 +251,6 @@ const Projects = () => {
                 onCardClick={handleCardClick}
                 onCreateProject={() => setIsCreateDialogOpen(true)}
               />
-              
-              <div className="border-t pt-6">
-                <h2 className="text-2xl font-semibold mb-4">All Tasks</h2>
-                <KanbanBoard viewMode="kanban" />
-              </div>
             </div>
           </TabsContent>
 
