@@ -38,7 +38,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
   const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
-  const [taskStatuses, setTaskStatuses] = useState<TaskStatusDefinition[]>([]);
+  const [taskStatuses, setTaskStatuses] = useState<TaskStatusDefinition[]>([
+    { id: '1', label: 'Backlog', value: 'backlog', color: 'bg-gray-500', order: 0 },
+    { id: '2', label: 'To Do', value: 'todo', color: 'bg-blue-500', order: 1 },
+    { id: '3', label: 'In Progress', value: 'in-progress', color: 'bg-yellow-500', order: 2 },
+    { id: '4', label: 'Review', value: 'review', color: 'bg-orange-500', order: 3 },
+    { id: '5', label: 'Done', value: 'done', color: 'bg-green-500', order: 4 },
+  ]);
   const [projectStatuses, setProjectStatuses] = useState<ProjectStatusDefinition[]>([]);
   const [customDashboards, setCustomDashboards] = useState<CustomDashboard[]>([]);
   const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
@@ -1380,19 +1386,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const addTaskStatus = (status: Omit<TaskStatusDefinition, 'id'>) => {
-    console.log('Add task status not yet implemented');
+    const newStatus = {
+      ...status,
+      id: Math.random().toString(36).substring(2, 15),
+    };
+    setTaskStatuses(prev => [...prev, newStatus]);
   };
 
   const updateTaskStatus = (statusId: string, updates: Partial<TaskStatusDefinition>) => {
-    console.log('Update task status not yet implemented');
+    setTaskStatuses(prev => 
+      prev.map(status => 
+        status.id === statusId ? { ...status, ...updates } : status
+      )
+    );
   };
 
   const deleteTaskStatus = (statusId: string) => {
-    console.log('Delete task status not yet implemented');
+    setTaskStatuses(prev => prev.filter(status => status.id !== statusId));
   };
 
   const reorderTaskStatuses = (statuses: TaskStatusDefinition[]) => {
-    console.log('Reorder task statuses not yet implemented');
+    setTaskStatuses(statuses);
   };
 
   const addProjectStatus = async (status: Omit<ProjectStatusDefinition, 'id'>) => {
