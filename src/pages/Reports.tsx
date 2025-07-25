@@ -89,6 +89,9 @@ export default function Reports() {
 
   // Get saved reports for each tab based on their data source
   const getTabReports = (tabType: ReportTab) => {
+    console.log('Getting tab reports for:', tabType);
+    console.log('Available saved reports:', savedReports);
+    
     const dataSourceMap: Record<ReportTab, string[]> = {
       'projects': ['projects'],
       'tasks': ['tasks'],
@@ -98,10 +101,14 @@ export default function Reports() {
     };
     
     const validDataSources = dataSourceMap[tabType];
+    console.log('Valid data sources for', tabType, ':', validDataSources);
     
-    return savedReports.filter(report => 
+    const filteredReports = savedReports.filter(report => 
       validDataSources.includes(report.reportConfig.dataSource)
     );
+    console.log('Filtered reports:', filteredReports);
+    
+    return filteredReports;
   };
 
   const exportReport = () => {
