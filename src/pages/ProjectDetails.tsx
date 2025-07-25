@@ -267,17 +267,32 @@ export default function ProjectDetails() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
-              Overdue Tasks
+              Overdue Tasks ({overdueTasks.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center">
-              <h3 className={`text-2xl font-bold ${overdueTasks.length > 0 ? 'text-red-500' : 'text-green-500'}`}>
-                {overdueTasks.length}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {overdueTasks.length === 0 ? 'All tasks on track' : 'Tasks overdue'}
-              </p>
+            <div className="h-40">
+              {overdueTasks.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <p className="text-green-500 font-medium">All tasks on track</p>
+                    <p className="text-sm text-muted-foreground">No overdue tasks</p>
+                  </div>
+                </div>
+              ) : (
+                <ScrollArea className="h-full">
+                  <div className="space-y-2 pr-4">
+                    {overdueTasks.map((task) => (
+                      <div key={task.id} className="p-2 border rounded-md bg-red-50 border-red-200">
+                        <h4 className="font-medium text-sm text-red-800">{task.title}</h4>
+                        <p className="text-xs text-red-600">
+                          Due: {task.dueDate ? format(new Date(task.dueDate), "MMM dd, yyyy") : "No due date"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
             </div>
           </CardContent>
         </Card>
