@@ -5,8 +5,8 @@ import { Project } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Edit } from "lucide-react";
-import { format } from "date-fns";
+import { Calendar, Edit, Clock, AlertTriangle } from "lucide-react";
+import { format, differenceInDays, parseISO, isValid } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,6 +38,47 @@ export default function ProjectDetails() {
   const totalHours = timeEntries
     .filter(entry => entry.projectId === projectId)
     .reduce((sum, entry) => sum + entry.duration, 0);
+
+  // Calculate days left until due date
+  const calculateDaysLeft = (dueDate: string | undefined) => {
+    if (!dueDate || dueDate.trim() === "") return null;
+    
+    try {
+      // Try parsing different date formats
+      let date: Date;
+      if (dueDate.includes('/') || dueDate.includes('-')) {
+        date = new Date(dueDate);
+      } else {
+        date = parseISO(dueDate);
+      }
+      
+      if (!isValid(date)) return null;
+      
+      const today = new Date();
+      const diffDays = differenceInDays(date, today);
+      return diffDays;
+    } catch {
+      return null;
+    }
+  };
+
+  // Calculate overdue tasks
+  const overdueTasks = projectTasks.filter(task => {
+    if (!task.dueDate || task.dueDate.trim() === "" || task.status === 'done') return false;
+    
+    try {
+      const dueDate = new Date(task.dueDate);
+      if (!isValid(dueDate)) return false;
+      
+      const today = new Date();
+      return dueDate < today;
+    } catch {
+      return false;
+    }
+  });
+
+  const daysLeft = calculateDaysLeft(project?.dueDate);
+  const totalHoursFormatted = Math.round((totalHours / 60) * 10) / 10;
 
   // Show loading state while searching for project
   if (!project && projects.length > 0) {
@@ -90,7 +131,16 @@ export default function ProjectDetails() {
           </Button>
           <Button variant="outline">
             <Calendar className="w-4 h-4 mr-2" />
-            {project.dueDate ? format(new Date(project.dueDate), "MMM dd, yyyy") : "No due date"}
+            {project.dueDate ? (
+              <span>
+                {format(new Date(project.dueDate), "MMM dd, yyyy")}
+                {daysLeft !== null && (
+                  <span className={`ml-2 ${daysLeft < 0 ? 'text-red-500' : daysLeft <= 7 ? 'text-orange-500' : 'text-green-500'}`}>
+                    ({daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue` : daysLeft === 0 ? 'Due today' : `${daysLeft} days left`})
+                  </span>
+                )}
+              </span>
+            ) : "No due date"}
           </Button>
           <Button onClick={() => setConvertDialogOpen(true)}>
             Convert to Template
@@ -98,7 +148,7 @@ export default function ProjectDetails() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader>
             <CardTitle>Client</CardTitle>
@@ -128,11 +178,65 @@ export default function ProjectDetails() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Total Hours</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Hours Budget
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <h3 className="text-2xl font-bold">{totalHours / 60}</h3>
-            <p className="text-sm text-muted-foreground">Hours tracked</p>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Used:</span>
+                <span className="font-medium">{totalHoursFormatted}h</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Budget:</span>
+                <span className="font-medium">{project.allocatedHours || 0}h</span>
+              </div>
+              {project.allocatedHours && project.allocatedHours > 0 && (
+                <div className="pt-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-muted-foreground">Progress:</span>
+                    <span className="text-xs font-medium">
+                      {Math.round((totalHoursFormatted / project.allocatedHours) * 100)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-secondary rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all ${
+                        (totalHoursFormatted / project.allocatedHours) > 1 
+                          ? 'bg-red-500' 
+                          : (totalHoursFormatted / project.allocatedHours) > 0.9 
+                            ? 'bg-orange-500' 
+                            : 'bg-green-500'
+                      }`}
+                      style={{ 
+                        width: `${Math.min((totalHoursFormatted / project.allocatedHours) * 100, 100)}%` 
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Overdue Tasks
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center">
+              <h3 className={`text-2xl font-bold ${overdueTasks.length > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                {overdueTasks.length}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {overdueTasks.length === 0 ? 'All tasks on track' : 'Tasks overdue'}
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
