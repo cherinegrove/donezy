@@ -165,7 +165,7 @@ export default function ProjectDetails() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <Card className="md:col-span-2 lg:col-span-1">
           <CardHeader>
             <CardTitle>Project Overview</CardTitle>
@@ -259,51 +259,6 @@ export default function ProjectDetails() {
                   </div>
                 )}
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Hours Budget
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Used:</span>
-                <span className="font-medium">{totalHoursFormatted}h</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Budget:</span>
-                <span className="font-medium">{project.allocatedHours || 0}h</span>
-              </div>
-              {project.allocatedHours && project.allocatedHours > 0 && (
-                <div className="pt-2">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs text-muted-foreground">Progress:</span>
-                    <span className="text-xs font-medium">
-                      {Math.round((totalHoursFormatted / project.allocatedHours) * 100)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-secondary rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all ${
-                        (totalHoursFormatted / project.allocatedHours) > 1 
-                          ? 'bg-red-500' 
-                          : (totalHoursFormatted / project.allocatedHours) > 0.9 
-                            ? 'bg-orange-500' 
-                            : 'bg-green-500'
-                      }`}
-                      style={{ 
-                        width: `${Math.min((totalHoursFormatted / project.allocatedHours) * 100, 100)}%` 
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
