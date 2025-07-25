@@ -171,6 +171,10 @@ export default function ProjectDetails() {
             <CardTitle>Project Overview</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div className="pb-3 border-b">
+              <h3 className="font-semibold text-lg">{project.name}</h3>
+              <p className="text-sm text-muted-foreground mt-1">{project.description}</p>
+            </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Client:</span>
               <span className="font-medium">{client?.name}</span>
