@@ -823,11 +823,13 @@ export type Database = {
           allocated_hours: number | null
           auth_user_id: string
           client_id: string
+          collaborator_ids: string[] | null
           created_at: string
           description: string
           due_date: string | null
           id: string
           name: string
+          owner_id: string | null
           service_type: string
           start_date: string | null
           status: string
@@ -840,11 +842,13 @@ export type Database = {
           allocated_hours?: number | null
           auth_user_id: string
           client_id: string
+          collaborator_ids?: string[] | null
           created_at?: string
           description: string
           due_date?: string | null
           id?: string
           name: string
+          owner_id?: string | null
           service_type?: string
           start_date?: string | null
           status?: string
@@ -857,11 +861,13 @@ export type Database = {
           allocated_hours?: number | null
           auth_user_id?: string
           client_id?: string
+          collaborator_ids?: string[] | null
           created_at?: string
           description?: string
           due_date?: string | null
           id?: string
           name?: string
+          owner_id?: string | null
           service_type?: string
           start_date?: string | null
           status?: string
@@ -876,6 +882,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]

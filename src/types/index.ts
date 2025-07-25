@@ -111,6 +111,8 @@ export interface Project {
   watcherIds?: string[];
   templateId?: string;
   customFields?: Record<string, any>;
+  ownerId?: string;
+  collaboratorIds?: string[];
 }
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';

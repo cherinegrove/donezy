@@ -90,8 +90,8 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
         startDate: project.startDate || "",
         dueDate: project.dueDate || "",
         allocatedHours: project.allocatedHours || undefined,
-        ownerId: (project as any).ownerId || "",
-        collaboratorIds: (project as any).collaboratorIds || [],
+        ownerId: project.ownerId || "",
+        collaboratorIds: project.collaboratorIds || [],
       });
     }
   }, [form, open, project]);

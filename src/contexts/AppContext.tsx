@@ -170,7 +170,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         allocatedHours: project.allocated_hours || undefined,
         usedHours: project.used_hours || 0,
         teamIds: project.team_ids || [],
-        watcherIds: project.watcher_ids || []
+        watcherIds: project.watcher_ids || [],
+        ownerId: project.owner_id || undefined,
+        collaboratorIds: project.collaborator_ids || []
       })) || [];
       
       setProjects(convertedProjects);
@@ -716,7 +718,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           allocated_hours: project.allocatedHours,
           used_hours: project.usedHours,
           team_ids: project.teamIds || [],
-          watcher_ids: project.watcherIds || []
+          watcher_ids: project.watcherIds || [],
+          owner_id: project.ownerId || null,
+          collaborator_ids: project.collaboratorIds || []
         })
         .select()
         .single();
@@ -739,7 +743,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           allocatedHours: data.allocated_hours || undefined,
           usedHours: data.used_hours || 0,
           teamIds: data.team_ids || [],
-          watcherIds: data.watcher_ids || []
+          watcherIds: data.watcher_ids || [],
+          ownerId: data.owner_id || undefined,
+          collaboratorIds: data.collaborator_ids || []
         };
         setProjects(prev => [...prev, newProject]);
       }
@@ -765,6 +771,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.usedHours !== undefined) dbUpdates.used_hours = updates.usedHours;
       if (updates.teamIds !== undefined) dbUpdates.team_ids = updates.teamIds;
       if (updates.watcherIds !== undefined) dbUpdates.watcher_ids = updates.watcherIds;
+      if (updates.ownerId !== undefined) dbUpdates.owner_id = updates.ownerId;
+      if (updates.collaboratorIds !== undefined) dbUpdates.collaborator_ids = updates.collaboratorIds;
 
       const { error } = await supabase
         .from('projects')

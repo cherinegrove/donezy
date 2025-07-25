@@ -48,6 +48,8 @@ const projectSchema = z.object({
   dueDate: z.date().optional(),
   customFields: z.array(z.string()).default([]),
   customFieldValues: z.record(z.any()).default({}),
+  ownerId: z.string().optional(),
+  collaboratorIds: z.array(z.string()).optional(),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -58,7 +60,7 @@ interface CreateProjectDialogProps {
 }
 
 export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
-  const { addProject, clients, projectTemplates, currentUser, projectStatuses } = useAppContext();
+  const { addProject, clients, projectTemplates, currentUser, projectStatuses, users } = useAppContext();
   const { toast } = useToast();
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
@@ -73,6 +75,8 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       status: "",
       customFields: [],
       customFieldValues: {},
+      ownerId: "",
+      collaboratorIds: [],
     },
   });
 
@@ -573,6 +577,85 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                         placeholder="Select due date"
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="ownerId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project Owner</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select project owner" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-background border shadow-md z-50">
+                        <SelectItem value="">No owner assigned</SelectItem>
+                        {users.map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="collaboratorIds"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project Collaborators</FormLabel>
+                    <Select onValueChange={(value) => {
+                      const currentValues = field.value || [];
+                      if (!currentValues.includes(value)) {
+                        field.onChange([...currentValues, value]);
+                      }
+                    }}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Add collaborators" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-background border shadow-md z-50">
+                        {users.filter(user => !(field.value || []).includes(user.id)).map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {field.value && field.value.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {field.value.map((collaboratorId) => {
+                          const collaborator = users.find(u => u.id === collaboratorId);
+                          return collaborator ? (
+                            <div key={collaboratorId} className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm">
+                              {collaborator.name}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  field.onChange(field.value?.filter(id => id !== collaboratorId) || []);
+                                }}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
