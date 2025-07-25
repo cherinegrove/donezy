@@ -80,6 +80,8 @@ const Home = () => {
   const getFilteredProjects = () => {
     if (selectedUserId === "me") {
       return projects.filter(project => 
+        project.ownerId === currentUser?.id ||
+        project.collaboratorIds?.includes(currentUser?.id) ||
         project.teamIds?.includes(currentUser?.id) ||
         project.watcherIds?.includes(currentUser?.id) ||
         tasks.some(task => 
@@ -89,6 +91,8 @@ const Home = () => {
       );
     }
     return projects.filter(project => 
+      project.ownerId === selectedUserId ||
+      project.collaboratorIds?.includes(selectedUserId) ||
       project.teamIds?.includes(selectedUserId) ||
       project.watcherIds?.includes(selectedUserId) ||
       tasks.some(task => 
