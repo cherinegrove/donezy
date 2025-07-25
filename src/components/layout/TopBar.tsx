@@ -21,6 +21,7 @@ import { NotificationsPopover } from "@/components/notifications/NotificationsPo
 import { UserProfileDialog } from "@/components/users/UserProfileDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
+import { TimerBox } from "@/components/time/TimerBox";
 
 export function TopBar() {
   const { currentUser, clients } = useAppContext();
@@ -31,6 +32,7 @@ export function TopBar() {
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [isTimerBoxOpen, setIsTimerBoxOpen] = useState(false);
   
   // Toggle between light and dark mode
   const toggleTheme = () => {
@@ -63,6 +65,24 @@ export function TopBar() {
           
           {/* Messages Notifications */}
           <NotificationsPopover />
+          
+          {/* Timer Box Toggle */}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsTimerBoxOpen(!isTimerBoxOpen)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Timer className="h-5 w-5" />
+              <span className="sr-only">Toggle timer box</span>
+            </Button>
+            
+            <TimerBox 
+              isOpen={isTimerBoxOpen} 
+              onClose={() => setIsTimerBoxOpen(false)} 
+            />
+          </div>
           
           {/* Quick Action Plus Button */}
           <DropdownMenu>
