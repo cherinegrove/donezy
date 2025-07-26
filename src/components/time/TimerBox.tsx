@@ -69,19 +69,25 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       
       if (existingTimerIndex === -1) {
         // Only add new timer if it doesn't exist locally (prevents restoring deleted timers)
+        // Use current time as start time to prevent showing elapsed time for new timers
+        const now = new Date();
+        const dbStartTime = new Date(activeTimeEntry.startTime);
+        const isNewTimer = (now.getTime() - dbStartTime.getTime()) < 5000; // Within 5 seconds
+        
         const timerItem: TimerItem = {
           id: activeTimeEntry.id,
           taskId: activeTimeEntry.taskId,
           taskTitle: task?.title || `Task (${activeTimeEntry.taskId.slice(0, 8)}...)`,
           projectName: project?.name,
-          startTime: new Date(activeTimeEntry.startTime),
-          elapsed: 0,
+          startTime: isNewTimer ? now : dbStartTime, // Use current time for new timers
+          elapsed: isNewTimer ? 0 : Math.max(0, now.getTime() - dbStartTime.getTime()),
           isPaused: false,
           totalPausedTime: 0,
           isActive: true,
         };
         
         console.log('TimerBox - creating new timer:', timerItem);
+        console.log('TimerBox - isNewTimer:', isNewTimer, 'timeDiff:', now.getTime() - dbStartTime.getTime());
         
         // Mark all other timers as inactive and pause any that were running
         setTimers(prev => [
