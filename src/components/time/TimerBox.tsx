@@ -33,6 +33,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [selectedTimer, setSelectedTimer] = useState<TimerItem | null>(null);
   const [notes, setNotes] = useState("");
+  const [isResumingTimer, setIsResumingTimer] = useState(false); // Flag to prevent duplicate creation
 
   // Load timers from localStorage on mount and clean duplicates
   useEffect(() => {
@@ -88,7 +89,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
 
   // Update active timer when activeTimeEntry changes
   useEffect(() => {
-    if (activeTimeEntry) {
+    if (activeTimeEntry && !isResumingTimer) {
       console.log('TimerBox - activeTimeEntry:', activeTimeEntry);
       console.log('TimerBox - tasks available:', tasks.length, tasks.map(t => ({ id: t.id, title: t.title })));
       
@@ -154,11 +155,16 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           pausedAt: timer.taskId === activeTimeEntry.taskId ? undefined : (timer.isActive ? new Date() : timer.pausedAt)
         })));
       }
-    } else {
+    } else if (!activeTimeEntry) {
       // Mark all timers as inactive when no active time entry
       setTimers(prev => prev.map(t => ({ ...t, isActive: false })));
     }
-  }, [activeTimeEntry, tasks, projects]);
+    
+    // Reset the resuming flag after the effect runs
+    if (isResumingTimer) {
+      setIsResumingTimer(false);
+    }
+  }, [activeTimeEntry, tasks, projects, isResumingTimer]);
 
   // Update elapsed time for active timers
   useEffect(() => {
@@ -211,28 +217,33 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         isActive: false
       } : t));
     } else if (timer.isPaused || !timer.isActive) {
-      // Resume paused timer or start inactive timer - first pause any currently running timer
-      console.log('Resuming/starting timer');
+      // Resume paused timer - set flag to prevent duplicate creation
+      console.log('Resuming paused timer locally only');
+      setIsResumingTimer(true);
       
-      // Stop any currently active timer
+      // Stop any currently active timer first
       const currentlyActive = timers.find(t => t.isActive && !t.isPaused);
       if (currentlyActive && currentlyActive.id !== timerId) {
         console.log('Stopping currently active timer:', currentlyActive.id);
         await stopTimeTracking();
       }
       
-      // Start time tracking for this task
-      await startTimeTracking(timer.taskId);
-      
-      // Update timer states - ensure ONLY this timer is active
+      // Calculate pause duration and adjust start time
       const pauseDuration = timer.pausedAt ? Date.now() - timer.pausedAt.getTime() : 0;
+      const adjustedStartTime = new Date(timer.startTime.getTime() + pauseDuration);
+      
+      // Update timer states locally first
       setTimers(prev => prev.map(t => ({
         ...t,
         isActive: t.id === timerId,
         isPaused: t.id === timerId ? false : (t.isActive ? true : t.isPaused),
         pausedAt: t.id === timerId ? undefined : (t.isActive ? new Date() : t.pausedAt),
+        startTime: t.id === timerId ? adjustedStartTime : t.startTime,
         totalPausedTime: t.id === timerId ? (t.totalPausedTime || 0) + pauseDuration : t.totalPausedTime
       })));
+      
+      // Start time tracking for backend sync
+      await startTimeTracking(timer.taskId, 'Timer resumed');
     }
   };
 
