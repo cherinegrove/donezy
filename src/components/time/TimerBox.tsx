@@ -58,11 +58,11 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       const task = tasks.find(t => t.id === activeTimeEntry.taskId);
       const project = projects.find(p => p.id === task?.projectId);
       
-      // Check if this timer already exists
+      // Check if this timer already exists in our local list
       const existingTimerIndex = timers.findIndex(t => t.id === activeTimeEntry.id);
       
       if (existingTimerIndex === -1) {
-        // Add new timer and pause any currently running timer
+        // Only add new timer if it doesn't exist locally (prevents restoring deleted timers)
         const timerItem: TimerItem = {
           id: activeTimeEntry.id,
           taskId: activeTimeEntry.taskId,
@@ -179,8 +179,10 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         await startTimeTracking(selectedTimer.taskId);
         await stopTimeTracking(notes);
       }
-      // Remove timer from list
-      setTimers(prev => prev.filter(t => t.id !== selectedTimer.id));
+      // Remove timer from list and update localStorage
+      const updatedTimers = timers.filter(t => t.id !== selectedTimer.id);
+      setTimers(updatedTimers);
+      localStorage.setItem('activeTimers', JSON.stringify(updatedTimers));
       setStopDialogOpen(false);
       setSelectedTimer(null);
       setNotes("");
@@ -192,7 +194,10 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     if (timer?.isActive) {
       await stopTimeTracking();
     }
-    setTimers(prev => prev.filter(t => t.id !== timerId));
+    // Remove timer from list and update localStorage
+    const updatedTimers = timers.filter(t => t.id !== timerId);
+    setTimers(updatedTimers);
+    localStorage.setItem('activeTimers', JSON.stringify(updatedTimers));
   };
 
   if (!isOpen) return null;
