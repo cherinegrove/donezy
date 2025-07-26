@@ -19,6 +19,7 @@ interface TimerItem {
   isPaused: boolean;
   pausedAt?: Date;
   totalPausedTime: number;
+  isActive: boolean; // Only one timer can be active at a time
 }
 
 interface TimerBoxProps {
@@ -27,32 +28,66 @@ interface TimerBoxProps {
 }
 
 export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
-  const { activeTimeEntry, tasks, projects, stopTimeTracking, deleteTimeEntry } = useAppContext();
+  const { activeTimeEntry, tasks, projects, stopTimeTracking, deleteTimeEntry, startTimeTracking } = useAppContext();
   const [timers, setTimers] = useState<TimerItem[]>([]);
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [selectedTimer, setSelectedTimer] = useState<TimerItem | null>(null);
   const [notes, setNotes] = useState("");
 
-  // Convert active time entry to timer item
+  // Load timers from localStorage on mount
+  useEffect(() => {
+    const savedTimers = localStorage.getItem('activeTimers');
+    if (savedTimers) {
+      const parsedTimers = JSON.parse(savedTimers).map((timer: any) => ({
+        ...timer,
+        startTime: new Date(timer.startTime),
+        pausedAt: timer.pausedAt ? new Date(timer.pausedAt) : undefined
+      }));
+      setTimers(parsedTimers);
+    }
+  }, []);
+
+  // Save timers to localStorage whenever timers change
+  useEffect(() => {
+    localStorage.setItem('activeTimers', JSON.stringify(timers));
+  }, [timers]);
+
+  // Update active timer when activeTimeEntry changes
   useEffect(() => {
     if (activeTimeEntry) {
       const task = tasks.find(t => t.id === activeTimeEntry.taskId);
       const project = projects.find(p => p.id === task?.projectId);
       
-      const timerItem: TimerItem = {
-        id: activeTimeEntry.id,
-        taskId: activeTimeEntry.taskId,
-        taskTitle: task?.title || "Unknown Task",
-        projectName: project?.name,
-        startTime: new Date(activeTimeEntry.startTime),
-        elapsed: 0,
-        isPaused: false,
-        totalPausedTime: 0,
-      };
-
-      setTimers([timerItem]);
+      // Check if this timer already exists
+      const existingTimerIndex = timers.findIndex(t => t.id === activeTimeEntry.id);
+      
+      if (existingTimerIndex === -1) {
+        // Add new timer
+        const timerItem: TimerItem = {
+          id: activeTimeEntry.id,
+          taskId: activeTimeEntry.taskId,
+          taskTitle: task?.title || "Unknown Task",
+          projectName: project?.name,
+          startTime: new Date(activeTimeEntry.startTime),
+          elapsed: 0,
+          isPaused: false,
+          totalPausedTime: 0,
+          isActive: true,
+        };
+        
+        // Mark all other timers as inactive
+        setTimers(prev => [...prev.map(t => ({ ...t, isActive: false })), timerItem]);
+      } else {
+        // Update existing timer to be active
+        setTimers(prev => prev.map((timer, index) => ({
+          ...timer,
+          isActive: index === existingTimerIndex,
+          isPaused: index === existingTimerIndex ? false : timer.isPaused
+        })));
+      }
     } else {
-      setTimers([]);
+      // Mark all timers as inactive when no active time entry
+      setTimers(prev => prev.map(t => ({ ...t, isActive: false })));
     }
   }, [activeTimeEntry, tasks, projects]);
 
@@ -60,7 +95,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   useEffect(() => {
     const interval = setInterval(() => {
       setTimers(prev => prev.map(timer => {
-        if (!timer.isPaused) {
+        if (timer.isActive && !timer.isPaused) {
           const now = Date.now();
           const startTime = timer.startTime.getTime();
           timer.elapsed = now - startTime - timer.totalPausedTime;
@@ -82,29 +117,31 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  const handlePauseTimer = (timerId: string) => {
-    setTimers(prev => prev.map(timer => {
-      if (timer.id === timerId) {
-        if (timer.isPaused) {
-          // Resume timer
-          const pauseDuration = Date.now() - (timer.pausedAt?.getTime() || 0);
-          return {
-            ...timer,
-            isPaused: false,
-            pausedAt: undefined,
-            totalPausedTime: timer.totalPausedTime + pauseDuration,
-          };
-        } else {
-          // Pause timer
-          return {
-            ...timer,
-            isPaused: true,
-            pausedAt: new Date(),
-          };
-        }
-      }
-      return timer;
-    }));
+  const handlePauseTimer = async (timerId: string) => {
+    const timer = timers.find(t => t.id === timerId);
+    if (!timer) return;
+
+    if (timer.isActive && !timer.isPaused) {
+      // Pause the active timer - stop time tracking
+      await stopTimeTracking();
+      setTimers(prev => prev.map(t => t.id === timerId ? {
+        ...t,
+        isPaused: true,
+        pausedAt: new Date(),
+        isActive: false
+      } : t));
+    } else if (timer.isPaused) {
+      // Resume paused timer - start time tracking for this task
+      await startTimeTracking(timer.taskId);
+      const pauseDuration = Date.now() - (timer.pausedAt?.getTime() || 0);
+      setTimers(prev => prev.map(t => ({
+        ...t,
+        isActive: t.id === timerId,
+        isPaused: t.id === timerId ? false : t.isPaused,
+        pausedAt: t.id === timerId ? undefined : t.pausedAt,
+        totalPausedTime: t.id === timerId ? t.totalPausedTime + pauseDuration : t.totalPausedTime
+      })));
+    }
   };
 
   const handleStopTimer = (timer: TimerItem) => {
@@ -112,17 +149,24 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     setStopDialogOpen(true);
   };
 
-  const confirmStopTimer = () => {
+  const confirmStopTimer = async () => {
     if (selectedTimer) {
-      stopTimeTracking(notes);
+      if (selectedTimer.isActive) {
+        await stopTimeTracking(notes);
+      }
+      // Remove timer from list
+      setTimers(prev => prev.filter(t => t.id !== selectedTimer.id));
       setStopDialogOpen(false);
       setSelectedTimer(null);
       setNotes("");
     }
   };
 
-  const handleDeleteTimer = (timerId: string) => {
-    deleteTimeEntry(timerId);
+  const handleDeleteTimer = async (timerId: string) => {
+    const timer = timers.find(t => t.id === timerId);
+    if (timer?.isActive) {
+      await stopTimeTracking();
+    }
     setTimers(prev => prev.filter(t => t.id !== timerId));
   };
 
@@ -169,11 +213,18 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                         <div className="font-mono text-lg font-bold">
                           {formatTime(timer.elapsed)}
                         </div>
-                        {timer.isPaused && (
-                          <Badge variant="secondary" className="text-xs">
-                            Paused
-                          </Badge>
-                        )}
+                        <div className="flex gap-1">
+                          {timer.isActive && !timer.isPaused && (
+                            <Badge variant="default" className="text-xs">
+                              Active
+                            </Badge>
+                          )}
+                          {timer.isPaused && (
+                            <Badge variant="secondary" className="text-xs">
+                              Paused
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
