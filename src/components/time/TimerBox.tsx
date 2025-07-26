@@ -67,9 +67,11 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       // Check if this timer already exists in our local list
       const existingTimerIndex = timers.findIndex(t => t.id === activeTimeEntry.id);
       
-      if (existingTimerIndex === -1) {
-        // Only add new timer if it doesn't exist locally (prevents restoring deleted timers)
-        // Use current time as start time to prevent showing elapsed time for new timers
+      // Check if we have a paused timer for the same task - if so, don't create a new one
+      const existingTaskTimer = timers.find(t => t.taskId === activeTimeEntry.taskId && t.isPaused);
+      
+      if (existingTimerIndex === -1 && !existingTaskTimer) {
+        // Only add new timer if it doesn't exist locally and no paused timer for same task
         const now = new Date();
         const dbStartTime = new Date(activeTimeEntry.startTime);
         const isNewTimer = (now.getTime() - dbStartTime.getTime()) < 5000; // Within 5 seconds
@@ -99,13 +101,23 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           })),
           timerItem
         ]);
-      } else {
+      } else if (existingTimerIndex !== -1) {
         // Update existing timer to be active and pause others
         setTimers(prev => prev.map((timer, index) => ({
           ...timer,
           isActive: index === existingTimerIndex,
           isPaused: index === existingTimerIndex ? false : (timer.isActive && !timer.isPaused ? true : timer.isPaused),
           pausedAt: index === existingTimerIndex ? undefined : (timer.isActive && !timer.isPaused ? new Date() : timer.pausedAt)
+        })));
+      } else if (existingTaskTimer) {
+        // Resume the existing paused timer for this task, update its ID to match the new activeTimeEntry
+        console.log('TimerBox - resuming existing paused timer for task:', existingTaskTimer.taskId);
+        setTimers(prev => prev.map(timer => ({
+          ...timer,
+          id: timer.taskId === activeTimeEntry.taskId ? activeTimeEntry.id : timer.id, // Update ID
+          isActive: timer.taskId === activeTimeEntry.taskId,
+          isPaused: timer.taskId === activeTimeEntry.taskId ? false : (timer.isActive ? true : timer.isPaused),
+          pausedAt: timer.taskId === activeTimeEntry.taskId ? undefined : (timer.isActive ? new Date() : timer.pausedAt)
         })));
       }
     } else {
