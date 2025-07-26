@@ -34,7 +34,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   const [selectedTimer, setSelectedTimer] = useState<TimerItem | null>(null);
   const [notes, setNotes] = useState("");
 
-  // Load timers from localStorage on mount
+  // Load timers from localStorage on mount and clean duplicates
   useEffect(() => {
     const savedTimers = localStorage.getItem('activeTimers');
     if (savedTimers) {
@@ -43,13 +43,47 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         startTime: new Date(timer.startTime),
         pausedAt: timer.pausedAt ? new Date(timer.pausedAt) : undefined
       }));
-      setTimers(parsedTimers);
+      
+      // Remove duplicates by ID and keep the latest one
+      const uniqueTimers = parsedTimers.reduce((acc: TimerItem[], timer: TimerItem) => {
+        const existingIndex = acc.findIndex(t => t.id === timer.id);
+        if (existingIndex === -1) {
+          acc.push(timer);
+        } else {
+          // Keep the one with the more recent start time
+          if (timer.startTime > acc[existingIndex].startTime) {
+            acc[existingIndex] = timer;
+          }
+        }
+        return acc;
+      }, []);
+      
+      setTimers(uniqueTimers);
     }
   }, []);
 
-  // Save timers to localStorage whenever timers change
+  // Save timers to localStorage whenever timers change - ensure no duplicates
   useEffect(() => {
-    localStorage.setItem('activeTimers', JSON.stringify(timers));
+    // Remove duplicates before saving
+    const uniqueTimers = timers.reduce((acc: TimerItem[], timer: TimerItem) => {
+      const existingIndex = acc.findIndex(t => t.id === timer.id);
+      if (existingIndex === -1) {
+        acc.push(timer);
+      } else {
+        // Keep the one with the more recent start time
+        if (timer.startTime > acc[existingIndex].startTime) {
+          acc[existingIndex] = timer;
+        }
+      }
+      return acc;
+    }, []);
+    
+    if (uniqueTimers.length !== timers.length) {
+      console.log('Removing duplicate timers, before:', timers.length, 'after:', uniqueTimers.length);
+      setTimers(uniqueTimers);
+    }
+    
+    localStorage.setItem('activeTimers', JSON.stringify(uniqueTimers));
   }, [timers]);
 
   // Update active timer when activeTimeEntry changes
