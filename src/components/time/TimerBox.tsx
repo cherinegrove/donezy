@@ -62,7 +62,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       const existingTimerIndex = timers.findIndex(t => t.id === activeTimeEntry.id);
       
       if (existingTimerIndex === -1) {
-        // Add new timer
+        // Add new timer and pause any currently running timer
         const timerItem: TimerItem = {
           id: activeTimeEntry.id,
           taskId: activeTimeEntry.taskId,
@@ -75,14 +75,23 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           isActive: true,
         };
         
-        // Mark all other timers as inactive
-        setTimers(prev => [...prev.map(t => ({ ...t, isActive: false })), timerItem]);
+        // Mark all other timers as inactive and pause any that were running
+        setTimers(prev => [
+          ...prev.map(t => ({
+            ...t,
+            isActive: false,
+            isPaused: t.isActive && !t.isPaused ? true : t.isPaused,
+            pausedAt: t.isActive && !t.isPaused ? new Date() : t.pausedAt
+          })),
+          timerItem
+        ]);
       } else {
-        // Update existing timer to be active
+        // Update existing timer to be active and pause others
         setTimers(prev => prev.map((timer, index) => ({
           ...timer,
           isActive: index === existingTimerIndex,
-          isPaused: index === existingTimerIndex ? false : timer.isPaused
+          isPaused: index === existingTimerIndex ? false : (timer.isActive && !timer.isPaused ? true : timer.isPaused),
+          pausedAt: index === existingTimerIndex ? undefined : (timer.isActive && !timer.isPaused ? new Date() : timer.pausedAt)
         })));
       }
     } else {
@@ -131,7 +140,20 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         isActive: false
       } : t));
     } else if (timer.isPaused) {
-      // Resume paused timer - start time tracking for this task
+      // Resume paused timer - first pause any currently running timer
+      const currentlyActive = timers.find(t => t.isActive && !t.isPaused);
+      if (currentlyActive) {
+        await stopTimeTracking();
+        // Update the currently active timer to be paused
+        setTimers(prev => prev.map(t => t.isActive ? {
+          ...t,
+          isPaused: true,
+          pausedAt: new Date(),
+          isActive: false
+        } : t));
+      }
+      
+      // Start time tracking for this task
       await startTimeTracking(timer.taskId);
       const pauseDuration = Date.now() - (timer.pausedAt?.getTime() || 0);
       setTimers(prev => prev.map(t => ({
