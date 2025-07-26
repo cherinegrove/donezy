@@ -153,8 +153,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         } : t));
       }
       
-      // Start time tracking for this task
-      await startTimeTracking(timer.taskId);
+      // Resume this timer locally without creating new time entry
       const pauseDuration = Date.now() - (timer.pausedAt?.getTime() || 0);
       setTimers(prev => prev.map(t => ({
         ...t,
@@ -174,6 +173,10 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   const confirmStopTimer = async () => {
     if (selectedTimer) {
       if (selectedTimer.isActive) {
+        await stopTimeTracking(notes);
+      } else {
+        // For paused timers, we need to start and immediately stop to create the time entry
+        await startTimeTracking(selectedTimer.taskId);
         await stopTimeTracking(notes);
       }
       // Remove timer from list
