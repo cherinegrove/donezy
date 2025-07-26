@@ -55,8 +55,14 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   // Update active timer when activeTimeEntry changes
   useEffect(() => {
     if (activeTimeEntry) {
+      console.log('TimerBox - activeTimeEntry:', activeTimeEntry);
+      console.log('TimerBox - tasks available:', tasks.length, tasks.map(t => ({ id: t.id, title: t.title })));
+      
       const task = tasks.find(t => t.id === activeTimeEntry.taskId);
       const project = projects.find(p => p.id === task?.projectId);
+      
+      console.log('TimerBox - found task:', task);
+      console.log('TimerBox - found project:', project);
       
       // Check if this timer already exists in our local list
       const existingTimerIndex = timers.findIndex(t => t.id === activeTimeEntry.id);
@@ -66,7 +72,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         const timerItem: TimerItem = {
           id: activeTimeEntry.id,
           taskId: activeTimeEntry.taskId,
-          taskTitle: task?.title || "Unknown Task",
+          taskTitle: task?.title || `Task (${activeTimeEntry.taskId.slice(0, 8)}...)`,
           projectName: project?.name,
           startTime: new Date(activeTimeEntry.startTime),
           elapsed: 0,
@@ -74,6 +80,8 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           totalPausedTime: 0,
           isActive: true,
         };
+        
+        console.log('TimerBox - creating new timer:', timerItem);
         
         // Mark all other timers as inactive and pause any that were running
         setTimers(prev => [
