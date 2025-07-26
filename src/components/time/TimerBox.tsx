@@ -111,14 +111,21 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   // Update elapsed time for active timers
   useEffect(() => {
     const interval = setInterval(() => {
-      setTimers(prev => prev.map(timer => {
-        if (timer.isActive && !timer.isPaused) {
-          const now = Date.now();
-          const startTime = timer.startTime.getTime();
-          timer.elapsed = now - startTime - timer.totalPausedTime;
+      setTimers(prev => {
+        const activeCount = prev.filter(t => t.isActive && !t.isPaused).length;
+        if (activeCount > 1) {
+          console.warn('MULTIPLE ACTIVE TIMERS DETECTED:', prev.filter(t => t.isActive));
         }
-        return timer;
-      }));
+        
+        return prev.map(timer => {
+          if (timer.isActive && !timer.isPaused) {
+            const now = Date.now();
+            const startTime = timer.startTime.getTime();
+            timer.elapsed = now - startTime - timer.totalPausedTime;
+          }
+          return timer;
+        });
+      });
     }, 1000);
 
     return () => clearInterval(interval);
@@ -138,8 +145,12 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     const timer = timers.find(t => t.id === timerId);
     if (!timer) return;
 
+    console.log('handlePauseTimer - timer:', timer);
+    console.log('handlePauseTimer - all timers before:', timers.map(t => ({ id: t.id, isActive: t.isActive, isPaused: t.isPaused })));
+
     if (timer.isActive && !timer.isPaused) {
       // Pause the active timer - stop time tracking
+      console.log('Pausing active timer');
       await stopTimeTracking();
       setTimers(prev => prev.map(t => t.id === timerId ? {
         ...t,
@@ -147,28 +158,28 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         pausedAt: new Date(),
         isActive: false
       } : t));
-    } else if (timer.isPaused) {
-      // Resume paused timer - first pause any currently running timer
+    } else if (timer.isPaused || !timer.isActive) {
+      // Resume paused timer or start inactive timer - first pause any currently running timer
+      console.log('Resuming/starting timer');
+      
+      // Stop any currently active timer
       const currentlyActive = timers.find(t => t.isActive && !t.isPaused);
-      if (currentlyActive) {
+      if (currentlyActive && currentlyActive.id !== timerId) {
+        console.log('Stopping currently active timer:', currentlyActive.id);
         await stopTimeTracking();
-        // Update the currently active timer to be paused
-        setTimers(prev => prev.map(t => t.isActive ? {
-          ...t,
-          isPaused: true,
-          pausedAt: new Date(),
-          isActive: false
-        } : t));
       }
       
-      // Resume this timer locally without creating new time entry
-      const pauseDuration = Date.now() - (timer.pausedAt?.getTime() || 0);
+      // Start time tracking for this task
+      await startTimeTracking(timer.taskId);
+      
+      // Update timer states - ensure ONLY this timer is active
+      const pauseDuration = timer.pausedAt ? Date.now() - timer.pausedAt.getTime() : 0;
       setTimers(prev => prev.map(t => ({
         ...t,
         isActive: t.id === timerId,
-        isPaused: t.id === timerId ? false : t.isPaused,
-        pausedAt: t.id === timerId ? undefined : t.pausedAt,
-        totalPausedTime: t.id === timerId ? t.totalPausedTime + pauseDuration : t.totalPausedTime
+        isPaused: t.id === timerId ? false : (t.isActive ? true : t.isPaused),
+        pausedAt: t.id === timerId ? undefined : (t.isActive ? new Date() : t.pausedAt),
+        totalPausedTime: t.id === timerId ? (t.totalPausedTime || 0) + pauseDuration : t.totalPausedTime
       })));
     }
   };
