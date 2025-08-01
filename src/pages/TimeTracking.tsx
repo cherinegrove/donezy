@@ -439,13 +439,26 @@ const TimeTracking = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-mono font-bold text-green-700 dark:text-green-300">
-                        {activeTimer.elapsedTime}
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="text-2xl font-mono font-bold text-green-700 dark:text-green-300">
+                          {activeTimer.elapsedTime}
+                        </div>
+                        <div className="text-xs text-green-600 dark:text-green-400">
+                          Running by {activeTimer.user?.name || "Unknown"}
+                        </div>
                       </div>
-                      <div className="text-xs text-green-600 dark:text-green-400">
-                        Running by {activeTimer.user?.name || "Unknown"}
-                      </div>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => {
+                          console.log('🛑 TimeTracking: Stop button clicked for active timer');
+                          setSelectedTimeEntry(activeTimer.timeEntry);
+                          setIsEditEntryDialogOpen(true);
+                        }}
+                      >
+                        Stop Timer
+                      </Button>
                     </div>
                   </div>
                 ) : (
