@@ -2,7 +2,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
-import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus, Pause, Square, Edit } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
@@ -47,15 +47,22 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { EditTimeEntryDialog } from "@/components/time/EditTimeEntryDialog";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 const TimeTracking = () => {
-  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser, updateTimeEntryStatus } = useAppContext();
+  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser, updateTimeEntryStatus, stopTimeTracking } = useAppContext();
   const [activeTab, setActiveTab] = useState("active");
   const [isAddEntryDialogOpen, setIsAddEntryDialogOpen] = useState(false);
   const [selectedTimeEntry, setSelectedTimeEntry] = useState<TimeEntry | undefined>(undefined);
   const [isEditEntryDialogOpen, setIsEditEntryDialogOpen] = useState(false);
   const { toast } = useToast();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const [pausedAt, setPausedAt] = useState<Date | null>(null);
+  const [totalPausedTime, setTotalPausedTime] = useState(0);
+  const [stopDialogOpen, setStopDialogOpen] = useState(false);
+  const [stopNotes, setStopNotes] = useState("");
   
   // Filter state
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
@@ -184,9 +191,15 @@ const TimeTracking = () => {
     const client = project ? clients.find(c => c.id === project.clientId) : undefined;
     const user = users.find(u => u.id === activeTimeEntry.userId);
     
-    // Calculate elapsed time
+    // Calculate elapsed time with pause handling
     const startTime = new Date(activeTimeEntry.startTime);
-    const elapsedMs = currentTime.getTime() - startTime.getTime();
+    let elapsedMs = currentTime.getTime() - startTime.getTime() - totalPausedTime;
+    
+    // If currently paused, subtract the current pause duration
+    if (isTimerPaused && pausedAt) {
+      elapsedMs -= (currentTime.getTime() - pausedAt.getTime());
+    }
+    
     const elapsedMinutes = Math.floor(elapsedMs / (1000 * 60));
     const hours = Math.floor(elapsedMinutes / 60);
     const minutes = elapsedMinutes % 60;
@@ -361,6 +374,43 @@ const TimeTracking = () => {
       description: "The time entry has been declined.",
     });
   };
+
+  // Timer control handlers (same functionality as TimerBox)
+  const handlePauseTimer = () => {
+    console.log('🔸 TimeTracking: Pause/Resume clicked');
+    if (isTimerPaused) {
+      // Resume timer
+      const pauseDuration = pausedAt ? Date.now() - pausedAt.getTime() : 0;
+      setTotalPausedTime(prev => prev + pauseDuration);
+      setIsTimerPaused(false);
+      setPausedAt(null);
+      console.log('▶️ Timer resumed');
+    } else {
+      // Pause timer
+      setIsTimerPaused(true);
+      setPausedAt(new Date());
+      console.log('⏸️ Timer paused');
+    }
+  };
+
+  const handleStopTimer = () => {
+    console.log('🛑 TimeTracking: Stop timer clicked');
+    setStopDialogOpen(true);
+  };
+
+  const confirmStopTimer = async () => {
+    try {
+      console.log('💾 TimeTracking: Confirming stop timer with notes:', stopNotes);
+      await stopTimeTracking(stopNotes);
+      setStopDialogOpen(false);
+      setStopNotes("");
+      setIsTimerPaused(false);
+      setPausedAt(null);
+      setTotalPausedTime(0);
+    } catch (error) {
+      console.error('Error stopping timer:', error);
+    }
+  };
   
   // Status display helper
   const renderTimeEntryStatus = (status: TimeEntryStatus) => {
@@ -447,18 +497,46 @@ const TimeTracking = () => {
                         <div className="text-xs text-green-600 dark:text-green-400">
                           Running by {activeTimer.user?.name || "Unknown"}
                         </div>
-                      </div>
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        onClick={() => {
-                          console.log('🛑 TimeTracking: Stop button clicked for active timer');
-                          setSelectedTimeEntry(activeTimer.timeEntry);
-                          setIsEditEntryDialogOpen(true);
-                        }}
-                      >
-                        Stop Timer
-                      </Button>
+                       </div>
+                       <div className="flex items-center gap-2">
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={handlePauseTimer}
+                           className={cn(
+                             "h-8 w-8 p-0",
+                             isTimerPaused ? "text-green-600 hover:text-green-700" : "text-yellow-600 hover:text-yellow-700"
+                           )}
+                         >
+                           {isTimerPaused ? (
+                             <Play className="h-4 w-4" />
+                           ) : (
+                             <Pause className="h-4 w-4" />
+                           )}
+                         </Button>
+                         
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={handleStopTimer}
+                           className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                         >
+                           <Square className="h-4 w-4" />
+                         </Button>
+                         
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={() => {
+                             console.log('✏️ TimeTracking: Edit button clicked for active timer');
+                             setSelectedTimeEntry(activeTimer.timeEntry);
+                             setIsEditEntryDialogOpen(true);
+                           }}
+                           className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                         >
+                           <Edit className="h-4 w-4" />
+                         </Button>
+                       </div>
                     </div>
                   </div>
                 ) : (
@@ -753,6 +831,41 @@ const TimeTracking = () => {
         isOpen={isEditEntryDialogOpen}
         onClose={() => setIsEditEntryDialogOpen(false)}
       />
+      
+      {/* Stop Timer Dialog */}
+      <Dialog open={stopDialogOpen} onOpenChange={setStopDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Stop Timer</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {activeTimer && (
+              <>
+                <div>
+                  <p className="text-sm font-medium mb-1">Task</p>
+                  <p>{activeTimer.task?.title}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Time Elapsed</p>
+                  <p className="font-mono text-lg">{activeTimer.elapsedTime}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Notes</p>
+                  <Textarea 
+                    placeholder="What did you work on?" 
+                    value={stopNotes}
+                    onChange={(e) => setStopNotes(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStopDialogOpen(false)}>Cancel</Button>
+            <Button onClick={confirmStopTimer}>Save Time Entry</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
