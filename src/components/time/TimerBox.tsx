@@ -34,6 +34,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [selectedTimer, setSelectedTimer] = useState<TimerItem | null>(null);
   const [notes, setNotes] = useState("");
+  const [newlyCreatedTimerId, setNewlyCreatedTimerId] = useState<string | null>(null);
 
   // Load timers from localStorage on mount and clean duplicates
   useEffect(() => {
@@ -98,23 +99,28 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       const existingTimer = timers.find(t => t.id === activeTimeEntry.id || t.taskId === activeTimeEntry.taskId);
       
       if (!existingTimer) {
-        // This is a genuinely new timer started from elsewhere (not from our pause/resume)
+        // Check if this is a timer we just created
+        const isNewTimer = newlyCreatedTimerId === activeTimeEntry.id;
         const now = new Date();
         const dbStartTime = new Date(activeTimeEntry.startTime);
-        const isNewTimer = (now.getTime() - dbStartTime.getTime()) < 5000;
         
         const timerItem: TimerItem = {
           id: activeTimeEntry.id,
           taskId: activeTimeEntry.taskId,
           taskTitle: task?.title || `Task (${activeTimeEntry.taskId.slice(0, 8)}...)`,
           projectName: project?.name,
-          startTime: isNewTimer ? now : dbStartTime,
+          startTime: now,
           elapsed: isNewTimer ? 0 : Math.max(0, now.getTime() - dbStartTime.getTime()),
           isPaused: false,
           totalPausedTime: 0,
           isActive: true,
           isLocalOnly: false // This came from the backend
         };
+        
+        // Clear the newly created timer ID since we've processed it
+        if (isNewTimer) {
+          setNewlyCreatedTimerId(null);
+        }
         
         console.log('TimerBox - creating new timer from backend:', timerItem);
         
@@ -210,6 +216,15 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         // For local-only timers, create a new time entry in the backend
         console.log('Creating new time entry for local timer');
         await startTimeTracking(selectedTimer.taskId);
+        
+        // Track that we just created a timer - we'll identify it by checking activeTimeEntry shortly
+        const checkForNewTimer = () => {
+          if (activeTimeEntry && !newlyCreatedTimerId) {
+            setNewlyCreatedTimerId(activeTimeEntry.id);
+          }
+        };
+        setTimeout(checkForNewTimer, 50);
+        
         // Wait a moment for the activeTimeEntry to be set
         await new Promise(resolve => setTimeout(resolve, 100));
         await stopTimeTracking(notes);
