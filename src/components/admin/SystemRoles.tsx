@@ -48,11 +48,15 @@ export default function SystemRoles() {
 
   const loadData = async () => {
     try {
+      console.log('Loading system roles data...');
+      
       // Load system roles
       const { data: rolesData, error: rolesError } = await supabase
         .from('system_roles')
         .select('*');
 
+      console.log('System roles response:', { rolesData, rolesError });
+      
       if (rolesError) throw rolesError;
       setSystemRoles((rolesData || []).map(role => ({
         ...role,
@@ -111,6 +115,9 @@ export default function SystemRoles() {
       }));
       
       setAllUsers(formattedUsers);
+      
+      console.log('System roles loaded:', (rolesData || []).length);
+      console.log('Users loaded:', formattedUsers.length);
 
     } catch (error) {
       console.error('Error loading system roles data:', error);
@@ -282,11 +289,11 @@ export default function SystemRoles() {
                 <SelectTrigger className="bg-background border-border">
                   <SelectValue placeholder="Choose a user..." />
                 </SelectTrigger>
-                <SelectContent className="bg-background border-border z-50">
+                <SelectContent className="bg-background border-border z-50 max-h-60 overflow-y-auto">
                   {allUsers
                     .filter(user => !userSystemRoles.some(ur => ur.user_id === user.id))
                     .map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
+                      <SelectItem key={user.id} value={user.id} className="cursor-pointer">
                         {user.email} {user.user_metadata?.display_name && `(${user.user_metadata.display_name})`}
                       </SelectItem>
                     ))}
@@ -299,9 +306,9 @@ export default function SystemRoles() {
                 <SelectTrigger className="bg-background border-border">
                   <SelectValue placeholder="Choose a role..." />
                 </SelectTrigger>
-                <SelectContent className="bg-background border-border z-50">
+                <SelectContent className="bg-background border-border z-50 max-h-60 overflow-y-auto">
                   {systemRoles.map((role) => (
-                    <SelectItem key={role.id} value={role.id}>
+                    <SelectItem key={role.id} value={role.id} className="cursor-pointer">
                       {getRoleLabel(role.name)}
                     </SelectItem>
                   ))}
