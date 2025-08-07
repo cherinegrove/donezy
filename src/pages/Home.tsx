@@ -157,6 +157,7 @@ const Home = () => {
 
   const renderCard = (cardType: CardType) => {
     const onRemove = () => handleCardToggle(cardType);
+    const targetUserId = selectedUserId === "me" ? currentUser?.id : selectedUserId;
     
     switch (cardType) {
       case "collaborator-tasks":
@@ -211,7 +212,7 @@ const Home = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <NotificationsCard onRemove={onRemove} />
+              <NotificationsCard onRemove={onRemove} userId={targetUserId} />
             </CardContent>
           </Card>
         );

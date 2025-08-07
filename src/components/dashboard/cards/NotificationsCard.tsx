@@ -3,11 +3,15 @@ import { DashboardCard } from "../DashboardCard";
 import { Bell } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
-export const NotificationsCard = ({ onRemove }: { onRemove?: () => void }) => {
+export const NotificationsCard = ({ onRemove, userId }: { onRemove?: () => void; userId?: string }) => {
   const { messages, currentUser } = useAppContext();
 
+  // If userId is provided, show notifications for that user (for managers/admins viewing other users)
+  // Otherwise show notifications for current user
+  const targetUserId = userId || currentUser?.id;
+
   const unreadNotifications = messages.filter(msg => 
-    msg.recipientIds?.includes(currentUser?.id) && 
+    msg.recipientIds?.includes(targetUserId) && 
     !msg.read
   ).slice(0, 4);
 
