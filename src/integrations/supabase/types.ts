@@ -1052,6 +1052,63 @@ export type Database = {
         }
         Relationships: []
       }
+      support_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          support_user_id: string
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          support_user_id: string
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          support_user_id?: string
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
+      system_roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: Database["public"]["Enums"]["system_role_type"]
+          permissions: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: Database["public"]["Enums"]["system_role_type"]
+          permissions?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: Database["public"]["Enums"]["system_role_type"]
+          permissions?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       task_logs: {
         Row: {
           action: string
@@ -1333,6 +1390,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_system_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          id: string
+          system_role_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          id?: string
+          system_role_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          id?: string
+          system_role_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_system_roles_system_role_id_fkey"
+            columns: ["system_role_id"]
+            isOneToOne: false
+            referencedRelation: "system_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           auth_user_id: string | null
@@ -1446,6 +1535,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_assign_system_roles: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       can_user_perform_action: {
         Args: { action_type: string; user_uuid?: string }
         Returns: boolean
@@ -1465,6 +1558,22 @@ export type Database = {
           can_add_guest: boolean
         }[]
       }
+      has_system_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["system_role_type"]
+        }
+        Returns: boolean
+      }
+      log_support_action: {
+        Args: {
+          _action: string
+          _target_user_id?: string
+          _details?: Json
+          _ip_address?: unknown
+        }
+        Returns: undefined
+      }
       track_usage: {
         Args: {
           resource_type_param: string
@@ -1476,7 +1585,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      system_role_type: "support_admin" | "platform_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1603,6 +1712,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      system_role_type: ["support_admin", "platform_admin"],
+    },
   },
 } as const
