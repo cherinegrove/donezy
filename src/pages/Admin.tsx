@@ -7,6 +7,7 @@ import AdminActivity from "@/components/admin/AdminActivity";
 import AdminTeams from "@/components/admin/AdminTeams";
 import AdminRoles from "@/components/admin/AdminRoles";
 import SystemRoles from "@/components/admin/SystemRoles";
+import OrganizationManagement from "@/components/admin/OrganizationManagement";
 import { TaskStatusManager } from "@/components/admin/TaskStatusManager";
 import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
@@ -58,6 +59,7 @@ export default function Admin() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="organizations">Organizations</TabsTrigger>
           <TabsTrigger value="user-management">User Management</TabsTrigger>
           <TabsTrigger value="subscription">Subscription & Billing</TabsTrigger>
           <TabsTrigger value="data-import">Data Import</TabsTrigger>
@@ -69,7 +71,6 @@ export default function Admin() {
           <TabsTrigger value="account-settings">Account Settings</TabsTrigger>
         </TabsList>
 
-        {/* Dashboard overview tab */}
         <TabsContent value="dashboard" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card>
@@ -158,6 +159,10 @@ export default function Admin() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="organizations" className="space-y-6">
+          <OrganizationManagement />
         </TabsContent>
 
         <TabsContent value="user-management" className="space-y-6">
