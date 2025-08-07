@@ -7,7 +7,6 @@ import { Plus } from "lucide-react";
 export type CardType = 
   | "collaborator-tasks"
   | "time-logs" 
-  | "notes"
   | "recent-tasks"
   | "notifications";
 
@@ -27,11 +26,6 @@ const availableCards: CardOption[] = [
     id: "time-logs",
     name: "My Time This Week",
     description: "Time entries logged this week"
-  },
-  {
-    id: "notes",
-    name: "My Recent Notes",
-    description: "Recently updated personal notes"
   },
   {
     id: "recent-tasks",

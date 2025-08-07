@@ -11,7 +11,7 @@ import { Task, Project } from "@/types";
 import { CardSelector, CardType } from "@/components/dashboard/CardSelector";
 import { CollaboratorTasksCard } from "@/components/dashboard/cards/CollaboratorTasksCard";
 import { TimeLogsCard } from "@/components/dashboard/cards/TimeLogsCard";
-import { NotesCard } from "@/components/dashboard/cards/NotesCard";
+
 import { RecentTasksCard } from "@/components/dashboard/cards/RecentTasksCard";
 import { NotificationsCard } from "@/components/dashboard/cards/NotificationsCard";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
@@ -21,7 +21,7 @@ const Home = () => {
   const [selectedUserId, setSelectedUserId] = useState<string>("me");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedCards, setSelectedCards] = useState<CardType[]>(["time-logs", "notes"]);
+  const [selectedCards, setSelectedCards] = useState<CardType[]>(["time-logs"]);
   
   // Dashboard section ordering
   type DashboardSection = 
@@ -37,7 +37,6 @@ const Home = () => {
     "tasks-due-today",
     "overdue-tasks", 
     "time-logs",
-    "notes",
     "tasks",
     "projects"
   ]);
@@ -185,20 +184,6 @@ const Home = () => {
             </CardHeader>
             <CardContent>
               <TimeLogsCard onRemove={onRemove} />
-            </CardContent>
-          </Card>
-        );
-      case "notes":
-        return (
-          <Card key={cardType}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                Notes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <NotesCard onRemove={onRemove} />
             </CardContent>
           </Card>
         );
@@ -379,7 +364,6 @@ const Home = () => {
 
         case "collaborator-tasks":
         case "time-logs":
-        case "notes":
         case "recent-tasks":
         case "notifications":
           return renderCard(sectionId as CardType);
@@ -497,7 +481,7 @@ const Home = () => {
         </div>
         <CardSelector 
           selectedCards={sectionOrder.filter(section => 
-            ["collaborator-tasks", "time-logs", "notes", "recent-tasks", "notifications"].includes(section)
+            ["collaborator-tasks", "time-logs", "recent-tasks", "notifications"].includes(section)
           ) as CardType[]} 
           onCardToggle={handleCardToggle} 
         />
