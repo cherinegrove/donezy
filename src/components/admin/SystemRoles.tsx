@@ -141,6 +141,12 @@ export default function SystemRoles() {
 
     setLoading(true);
     try {
+      console.log('Attempting to assign system role:', {
+        selectedUserId,
+        selectedRoleId,
+        currentUser: (await supabase.auth.getUser()).data.user?.id
+      });
+
       const { error } = await supabase
         .from('user_system_roles')
         .insert({
@@ -149,7 +155,12 @@ export default function SystemRoles() {
           assigned_by: (await supabase.auth.getUser()).data.user?.id || ''
         });
 
-      if (error) throw error;
+      console.log('Assignment result:', { error });
+
+      if (error) {
+        console.error('Assignment error details:', error);
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -159,11 +170,17 @@ export default function SystemRoles() {
       setSelectedUserId("");
       setSelectedRoleId("");
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error assigning system role:', error);
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       toast({
         title: "Error",
-        description: "Failed to assign system role",
+        description: `Failed to assign system role: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
     } finally {
