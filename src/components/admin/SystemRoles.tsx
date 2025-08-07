@@ -69,15 +69,20 @@ export default function SystemRoles() {
 
       if (userRolesError) throw userRolesError;
 
-      // Get user details for each assignment
+      // Get user details for each assignment from public.users table
       const enrichedUserRoles = await Promise.all(
         (userRolesData || []).map(async (userRole) => {
-          const { data: userData } = await supabase.auth.admin.getUserById(userRole.user_id);
+          const { data: userData } = await supabase
+            .from('users')
+            .select('name, email')
+            .eq('auth_user_id', userRole.user_id)
+            .single();
+          
           return {
             ...userRole,
             user: {
-              email: userData.user?.email || 'Unknown',
-              display_name: userData.user?.user_metadata?.display_name
+              email: userData?.email || 'Unknown',
+              display_name: userData?.name
             }
           };
         })
@@ -91,10 +96,21 @@ export default function SystemRoles() {
         } : undefined
       })));
 
-      // Load all users for assignment dropdown
-      const { data: usersData, error: usersError } = await supabase.auth.admin.listUsers();
+      // Load users from the public.users table instead of auth admin
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('auth_user_id, name, email');
+      
       if (usersError) throw usersError;
-      setAllUsers(usersData.users || []);
+      
+      // Convert to the format expected by the component
+      const formattedUsers = (usersData || []).map(user => ({
+        id: user.auth_user_id,
+        email: user.email,
+        user_metadata: { display_name: user.name }
+      }));
+      
+      setAllUsers(formattedUsers);
 
     } catch (error) {
       console.error('Error loading system roles data:', error);
@@ -263,10 +279,10 @@ export default function SystemRoles() {
             <div className="flex-1">
               <label className="text-sm font-medium mb-2 block">Select User</label>
               <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-background border-border">
                   <SelectValue placeholder="Choose a user..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background border-border z-50">
                   {allUsers
                     .filter(user => !userSystemRoles.some(ur => ur.user_id === user.id))
                     .map((user) => (
@@ -280,10 +296,10 @@ export default function SystemRoles() {
             <div className="flex-1">
               <label className="text-sm font-medium mb-2 block">Select Role</label>
               <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-background border-border">
                   <SelectValue placeholder="Choose a role..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background border-border z-50">
                   {systemRoles.map((role) => (
                     <SelectItem key={role.id} value={role.id}>
                       {getRoleLabel(role.name)}
