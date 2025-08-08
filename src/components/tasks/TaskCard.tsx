@@ -22,9 +22,20 @@ interface TaskCardProps {
 export function TaskCard({ task, onClick, showProject = true, displayOptions = [], isSelected = false, onSelectionChange, showSelection = false }: TaskCardProps) {
   const { projects, users, currentUser } = useAppContext();
   
+  // Debug logging
+  console.log('TaskCard debug:', {
+    taskTitle: task.title,
+    displayOptions,
+    hasAssigneeOption: displayOptions.includes("assignee"),
+    assigneeId: task.assigneeId,
+    users: users.length
+  });
+  
   const project = projects.find(p => p.id === task.projectId);
   const assignee = users.find(u => u.id === task.assigneeId);
   const collaborators = (task.collaboratorIds || []).map(id => users.find(u => u.id === id)).filter(Boolean);
+  
+  console.log('Assignee found:', assignee);
   
   const getPriorityColor = (priority: Task['priority']) => {
     switch (priority) {
