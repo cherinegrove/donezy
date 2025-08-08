@@ -319,7 +319,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         id: team.id,
         name: team.name,
         description: team.description || undefined,
-        memberIds: [] // Teams don't store memberIds in the database schema
+        memberIds: [], // Teams don't store memberIds in the database schema
+        leaderId: team.leader_id,
+        color: team.color
       })) || [];
       
       setTeams(convertedTeams);
@@ -416,6 +418,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         name: role.name,
         description: role.description || '',
         permissions: safeParseJson(role.permissions, {}),
+        color: role.color
       }));
       
       setCustomRoles(convertedRoles);
@@ -1181,7 +1184,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .insert({
           auth_user_id: session.user.id,
           name: team.name,
-          description: team.description
+          description: team.description,
+          color: team.color
         })
         .select()
         .single();
@@ -1196,7 +1200,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           id: data.id,
           name: data.name,
           description: data.description || undefined,
-          memberIds: team.memberIds || []
+          memberIds: team.memberIds || [],
+          leaderId: team.leaderId,
+          color: data.color
         };
         setTeams(prev => [...prev, newTeam]);
       }
@@ -1213,6 +1219,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       if (updates.name !== undefined) dbUpdates.name = updates.name;
       if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.color !== undefined) dbUpdates.color = updates.color;
 
       const { error } = await supabase
         .from('teams')
@@ -1676,6 +1683,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           name: role.name,
           description: role.description,
           permissions: role.permissions,
+          color: role.color,
           auth_user_id: session.user.id
         })
         .select()
@@ -1691,6 +1699,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         name: data.name,
         description: data.description || '',
         permissions: safeParseJson(data.permissions, {}),
+        color: data.color
       };
       
       setCustomRoles(prev => [...prev, newRole]);
@@ -1714,6 +1723,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           name: updates.name,
           description: updates.description,
           permissions: updates.permissions,
+          color: updates.color,
         })
         .eq('id', roleId)
         .eq('auth_user_id', session.user.id)
@@ -1730,6 +1740,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         name: data.name,
         description: data.description || '',
         permissions: safeParseJson(data.permissions, {}),
+        color: data.color
       };
       
       setCustomRoles(prev => prev.map(role => 

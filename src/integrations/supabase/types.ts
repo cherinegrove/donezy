@@ -261,6 +261,7 @@ export type Database = {
       custom_roles: {
         Row: {
           auth_user_id: string
+          color: string | null
           created_at: string
           description: string | null
           id: string
@@ -271,6 +272,7 @@ export type Database = {
         }
         Insert: {
           auth_user_id: string
+          color?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -281,6 +283,7 @@ export type Database = {
         }
         Update: {
           auth_user_id?: string
+          color?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -1396,6 +1399,7 @@ export type Database = {
       teams: {
         Row: {
           auth_user_id: string
+          color: string | null
           created_at: string
           description: string | null
           id: string
@@ -1405,6 +1409,7 @@ export type Database = {
         }
         Insert: {
           auth_user_id: string
+          color?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -1414,6 +1419,7 @@ export type Database = {
         }
         Update: {
           auth_user_id?: string
+          color?: string | null
           created_at?: string
           description?: string | null
           id?: string

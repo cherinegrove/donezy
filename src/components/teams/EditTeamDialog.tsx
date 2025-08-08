@@ -39,6 +39,7 @@ const teamSchema = z.object({
   description: z.string().optional(),
   memberIds: z.array(z.string()).default([]),
   leaderId: z.string().optional(),
+  color: z.string().optional(),
 });
 
 type TeamFormData = z.infer<typeof teamSchema>;
@@ -60,6 +61,7 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
       description: team.description || "",
       memberIds: Array.isArray(team.memberIds) ? team.memberIds : [],
       leaderId: team.leaderId || "",
+      color: team.color || "#3b82f6",
     },
   });
 
@@ -70,6 +72,7 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
         description: team.description || "",
         memberIds: Array.isArray(team.memberIds) ? team.memberIds : [],
         leaderId: team.leaderId || "",
+        color: team.color || "#3b82f6",
       });
     }
   }, [form, open, team]);
@@ -80,6 +83,7 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
       description: data.description,
       memberIds: data.memberIds,
       leaderId: data.leaderId,
+      color: data.color,
     });
 
     toast({
@@ -264,6 +268,31 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="color"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Team Color</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={field.value || "#3b82f6"}
+                      onChange={field.onChange}
+                      className="w-12 h-10 border border-input rounded-md cursor-pointer"
+                    />
+                    <FormControl>
+                      <Input
+                        placeholder="#3b82f6"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

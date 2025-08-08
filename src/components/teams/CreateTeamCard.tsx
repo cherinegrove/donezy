@@ -27,6 +27,7 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
   const [description, setDescription] = useState("");
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [leaderId, setLeaderId] = useState("");
+  const [color, setColor] = useState("#3b82f6");
   const { addTeam, users } = useAppContext();
   const { toast } = useToast();
 
@@ -46,6 +47,7 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
         description,
         memberIds,
         leaderId: leaderId || undefined,
+        color,
       });
 
       toast({
@@ -58,6 +60,7 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
       setDescription("");
       setMemberIds([]);
       setLeaderId("");
+      setColor("#3b82f6");
       setIsCreating(false);
       
       if (onTeamCreated) {
@@ -77,6 +80,7 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
     setDescription("");
     setMemberIds([]);
     setLeaderId("");
+    setColor("#3b82f6");
     setIsCreating(false);
   };
 
@@ -219,6 +223,24 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="team-color">Team Color</Label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                id="team-color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="w-12 h-10 border border-input rounded-md cursor-pointer"
+              />
+              <Input
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                placeholder="#3b82f6"
+                className="flex-1"
+              />
+            </div>
           </div>
           <div className="flex gap-2">
             <Button onClick={handleSave}>

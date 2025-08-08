@@ -85,7 +85,8 @@ export default function AdminRoles() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    permissions: defaultPermissions
+    permissions: defaultPermissions,
+    color: '#10b981'
   });
 
   const handleCreateRole = () => {
@@ -93,7 +94,8 @@ export default function AdminRoles() {
     setFormData({
       name: '',
       description: '',
-      permissions: defaultPermissions
+      permissions: defaultPermissions,
+      color: '#10b981'
     });
   };
 
@@ -120,7 +122,8 @@ export default function AdminRoles() {
     setFormData({
       name: role.name,
       description: role.description || '',
-      permissions: rolePermissions
+      permissions: rolePermissions,
+      color: role.color || '#10b981'
     });
   };
 
@@ -147,14 +150,16 @@ export default function AdminRoles() {
       updateCustomRole(editingRole, {
         name: formData.name,
         description: formData.description,
-        permissions: permissionsRecord as any
+        permissions: permissionsRecord as any,
+        color: formData.color
       });
       setEditingRole(null);
     } else {
       addCustomRole({
         name: formData.name,
         description: formData.description,
-        permissions: permissionsRecord as any
+        permissions: permissionsRecord as any,
+        color: formData.color
       });
       setIsCreating(false);
     }
@@ -162,7 +167,8 @@ export default function AdminRoles() {
     setFormData({
       name: '',
       description: '',
-      permissions: defaultPermissions
+      permissions: defaultPermissions,
+      color: '#10b981'
     });
   };
 
@@ -172,7 +178,8 @@ export default function AdminRoles() {
     setFormData({
       name: '',
       description: '',
-      permissions: defaultPermissions
+      permissions: defaultPermissions,
+      color: '#10b981'
     });
   };
 
@@ -253,6 +260,25 @@ export default function AdminRoles() {
                   placeholder="Brief role description"
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role-color">Role Color</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  id="role-color"
+                  value={formData.color}
+                  onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                  className="w-12 h-10 border border-input rounded-md cursor-pointer"
+                />
+                <Input
+                  value={formData.color}
+                  onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                  placeholder="#10b981"
+                  className="flex-1"
                 />
               </div>
             </div>

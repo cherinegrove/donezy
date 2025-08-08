@@ -75,6 +75,7 @@ export interface Team {
   description?: string;
   memberIds: string[];
   leaderId?: string;
+  color?: string;
 }
 
 export interface Client {
@@ -261,6 +262,7 @@ export interface CustomRole {
   name: string;
   permissions: Record<string, AccessLevel>;
   description?: string;
+  color?: string;
 }
 
 export interface Note {
