@@ -176,15 +176,21 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
                 <SelectValue placeholder="Select team members (guests excluded)" />
               </SelectTrigger>
               <SelectContent>
-                {eligibleUsers.map((user) => (
-                  <SelectItem 
-                    key={user.id} 
-                    value={user.id}
-                    disabled={memberIds.includes(user.id)}
-                  >
-                    {user.name} {memberIds.includes(user.id) ? "✓" : ""}
+                {eligibleUsers && eligibleUsers.length > 0 ? (
+                  eligibleUsers.map((user) => (
+                    <SelectItem 
+                      key={user.id} 
+                      value={user.id}
+                      disabled={memberIds.includes(user.id)}
+                    >
+                      {user.name} {memberIds.includes(user.id) ? "✓" : ""}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    No users available
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
             
@@ -216,11 +222,17 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
                 <SelectValue placeholder="Select team manager" />
               </SelectTrigger>
               <SelectContent>
-                {eligibleUsers.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
+                {eligibleUsers && eligibleUsers.length > 0 ? (
+                  eligibleUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    No users available
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>

@@ -211,15 +211,21 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
                         <SelectValue placeholder="Select team members" />
                       </SelectTrigger>
                       <SelectContent>
-                        {eligibleUsers.map((user) => (
-                          <SelectItem 
-                            key={user.id} 
-                            value={user.id}
-                            disabled={safeSelectedValues.includes(user.id)}
-                          >
-                            {user.name} {safeSelectedValues.includes(user.id) ? "✓" : ""}
+                        {eligibleUsers && eligibleUsers.length > 0 ? (
+                          eligibleUsers.map((user) => (
+                            <SelectItem 
+                              key={user.id} 
+                              value={user.id}
+                              disabled={safeSelectedValues.includes(user.id)}
+                            >
+                              {user.name} {safeSelectedValues.includes(user.id) ? "✓" : ""}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="" disabled>
+                            No users available
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
                     
@@ -261,11 +267,17 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {eligibleUsers.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.name}
+                      {eligibleUsers && eligibleUsers.length > 0 ? (
+                        eligibleUsers.map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>
+                          No users available
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
