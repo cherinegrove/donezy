@@ -271,8 +271,17 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     }
   };
 
-  const handleDeleteTimer = (timerId: string) => {
-    // Simply remove from local state - no backend interaction needed for deletion
+  const handleDeleteTimer = async (timerId: string) => {
+    const timer = timers.find(t => t.id === timerId);
+    if (!timer) return;
+    
+    // If this is a backend timer (activeTimeEntry), we need to stop it
+    if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
+      console.log('🗑️ Deleting backend timer - stopping activeTimeEntry');
+      await stopTimeTracking('Timer deleted');
+    }
+    
+    // Remove from local state
     setTimers(prev => prev.filter(t => t.id !== timerId));
   };
 
