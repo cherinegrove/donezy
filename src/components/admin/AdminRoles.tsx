@@ -46,8 +46,8 @@ const defaultPermissions: FeaturePermissions = {
 
 const permissionOptions = {
   dashboard: ['View-own', 'View-team', 'View-All'],
-  projects: ['View-own', 'View-team', 'View-All', 'Create', 'Delete'],
-  tasks: ['View-own', 'View-team', 'View-All', 'Create', 'Delete'],
+  projects: ['View-own', 'View-team', 'View-All', 'Create/Edit', 'Delete'],
+  tasks: ['View-own', 'View-team', 'View-All', 'Create/Edit', 'Delete'],
   timeTracking: ['Create timer', 'Approve timer', 'Edit timer', 'Delete', 'View-own', 'View-team', 'View-All'],
   notifications: ['View-own', 'View-team', 'View-All'],
   reports: ['View'],
