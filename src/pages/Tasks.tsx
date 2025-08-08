@@ -172,7 +172,7 @@ export default function Tasks() {
   };
 
   return (
-    <div className="space-y-6 max-w-full overflow-x-hidden">
+    <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -257,13 +257,11 @@ export default function Tasks() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="w-full overflow-auto">
-                <KanbanBoard 
-                  tasks={filteredTasks} 
-                  viewMode={viewMode}
-                  onBulkEdit={handleBulkEdit}
-                />
-              </div>
+              <KanbanBoard 
+                tasks={filteredTasks} 
+                viewMode={viewMode}
+                onBulkEdit={handleBulkEdit}
+              />
             )}
           </div>
         </TabsContent>
