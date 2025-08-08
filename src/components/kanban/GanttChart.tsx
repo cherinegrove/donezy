@@ -364,9 +364,12 @@ export function GanttChart({ tasks }: GanttChartProps) {
               <TableHead className="w-[200px]">Project</TableHead>
               <TableHead className="w-[200px]">Parent Task</TableHead>
               <TableHead className="w-[200px]">Task</TableHead>
-              <TableHead className="w-full relative">
-                {/* Add date ticks at the top of the timeline column */}
-                <div className="absolute top-0 left-0 right-0 flex w-full">
+              <TableHead className="w-full relative h-16">
+                <div className="pb-2">
+                  <span className="ml-2">Timeline</span>
+                </div>
+                {/* Add date ticks below the timeline text */}
+                <div className="absolute bottom-2 left-0 right-0 flex w-full">
                   {dateTicks.map((tick, index) => (
                     <div 
                       key={index} 
@@ -381,7 +384,6 @@ export function GanttChart({ tasks }: GanttChartProps) {
                     </div>
                   ))}
                 </div>
-                <span className="ml-2 pt-6 inline-block">Timeline</span>
               </TableHead>
             </TableRow>
           </TableHeader>
