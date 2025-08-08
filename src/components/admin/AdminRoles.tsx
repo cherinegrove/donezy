@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CustomRole } from "@/types";
 import { Shield, Plus, Edit, Trash2, Save, X, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -259,34 +259,37 @@ export default function AdminRoles() {
 
             <div>
               <h3 className="text-lg font-medium mb-4">Function Permissions</h3>
-              <div className="space-y-4">
-                {Object.entries(featureLabels).map(([feature, label]) => (
-                  <div key={feature} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-sm">{label}</h4>
-                      <div className="flex flex-wrap gap-1">
-                        {formData.permissions[feature as keyof FeaturePermissions].map(permission => (
-                          <Badge key={permission} variant="secondary" className="text-xs">
-                            {permission}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {permissionOptions[feature as keyof typeof permissionOptions].map(permission => (
-                        <Button
-                          key={permission}
-                          variant={formData.permissions[feature as keyof FeaturePermissions].includes(permission) ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handlePermissionToggle(feature as keyof FeaturePermissions, permission)}
-                          className="text-xs h-8"
-                        >
-                          {permission}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-1/3">Feature</TableHead>
+                      <TableHead>Permissions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.entries(featureLabels).map(([feature, label]) => (
+                      <TableRow key={feature}>
+                        <TableCell className="font-medium">{label}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-2">
+                            {permissionOptions[feature as keyof typeof permissionOptions].map(permission => (
+                              <Button
+                                key={permission}
+                                variant={formData.permissions[feature as keyof FeaturePermissions].includes(permission) ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handlePermissionToggle(feature as keyof FeaturePermissions, permission)}
+                                className="text-xs h-7"
+                              >
+                                {permission}
+                              </Button>
+                            ))}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </div>
 
