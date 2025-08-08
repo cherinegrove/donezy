@@ -6,7 +6,7 @@ import AdminUsers from "@/components/admin/AdminUsers";
 import AdminActivity from "@/components/admin/AdminActivity";
 import AdminTeams from "@/components/admin/AdminTeams";
 import AdminRoles from "@/components/admin/AdminRoles";
-import SystemRoles from "@/components/admin/SystemRoles";
+
 import OrganizationManagement from "@/components/admin/OrganizationManagement";
 import { TaskStatusManager } from "@/components/admin/TaskStatusManager";
 import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
@@ -66,7 +66,7 @@ export default function Admin() {
           <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="roles">Custom Roles</TabsTrigger>
-          <TabsTrigger value="system-roles">System Roles</TabsTrigger>
+          
           <TabsTrigger value="activity">Activity Log</TabsTrigger>
           <TabsTrigger value="account-settings">Account Settings</TabsTrigger>
         </TabsList>
@@ -189,9 +189,6 @@ export default function Admin() {
           <AdminRoles />
         </TabsContent>
 
-        <TabsContent value="system-roles" className="space-y-6">
-          <SystemRoles />
-        </TabsContent>
 
         <TabsContent value="activity" className="space-y-6">
           <AdminActivity />
