@@ -3,6 +3,7 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format, parseISO, isBefore } from "date-fns";
 import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
@@ -13,9 +14,12 @@ interface TaskCardProps {
   onClick?: () => void;
   showProject?: boolean;
   displayOptions?: string[];
+  isSelected?: boolean;
+  onSelectionChange?: (taskId: string) => void;
+  showSelection?: boolean;
 }
 
-export function TaskCard({ task, onClick, showProject = true, displayOptions = [] }: TaskCardProps) {
+export function TaskCard({ task, onClick, showProject = true, displayOptions = [], isSelected = false, onSelectionChange, showSelection = false }: TaskCardProps) {
   const { projects, users, currentUser } = useAppContext();
   
   const project = projects.find(p => p.id === task.projectId);
@@ -41,18 +45,48 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
 
   const isCollaboratorTask = task.collaboratorIds?.includes(currentUser?.id) && task.assigneeId !== currentUser?.id;
 
+  const handleSelectionClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onSelectionChange) {
+      onSelectionChange(task.id);
+    }
+  };
+
+  const handleSelectionChange = () => {
+    if (onSelectionChange) {
+      onSelectionChange(task.id);
+    }
+  };
+
   return (
     <Card 
       className={cn(
-        "cursor-pointer hover:shadow-md transition-shadow",
-        isCollaboratorTask && "border-l-4 border-l-blue-500"
+        "cursor-pointer hover:shadow-md transition-all group relative",
+        isCollaboratorTask && "border-l-4 border-l-blue-500",
+        isSelected && "ring-2 ring-primary bg-primary/5"
       )}
       onClick={onClick}
     >
+      {showSelection && (
+        <div className="absolute top-3 right-3 z-10">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={handleSelectionChange}
+            onClick={handleSelectionClick}
+            className={cn(
+              "transition-opacity",
+              isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+            )}
+          />
+        </div>
+      )}
       <CardContent className="p-4">
         <div className="space-y-3">
           <div className="flex items-start justify-between">
-            <h3 className="font-medium text-sm line-clamp-2 flex-1">
+            <h3 className={cn(
+              "font-medium text-sm line-clamp-2 flex-1",
+              showSelection && "pr-8" // Add padding when checkbox is present
+            )}>
               {task.title}
               {isCollaboratorTask && (
                 <Badge variant="outline" className="ml-2 text-xs">

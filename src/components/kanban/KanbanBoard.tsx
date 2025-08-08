@@ -276,20 +276,18 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
         
         <div className="space-y-2">
           {tasks.map(task => (
-            <div key={task.id} className="flex items-center gap-3 group">
-              <Checkbox
-                checked={selectedTaskIds.includes(task.id)}
-                onCheckedChange={() => handleTaskSelection(task.id)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity data-[state=checked]:opacity-100"
-              />
+            <div key={task.id} className="group">
               <div 
-                className="flex-1 cursor-pointer"
+                className="cursor-pointer"
                 onClick={(e) => handleTaskClick(task, e)}
               >
                 <TaskCard 
                   task={task} 
                   onClick={() => {}}
                   displayOptions={displayOptions}
+                  isSelected={selectedTaskIds.includes(task.id)}
+                  onSelectionChange={handleTaskSelection}
+                  showSelection={true}
                 />
               </div>
             </div>
@@ -375,23 +373,21 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                   {tasksByStatus[column.id].map(task => (
                     <div
                       key={task.id}
-                      className="flex items-start gap-2 group"
+                      className="group"
                       draggable={selectedTaskIds.length === 0}
                       onDragStart={() => selectedTaskIds.length === 0 && handleDragStart(task)}
                     >
-                      <Checkbox
-                        checked={selectedTaskIds.includes(task.id)}
-                        onCheckedChange={() => handleTaskSelection(task.id)}
-                        className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity data-[state=checked]:opacity-100"
-                      />
                       <div 
-                        className="flex-1 cursor-pointer"
+                        className="cursor-pointer"
                         onClick={(e) => handleTaskClick(task, e)}
                       >
                         <TaskCard 
                           task={task} 
                           onClick={() => {}}
                           displayOptions={displayOptions}
+                          isSelected={selectedTaskIds.includes(task.id)}
+                          onSelectionChange={handleTaskSelection}
+                          showSelection={true}
                         />
                       </div>
                     </div>
