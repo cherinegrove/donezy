@@ -368,8 +368,8 @@ export function GanttChart({ tasks }: GanttChartProps) {
                 <div className="pb-2">
                   <span className="ml-2">Timeline</span>
                 </div>
-                {/* Add date ticks below the timeline text */}
-                <div className="absolute bottom-2 left-0 right-0 flex w-full">
+                {/* Add date ticks below the timeline text with proper spacing */}
+                <div className="absolute bottom-4 left-0 right-0 flex w-full">
                   {dateTicks.map((tick, index) => (
                     <div 
                       key={index} 
