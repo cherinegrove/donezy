@@ -1193,6 +1193,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('▶️ Timer resumed in AppContext');
   };
 
+  const getElapsedTime = (timeEntry: TimeEntry | null = activeTimeEntry): string => {
+    if (!timeEntry) return "00:00:00";
+    
+    const startTime = new Date(timeEntry.startTime).getTime();
+    const now = Date.now();
+    let elapsedMs = now - startTime - totalPausedTime;
+    
+    // If currently paused, subtract the current pause duration
+    if (isTimerPaused && pausedAt) {
+      elapsedMs -= (now - pausedAt.getTime());
+    }
+    
+    const seconds = Math.floor((elapsedMs / 1000) % 60);
+    const minutes = Math.floor((elapsedMs / (1000 * 60)) % 60);
+    const hours = Math.floor(elapsedMs / (1000 * 60 * 60));
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   const updateTimeEntryStatus = async (timeEntryId: string, status: string, reason?: string) => {
     const updates: Partial<TimeEntry> = { status: status as TimeEntryStatus };
     if (reason) {
@@ -2149,6 +2168,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     stopTimeTracking,
     pauseTimeTracking,
     resumeTimeTracking,
+    getElapsedTime,
     updateTimeEntryStatus,
     
     // Message functions

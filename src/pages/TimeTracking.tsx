@@ -51,7 +51,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Textarea } from "@/components/ui/textarea";
 
 const TimeTracking = () => {
-  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser, updateTimeEntryStatus, stopTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, pausedAt, totalPausedTime } = useAppContext();
+  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser, updateTimeEntryStatus, stopTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, getElapsedTime } = useAppContext();
   const [activeTab, setActiveTab] = useState("active");
   const [isAddEntryDialogOpen, setIsAddEntryDialogOpen] = useState(false);
   const [selectedTimeEntry, setSelectedTimeEntry] = useState<TimeEntry | undefined>(undefined);
@@ -177,7 +177,7 @@ const TimeTracking = () => {
     return acc;
   }, {} as Record<string, typeof filteredTimeEntries>);
 
-  // Get active timer with live elapsed time calculation
+  // Get active timer with shared elapsed time calculation
   const getActiveTimer = () => {
     if (!activeTimeEntry) {
       return null;
@@ -188,27 +188,13 @@ const TimeTracking = () => {
     const client = project ? clients.find(c => c.id === project.clientId) : undefined;
     const user = users.find(u => u.id === activeTimeEntry.userId);
     
-    // Calculate elapsed time with pause handling
-    const startTime = new Date(activeTimeEntry.startTime);
-    let elapsedMs = currentTime.getTime() - startTime.getTime() - totalPausedTime;
-    
-    // If currently paused, subtract the current pause duration
-    if (isTimerPaused && pausedAt) {
-      elapsedMs -= (currentTime.getTime() - pausedAt.getTime());
-    }
-    
-    const elapsedMinutes = Math.floor(elapsedMs / (1000 * 60));
-    const hours = Math.floor(elapsedMinutes / 60);
-    const minutes = elapsedMinutes % 60;
-    const seconds = Math.floor((elapsedMs % (1000 * 60)) / 1000);
-    
     return {
       task,
       project,
       client,
       user,
       timeEntry: activeTimeEntry,
-      elapsedTime: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+      elapsedTime: getElapsedTime(activeTimeEntry)
     };
   };
   

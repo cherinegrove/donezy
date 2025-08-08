@@ -94,6 +94,7 @@ export interface AppContextType {
   stopTimeTracking: (notes?: string) => void;
   pauseTimeTracking: () => void;
   resumeTimeTracking: () => void;
+  getElapsedTime: (timeEntry?: TimeEntry | null) => string;
   updateTimeEntryStatus: (timeEntryId: string, status: string, reason?: string) => void;
   
   // Message functions
