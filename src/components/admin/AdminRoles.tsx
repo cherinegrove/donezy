@@ -23,7 +23,6 @@ interface FeaturePermissions {
   users: AccessLevel;
   reports: AccessLevel;
   messages: AccessLevel;
-  notes: AccessLevel;
   settings: AccessLevel;
 }
 
@@ -38,7 +37,6 @@ const defaultPermissions: FeaturePermissions = {
   users: 'none',
   reports: 'none',
   messages: 'none',
-  notes: 'none',
   settings: 'none'
 };
 
@@ -53,7 +51,6 @@ const featureLabels = {
   users: 'User Management',
   reports: 'Reports',
   messages: 'Messages',
-  notes: 'Notes',
   settings: 'Settings'
 };
 
@@ -98,7 +95,6 @@ export default function AdminRoles() {
       users: (role.permissions.users as AccessLevel) || 'none',
       reports: (role.permissions.reports as AccessLevel) || 'none',
       messages: (role.permissions.messages as AccessLevel) || 'none',
-      notes: (role.permissions.notes as AccessLevel) || 'none',
       settings: (role.permissions.settings as AccessLevel) || 'none'
     };
     
@@ -122,7 +118,6 @@ export default function AdminRoles() {
       users: formData.permissions.users,
       reports: formData.permissions.reports,
       messages: formData.permissions.messages,
-      notes: formData.permissions.notes,
       settings: formData.permissions.settings
     };
 
