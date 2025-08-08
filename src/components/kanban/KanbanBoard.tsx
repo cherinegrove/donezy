@@ -42,8 +42,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     done: "#DCFCE7"
   });
   
-  // Bulk edit functionality
-  const [bulkEditMode, setBulkEditMode] = useState(false);
+  // Task selection functionality
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   
   // Global display options for all task cards
@@ -92,10 +91,12 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     }
   };
   
-  const handleTaskClick = (task: Task) => {
-    if (bulkEditMode) {
+  const handleTaskClick = (task: Task, event?: React.MouseEvent) => {
+    // If Ctrl/Cmd key is pressed or there are already selected tasks, toggle selection
+    if (event?.ctrlKey || event?.metaKey || selectedTaskIds.length > 0) {
       handleTaskSelection(task.id);
     } else {
+      // Normal single task edit
       setSelectedTask(task);
       setIsEditDialogOpen(true);
     }
@@ -106,7 +107,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     setIsNestedDialogOpen(true);
   };
 
-  // Bulk edit functions
+  // Task selection functions
   const handleTaskSelection = (taskId: string) => {
     setSelectedTaskIds(prev => 
       prev.includes(taskId) 
@@ -123,14 +124,25 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     }
   };
 
-  const toggleBulkEditMode = () => {
-    setBulkEditMode(!bulkEditMode);
+  const clearSelection = () => {
     setSelectedTaskIds([]);
   };
 
-  const handleBulkEdit = () => {
-    if (onBulkEdit && selectedTaskIds.length > 0) {
-      onBulkEdit(selectedTaskIds);
+  const handleEdit = () => {
+    if (selectedTaskIds.length === 1) {
+      // Single task edit
+      const task = tasks.find(t => t.id === selectedTaskIds[0]);
+      if (task) {
+        setSelectedTask(task);
+        setIsEditDialogOpen(true);
+        clearSelection();
+      }
+    } else if (selectedTaskIds.length > 1) {
+      // Bulk edit
+      if (onBulkEdit) {
+        onBulkEdit(selectedTaskIds);
+        clearSelection();
+      }
     }
   };
 
@@ -143,25 +155,26 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     }
   };
 
-  // Render toolbar with bulk edit and display options
+  // Render toolbar with selection controls and display options
   const renderToolbar = () => {
     if (viewMode === "gantt") return null;
     
     return (
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
-          <Button
-            variant={bulkEditMode ? "default" : "outline"}
-            size="sm"
-            onClick={toggleBulkEditMode}
-            className="h-9"
-          >
-            <CheckSquare className="h-4 w-4 mr-2" />
-            {bulkEditMode ? "Exit Bulk Edit" : "Bulk Edit"}
-          </Button>
-          
-          {bulkEditMode && (
+          {selectedTaskIds.length > 0 && (
             <>
+              <Badge variant="secondary">
+                {selectedTaskIds.length} selected
+              </Badge>
+              <Button
+                size="sm"
+                onClick={handleEdit}
+                className="h-9"
+              >
+                <Edit2 className="h-4 w-4 mr-2" />
+                {selectedTaskIds.length === 1 ? "Edit Task" : "Edit Selected"}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -170,22 +183,14 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
               >
                 {selectedTaskIds.length === tasks.length ? "Deselect All" : "Select All"}
               </Button>
-              
-              {selectedTaskIds.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">
-                    {selectedTaskIds.length} selected
-                  </Badge>
-                  <Button
-                    size="sm"
-                    onClick={handleBulkEdit}
-                    className="h-9"
-                  >
-                    <Edit2 className="h-4 w-4 mr-2" />
-                    Edit Selected
-                  </Button>
-                </div>
-              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearSelection}
+                className="h-9"
+              >
+                Clear
+              </Button>
             </>
           )}
         </div>
@@ -271,17 +276,19 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
         
         <div className="space-y-2">
           {tasks.map(task => (
-            <div key={task.id} className="flex items-center gap-3">
-              {bulkEditMode && (
-                <Checkbox
-                  checked={selectedTaskIds.includes(task.id)}
-                  onCheckedChange={() => handleTaskSelection(task.id)}
-                />
-              )}
-              <div className="flex-1 cursor-pointer">
+            <div key={task.id} className="flex items-center gap-3 group">
+              <Checkbox
+                checked={selectedTaskIds.includes(task.id)}
+                onCheckedChange={() => handleTaskSelection(task.id)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity data-[state=checked]:opacity-100"
+              />
+              <div 
+                className="flex-1 cursor-pointer"
+                onClick={(e) => handleTaskClick(task, e)}
+              >
                 <TaskCard 
                   task={task} 
-                  onClick={() => handleTaskClick(task)}
+                  onClick={() => {}}
                   displayOptions={displayOptions}
                 />
               </div>
@@ -368,21 +375,22 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                   {tasksByStatus[column.id].map(task => (
                     <div
                       key={task.id}
-                      className="flex items-start gap-2"
-                      draggable={!bulkEditMode}
-                      onDragStart={() => !bulkEditMode && handleDragStart(task)}
+                      className="flex items-start gap-2 group"
+                      draggable={selectedTaskIds.length === 0}
+                      onDragStart={() => selectedTaskIds.length === 0 && handleDragStart(task)}
                     >
-                      {bulkEditMode && (
-                        <Checkbox
-                          checked={selectedTaskIds.includes(task.id)}
-                          onCheckedChange={() => handleTaskSelection(task.id)}
-                          className="mt-3"
-                        />
-                      )}
-                      <div className="flex-1">
+                      <Checkbox
+                        checked={selectedTaskIds.includes(task.id)}
+                        onCheckedChange={() => handleTaskSelection(task.id)}
+                        className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity data-[state=checked]:opacity-100"
+                      />
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={(e) => handleTaskClick(task, e)}
+                      >
                         <TaskCard 
                           task={task} 
-                          onClick={() => handleTaskClick(task)}
+                          onClick={() => {}}
                           displayOptions={displayOptions}
                         />
                       </div>
