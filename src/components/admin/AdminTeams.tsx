@@ -28,20 +28,27 @@ export default function AdminTeams() {
         <CardContent>
           <div className="space-y-4">
             {teams.map((team) => (
-              <div key={team.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h3 className="font-medium">{team.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {team.memberIds.length} members
-                  </p>
+              <div key={team.id} className="flex items-center border rounded-lg overflow-hidden">
+                {/* Color block on the left */}
+                <div 
+                  className="w-1 h-full min-h-[80px]"
+                  style={{ backgroundColor: team.color || '#3b82f6' }}
+                />
+                <div className="flex items-center justify-between p-4 flex-1">
+                  <div>
+                    <h3 className="font-medium">{team.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {team.memberIds.length} members
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditTeam(team)}
+                  >
+                    Edit
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEditTeam(team)}
-                >
-                  Edit
-                </Button>
               </div>
             ))}
           </div>

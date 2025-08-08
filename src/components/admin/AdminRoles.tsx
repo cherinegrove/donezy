@@ -340,49 +340,58 @@ export default function AdminRoles() {
       {customRoles.length > 0 ? (
         <div className="grid gap-4">
           {customRoles.map((role) => (
-            <Card key={role.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-primary" />
-                    <div>
-                      <CardTitle className="text-lg">{role.name}</CardTitle>
-                      {role.description && (
-                        <CardDescription className="mt-1">{role.description}</CardDescription>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => handleEditRole(role)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDeleteRole(role.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Object.entries(role.permissions).map(([feature, permissions]) => {
-                    const permissionArray = Array.isArray(permissions) ? permissions : [];
-                    if (permissionArray.length === 0) return null;
-                    
-                    return (
-                      <div key={feature} className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{featureLabels[feature as keyof typeof featureLabels] || feature}</span>
-                        <div className="flex flex-wrap gap-1">
-                          {permissionArray.map((permission: string) => (
-                            <Badge key={permission} variant="outline" className="text-xs">
-                              {permission}
-                            </Badge>
-                          ))}
+            <Card key={role.id} className="overflow-hidden">
+              <div className="flex">
+                {/* Color block on the left */}
+                <div 
+                  className="w-1 min-h-full"
+                  style={{ backgroundColor: role.color || '#10b981' }}
+                />
+                <div className="flex-1">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-primary" />
+                        <div>
+                          <CardTitle className="text-lg">{role.name}</CardTitle>
+                          {role.description && (
+                            <CardDescription className="mt-1">{role.description}</CardDescription>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditRole(role)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteRole(role.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {Object.entries(role.permissions).map(([feature, permissions]) => {
+                        const permissionArray = Array.isArray(permissions) ? permissions : [];
+                        if (permissionArray.length === 0) return null;
+                        
+                        return (
+                          <div key={feature} className="flex items-center justify-between text-sm">
+                            <span className="font-medium">{featureLabels[feature as keyof typeof featureLabels] || feature}</span>
+                            <div className="flex flex-wrap gap-1">
+                              {permissionArray.map((permission: string) => (
+                                <Badge key={permission} variant="outline" className="text-xs">
+                                  {permission}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
                 </div>
-              </CardContent>
+              </div>
             </Card>
           ))}
         </div>
