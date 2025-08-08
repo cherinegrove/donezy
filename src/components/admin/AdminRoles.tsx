@@ -299,17 +299,20 @@ export default function AdminRoles() {
                         <TableCell className="font-medium">{label}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-2">
-                            {permissionOptions[feature as keyof typeof permissionOptions].map(permission => (
-                              <Button
-                                key={permission}
-                                variant={formData.permissions[feature as keyof FeaturePermissions].includes(permission) ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => handlePermissionToggle(feature as keyof FeaturePermissions, permission)}
-                                className="text-xs h-7"
-                              >
-                                {permission}
-                              </Button>
-                            ))}
+                            {(permissionOptions[feature as keyof typeof permissionOptions] || []).map(permission => {
+                              const featurePermissions = formData.permissions[feature as keyof FeaturePermissions] || [];
+                              return (
+                                <Button
+                                  key={permission}
+                                  variant={featurePermissions.includes(permission) ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => handlePermissionToggle(feature as keyof FeaturePermissions, permission)}
+                                  className="text-xs h-7"
+                                >
+                                  {permission}
+                                </Button>
+                              );
+                            })}
                           </div>
                         </TableCell>
                       </TableRow>
