@@ -1,43 +1,64 @@
-
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CustomRole, AccessLevel } from "@/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CustomRole } from "@/types";
 import { Shield, Plus, Edit, Trash2, Save, X, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface FeaturePermissions {
-  dashboard: AccessLevel;
-  projects: AccessLevel;
-  tasks: AccessLevel;
-  timeTracking: AccessLevel;
-  timeApproval: AccessLevel;
-  clients: AccessLevel;
-  teams: AccessLevel;
-  users: AccessLevel;
-  reports: AccessLevel;
-  messages: AccessLevel;
-  settings: AccessLevel;
+  dashboard: string[];
+  projects: string[];
+  tasks: string[];
+  timeTracking: string[];
+  notifications: string[];
+  reports: string[];
+  adminDashboard: string[];
+  users: string[];
+  billing: string[];
+  dataImport: string[];
+  clients: string[];
+  accountRoles: string[];
+  activityLog: string[];
+  accountSettings: string[];
 }
 
 const defaultPermissions: FeaturePermissions = {
-  dashboard: 'none',
-  projects: 'none',
-  tasks: 'none',
-  timeTracking: 'none',
-  timeApproval: 'none',
-  clients: 'none',
-  teams: 'none',
-  users: 'none',
-  reports: 'none',
-  messages: 'none',
-  settings: 'none'
+  dashboard: [],
+  projects: [],
+  tasks: [],
+  timeTracking: [],
+  notifications: [],
+  reports: [],
+  adminDashboard: [],
+  users: [],
+  billing: [],
+  dataImport: [],
+  clients: [],
+  accountRoles: [],
+  activityLog: [],
+  accountSettings: []
+};
+
+const permissionOptions = {
+  dashboard: ['View-own', 'View-team', 'View-All'],
+  projects: ['View-own', 'View-team', 'View-All', 'Create', 'Delete'],
+  tasks: ['View-own', 'View-team', 'View-All', 'Create', 'Delete'],
+  timeTracking: ['Create timer', 'Approve timer', 'Edit timer', 'Delete', 'View-own', 'View-team', 'View-All'],
+  notifications: ['View-own', 'View-team', 'View-All'],
+  reports: ['View'],
+  adminDashboard: ['Access'],
+  users: ['View', 'Create', 'Delete'],
+  billing: ['View', 'Edit'],
+  dataImport: ['Yes', 'No'],
+  clients: ['View', 'Edit', 'Delete'],
+  accountRoles: ['View', 'Edit', 'Delete'],
+  activityLog: ['Yes', 'No'],
+  accountSettings: ['Yes', 'No']
 };
 
 const featureLabels = {
@@ -45,22 +66,17 @@ const featureLabels = {
   projects: 'Projects',
   tasks: 'Tasks',
   timeTracking: 'Time Tracking',
-  timeApproval: 'Time Approval',
-  clients: 'Clients',
-  teams: 'Teams',
-  users: 'User Management',
+  notifications: 'Notifications',
   reports: 'Reports',
-  messages: 'Messages',
-  settings: 'Settings'
+  adminDashboard: 'Admin Dashboard',
+  users: 'Users',
+  billing: 'Billing',
+  dataImport: 'Data Import',
+  clients: 'Clients',
+  accountRoles: 'Account Roles',
+  activityLog: 'Activity Log',
+  accountSettings: 'Account Settings'
 };
-
-const accessLevels: { value: AccessLevel; label: string; color: string; description: string }[] = [
-  { value: 'none', label: 'No Access', color: 'bg-gray-100 text-gray-800', description: 'Cannot access this feature' },
-  { value: 'view', label: 'View Only', color: 'bg-blue-100 text-blue-800', description: 'Can only view data' },
-  { value: 'create', label: 'Create', color: 'bg-yellow-100 text-yellow-800', description: 'Can view and create new items' },
-  { value: 'edit', label: 'Edit', color: 'bg-green-100 text-green-800', description: 'Can view, create, and edit items' },
-  { value: 'delete', label: 'Delete', color: 'bg-red-100 text-red-800', description: 'Full access including delete' }
-];
 
 export default function AdminRoles() {
   const { customRoles, addCustomRole, updateCustomRole, deleteCustomRole } = useAppContext();
@@ -85,17 +101,20 @@ export default function AdminRoles() {
     setEditingRole(role.id);
     // Convert the role permissions to FeaturePermissions format
     const rolePermissions: FeaturePermissions = {
-      dashboard: (role.permissions.dashboard as AccessLevel) || 'none',
-      projects: (role.permissions.projects as AccessLevel) || 'none',
-      tasks: (role.permissions.tasks as AccessLevel) || 'none',
-      timeTracking: (role.permissions.timeTracking as AccessLevel) || 'none',
-      timeApproval: (role.permissions.timeApproval as AccessLevel) || 'none',
-      clients: (role.permissions.clients as AccessLevel) || 'none',
-      teams: (role.permissions.teams as AccessLevel) || 'none',
-      users: (role.permissions.users as AccessLevel) || 'none',
-      reports: (role.permissions.reports as AccessLevel) || 'none',
-      messages: (role.permissions.messages as AccessLevel) || 'none',
-      settings: (role.permissions.settings as AccessLevel) || 'none'
+      dashboard: Array.isArray(role.permissions.dashboard) ? role.permissions.dashboard : [],
+      projects: Array.isArray(role.permissions.projects) ? role.permissions.projects : [],
+      tasks: Array.isArray(role.permissions.tasks) ? role.permissions.tasks : [],
+      timeTracking: Array.isArray(role.permissions.timeTracking) ? role.permissions.timeTracking : [],
+      notifications: Array.isArray(role.permissions.notifications) ? role.permissions.notifications : [],
+      reports: Array.isArray(role.permissions.reports) ? role.permissions.reports : [],
+      adminDashboard: Array.isArray(role.permissions.adminDashboard) ? role.permissions.adminDashboard : [],
+      users: Array.isArray(role.permissions.users) ? role.permissions.users : [],
+      billing: Array.isArray(role.permissions.billing) ? role.permissions.billing : [],
+      dataImport: Array.isArray(role.permissions.dataImport) ? role.permissions.dataImport : [],
+      clients: Array.isArray(role.permissions.clients) ? role.permissions.clients : [],
+      accountRoles: Array.isArray(role.permissions.accountRoles) ? role.permissions.accountRoles : [],
+      activityLog: Array.isArray(role.permissions.activityLog) ? role.permissions.activityLog : [],
+      accountSettings: Array.isArray(role.permissions.accountSettings) ? role.permissions.accountSettings : []
     };
     
     setFormData({
@@ -106,33 +125,36 @@ export default function AdminRoles() {
   };
 
   const handleSaveRole = () => {
-    // Convert FeaturePermissions to Record<string, AccessLevel> for storage
-    const permissionsRecord: Record<string, AccessLevel> = {
+    // Convert FeaturePermissions to Record<string, any> for storage (compatible with existing type)
+    const permissionsRecord: Record<string, any> = {
       dashboard: formData.permissions.dashboard,
       projects: formData.permissions.projects,
       tasks: formData.permissions.tasks,
       timeTracking: formData.permissions.timeTracking,
-      timeApproval: formData.permissions.timeApproval,
-      clients: formData.permissions.clients,
-      teams: formData.permissions.teams,
-      users: formData.permissions.users,
+      notifications: formData.permissions.notifications,
       reports: formData.permissions.reports,
-      messages: formData.permissions.messages,
-      settings: formData.permissions.settings
+      adminDashboard: formData.permissions.adminDashboard,
+      users: formData.permissions.users,
+      billing: formData.permissions.billing,
+      dataImport: formData.permissions.dataImport,
+      clients: formData.permissions.clients,
+      accountRoles: formData.permissions.accountRoles,
+      activityLog: formData.permissions.activityLog,
+      accountSettings: formData.permissions.accountSettings
     };
 
     if (editingRole) {
       updateCustomRole(editingRole, {
         name: formData.name,
         description: formData.description,
-        permissions: permissionsRecord
+        permissions: permissionsRecord as any
       });
       setEditingRole(null);
     } else {
       addCustomRole({
         name: formData.name,
         description: formData.description,
-        permissions: permissionsRecord
+        permissions: permissionsRecord as any
       });
       setIsCreating(false);
     }
@@ -154,27 +176,27 @@ export default function AdminRoles() {
     });
   };
 
-  const handlePermissionChange = (feature: keyof FeaturePermissions, level: AccessLevel) => {
-    setFormData(prev => ({
-      ...prev,
-      permissions: {
-        ...prev.permissions,
-        [feature]: level
-      }
-    }));
+  const handlePermissionToggle = (feature: keyof FeaturePermissions, permission: string) => {
+    setFormData(prev => {
+      const currentPermissions = prev.permissions[feature];
+      const isSelected = currentPermissions.includes(permission);
+      
+      const newPermissions = isSelected
+        ? currentPermissions.filter(p => p !== permission)
+        : [...currentPermissions, permission];
+
+      return {
+        ...prev,
+        permissions: {
+          ...prev.permissions,
+          [feature]: newPermissions
+        }
+      };
+    });
   };
 
   const handleDeleteRole = (roleId: string) => {
     deleteCustomRole(roleId);
-  };
-
-  const getAccessLevelBadge = (level: AccessLevel) => {
-    const accessLevel = accessLevels.find(al => al.value === level);
-    return (
-      <Badge className={accessLevel?.color} variant="outline">
-        {accessLevel?.label}
-      </Badge>
-    );
   };
 
   return (
@@ -183,7 +205,7 @@ export default function AdminRoles() {
         <div>
           <h2 className="text-2xl font-bold">Role Management</h2>
           <p className="text-muted-foreground mt-1">
-            Create and manage custom roles with hierarchical permissions
+            Create and manage custom roles with feature-specific permissions
           </p>
         </div>
         {!isCreating && !editingRole && (
@@ -194,11 +216,11 @@ export default function AdminRoles() {
         )}
       </div>
 
-      {/* Permission Hierarchy Info */}
+      {/* Permission Info */}
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          <strong>Permission Hierarchy:</strong> Delete includes Edit, Create, and View • Edit includes Create and View • Create includes View • View is standalone • Guest users have fixed permissions: View Projects, Create/Edit Tasks only
+          <strong>Function Permissions:</strong> Select specific permissions for each feature. Multiple permissions can be selected for each feature area.
         </AlertDescription>
       </Alert>
 
@@ -210,7 +232,7 @@ export default function AdminRoles() {
               {editingRole ? 'Edit Role' : 'Create New Role'}
             </CardTitle>
             <CardDescription>
-              {editingRole ? 'Update role details and permissions' : 'Define a new role with hierarchical access levels'}
+              {editingRole ? 'Update role details and permissions' : 'Define a new role with specific feature permissions'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -236,39 +258,35 @@ export default function AdminRoles() {
             </div>
 
             <div>
-              <h3 className="text-lg font-medium mb-4">Feature Permissions</h3>
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Feature</TableHead>
-                      <TableHead className="text-center">No Access</TableHead>
-                      <TableHead className="text-center">View Only</TableHead>
-                      <TableHead className="text-center">Create</TableHead>
-                      <TableHead className="text-center">Edit</TableHead>
-                      <TableHead className="text-center">Delete</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Object.entries(featureLabels).map(([feature, label]) => (
-                      <TableRow key={feature}>
-                        <TableCell className="font-medium">{label}</TableCell>
-                        {accessLevels.map(({ value }) => (
-                          <TableCell key={`${feature}-${value}`} className="text-center">
-                            <input
-                              type="radio"
-                              name={feature}
-                              value={value}
-                              checked={formData.permissions[feature as keyof FeaturePermissions] === value}
-                              onChange={() => handlePermissionChange(feature as keyof FeaturePermissions, value)}
-                              className="h-4 w-4 cursor-pointer"
-                            />
-                          </TableCell>
+              <h3 className="text-lg font-medium mb-4">Function Permissions</h3>
+              <div className="space-y-4">
+                {Object.entries(featureLabels).map(([feature, label]) => (
+                  <div key={feature} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-sm">{label}</h4>
+                      <div className="flex flex-wrap gap-1">
+                        {formData.permissions[feature as keyof FeaturePermissions].map(permission => (
+                          <Badge key={permission} variant="secondary" className="text-xs">
+                            {permission}
+                          </Badge>
                         ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {permissionOptions[feature as keyof typeof permissionOptions].map(permission => (
+                        <Button
+                          key={permission}
+                          variant={formData.permissions[feature as keyof FeaturePermissions].includes(permission) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePermissionToggle(feature as keyof FeaturePermissions, permission)}
+                          className="text-xs h-8"
+                        >
+                          {permission}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -313,13 +331,24 @@ export default function AdminRoles() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {Object.entries(role.permissions).map(([feature, level]) => (
-                    <div key={feature} className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{featureLabels[feature as keyof typeof featureLabels] || feature}</span>
-                      {getAccessLevelBadge(level as AccessLevel)}
-                    </div>
-                  ))}
+                <div className="space-y-3">
+                  {Object.entries(role.permissions).map(([feature, permissions]) => {
+                    const permissionArray = Array.isArray(permissions) ? permissions : [];
+                    if (permissionArray.length === 0) return null;
+                    
+                    return (
+                      <div key={feature} className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{featureLabels[feature as keyof typeof featureLabels] || feature}</span>
+                        <div className="flex flex-wrap gap-1">
+                          {permissionArray.map((permission: string) => (
+                            <Badge key={permission} variant="outline" className="text-xs">
+                              {permission}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -332,7 +361,7 @@ export default function AdminRoles() {
               <Shield className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">No Custom Roles</h3>
               <p className="text-muted-foreground text-center max-w-md mb-4">
-                Create custom roles to manage hierarchical permissions for different team members across all features.
+                Create custom roles to manage feature-specific permissions for different team members.
               </p>
               <Button onClick={handleCreateRole}>
                 <Plus className="h-4 w-4 mr-2" />
