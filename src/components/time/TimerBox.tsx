@@ -29,7 +29,7 @@ interface TimerBoxProps {
 }
 
 export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
-  const { activeTimeEntry, tasks, projects, stopTimeTracking, startTimeTracking } = useAppContext();
+  const { activeTimeEntry, tasks, projects, stopTimeTracking, startTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking } = useAppContext();
   const [timers, setTimers] = useState<TimerItem[]>([]);
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [selectedTimer, setSelectedTimer] = useState<TimerItem | null>(null);
@@ -171,6 +171,17 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
 
     console.log('handlePauseTimer - timer:', timer);
 
+    // If this is the active backend timer, use AppContext pause/resume
+    if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
+      if (isTimerPaused) {
+        resumeTimeTracking();
+      } else {
+        pauseTimeTracking();
+      }
+      return;
+    }
+
+    // For local-only timers, continue with local state management
     if (timer.isActive && !timer.isPaused) {
       // PAUSE: Just update local state, no backend calls
       console.log('Pausing timer locally only');
@@ -292,36 +303,36 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                         <div className="font-mono text-lg font-bold">
                           {formatTime(timer.elapsed)}
                         </div>
-                        <div className="flex gap-1">
-                          {timer.isActive && !timer.isPaused && (
-                            <Badge variant="default" className="text-xs">
-                              {timer.isLocalOnly ? "Local" : "Active"}
-                            </Badge>
-                          )}
-                          {timer.isPaused && (
-                            <Badge variant="secondary" className="text-xs">
-                              Paused
-                            </Badge>
-                          )}
+                         <div className="flex gap-1">
+                           {timer.isActive && !timer.isPaused && !(!timer.isLocalOnly && isTimerPaused) && (
+                             <Badge variant="default" className="text-xs">
+                               {timer.isLocalOnly ? "Local" : "Active"}
+                             </Badge>
+                           )}
+                           {(timer.isPaused || (!timer.isLocalOnly && isTimerPaused)) && (
+                             <Badge variant="secondary" className="text-xs">
+                               Paused
+                             </Badge>
+                           )}
                         </div>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-1 ml-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handlePauseTimer(timer.id)}
-                        className={cn(
-                          "h-8 w-8 p-0",
-                          timer.isPaused ? "text-green-600 hover:text-green-700" : "text-yellow-600 hover:text-yellow-700"
-                        )}
-                      >
-                        {timer.isPaused ? (
-                          <Play className="h-4 w-4" />
-                        ) : (
-                          <Pause className="h-4 w-4" />
-                        )}
+                       <Button
+                         variant="ghost"
+                         size="sm"
+                         onClick={() => handlePauseTimer(timer.id)}
+                         className={cn(
+                           "h-8 w-8 p-0",
+                           (timer.isPaused || (!timer.isLocalOnly && isTimerPaused)) ? "text-green-600 hover:text-green-700" : "text-yellow-600 hover:text-yellow-700"
+                         )}
+                       >
+                         {(timer.isPaused || (!timer.isLocalOnly && isTimerPaused)) ? (
+                           <Play className="h-4 w-4" />
+                         ) : (
+                           <Pause className="h-4 w-4" />
+                         )}
                       </Button>
                       
                       <Button

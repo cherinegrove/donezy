@@ -51,16 +51,13 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Textarea } from "@/components/ui/textarea";
 
 const TimeTracking = () => {
-  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser, updateTimeEntryStatus, stopTimeTracking } = useAppContext();
+  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser, updateTimeEntryStatus, stopTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, pausedAt, totalPausedTime } = useAppContext();
   const [activeTab, setActiveTab] = useState("active");
   const [isAddEntryDialogOpen, setIsAddEntryDialogOpen] = useState(false);
   const [selectedTimeEntry, setSelectedTimeEntry] = useState<TimeEntry | undefined>(undefined);
   const [isEditEntryDialogOpen, setIsEditEntryDialogOpen] = useState(false);
   const { toast } = useToast();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isTimerPaused, setIsTimerPaused] = useState(false);
-  const [pausedAt, setPausedAt] = useState<Date | null>(null);
-  const [totalPausedTime, setTotalPausedTime] = useState(0);
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [stopNotes, setStopNotes] = useState("");
   
@@ -375,20 +372,14 @@ const TimeTracking = () => {
     });
   };
 
-  // Timer control handlers (same functionality as TimerBox)
+  // Timer control handlers using AppContext
   const handlePauseTimer = () => {
     console.log('🔸 TimeTracking: Pause/Resume clicked');
     if (isTimerPaused) {
-      // Resume timer
-      const pauseDuration = pausedAt ? Date.now() - pausedAt.getTime() : 0;
-      setTotalPausedTime(prev => prev + pauseDuration);
-      setIsTimerPaused(false);
-      setPausedAt(null);
+      resumeTimeTracking();
       console.log('▶️ Timer resumed');
     } else {
-      // Pause timer
-      setIsTimerPaused(true);
-      setPausedAt(new Date());
+      pauseTimeTracking();
       console.log('⏸️ Timer paused');
     }
   };
@@ -404,9 +395,6 @@ const TimeTracking = () => {
       await stopTimeTracking(stopNotes);
       setStopDialogOpen(false);
       setStopNotes("");
-      setIsTimerPaused(false);
-      setPausedAt(null);
-      setTotalPausedTime(0);
     } catch (error) {
       console.error('Error stopping timer:', error);
     }

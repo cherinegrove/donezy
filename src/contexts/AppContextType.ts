@@ -20,6 +20,9 @@ export interface AppContextType {
   notes: Note[];
   customFields: CustomField[];
   activeTimeEntry: TimeEntry | null;
+  isTimerPaused: boolean;
+  pausedAt: Date | null;
+  totalPausedTime: number;
   taskLogs: TaskLog[];
   taskStatuses: TaskStatusDefinition[];
   projectStatuses: ProjectStatusDefinition[];
@@ -89,6 +92,8 @@ export interface AppContextType {
   deleteTimeEntry: (timeEntryId: string) => void;
   startTimeTracking: (taskId: string, projectId?: string, clientId?: string) => void;
   stopTimeTracking: (notes?: string) => void;
+  pauseTimeTracking: () => void;
+  resumeTimeTracking: () => void;
   updateTimeEntryStatus: (timeEntryId: string, status: string, reason?: string) => void;
   
   // Message functions

@@ -37,6 +37,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
+  const [isTimerPaused, setIsTimerPaused] = useState<boolean>(false);
+  const [pausedAt, setPausedAt] = useState<Date | null>(null);
+  const [totalPausedTime, setTotalPausedTime] = useState<number>(0);
   const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
   const [taskStatuses, setTaskStatuses] = useState<TaskStatusDefinition[]>([
     { id: '1', label: 'Backlog', value: 'backlog', color: 'bg-gray-500', order: 0 },
@@ -1155,7 +1158,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     const endTime = new Date().toISOString();
     const startTime = new Date(activeTimeEntry.startTime);
-    const duration = Math.floor((new Date(endTime).getTime() - startTime.getTime()) / (1000 * 60)); // duration in minutes
+    let duration = Math.floor((new Date(endTime).getTime() - startTime.getTime()) / (1000 * 60)); // duration in minutes
+    
+    // Subtract total paused time from duration
+    duration = Math.max(0, duration - Math.floor(totalPausedTime / (1000 * 60)));
     
     await updateTimeEntry(activeTimeEntry.id, {
       endTime,
@@ -1164,6 +1170,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     });
     
     setActiveTimeEntry(null);
+    setIsTimerPaused(false);
+    setPausedAt(null);
+    setTotalPausedTime(0);
+  };
+
+  const pauseTimeTracking = () => {
+    if (!activeTimeEntry || isTimerPaused) return;
+    
+    setIsTimerPaused(true);
+    setPausedAt(new Date());
+    console.log('⏸️ Timer paused in AppContext');
+  };
+
+  const resumeTimeTracking = () => {
+    if (!activeTimeEntry || !isTimerPaused || !pausedAt) return;
+    
+    const pauseDuration = Date.now() - pausedAt.getTime();
+    setTotalPausedTime(prev => prev + pauseDuration);
+    setIsTimerPaused(false);
+    setPausedAt(null);
+    console.log('▶️ Timer resumed in AppContext');
   };
 
   const updateTimeEntryStatus = async (timeEntryId: string, status: string, reason?: string) => {
@@ -2048,6 +2075,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     notes,
     customFields,
     activeTimeEntry,
+    isTimerPaused,
+    pausedAt,
+    totalPausedTime,
     taskLogs,
     taskStatuses,
     projectStatuses,
@@ -2117,6 +2147,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     deleteTimeEntry,
     startTimeTracking,
     stopTimeTracking,
+    pauseTimeTracking,
+    resumeTimeTracking,
     updateTimeEntryStatus,
     
     // Message functions
