@@ -58,7 +58,7 @@ export default function Admin() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="flex-wrap h-auto p-1">
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="dashboard">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="data-import">Data Import</TabsTrigger>
