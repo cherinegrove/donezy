@@ -17,6 +17,7 @@ interface FeaturePermissions {
   projects: AccessLevel;
   tasks: AccessLevel;
   timeTracking: AccessLevel;
+  timeApproval: AccessLevel;
   clients: AccessLevel;
   teams: AccessLevel;
   users: AccessLevel;
@@ -31,6 +32,7 @@ const defaultPermissions: FeaturePermissions = {
   projects: 'none',
   tasks: 'none',
   timeTracking: 'none',
+  timeApproval: 'none',
   clients: 'none',
   teams: 'none',
   users: 'none',
@@ -45,6 +47,7 @@ const featureLabels = {
   projects: 'Projects',
   tasks: 'Tasks',
   timeTracking: 'Time Tracking',
+  timeApproval: 'Time Approval',
   clients: 'Clients',
   teams: 'Teams',
   users: 'User Management',
@@ -89,6 +92,7 @@ export default function AdminRoles() {
       projects: (role.permissions.projects as AccessLevel) || 'none',
       tasks: (role.permissions.tasks as AccessLevel) || 'none',
       timeTracking: (role.permissions.timeTracking as AccessLevel) || 'none',
+      timeApproval: (role.permissions.timeApproval as AccessLevel) || 'none',
       clients: (role.permissions.clients as AccessLevel) || 'none',
       teams: (role.permissions.teams as AccessLevel) || 'none',
       users: (role.permissions.users as AccessLevel) || 'none',
@@ -112,6 +116,7 @@ export default function AdminRoles() {
       projects: formData.permissions.projects,
       tasks: formData.permissions.tasks,
       timeTracking: formData.permissions.timeTracking,
+      timeApproval: formData.permissions.timeApproval,
       clients: formData.permissions.clients,
       teams: formData.permissions.teams,
       users: formData.permissions.users,
