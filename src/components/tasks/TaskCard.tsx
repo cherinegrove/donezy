@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 interface TaskCardProps {
   task: Task;
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent) => void;
   showProject?: boolean;
   displayOptions?: string[];
   isSelected?: boolean;
@@ -47,14 +47,26 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
 
   const handleSelectionClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     if (onSelectionChange) {
       onSelectionChange(task.id);
     }
   };
 
-  const handleSelectionChange = () => {
+  const handleSelectionChange = (checked: boolean | string) => {
     if (onSelectionChange) {
       onSelectionChange(task.id);
+    }
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't trigger card click if checkbox area was clicked
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-checkbox]')) {
+      return;
+    }
+    if (onClick) {
+      onClick(e);
     }
   };
 
@@ -65,10 +77,10 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
         isCollaboratorTask && "border-l-4 border-l-blue-500",
         isSelected && "ring-2 ring-primary bg-primary/5"
       )}
-      onClick={onClick}
+      onClick={handleCardClick}
     >
       {showSelection && (
-        <div className="absolute top-2 right-2 z-10">
+        <div className="absolute top-2 right-2 z-10" data-checkbox>
           <Checkbox
             checked={isSelected}
             onCheckedChange={handleSelectionChange}

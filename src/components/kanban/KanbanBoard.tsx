@@ -277,19 +277,14 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
         <div className="space-y-2">
           {tasks.map(task => (
             <div key={task.id} className="group">
-              <div 
-                className="cursor-pointer"
+              <TaskCard 
+                task={task} 
                 onClick={(e) => handleTaskClick(task, e)}
-              >
-                <TaskCard 
-                  task={task} 
-                  onClick={() => {}}
-                  displayOptions={displayOptions}
-                  isSelected={selectedTaskIds.includes(task.id)}
-                  onSelectionChange={handleTaskSelection}
-                  showSelection={true}
-                />
-              </div>
+                displayOptions={displayOptions}
+                isSelected={selectedTaskIds.includes(task.id)}
+                onSelectionChange={handleTaskSelection}
+                showSelection={true}
+              />
             </div>
           ))}
           
@@ -377,19 +372,14 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                       draggable={selectedTaskIds.length === 0}
                       onDragStart={() => selectedTaskIds.length === 0 && handleDragStart(task)}
                     >
-                      <div 
-                        className="cursor-pointer"
+                      <TaskCard 
+                        task={task} 
                         onClick={(e) => handleTaskClick(task, e)}
-                      >
-                        <TaskCard 
-                          task={task} 
-                          onClick={() => {}}
-                          displayOptions={displayOptions}
-                          isSelected={selectedTaskIds.includes(task.id)}
-                          onSelectionChange={handleTaskSelection}
-                          showSelection={true}
-                        />
-                      </div>
+                        displayOptions={displayOptions}
+                        isSelected={selectedTaskIds.includes(task.id)}
+                        onSelectionChange={handleTaskSelection}
+                        showSelection={true}
+                      />
                     </div>
                   ))}
                   
