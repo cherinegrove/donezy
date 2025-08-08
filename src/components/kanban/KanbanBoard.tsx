@@ -1,7 +1,7 @@
 import { Task, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { EditTaskDialog } from "../tasks/EditTaskDialog";
 import { GanttChart } from "./GanttChart";
 import { Settings, Edit2, CheckSquare } from "lucide-react";
@@ -41,6 +41,34 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     review: "#FCE7F3",
     done: "#DCFCE7"
   });
+
+  // Load saved kanban colors on mount
+  useEffect(() => {
+    const savedColors = localStorage.getItem('kanbanColors');
+    if (savedColors) {
+      try {
+        const parsedColors = JSON.parse(savedColors);
+        const colorMap: Record<TaskStatus, string> = {
+          backlog: "#F3F4F6",
+          todo: "#DBEAFE",
+          "in-progress": "#FEF3C7",
+          review: "#FCE7F3",
+          done: "#DCFCE7"
+        };
+        
+        // Update colorMap with saved colors
+        parsedColors.forEach((color: { name: string; value: string }) => {
+          if (color.name in colorMap) {
+            colorMap[color.name as TaskStatus] = color.value;
+          }
+        });
+        
+        setColumnColors(colorMap);
+      } catch (e) {
+        console.error('Error parsing kanban colors from localStorage', e);
+      }
+    }
+  }, []);
   
   // Task selection functionality
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
