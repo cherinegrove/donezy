@@ -9,6 +9,7 @@ import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { EditTaskTemplateDialog } from "@/components/tasks/EditTaskTemplateDialog";
 import { BulkImportTasksDialog } from "@/components/tasks/BulkImportTasksDialog";
+import { BulkEditTasksDialog } from "@/components/tasks/BulkEditTasksDialog";
 import { TaskTemplatesList } from "@/components/tasks/TaskTemplatesList";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { 
@@ -46,6 +47,8 @@ export default function Tasks() {
   const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
   const [isEditTemplateOpen, setIsEditTemplateOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+  const [bulkEditTaskIds, setBulkEditTaskIds] = useState<string[]>([]);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [activeTab, setActiveTab] = useState("tasks");
   const [templateRefreshTrigger, setTemplateRefreshTrigger] = useState(0);
@@ -163,6 +166,11 @@ export default function Tasks() {
     setEditingTemplate(null);
   };
 
+  const handleBulkEdit = (taskIds: string[]) => {
+    setBulkEditTaskIds(taskIds);
+    setIsBulkEditOpen(true);
+  };
+
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -253,6 +261,7 @@ export default function Tasks() {
                 <KanbanBoard 
                   tasks={filteredTasks} 
                   viewMode={viewMode}
+                  onBulkEdit={handleBulkEdit}
                 />
               </div>
             )}
@@ -289,6 +298,12 @@ export default function Tasks() {
       <BulkImportTasksDialog
         open={isBulkImportOpen}
         onOpenChange={setIsBulkImportOpen}
+      />
+      
+      <BulkEditTasksDialog
+        open={isBulkEditOpen}
+        onOpenChange={setIsBulkEditOpen}
+        taskIds={bulkEditTaskIds}
       />
     </div>
   );

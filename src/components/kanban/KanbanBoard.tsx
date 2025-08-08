@@ -4,7 +4,7 @@ import { TaskCard } from "../tasks/TaskCard";
 import { useState } from "react";
 import { EditTaskDialog } from "../tasks/EditTaskDialog";
 import { GanttChart } from "./GanttChart";
-import { Settings } from "lucide-react";
+import { Settings, Edit2, CheckSquare } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 type ViewMode = "list" | "gantt" | "kanban";
 type DisplayOption = "project" | "client" | "assignee" | "parentTask" | "dueDate" | "priority" | "status" | "collaborators";
@@ -23,9 +25,10 @@ interface KanbanBoardProps {
   tasks?: Task[];
   projectId?: string;
   viewMode?: ViewMode;
+  onBulkEdit?: (taskIds: string[]) => void;
 }
 
-export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }: KanbanBoardProps) {
+export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", onBulkEdit }: KanbanBoardProps) {
   const { moveTask, tasks: allTasks } = useAppContext();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -38,6 +41,10 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }
     review: "#FCE7F3",
     done: "#DCFCE7"
   });
+  
+  // Bulk edit functionality
+  const [bulkEditMode, setBulkEditMode] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   
   // Global display options for all task cards
   const [displayOptions, setDisplayOptions] = useState<DisplayOption[]>([
@@ -86,13 +93,45 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }
   };
   
   const handleTaskClick = (task: Task) => {
-    setSelectedTask(task);
-    setIsEditDialogOpen(true);
+    if (bulkEditMode) {
+      handleTaskSelection(task.id);
+    } else {
+      setSelectedTask(task);
+      setIsEditDialogOpen(true);
+    }
   };
 
   const handleNestedTaskClick = (task: Task) => {
     setNestedSelectedTask(task);
     setIsNestedDialogOpen(true);
+  };
+
+  // Bulk edit functions
+  const handleTaskSelection = (taskId: string) => {
+    setSelectedTaskIds(prev => 
+      prev.includes(taskId) 
+        ? prev.filter(id => id !== taskId)
+        : [...prev, taskId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTaskIds.length === tasks.length) {
+      setSelectedTaskIds([]);
+    } else {
+      setSelectedTaskIds(tasks.map(task => task.id));
+    }
+  };
+
+  const toggleBulkEditMode = () => {
+    setBulkEditMode(!bulkEditMode);
+    setSelectedTaskIds([]);
+  };
+
+  const handleBulkEdit = () => {
+    if (onBulkEdit && selectedTaskIds.length > 0) {
+      onBulkEdit(selectedTaskIds);
+    }
   };
 
   // Toggle display option for all cards
@@ -104,80 +143,123 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }
     }
   };
 
-  // Render Display Options Button (only for List and Kanban views)
-  const renderDisplayOptionsButton = () => {
+  // Render toolbar with bulk edit and display options
+  const renderToolbar = () => {
     if (viewMode === "gantt") return null;
     
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Card Display Options
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>Display Options</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem
-                  checked={displayOptions.includes("project")}
-                  onCheckedChange={() => toggleDisplayOption("project")}
-                >
-                  Project
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={displayOptions.includes("client")}
-                  onCheckedChange={() => toggleDisplayOption("client")}
-                >
-                  Client
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={displayOptions.includes("assignee")}
-                  onCheckedChange={() => toggleDisplayOption("assignee")}
-                >
-                  Assignee
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={displayOptions.includes("collaborators")}
-                  onCheckedChange={() => toggleDisplayOption("collaborators")}
-                >
-                  Collaborators
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={displayOptions.includes("parentTask")}
-                  onCheckedChange={() => toggleDisplayOption("parentTask")}
-                >
-                  Parent Task
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={displayOptions.includes("dueDate")}
-                  onCheckedChange={() => toggleDisplayOption("dueDate")}
-                >
-                  Due Date
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={displayOptions.includes("priority")}
-                  onCheckedChange={() => toggleDisplayOption("priority")}
-                >
-                  Priority
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={displayOptions.includes("status")}
-                  onCheckedChange={() => toggleDisplayOption("status")}
-                >
-                  Status
-                </DropdownMenuCheckboxItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </TooltipTrigger>
-          <TooltipContent>
-            Configure what information is displayed on task cards
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            variant={bulkEditMode ? "default" : "outline"}
+            size="sm"
+            onClick={toggleBulkEditMode}
+            className="h-9"
+          >
+            <CheckSquare className="h-4 w-4 mr-2" />
+            {bulkEditMode ? "Exit Bulk Edit" : "Bulk Edit"}
+          </Button>
+          
+          {bulkEditMode && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSelectAll}
+                className="h-9"
+              >
+                {selectedTaskIds.length === tasks.length ? "Deselect All" : "Select All"}
+              </Button>
+              
+              {selectedTaskIds.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">
+                    {selectedTaskIds.length} selected
+                  </Badge>
+                  <Button
+                    size="sm"
+                    onClick={handleBulkEdit}
+                    className="h-9"
+                  >
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    Edit Selected
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Display Options
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>Display Options</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("project")}
+                    onCheckedChange={() => toggleDisplayOption("project")}
+                  >
+                    Project
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("client")}
+                    onCheckedChange={() => toggleDisplayOption("client")}
+                  >
+                    Client
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("assignee")}
+                    onCheckedChange={() => toggleDisplayOption("assignee")}
+                  >
+                    Assignee
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("collaborators")}
+                    onCheckedChange={() => toggleDisplayOption("collaborators")}
+                  >
+                    Collaborators
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("parentTask")}
+                    onCheckedChange={() => toggleDisplayOption("parentTask")}
+                  >
+                    Parent Task
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("dueDate")}
+                    onCheckedChange={() => toggleDisplayOption("dueDate")}
+                  >
+                    Due Date
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("priority")}
+                    onCheckedChange={() => toggleDisplayOption("priority")}
+                  >
+                    Priority
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("status")}
+                    onCheckedChange={() => toggleDisplayOption("status")}
+                  >
+                    Status
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TooltipTrigger>
+            <TooltipContent>
+              Configure what information is displayed on task cards
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
     );
   };
   
@@ -185,18 +267,24 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }
   if (viewMode === "list") {
     return (
       <div className="w-full">
-        <div className="flex justify-end mb-4">
-          {renderDisplayOptionsButton()}
-        </div>
+        {renderToolbar()}
         
         <div className="space-y-2">
           {tasks.map(task => (
-            <div key={task.id} className="cursor-pointer">
-              <TaskCard 
-                task={task} 
-                onClick={() => handleTaskClick(task)}
-                displayOptions={displayOptions}
-              />
+            <div key={task.id} className="flex items-center gap-3">
+              {bulkEditMode && (
+                <Checkbox
+                  checked={selectedTaskIds.includes(task.id)}
+                  onCheckedChange={() => handleTaskSelection(task.id)}
+                />
+              )}
+              <div className="flex-1 cursor-pointer">
+                <TaskCard 
+                  task={task} 
+                  onClick={() => handleTaskClick(task)}
+                  displayOptions={displayOptions}
+                />
+              </div>
             </div>
           ))}
           
@@ -254,9 +342,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }
   // Default: Render Kanban view
   return (
     <div className="w-full">
-      <div className="flex justify-end mb-4">
-        {renderDisplayOptionsButton()}
-      </div>
+      {renderToolbar()}
       
       <div className="overflow-x-auto">
         <div className="flex gap-4 min-w-max pb-4">
@@ -282,14 +368,24 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban" }
                   {tasksByStatus[column.id].map(task => (
                     <div
                       key={task.id}
-                      draggable
-                      onDragStart={() => handleDragStart(task)}
+                      className="flex items-start gap-2"
+                      draggable={!bulkEditMode}
+                      onDragStart={() => !bulkEditMode && handleDragStart(task)}
                     >
-                      <TaskCard 
-                        task={task} 
-                        onClick={() => handleTaskClick(task)}
-                        displayOptions={displayOptions}
-                      />
+                      {bulkEditMode && (
+                        <Checkbox
+                          checked={selectedTaskIds.includes(task.id)}
+                          onCheckedChange={() => handleTaskSelection(task.id)}
+                          className="mt-3"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <TaskCard 
+                          task={task} 
+                          onClick={() => handleTaskClick(task)}
+                          displayOptions={displayOptions}
+                        />
+                      </div>
                     </div>
                   ))}
                   
