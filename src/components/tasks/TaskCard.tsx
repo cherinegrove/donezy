@@ -103,12 +103,14 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
                 </Badge>
               )}
             </h3>
-            <Badge 
-              variant="secondary" 
-              className={cn("text-xs flex-shrink-0", getPriorityColor(task.priority))}
-            >
-              {task.priority}
-            </Badge>
+            {displayOptions.includes("priority") && (
+              <Badge 
+                variant="secondary" 
+                className={cn("text-xs flex-shrink-0", getPriorityColor(task.priority))}
+              >
+                {task.priority}
+              </Badge>
+            )}
           </div>
           
           {task.description && (
@@ -119,16 +121,18 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
           
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
-                {task.status.replace('-', ' ')}
-              </Badge>
-              {showProject && project && (
+              {displayOptions.includes("status") && (
+                <Badge variant="outline" className="text-xs">
+                  {task.status.replace('-', ' ')}
+                </Badge>
+              )}
+              {displayOptions.includes("project") && showProject && project && (
                 <span className="truncate max-w-[100px]">{project.name}</span>
               )}
             </div>
             
             <div className="flex items-center gap-2">
-              {assignee && (
+              {displayOptions.includes("assignee") && assignee && (
                 <div className="flex items-center gap-1">
                   <Avatar className="h-4 w-4">
                     <AvatarImage src={assignee.avatar} alt={assignee.name} />
@@ -140,7 +144,7 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
                 </div>
               )}
               
-              {collaborators.length > 0 && (
+              {displayOptions.includes("collaborators") && collaborators.length > 0 && (
                 <div className="flex items-center gap-1">
                   <div className="flex -space-x-1">
                     {collaborators.slice(0, 2).map((collaborator, index) => (
@@ -158,7 +162,7 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
                 </div>
               )}
               
-              {task.dueDate && (
+              {displayOptions.includes("dueDate") && task.dueDate && (
                 <span className={cn(
                   "text-xs",
                   isOverdue(task.dueDate) ? "text-red-500" : "text-muted-foreground"
