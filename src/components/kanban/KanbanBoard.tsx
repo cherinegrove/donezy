@@ -42,32 +42,58 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     done: "#DCFCE7"
   });
 
-  // Load saved kanban colors on mount
+  // Load saved kanban colors on mount and listen for changes
   useEffect(() => {
-    const savedColors = localStorage.getItem('kanbanColors');
-    if (savedColors) {
-      try {
-        const parsedColors = JSON.parse(savedColors);
-        const colorMap: Record<TaskStatus, string> = {
-          backlog: "#F3F4F6",
-          todo: "#DBEAFE",
-          "in-progress": "#FEF3C7",
-          review: "#FCE7F3",
-          done: "#DCFCE7"
-        };
-        
-        // Update colorMap with saved colors
-        parsedColors.forEach((color: { name: string; value: string }) => {
-          if (color.name in colorMap) {
-            colorMap[color.name as TaskStatus] = color.value;
-          }
-        });
-        
-        setColumnColors(colorMap);
-      } catch (e) {
-        console.error('Error parsing kanban colors from localStorage', e);
+    const loadColors = () => {
+      const savedColors = localStorage.getItem('kanbanColors');
+      if (savedColors) {
+        try {
+          const parsedColors = JSON.parse(savedColors);
+          const colorMap: Record<TaskStatus, string> = {
+            backlog: "#F3F4F6",
+            todo: "#DBEAFE",
+            "in-progress": "#FEF3C7",
+            review: "#FCE7F3",
+            done: "#DCFCE7"
+          };
+          
+          // Update colorMap with saved colors
+          parsedColors.forEach((color: { name: string; value: string }) => {
+            if (color.name in colorMap) {
+              colorMap[color.name as TaskStatus] = color.value;
+            }
+          });
+          
+          setColumnColors(colorMap);
+        } catch (e) {
+          console.error('Error parsing kanban colors from localStorage', e);
+        }
       }
-    }
+    };
+
+    // Load colors initially
+    loadColors();
+
+    // Listen for storage changes (when colors are saved from settings)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'kanbanColors') {
+        loadColors();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also listen for custom event (for same-tab updates)
+    const handleColorsUpdate = () => {
+      loadColors();
+    };
+
+    window.addEventListener('kanbanColorsUpdated', handleColorsUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('kanbanColorsUpdated', handleColorsUpdate);
+    };
   }, []);
   
   // Task selection functionality

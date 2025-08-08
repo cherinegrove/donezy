@@ -144,6 +144,9 @@ export const KanbanCustomizationCard = () => {
     colors.forEach(color => {
       document.documentElement.style.setProperty(`--kanban-${color.name}-color`, color.value);
     });
+
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('kanbanColorsUpdated'));
     
     toast({
       title: "Changes Saved",
