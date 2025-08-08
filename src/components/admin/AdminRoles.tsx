@@ -220,7 +220,7 @@ export default function AdminRoles() {
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          <strong>Function Permissions:</strong> Select specific permissions for each feature. Multiple permissions can be selected for each feature area.
+          <strong>Role Permissions:</strong> Select specific permissions for each feature. Multiple permissions can be selected for each feature area.
         </AlertDescription>
       </Alert>
 
@@ -258,7 +258,7 @@ export default function AdminRoles() {
             </div>
 
             <div>
-              <h3 className="text-lg font-medium mb-4">Function Permissions</h3>
+              <h3 className="text-lg font-medium mb-4">Role Permissions</h3>
               <div className="border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
