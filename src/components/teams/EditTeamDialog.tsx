@@ -249,10 +249,21 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
               name="leaderId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Team Leader</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter team leader's ID" {...field} />
-                  </FormControl>
+                  <FormLabel>Team Manager</FormLabel>
+                  <Select value={field.value || ""} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select team manager" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {eligibleUsers.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

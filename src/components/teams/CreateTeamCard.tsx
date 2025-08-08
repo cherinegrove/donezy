@@ -206,13 +206,19 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="team-leader">Team Leader ID (Optional)</Label>
-            <Input
-              id="team-leader"
-              placeholder="Enter team leader's ID..."
-              value={leaderId}
-              onChange={(e) => setLeaderId(e.target.value)}
-            />
+            <Label htmlFor="team-manager">Team Manager (Optional)</Label>
+            <Select value={leaderId} onValueChange={setLeaderId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select team manager" />
+              </SelectTrigger>
+              <SelectContent>
+                {eligibleUsers.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex gap-2">
             <Button onClick={handleSave}>
