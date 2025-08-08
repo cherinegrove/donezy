@@ -68,25 +68,22 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
       onClick={onClick}
     >
       {showSelection && (
-        <div className="absolute top-3 right-3 z-10">
+        <div className="absolute top-2 right-2 z-10">
           <Checkbox
             checked={isSelected}
             onCheckedChange={handleSelectionChange}
             onClick={handleSelectionClick}
             className={cn(
-              "transition-opacity",
+              "transition-opacity bg-background border-2 shadow-sm",
               isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
             )}
           />
         </div>
       )}
-      <CardContent className="p-4">
+      <CardContent className={cn("p-5", showSelection && "pr-10")}>
         <div className="space-y-3">
-          <div className="flex items-start justify-between">
-            <h3 className={cn(
-              "font-medium text-sm line-clamp-2 flex-1",
-              showSelection && "pr-8" // Add padding when checkbox is present
-            )}>
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="font-medium text-sm line-clamp-2 flex-1">
               {task.title}
               {isCollaboratorTask && (
                 <Badge variant="outline" className="ml-2 text-xs">
@@ -96,7 +93,7 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
             </h3>
             <Badge 
               variant="secondary" 
-              className={cn("text-xs", getPriorityColor(task.priority))}
+              className={cn("text-xs flex-shrink-0", getPriorityColor(task.priority))}
             >
               {task.priority}
             </Badge>
