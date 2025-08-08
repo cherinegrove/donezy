@@ -20,9 +20,10 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onClick, showProject = true, displayOptions = [], isSelected = false, onSelectionChange, showSelection = false }: TaskCardProps) {
-  const { projects, users, currentUser } = useAppContext();
+  const { projects, users, currentUser, clients } = useAppContext();
   
   const project = projects.find(p => p.id === task.projectId);
+  const client = project ? clients.find(c => c.id === project.clientId) : null;
   
   // Handle both UUID and name-based assignee IDs for backward compatibility
   const assignee = users.find(u => u.id === task.assigneeId) || 
@@ -133,6 +134,9 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
               )}
               {displayOptions.includes("project") && showProject && project && (
                 <span className="truncate max-w-[100px]">{project.name}</span>
+              )}
+              {displayOptions.includes("client") && client && (
+                <span className="truncate max-w-[100px] text-blue-600">{client.name}</span>
               )}
             </div>
             
