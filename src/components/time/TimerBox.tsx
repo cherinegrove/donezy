@@ -29,7 +29,7 @@ interface TimerBoxProps {
 }
 
 export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
-  const { activeTimeEntry, tasks, projects, stopTimeTracking, startTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking } = useAppContext();
+  const { activeTimeEntry, tasks, projects, stopTimeTracking, startTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, pausedAt, totalPausedTime } = useAppContext();
   const [timers, setTimers] = useState<TimerItem[]>([]);
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [selectedTimer, setSelectedTimer] = useState<TimerItem | null>(null);
@@ -143,17 +143,33 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   useEffect(() => {
     const interval = setInterval(() => {
       setTimers(prev => prev.map(timer => {
-        if (timer.isActive && !timer.isPaused) {
+        // Check if timer should be running (not paused)
+        const isLocalPaused = timer.isPaused;
+        const isBackendPaused = !timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id && isTimerPaused;
+        const isPaused = isLocalPaused || isBackendPaused;
+        
+        if (timer.isActive && !isPaused) {
           const now = Date.now();
           const startTime = timer.startTime.getTime();
-          timer.elapsed = now - startTime - timer.totalPausedTime;
+          let pausedTime = timer.totalPausedTime || 0;
+          
+          // For backend timers, also include AppContext paused time
+          if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
+            pausedTime += totalPausedTime;
+            // If currently paused, add current pause duration
+            if (isTimerPaused && pausedAt) {
+              pausedTime += (now - pausedAt.getTime());
+            }
+          }
+          
+          timer.elapsed = now - startTime - pausedTime;
         }
         return timer;
       }));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isTimerPaused, pausedAt, totalPausedTime, activeTimeEntry]);
 
   const formatTime = (milliseconds: number): string => {
     const seconds = Math.floor((milliseconds / 1000) % 60);
