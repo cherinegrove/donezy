@@ -394,6 +394,36 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  const loadCustomRoles = async () => {
+    if (!session?.user) return;
+    
+    try {
+      console.log('🔍 Loading custom roles...');
+      const { data, error } = await supabase
+        .from('custom_roles')
+        .select('*')
+        .eq('auth_user_id', session.user.id);
+      
+      if (error) {
+        console.error('Error loading custom roles:', error);
+        return;
+      }
+      
+      console.log('🔍 Custom roles loaded:', data?.length || 0);
+      
+      const convertedRoles: CustomRole[] = (data || []).map(role => ({
+        id: role.id,
+        name: role.name,
+        description: role.description || '',
+        permissions: safeParseJson(role.permissions, {}),
+      }));
+      
+      setCustomRoles(convertedRoles);
+    } catch (error) {
+      console.error('Error loading custom roles:', error);
+    }
+  };
+
   // Initialize default dashboard if none exists
   const initializeDefaultDashboard = () => {
     // Only create default dashboard if none exist
@@ -428,6 +458,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         loadTeams();
         loadNotes();
         loadProjectStatuses();
+        loadCustomRoles();
         initializeDefaultDashboard();
       }, 100);
     } else {
@@ -1631,16 +1662,109 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   // Custom Role functions
-  const addCustomRole = (role: Omit<CustomRole, 'id'>) => {
-    console.log('Add custom role not yet implemented');
+  const addCustomRole = async (role: Omit<CustomRole, 'id'>) => {
+    if (!session?.user) {
+      console.error('No session available for adding custom role');
+      return;
+    }
+    
+    try {
+      console.log('Adding custom role:', role.name);
+      const { data, error } = await supabase
+        .from('custom_roles')
+        .insert({
+          name: role.name,
+          description: role.description,
+          permissions: role.permissions,
+          auth_user_id: session.user.id
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error adding custom role:', error);
+        return;
+      }
+      
+      const newRole: CustomRole = {
+        id: data.id,
+        name: data.name,
+        description: data.description || '',
+        permissions: safeParseJson(data.permissions, {}),
+      };
+      
+      setCustomRoles(prev => [...prev, newRole]);
+      console.log('Custom role added successfully:', newRole.name);
+    } catch (error) {
+      console.error('Error adding custom role:', error);
+    }
   };
 
-  const updateCustomRole = (roleId: string, updates: Partial<CustomRole>) => {
-    console.log('Update custom role not yet implemented');
+  const updateCustomRole = async (roleId: string, updates: Partial<CustomRole>) => {
+    if (!session?.user) {
+      console.error('No session available for updating custom role');
+      return;
+    }
+    
+    try {
+      console.log('Updating custom role:', roleId);
+      const { data, error } = await supabase
+        .from('custom_roles')
+        .update({
+          name: updates.name,
+          description: updates.description,
+          permissions: updates.permissions,
+        })
+        .eq('id', roleId)
+        .eq('auth_user_id', session.user.id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error updating custom role:', error);
+        return;
+      }
+      
+      const updatedRole: CustomRole = {
+        id: data.id,
+        name: data.name,
+        description: data.description || '',
+        permissions: safeParseJson(data.permissions, {}),
+      };
+      
+      setCustomRoles(prev => prev.map(role => 
+        role.id === roleId ? updatedRole : role
+      ));
+      console.log('Custom role updated successfully:', updatedRole.name);
+    } catch (error) {
+      console.error('Error updating custom role:', error);
+    }
   };
 
-  const deleteCustomRole = (roleId: string) => {
-    console.log('Delete custom role not yet implemented');
+  const deleteCustomRole = async (roleId: string) => {
+    if (!session?.user) {
+      console.error('No session available for deleting custom role');
+      return;
+    }
+    
+    try {
+      console.log('Deleting custom role:', roleId);
+      const { error } = await supabase
+        .from('custom_roles')
+        .delete()
+        .eq('id', roleId)
+        .eq('auth_user_id', session.user.id);
+      
+      if (error) {
+        console.error('Error deleting custom role:', error);
+        return;
+      }
+      
+      setCustomRoles(prev => prev.filter(role => role.id !== roleId));
+      console.log('Custom role deleted successfully');
+    } catch (error) {
+      console.error('Error deleting custom role:', error);
+    }
   };
 
   // Template functions
