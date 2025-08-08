@@ -7,7 +7,7 @@ import AdminActivity from "@/components/admin/AdminActivity";
 import AdminTeams from "@/components/admin/AdminTeams";
 import AdminRoles from "@/components/admin/AdminRoles";
 
-import OrganizationManagement from "@/components/admin/OrganizationManagement";
+
 import { TaskStatusManager } from "@/components/admin/TaskStatusManager";
 import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
@@ -59,13 +59,12 @@ export default function Admin() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="flex-wrap h-auto p-1">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="organizations">Organizations</TabsTrigger>
-          <TabsTrigger value="user-management">User Management</TabsTrigger>
-          <TabsTrigger value="subscription">Subscription & Billing</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="data-import">Data Import</TabsTrigger>
           <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
-          <TabsTrigger value="roles">Custom Roles</TabsTrigger>
+          <TabsTrigger value="account-roles">Account Roles</TabsTrigger>
           
           <TabsTrigger value="activity">Activity Log</TabsTrigger>
           <TabsTrigger value="account-settings">Account Settings</TabsTrigger>
@@ -161,11 +160,8 @@ export default function Admin() {
           </div>
         </TabsContent>
 
-        <TabsContent value="organizations" className="space-y-6">
-          <OrganizationManagement />
-        </TabsContent>
 
-        <TabsContent value="user-management" className="space-y-6">
+        <TabsContent value="users" className="space-y-6">
           <AdminUsers />
         </TabsContent>
 
@@ -173,7 +169,7 @@ export default function Admin() {
           <DataImportManager />
         </TabsContent>
 
-        <TabsContent value="subscription" className="space-y-6">
+        <TabsContent value="billing" className="space-y-6">
           <SubscriptionManager />
         </TabsContent>
 
@@ -185,7 +181,7 @@ export default function Admin() {
           <AdminTeams />
         </TabsContent>
 
-        <TabsContent value="roles" className="space-y-6">
+        <TabsContent value="account-roles" className="space-y-6">
           <AdminRoles />
         </TabsContent>
 
