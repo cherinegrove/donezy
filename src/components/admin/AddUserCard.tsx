@@ -35,7 +35,7 @@ export function AddUserCard() {
       addUser({
         name: formData.name,
         email: formData.email,
-        role: formData.role,
+        roleId: "admin-role",
         teamIds: [],
       });
 
@@ -72,7 +72,7 @@ export function AddUserCard() {
       addUser({
         name: formData.name,
         email: formData.email,
-        role: "user",
+        roleId: "user-role",
         clientId: formData.clientId,
         teamIds: [],
         permissions: {

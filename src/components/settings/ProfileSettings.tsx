@@ -8,7 +8,7 @@ import { ManagerNotificationSettings } from "./ManagerNotificationSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function ProfileSettings() {
-  const { currentUser } = useAppContext();
+  const { currentUser, customRoles } = useAppContext();
   
   if (!currentUser) {
     return (
@@ -31,7 +31,7 @@ export function ProfileSettings() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile">Profile Information</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          {currentUser.role === 'admin' && (
+          {customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin' && (
             <TabsTrigger value="manager">Manager Settings</TabsTrigger>
           )}
         </TabsList>
@@ -50,7 +50,7 @@ export function ProfileSettings() {
           <GeneralNotificationSettings userId={currentUser.id} />
         </TabsContent>
         
-        {currentUser.role === 'admin' && (
+        {customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin' && (
           <TabsContent value="manager" className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-4">Manager Notification Settings</h3>

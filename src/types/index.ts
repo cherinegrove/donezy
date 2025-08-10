@@ -3,8 +3,7 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
-  role: 'admin' | 'user';
-  customRoleId?: string;
+  roleId: string; // References either built-in role or custom role
   status?: 'active' | 'inactive';
   teamIds?: string[];
   jobTitle?: string;
@@ -265,6 +264,7 @@ export interface CustomRole {
   permissions: Record<string, AccessLevel>;
   description?: string;
   color?: string;
+  isBuiltIn?: boolean; // For Admin and User roles
 }
 
 export interface Note {

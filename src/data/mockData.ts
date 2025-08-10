@@ -1,5 +1,89 @@
-
 import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole } from "@/types";
+
+// Built-in roles
+const ADMIN_ROLE_ID = 'admin-role';
+const USER_ROLE_ID = 'user-role';
+
+export const mockCustomRoles: CustomRole[] = [
+  {
+    id: ADMIN_ROLE_ID,
+    name: 'Admin',
+    description: 'Full administrative access to all features',
+    isBuiltIn: true,
+    color: '#dc2626',
+    permissions: {
+      dashboard: 'edit',
+      projects: 'delete',
+      tasks: 'delete',
+      timeTracking: 'delete',
+      clients: 'delete',
+      teams: 'delete',
+      users: 'delete',
+      reports: 'delete',
+      messages: 'delete',
+      notes: 'delete',
+      settings: 'delete'
+    }
+  },
+  {
+    id: USER_ROLE_ID,
+    name: 'User',
+    description: 'Standard user access with basic permissions',
+    isBuiltIn: true,
+    color: '#2563eb',
+    permissions: {
+      dashboard: 'view',
+      projects: 'view',
+      tasks: 'edit',
+      timeTracking: 'edit',
+      clients: 'view',
+      teams: 'view',
+      users: 'view',
+      reports: 'view',
+      messages: 'edit',
+      notes: 'edit',
+      settings: 'view'
+    }
+  },
+  {
+    id: 'project-manager',
+    name: 'Project Manager',
+    description: 'Can manage projects and oversee team progress',
+    color: '#059669',
+    permissions: {
+      dashboard: 'view',
+      projects: 'edit',
+      tasks: 'edit',
+      timeTracking: 'edit',
+      clients: 'view',
+      teams: 'view',
+      users: 'view',
+      reports: 'edit',
+      messages: 'edit',
+      notes: 'edit',
+      settings: 'view'
+    }
+  },
+  {
+    id: 'team-lead',
+    name: 'Team Lead',
+    description: 'Can manage team tasks and time tracking',
+    color: '#7c3aed',
+    permissions: {
+      dashboard: 'view',
+      projects: 'view',
+      tasks: 'edit',
+      timeTracking: 'edit',
+      clients: 'view',
+      teams: 'edit',
+      users: 'view',
+      reports: 'view',
+      messages: 'edit',
+      notes: 'edit',
+      settings: 'view'
+    }
+  }
+];
 
 export const mockUsers: User[] = [
   {
@@ -7,7 +91,8 @@ export const mockUsers: User[] = [
     name: "Alex Johnson",
     email: "alex@manex.com",
     avatar: "/placeholder.svg",
-    role: "admin",
+    roleId: ADMIN_ROLE_ID,
+    status: 'active',
     teamIds: ["team-1"],
   },
   {
@@ -15,7 +100,8 @@ export const mockUsers: User[] = [
     name: "Sam Davis",
     email: "sam@manex.com",
     avatar: "/placeholder.svg",
-    role: "user",
+    roleId: USER_ROLE_ID,
+    status: 'active',
     teamIds: ["team-1"],
   },
   {
@@ -23,7 +109,8 @@ export const mockUsers: User[] = [
     name: "Taylor Wilson",
     email: "taylor@manex.com",
     avatar: "/placeholder.svg",
-    role: "user",
+    roleId: 'project-manager',
+    status: 'active',
     teamIds: ["team-1"],
   },
 ];
@@ -199,6 +286,10 @@ export const mockPurchases: Purchase[] = [
 
 export const mockProjectTemplates: ProjectTemplate[] = [];
 
-export const mockCustomRoles: CustomRole[] = [];
-
 export const mockComments: any[] = [];
+
+// Helper functions for role management
+export const BUILT_IN_ROLES = {
+  ADMIN: ADMIN_ROLE_ID,
+  USER: USER_ROLE_ID
+};

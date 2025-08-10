@@ -61,7 +61,7 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
       await addUser({
         name: formData.name,
         email: formData.email,
-        role: formData.role,
+        roleId: formData.role === "admin" ? "admin-role" : "user-role",
         jobTitle: formData.jobTitle,
         avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${formData.name}`,
         teamIds: [],

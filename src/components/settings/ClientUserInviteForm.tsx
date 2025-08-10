@@ -46,7 +46,7 @@ export function ClientUserInviteForm({ clientId, onSuccess }: ClientUserInviteFo
       await addUser({
         name: formData.name,
         email: formData.email,
-        role: formData.role,
+        roleId: "user-role",
         clientRole: formData.clientRole,
         avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${formData.name}`,
         teamIds: [],

@@ -25,7 +25,7 @@ export function AppSidebar() {
   const setCollapsed = sidebar?.setCollapsed ?? (() => {});
   
   const location = useLocation();
-  const { currentUser } = useAppContext();
+  const { currentUser, customRoles } = useAppContext();
   const isMobile = useIsMobile();
   
   // If on mobile, and sidebar is open, clicking a nav link should close the sidebar
@@ -36,7 +36,7 @@ export function AppSidebar() {
   };
   
   // Check if user is admin
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser && customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin';
   
   return (
     <div
