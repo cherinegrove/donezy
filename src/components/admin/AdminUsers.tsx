@@ -16,13 +16,31 @@ import { AddUserCard } from "@/components/admin/AddUserCard";
 import { User } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, Edit } from "lucide-react";
+import { Search, Edit, Trash2, UserX, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function AdminUsers() {
-  const { users, clients } = useAppContext();
+  const { users, clients, updateUser, deleteUser } = useAppContext();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [deleteDialogUser, setDeleteDialogUser] = useState<User | null>(null);
 
   // Filter users based on search term (include both regular users and guests)
   const filteredUsers = users.filter(user => 
@@ -34,6 +52,24 @@ export default function AdminUsers() {
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
     setIsEditDialogOpen(true);
+  };
+
+  const handleDeleteUser = async (user: User) => {
+    try {
+      await deleteUser(user.id);
+      setDeleteDialogUser(null);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    }
+  };
+
+  const handleToggleUserStatus = async (user: User) => {
+    const newStatus = user.status === 'active' ? 'inactive' : 'active';
+    try {
+      await updateUser(user.id, { status: newStatus });
+    } catch (error) {
+      console.error('Error updating user status:', error);
+    }
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -49,6 +85,9 @@ export default function AdminUsers() {
   const getUserTypeBadge = (user: User) => {
     if (user.is_guest) {
       return <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">Guest</Badge>;
+    }
+    if (user.status === 'inactive') {
+      return <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-400">Inactive</Badge>;
     }
     return <Badge className={getRoleBadgeColor(user.role)} variant="outline">{user.role}</Badge>;
   };
@@ -117,12 +156,37 @@ export default function AdminUsers() {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{getClientName(user.clientId)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleEditUser(user)}>
-                      <Edit className="h-4 w-4" />
-                      <span className="sr-only">Edit</span>
-                    </Button>
-                  </TableCell>
+                   <TableCell className="text-right">
+                     <DropdownMenu>
+                       <DropdownMenuTrigger asChild>
+                         <Button variant="ghost" size="sm">
+                           <MoreVertical className="h-4 w-4" />
+                           <span className="sr-only">Open menu</span>
+                         </Button>
+                       </DropdownMenuTrigger>
+                       <DropdownMenuContent align="end">
+                         <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                           <Edit className="h-4 w-4 mr-2" />
+                           Edit User
+                         </DropdownMenuItem>
+                         <DropdownMenuItem 
+                           onClick={() => handleToggleUserStatus(user)}
+                           className={user.status === 'active' ? 'text-orange-600' : 'text-green-600'}
+                         >
+                           <UserX className="h-4 w-4 mr-2" />
+                           {user.status === 'active' ? 'Deactivate' : 'Activate'}
+                         </DropdownMenuItem>
+                         <DropdownMenuSeparator />
+                         <DropdownMenuItem 
+                           onClick={() => setDeleteDialogUser(user)}
+                           className="text-destructive"
+                         >
+                           <Trash2 className="h-4 w-4 mr-2" />
+                           Delete User
+                         </DropdownMenuItem>
+                       </DropdownMenuContent>
+                     </DropdownMenu>
+                   </TableCell>
                 </TableRow>
               ))
             ) : (
@@ -144,6 +208,27 @@ export default function AdminUsers() {
           setSelectedUser(undefined);
         }}
       />
+
+      <AlertDialog open={!!deleteDialogUser} onOpenChange={() => setDeleteDialogUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the user account for{" "}
+              <strong>{deleteDialogUser?.name}</strong> and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteDialogUser && handleDeleteUser(deleteDialogUser)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

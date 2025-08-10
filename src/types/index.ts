@@ -4,6 +4,8 @@ export interface User {
   email: string;
   avatar?: string;
   role: 'admin' | 'manager' | 'developer' | 'client';
+  customRoleId?: string;
+  status?: 'active' | 'inactive';
   teamIds?: string[];
   jobTitle?: string;
   clientId?: string;

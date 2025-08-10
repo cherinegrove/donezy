@@ -54,6 +54,8 @@ const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Must be a valid email"),
   role: z.enum(["admin", "manager", "developer", "client"]),
+  customRoleId: z.string().optional(),
+  status: z.enum(["active", "inactive"]).optional(),
   teamIds: z.array(z.string()),
   employmentType: z.enum(["full-time", "contract", "part-time"]).optional(),
   billingType: z.enum(["hourly", "monthly"]).optional(),
@@ -78,7 +80,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
-  const { addUser, updateUser, teams, clients } = useAppContext();
+  const { addUser, updateUser, teams, clients, customRoles } = useAppContext();
   
   // Debug logging
   console.log('EditUserDialog render:', { 
@@ -97,6 +99,8 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
       name: user?.name || "",
       email: user?.email || "",
       role: user?.role || "developer",
+      customRoleId: user?.customRoleId || undefined,
+      status: user?.status || "active",
       teamIds: user?.teamIds || [],
       employmentType: user?.employmentType || "full-time",
       billingType: user?.billingType || "hourly",
@@ -131,6 +135,8 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
         name: user.name,
         email: user.email,
         role: user.role,
+        customRoleId: user.customRoleId,
+        status: user.status || "active",
         teamIds: user.teamIds,
         employmentType: user.employmentType || "full-time",
         billingType: user.billingType || "hourly",
@@ -156,6 +162,8 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
         name: "",
         email: "",
         role: "developer",
+        customRoleId: undefined,
+        status: "active",
         teamIds: [],
         employmentType: "full-time",
         billingType: "hourly",
@@ -337,6 +345,70 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                     </FormItem>
                   )}
                 />
+                
+                {/* Custom Role Selection */}
+                <FormField
+                  control={form.control}
+                  name="customRoleId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Custom Role (Optional)</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a custom role" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="">No Custom Role</SelectItem>
+                          {customRoles?.map(role => (
+                            <SelectItem key={role.id} value={role.id}>
+                              {role.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Custom roles provide additional permissions beyond the base role
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* User Status */}
+                {isEditMode && (
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>User Status</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Inactive users cannot log in but their data is preserved
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
                 
                 {watchRole === "client" && (
                   <>
