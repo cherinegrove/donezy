@@ -20,7 +20,7 @@ export function InviteUserWithEmail({ onSuccess }: InviteUserWithEmailProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    role: "developer" as const
+    role: "user" as const
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,7 +74,7 @@ export function InviteUserWithEmail({ onSuccess }: InviteUserWithEmailProps) {
       setFormData({
         name: "",
         email: "",
-        role: "developer"
+        role: "user"
       });
 
       onSuccess?.();
@@ -128,10 +128,8 @@ export function InviteUserWithEmail({ onSuccess }: InviteUserWithEmailProps) {
             <SelectValue placeholder="Select a role" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="developer">Developer</SelectItem>
-            <SelectItem value="manager">Manager</SelectItem>
+            <SelectItem value="user">User</SelectItem>
             <SelectItem value="admin">Admin</SelectItem>
-            <SelectItem value="client">Client</SelectItem>
           </SelectContent>
         </Select>
       </div>

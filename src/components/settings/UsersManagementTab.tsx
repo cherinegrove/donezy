@@ -45,8 +45,7 @@ export function UsersManagementTab({
       name: "Role",
       options: [
         { id: "admin", label: "Admin" },
-        { id: "manager", label: "Manager" },
-        { id: "developer", label: "Developer" },
+        { id: "user", label: "User" },
       ],
     },
   ];
@@ -75,9 +74,9 @@ export function UsersManagementTab({
     return filteredUsers;
   };
 
-  // Filter users based on their type (internal or client)
-  const teamUsers = users.filter(user => user.role !== "client");
-  const clientUsers = users.filter(user => user.role === "client");
+  // Filter users based on their type (internal or client users by clientId)
+  const teamUsers = users.filter(user => !user.clientId);
+  const clientUsers = users.filter(user => user.clientId);
 
   // Apply client filter for client users
   const filteredClientUsers = activeFilters.clients && activeFilters.clients.length > 0
@@ -139,7 +138,7 @@ export function UsersManagementTab({
 
         <div className="space-y-6">
           {filteredTeams.map((team) => {
-            const teamMembers = getUsersInTeam(team.id).filter(user => user.role !== "client");
+            const teamMembers = getUsersInTeam(team.id).filter(user => !user.clientId);
             
             return (
               <Card key={team.id}>

@@ -32,7 +32,7 @@ export default function Settings() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
-          {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+          {currentUser?.role === 'admin' && (
             <TabsTrigger value="users">Users</TabsTrigger>
           )}
         </TabsList>
@@ -70,7 +70,7 @@ export default function Settings() {
           </Card>
         </TabsContent>
         
-        {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+        {currentUser?.role === 'admin' && (
           <TabsContent value="users">
             <UsersManagementTab />
           </TabsContent>

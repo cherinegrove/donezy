@@ -59,7 +59,7 @@ const Home = () => {
   }, [sectionOrder]);
 
   const today = startOfToday();
-  const isAdminOrManager = currentUser?.role === "admin" || currentUser?.role === "manager";
+  const isAdminOrManager = currentUser?.role === "admin";
 
   // Filter tasks based on selected user
   const getFilteredTasks = () => {

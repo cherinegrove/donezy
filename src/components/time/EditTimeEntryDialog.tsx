@@ -379,7 +379,7 @@ export function EditTimeEntryDialog({ isOpen, onClose, timeEntry, isNewEntry = f
               />
             </div>
             
-            {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+            {currentUser?.role === 'admin' && (
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select value={status} onValueChange={(value) => setStatus(value as TimeEntryStatus)}>

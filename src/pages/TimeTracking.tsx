@@ -313,16 +313,16 @@ const TimeTracking = () => {
     // Users can edit their own entries
     if (entry.userId === currentUser?.id) return true;
     
-    // Admins and managers can edit any entry
-    if (currentUser?.role === 'admin' || currentUser?.role === 'manager') return true;
+    // Admins can edit any entry
+    if (currentUser?.role === 'admin') return true;
     
     return false;
   };
 
   // Checks if current user can approve/decline a time entry
   const canApproveTimeEntry = () => {
-    // Only admins and managers can approve/decline time entries
-    return currentUser?.role === 'admin' || currentUser?.role === 'manager';
+    // Only admins can approve/decline time entries
+    return currentUser?.role === 'admin';
   };
   
   const handleEditTimeEntry = (entry: TimeEntry) => {

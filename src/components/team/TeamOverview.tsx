@@ -14,9 +14,6 @@ export function TeamOverview() {
   // Only show team members that the current user manages or all users for admins
   const teamMembers = users.filter(user => {
     if (currentUser?.role === "admin") return true;
-    if (currentUser?.role === "manager") {
-      return user.managerId === currentUser.id || user.id === currentUser.id;
-    }
     return false;
   });
   

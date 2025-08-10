@@ -20,7 +20,7 @@ export function ClientUserInviteForm({ clientId, onSuccess }: ClientUserInviteFo
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    role: "client" as const,
+    role: "user" as const,
     clientRole: "primary" as const,
     selectedClientId: clientId || ""
   });
