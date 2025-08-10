@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAppContext } from "@/contexts/AppContext";
@@ -6,29 +5,23 @@ import AdminUsers from "@/components/admin/AdminUsers";
 import AdminActivity from "@/components/admin/AdminActivity";
 import AdminTeams from "@/components/admin/AdminTeams";
 import AdminRoles from "@/components/admin/AdminRoles";
-
-
 import { TaskStatusManager } from "@/components/admin/TaskStatusManager";
-import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
+import { TaskTemplateManager } from "@/components/admin/TaskTemplateManager";
+import { ProjectStatusManager } from "@/components/admin/ProjectStatusManager";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
 import { NativeFieldsManager } from "@/components/admin/NativeFieldsManager";
-import { TaskTemplateManager } from "@/components/admin/TaskTemplateManager";
+import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { DataImportManager } from "@/components/admin/DataImportManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AreaChart, BarChart3, Box, Database, Settings, ShieldAlert, Users, FileText, Plus, CheckSquare, Folder, Upload } from "lucide-react";
+import { AreaChart, BarChart3, Box, Database, Settings, ShieldAlert, Users, CheckSquare, Folder } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Clients from "@/pages/Clients";
-import { ProjectStatusManager } from "@/components/admin/ProjectStatusManager";
-import { CreateTemplateDialog } from "@/components/projects/CreateTemplateDialog";
-import { ProjectTemplatesList } from "@/components/projects/ProjectTemplatesList";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { SystemPreferences } from "@/components/admin/SystemPreferences";
 import { isAdmin } from "@/utils/roleUtils";
 
-export default function Admin() {
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
+const Admin = () => {
+  const [activeTab, setActiveTab] = useState("overview");
   const { currentUser, users, customRoles } = useAppContext();
 
   // Only admin should access this page
@@ -59,19 +52,18 @@ export default function Admin() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="flex-wrap h-auto p-1">
-          <TabsTrigger value="dashboard">Overview</TabsTrigger>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="data-import">Data Import</TabsTrigger>
           <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="account-roles">Account Roles</TabsTrigger>
-          
           <TabsTrigger value="activity">Activity Log</TabsTrigger>
           <TabsTrigger value="account-settings">Account Settings</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="dashboard" className="space-y-6">
+        <TabsContent value="overview" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="pb-2">
@@ -161,7 +153,6 @@ export default function Admin() {
           </div>
         </TabsContent>
 
-
         <TabsContent value="users" className="space-y-6">
           <AdminUsers />
         </TabsContent>
@@ -185,7 +176,6 @@ export default function Admin() {
         <TabsContent value="account-roles" className="space-y-6">
           <AdminRoles />
         </TabsContent>
-
 
         <TabsContent value="activity" className="space-y-6">
           <AdminActivity />
@@ -221,35 +211,13 @@ export default function Admin() {
                     <Folder className="h-5 w-5 text-primary" />
                     <div className="text-left">
                       <h3 className="font-semibold">Project Management</h3>
-                      <p className="text-sm text-muted-foreground">Configure project statuses, templates, and settings</p>
+                      <p className="text-sm text-muted-foreground">Configure project statuses and settings</p>
                     </div>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-6 pb-6">
                   <div className="space-y-6">
                     <ProjectStatusManager />
-                    
-                    {/* Project Templates Management */}
-                    <Card>
-                      <CardHeader>
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <CardTitle className="flex items-center gap-2">
-                              <FileText className="h-5 w-5 text-primary" />
-                              Project Create Form Template
-                            </CardTitle>
-                            <CardDescription>Create and manage project templates for efficient project setup</CardDescription>
-                          </div>
-                          <Button onClick={() => setIsCreateTemplateOpen(true)} className="flex items-center gap-2">
-                            <Plus className="w-4 h-4" />
-                            Create Template
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <ProjectTemplatesList onCreateTemplate={() => setIsCreateTemplateOpen(true)} />
-                      </CardContent>
-                    </Card>
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -269,7 +237,6 @@ export default function Admin() {
                   <div className="space-y-6">
                     <CustomFieldsManager />
                     <NativeFieldsManager />
-                    
                     <SystemPreferences />
                   </div>
                 </AccordionContent>
@@ -279,11 +246,8 @@ export default function Admin() {
           </div>
         </TabsContent>
       </Tabs>
-
-      <CreateTemplateDialog 
-        open={isCreateTemplateOpen} 
-        onOpenChange={setIsCreateTemplateOpen} 
-      />
     </div>
   );
-}
+};
+
+export default Admin;
