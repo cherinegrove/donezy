@@ -4,7 +4,7 @@ import { TaskCard } from "../tasks/TaskCard";
 import { useState, useEffect } from "react";
 import { EditTaskDialog } from "../tasks/EditTaskDialog";
 import { GanttChart } from "./GanttChart";
-import { Settings, Edit2, CheckSquare } from "lucide-react";
+import { Settings, Edit2, CheckSquare, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,7 +29,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", onBulkEdit }: KanbanBoardProps) {
-  const { moveTask, tasks: allTasks } = useAppContext();
+  const { moveTask, tasks: allTasks, deleteTask } = useAppContext();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [nestedSelectedTask, setNestedSelectedTask] = useState<Task | null>(null);
@@ -200,6 +200,15 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     }
   };
 
+  const handleDelete = () => {
+    if (confirm(`Are you sure you want to delete ${selectedTaskIds.length} task${selectedTaskIds.length > 1 ? 's' : ''}?`)) {
+      selectedTaskIds.forEach(taskId => {
+        deleteTask(taskId);
+      });
+      clearSelection();
+    }
+  };
+
   // Toggle display option for all cards
   const toggleDisplayOption = (option: DisplayOption) => {
     if (displayOptions.includes(option)) {
@@ -228,6 +237,15 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
               >
                 <Edit2 className="h-4 w-4 mr-2" />
                 {selectedTaskIds.length === 1 ? "Edit Task" : "Edit Selected"}
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                className="h-9"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
               </Button>
               <Button
                 variant="outline"
