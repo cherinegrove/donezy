@@ -437,7 +437,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                             <PopoverContent className="w-full p-0 bg-background border shadow-md z-50">
                               <Command className="bg-background">
                                 <CommandInput placeholder="Search teams..." className="bg-background" />
-                                {teams.length === 0 ? (
+                                {!teams || teams.length === 0 ? (
                                   <div className="p-4 text-center text-sm text-muted-foreground">
                                     No teams available. Create teams from the Admin → Teams section.
                                   </div>
@@ -474,7 +474,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                           </Popover>
                         </FormControl>
                         <FormDescription>
-                          Select the teams this user belongs to. {teams.length} team{teams.length !== 1 ? 's' : ''} available.
+                          Select the teams this user belongs to. {teams?.length || 0} team{(teams?.length || 0) !== 1 ? 's' : ''} available.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
