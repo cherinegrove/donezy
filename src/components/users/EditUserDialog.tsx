@@ -43,18 +43,6 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { CheckIcon, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 
 interface EditUserDialogProps {
   user?: User;
@@ -102,7 +90,6 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   const { toast } = useToast();
   const isEditMode = !!user;
   const [activeTab, setActiveTab] = useState("details");
-  const [teamSelectOpen, setTeamSelectOpen] = useState(false);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -437,62 +424,46 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                         <FormItem>
                           <FormLabel>Teams</FormLabel>
                           <FormControl>
-                            <Popover open={teamSelectOpen} onOpenChange={setTeamSelectOpen}>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  aria-expanded={teamSelectOpen}
-                                  className="w-full justify-between bg-background"
-                                >
-                                  {watchTeamIds?.length > 0
-                                    ? `${watchTeamIds.length} team${watchTeamIds.length > 1 ? 's' : ''} selected`
-                                    : "Select teams"}
-                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-full p-0 bg-background border shadow-md z-50">
-                                {/* Complete safety check before rendering Command */}
-                                {!teams || !Array.isArray(teams) ? (
-                                  <div className="p-4 text-center text-sm text-muted-foreground">
-                                    Loading teams...
-                                  </div>
-                                ) : teams.length === 0 ? (
-                                  <div className="p-4 text-center text-sm text-muted-foreground">
-                                    No teams available. Create teams from the Admin → Teams section.
-                                  </div>
-                                ) : (
-                                  // Only render Command when we have valid teams array with items
-                                  <Command className="bg-background" shouldFilter={true}>
-                                    <CommandInput placeholder="Search teams..." className="bg-background" />
-                                    <CommandEmpty>No teams found.</CommandEmpty>
-                                    <CommandGroup className="bg-background">
-                                      {teams.filter(team => team && team.id && team.name).map((team) => (
-                                        <CommandItem
-                                          key={team.id}
-                                          value={team.id}
-                                          onSelect={() => toggleTeamSelection(team.id)}
-                                          className="bg-background hover:bg-accent cursor-pointer"
-                                        >
-                                          <CheckIcon
-                                            className={cn(
-                                              "mr-2 h-4 w-4",
-                                              watchTeamIds?.includes(team.id) ? "opacity-100" : "opacity-0"
-                                            )}
-                                          />
-                                          <div className="flex flex-col">
-                                            <span className="font-medium">{team.name}</span>
-                                            {team.description && (
-                                              <span className="text-xs text-muted-foreground">{team.description}</span>
-                                            )}
-                                          </div>
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </Command>
-                                )}
-                              </PopoverContent>
-                            </Popover>
+                            <div className="space-y-2">
+                              {!teams || !Array.isArray(teams) ? (
+                                <div className="p-3 text-center text-sm text-muted-foreground border rounded-md">
+                                  Loading teams...
+                                </div>
+                              ) : teams.length === 0 ? (
+                                <div className="p-3 text-center text-sm text-muted-foreground border rounded-md">
+                                  No teams available. Create teams from the Admin → Teams section.
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                                  {teams.filter(team => team && team.id && team.name).map((team) => (
+                                    <div key={team.id} className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id={`team-${team.id}`}
+                                        checked={watchTeamIds?.includes(team.id) || false}
+                                        onCheckedChange={(checked) => {
+                                          if (checked) {
+                                            toggleTeamSelection(team.id);
+                                          } else {
+                                            toggleTeamSelection(team.id);
+                                          }
+                                        }}
+                                      />
+                                      <Label 
+                                        htmlFor={`team-${team.id}`} 
+                                        className="cursor-pointer text-sm flex-1"
+                                      >
+                                        <div className="flex flex-col">
+                                          <span className="font-medium">{team.name}</span>
+                                          {team.description && (
+                                            <span className="text-xs text-muted-foreground">{team.description}</span>
+                                          )}
+                                        </div>
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </FormControl>
                           <FormDescription>
                             Select the teams this user belongs to. {teams?.length || 0} team{(teams?.length || 0) !== 1 ? 's' : ''} available.
