@@ -59,7 +59,7 @@ export function InviteUserWithEmail({ onSuccess }: InviteUserWithEmailProps) {
       await addUser({
         name: formData.name,
         email: formData.email,
-        roleId: formData.role === "admin" ? "admin-role" : "user-role",
+        roleId: "user-role",
         avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${formData.name}`,
         teamIds: [],
         currency: "USD"

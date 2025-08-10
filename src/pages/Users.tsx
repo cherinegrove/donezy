@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/tabs";
 
 const Users = () => {
-  const { teams, users, clients } = useAppContext();
+  const { teams, users, clients, customRoles } = useAppContext();
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [activeTab, setActiveTab] = useState("internal");
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
@@ -170,7 +170,7 @@ const Users = () => {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full capitalize">
-                                  {member.role}
+                                  {customRoles.find(r => r.id === member.roleId)?.name || 'Unknown'}
                                 </span>
                                 <Button 
                                   variant="ghost" 

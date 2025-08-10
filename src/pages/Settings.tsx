@@ -15,7 +15,7 @@ import { ProfileSettings } from "@/components/settings/ProfileSettings";
 import { UsersManagementTab } from "@/components/settings/UsersManagementTab";
 
 export default function Settings() {
-  const { teams, currentUser } = useAppContext();
+  const { teams, currentUser, customRoles } = useAppContext();
   const [editTeamDialogOpen, setEditTeamDialogOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
 
@@ -32,7 +32,7 @@ export default function Settings() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
-          {currentUser?.role === 'admin' && (
+          {currentUser && customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin' && (
             <TabsTrigger value="users">Users</TabsTrigger>
           )}
         </TabsList>
@@ -70,7 +70,7 @@ export default function Settings() {
           </Card>
         </TabsContent>
         
-        {currentUser?.role === 'admin' && (
+        {currentUser && customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin' && (
           <TabsContent value="users">
             <UsersManagementTab />
           </TabsContent>

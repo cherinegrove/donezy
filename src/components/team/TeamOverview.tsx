@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 
 export function TeamOverview() {
-  const { users, tasks, currentUser } = useAppContext();
+  const { users, tasks, currentUser, customRoles } = useAppContext();
   
   // Only show team members that the current user manages or all users for admins
   const teamMembers = users.filter(user => {
-    if (currentUser?.role === "admin") return true;
+    if (customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin') return true;
     return false;
   });
   
@@ -82,7 +82,7 @@ export function TeamOverview() {
                 </Avatar>
                 <div>
                   <CardTitle className="text-base">{user.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{user.role}</p>
+                  <p className="text-sm text-muted-foreground">{customRoles.find(r => r.id === user.roleId)?.name || 'Unknown'}</p>
                 </div>
               </div>
             </CardHeader>

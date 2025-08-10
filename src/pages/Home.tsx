@@ -17,7 +17,7 @@ import { NotificationsCard } from "@/components/dashboard/cards/NotificationsCar
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 
 const Home = () => {
-  const { tasks, projects, users, currentUser } = useAppContext();
+  const { tasks, projects, users, currentUser, customRoles } = useAppContext();
   const [selectedUserId, setSelectedUserId] = useState<string>("me");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -59,7 +59,7 @@ const Home = () => {
   }, [sectionOrder]);
 
   const today = startOfToday();
-  const isAdminOrManager = currentUser?.role === "admin";
+  const isAdminOrManager = currentUser && customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin';
 
   // Filter tasks based on selected user
   const getFilteredTasks = () => {

@@ -51,7 +51,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Textarea } from "@/components/ui/textarea";
 
 const TimeTracking = () => {
-  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser, updateTimeEntryStatus, stopTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, getElapsedTime } = useAppContext();
+  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser, updateTimeEntryStatus, stopTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, getElapsedTime, customRoles } = useAppContext();
   const [activeTab, setActiveTab] = useState("active");
   const [isAddEntryDialogOpen, setIsAddEntryDialogOpen] = useState(false);
   const [selectedTimeEntry, setSelectedTimeEntry] = useState<TimeEntry | undefined>(undefined);
@@ -314,7 +314,7 @@ const TimeTracking = () => {
     if (entry.userId === currentUser?.id) return true;
     
     // Admins can edit any entry
-    if (currentUser?.role === 'admin') return true;
+    if (customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin') return true;
     
     return false;
   };
@@ -322,7 +322,7 @@ const TimeTracking = () => {
   // Checks if current user can approve/decline a time entry
   const canApproveTimeEntry = () => {
     // Only admins can approve/decline time entries
-    return currentUser?.role === 'admin';
+    return currentUser && customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin';
   };
   
   const handleEditTimeEntry = (entry: TimeEntry) => {

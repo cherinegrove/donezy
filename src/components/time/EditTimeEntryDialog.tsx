@@ -34,7 +34,8 @@ export function EditTimeEntryDialog({ isOpen, onClose, timeEntry, isNewEntry = f
     currentUser, 
     addTimeEntry, 
     updateTimeEntry,
-    getTaskById
+    getTaskById,
+    customRoles
   } = useAppContext();
   
   // Form state
@@ -379,7 +380,7 @@ export function EditTimeEntryDialog({ isOpen, onClose, timeEntry, isNewEntry = f
               />
             </div>
             
-            {currentUser?.role === 'admin' && (
+            {currentUser && customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin' && (
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select value={status} onValueChange={(value) => setStatus(value as TimeEntryStatus)}>
