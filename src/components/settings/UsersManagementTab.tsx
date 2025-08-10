@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
+import { getRoleName } from "@/utils/roleUtils";
 import { EditUserDialog } from "@/components/users/EditUserDialog";
 import { User } from "@/types";
 import { Building, Pencil, Plus, Users } from "lucide-react";
@@ -66,9 +67,10 @@ export function UsersManagementTab({
     
     // Apply role filters if any
     if (activeFilters.roles && activeFilters.roles.length > 0) {
-      return filteredUsers.filter(user => 
-        activeFilters.roles.includes(user.role)
-      );
+      return filteredUsers.filter(user => {
+        const userRole = customRoles.find(r => r.id === user.roleId);
+        return userRole && activeFilters.roles.includes(userRole.name.toLowerCase());
+      });
     }
     
     return filteredUsers;

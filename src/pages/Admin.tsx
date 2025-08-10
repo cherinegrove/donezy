@@ -24,14 +24,15 @@ import { CreateTemplateDialog } from "@/components/projects/CreateTemplateDialog
 import { ProjectTemplatesList } from "@/components/projects/ProjectTemplatesList";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { SystemPreferences } from "@/components/admin/SystemPreferences";
+import { isAdmin } from "@/utils/roleUtils";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
-  const { currentUser, users } = useAppContext();
+  const { currentUser, users, customRoles } = useAppContext();
 
   // Only admin should access this page
-  if (currentUser?.role !== "admin") {
+  if (!isAdmin(currentUser, customRoles)) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">

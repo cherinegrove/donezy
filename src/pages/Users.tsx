@@ -58,9 +58,10 @@ const Users = () => {
     
     // Apply role filters if any
     if (activeFilters.roles && activeFilters.roles.length > 0) {
-      return filteredUsers.filter(user => 
-        activeFilters.roles.includes(user.role)
-      );
+      return filteredUsers.filter(user => {
+        const userRole = customRoles.find(r => r.id === user.roleId);
+        return userRole && activeFilters.roles.includes(userRole.name.toLowerCase());
+      });
     }
     
     return filteredUsers;
