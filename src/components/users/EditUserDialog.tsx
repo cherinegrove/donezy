@@ -426,7 +426,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                                 variant="outline"
                                 role="combobox"
                                 aria-expanded={teamSelectOpen}
-                                className="w-full justify-between"
+                                className="w-full justify-between bg-background"
                               >
                                 {watchTeamIds?.length > 0
                                   ? `${watchTeamIds.length} team${watchTeamIds.length > 1 ? 's' : ''} selected`
@@ -434,33 +434,47 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-full p-0">
-                              <Command>
-                                <CommandInput placeholder="Search teams..." />
-                                <CommandEmpty>No teams found.</CommandEmpty>
-                                <CommandGroup>
-                                  {teams.map((team) => (
-                                    <CommandItem
-                                      key={team.id}
-                                      value={team.id}
-                                      onSelect={() => toggleTeamSelection(team.id)}
-                                    >
-                                      <CheckIcon
-                                        className={cn(
-                                          "mr-2 h-4 w-4",
-                                          watchTeamIds?.includes(team.id) ? "opacity-100" : "opacity-0"
-                                        )}
-                                      />
-                                      {team.name}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
+                            <PopoverContent className="w-full p-0 bg-background border shadow-md z-50">
+                              <Command className="bg-background">
+                                <CommandInput placeholder="Search teams..." className="bg-background" />
+                                {teams.length === 0 ? (
+                                  <div className="p-4 text-center text-sm text-muted-foreground">
+                                    No teams available. Create teams from the Admin → Teams section.
+                                  </div>
+                                ) : (
+                                  <>
+                                    <CommandEmpty>No teams found.</CommandEmpty>
+                                    <CommandGroup className="bg-background">
+                                      {teams.map((team) => (
+                                        <CommandItem
+                                          key={team.id}
+                                          value={team.id}
+                                          onSelect={() => toggleTeamSelection(team.id)}
+                                          className="bg-background hover:bg-accent cursor-pointer"
+                                        >
+                                          <CheckIcon
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              watchTeamIds?.includes(team.id) ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
+                                          <div className="flex flex-col">
+                                            <span className="font-medium">{team.name}</span>
+                                            {team.description && (
+                                              <span className="text-xs text-muted-foreground">{team.description}</span>
+                                            )}
+                                          </div>
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  </>
+                                )}
                               </Command>
                             </PopoverContent>
                           </Popover>
                         </FormControl>
                         <FormDescription>
-                          Select the teams this user belongs to
+                          Select the teams this user belongs to. {teams.length} team{teams.length !== 1 ? 's' : ''} available.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
