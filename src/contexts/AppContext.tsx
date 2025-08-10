@@ -475,6 +475,48 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  const loadProjectTemplates = async () => {
+    try {
+      console.log('Loading project templates from Supabase...');
+      
+      const { data, error } = await supabase
+        .from('project_templates')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading project templates:', error);
+        setProjectTemplates([]);
+        return;
+      }
+
+      console.log('Project templates loaded from DB:', data?.length || 0);
+      
+      // Transform database format to ProjectTemplate interface
+      const transformedTemplates: ProjectTemplate[] = (data || []).map(template => ({
+        id: template.id,
+        name: template.name,
+        description: template.description || '',
+        serviceType: (template.service_type as 'project' | 'bank-hours' | 'pay-as-you-go') || 'project',
+        defaultDuration: template.default_duration || 0,
+        allocatedHours: template.allocated_hours || 0,
+        customFields: template.custom_fields || [],
+        teamIds: template.team_ids || [],
+        tags: template.tags || [],
+        usageCount: template.usage_count || 0,
+        tasks: [], // Will be loaded separately if needed
+        createdBy: template.auth_user_id,
+        createdAt: template.created_at,
+        updatedAt: template.updated_at
+      }));
+      
+      setProjectTemplates(transformedTemplates);
+    } catch (error) {
+      console.error('Error loading project templates:', error);
+      setProjectTemplates([]);
+    }
+  };
+
   // Load all data when session is available
   useEffect(() => {
     if (session?.user) {
@@ -493,6 +535,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         loadProjectStatuses();
         loadCustomRoles();
         loadTaskTemplates();
+        loadProjectTemplates();
         initializeDefaultDashboard();
       }, 100);
     } else {
