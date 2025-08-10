@@ -161,14 +161,18 @@ export function CreateTaskDialog({
       customFields: {},
     },
   });
-
-  // Load templates on component mount
+  
+  // Load templates on component mount and debug
   useEffect(() => {
-    if (!taskTemplates || taskTemplates.length === 0) {
-      console.log('No task templates available');
-    } else {
-      console.log('Task templates loaded:', taskTemplates.length);
-    }
+    console.log('=== TASK TEMPLATES DEBUG ===');
+    console.log('taskTemplates from context:', taskTemplates);
+    console.log('taskTemplates length:', taskTemplates?.length || 0);
+    console.log('taskTemplates details:', taskTemplates?.map(t => ({
+      id: t.id,
+      name: t.name,
+      type: t.type || 'unknown'
+    })));
+    console.log('=== END TEMPLATES DEBUG ===');
   }, [taskTemplates]);
 
   // Get the selected template's custom fields with enhanced debugging
@@ -402,8 +406,8 @@ export function CreateTaskDialog({
                         </div>
                       </SelectItem>
                       
-                      {/* Group templates by type */}
-                      {taskTemplates.filter(t => t.type === 'task_template').map((template) => (
+                      {/* Show all available templates */}
+                      {taskTemplates && taskTemplates.length > 0 && taskTemplates.map((template) => (
                         <SelectItem key={template.id} value={template.id}>
                           <div className="flex flex-col">
                             <span>{template.name}</span>
@@ -411,9 +415,6 @@ export function CreateTaskDialog({
                               <span className="text-xs text-muted-foreground">
                                 {template.description}
                               </span>
-                            )}
-                            {template.id !== "default" && (
-                              <span className="text-xs text-blue-600">Task Template</span>
                             )}
                           </div>
                         </SelectItem>
