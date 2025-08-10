@@ -72,7 +72,7 @@ export function ClientUserInviteForm({ clientId, onSuccess }: ClientUserInviteFo
       setFormData({
         name: "",
         email: "",
-        role: "client",
+        role: "user",
         clientRole: "primary",
         selectedClientId: clientId || ""
       });

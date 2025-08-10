@@ -53,7 +53,7 @@ interface EditUserDialogProps {
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Must be a valid email"),
-  role: z.enum(["admin", "manager", "developer", "client"]),
+  role: z.enum(["admin", "user"]),
   customRoleId: z.string().optional(),
   status: z.enum(["active", "inactive"]).optional(),
   teamIds: z.array(z.string()),
@@ -98,7 +98,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
     defaultValues: {
       name: user?.name || "",
       email: user?.email || "",
-      role: user?.role || "developer",
+      role: user?.role || "user",
       customRoleId: user?.customRoleId || undefined,
       status: user?.status || "active",
       teamIds: user?.teamIds || [],
@@ -161,7 +161,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
       form.reset({
         name: "",
         email: "",
-        role: "developer",
+        role: "user",
         customRoleId: undefined,
         status: "active",
         teamIds: [],
@@ -187,34 +187,6 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   }, [user, form]);
   
   const onSubmit = (values: FormValues) => {
-    // For client users, set permissions based on their client role
-    if (values.role === "client") {
-      if (values.clientRole === "admin") {
-        values.permissions = {
-          canViewClients: false,
-          canEditClients: false,
-          canViewProjects: true,
-          canEditProjects: false,
-          canViewTasks: true,
-          canEditTasks: true,
-          canViewReports: true, // Admin can view reports
-          canManageUsers: false,
-        };
-      } else {
-        // Team client user
-        values.permissions = {
-          canViewClients: false,
-          canEditClients: false,
-          canViewProjects: true,
-          canEditProjects: false,
-          canViewTasks: true,
-          canEditTasks: true,
-          canViewReports: false, // Team member cannot view reports
-          canManageUsers: false,
-        };
-      }
-    }
-    
     // For admin users, make sure they have all permissions
     if (values.role === "admin") {
       values.permissions = {
@@ -226,6 +198,18 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
         canEditTasks: true,
         canViewReports: true,
         canManageUsers: true,
+      };
+    } else {
+      // Regular users get basic permissions
+      values.permissions = {
+        canViewClients: false,
+        canEditClients: false,
+        canViewProjects: true,
+        canEditProjects: false,
+        canViewTasks: true,
+        canEditTasks: true,
+        canViewReports: false,
+        canManageUsers: false,
       };
     }
     
@@ -336,9 +320,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="developer">Developer</SelectItem>
-                          <SelectItem value="client">Client</SelectItem>
+                          <SelectItem value="user">User</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -410,146 +392,74 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                   />
                 )}
                 
-                {watchRole === "client" && (
-                  <>
-                    <FormField
-                      control={form.control}
-                      name="clientId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Associated Client</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a client" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {clients.map(client => (
-                                <SelectItem key={client.id} value={client.id}>
-                                  {client.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="clientRole"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormLabel>Client User Role</FormLabel>
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              className="flex flex-col space-y-1"
-                            >
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="admin" id="client-admin" />
-                                <Label htmlFor="client-admin" className="cursor-pointer">
-                                  <div className="font-medium">Client Admin</div>
-                                  <p className="text-sm text-muted-foreground">
-                                    Can view projects, tasks, and reports including time spent and costs
-                                  </p>
-                                </Label>
+                <FormField
+                  control={form.control}
+                  name="teamIds"
+                  render={({ field }) => {
+                    // Debug logging for render
+                    console.log('Teams field render:', { 
+                      teams: teams?.length || 0, 
+                      teamsArray: teams,
+                      fieldValue: field.value,
+                      isArray: Array.isArray(teams)
+                    });
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel>Teams</FormLabel>
+                        <FormControl>
+                          <div className="space-y-2">
+                            {!teams || !Array.isArray(teams) ? (
+                              <div className="p-3 text-center text-sm text-muted-foreground border rounded-md">
+                                Loading teams...
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="team" id="client-team" />
-                                <Label htmlFor="client-team" className="cursor-pointer">
-                                  <div className="font-medium">Client Team Member</div>
-                                  <p className="text-sm text-muted-foreground">
-                                    Limited access - can only view projects and tasks
-                                  </p>
-                                </Label>
+                            ) : teams.length === 0 ? (
+                              <div className="p-3 text-center text-sm text-muted-foreground border rounded-md">
+                                No teams available. Create teams from the Admin → Teams section.
                               </div>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                )}
-                
-                {watchRole !== "client" && (
-                  <FormField
-                    control={form.control}
-                    name="teamIds"
-                    render={({ field }) => {
-                      // Debug logging for render
-                      console.log('Teams field render:', { 
-                        teams: teams?.length || 0, 
-                        teamsArray: teams,
-                        fieldValue: field.value,
-                        isArray: Array.isArray(teams)
-                      });
-                      
-                      return (
-                        <FormItem>
-                          <FormLabel>Teams</FormLabel>
-                          <FormControl>
-                            <div className="space-y-2">
-                              {!teams || !Array.isArray(teams) ? (
-                                <div className="p-3 text-center text-sm text-muted-foreground border rounded-md">
-                                  Loading teams...
-                                </div>
-                              ) : teams.length === 0 ? (
-                                <div className="p-3 text-center text-sm text-muted-foreground border rounded-md">
-                                  No teams available. Create teams from the Admin → Teams section.
-                                </div>
-                              ) : (
-                                <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto border rounded-md p-3">
-                                  {teams.filter(team => team && team.id && team.name).map((team) => (
-                                    <div key={team.id} className="flex items-center space-x-2">
-                                      <Checkbox
-                                        id={`team-${team.id}`}
-                                        checked={watchTeamIds?.includes(team.id) || false}
-                                        onCheckedChange={(checked) => {
-                                          if (checked) {
-                                            toggleTeamSelection(team.id);
-                                          } else {
-                                            toggleTeamSelection(team.id);
-                                          }
-                                        }}
-                                      />
-                                      <Label 
-                                        htmlFor={`team-${team.id}`} 
-                                        className="cursor-pointer text-sm flex-1"
-                                      >
-                                        <div className="flex flex-col">
-                                          <span className="font-medium">{team.name}</span>
-                                          {team.description && (
-                                            <span className="text-xs text-muted-foreground">{team.description}</span>
-                                          )}
-                                        </div>
-                                      </Label>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </FormControl>
-                          <FormDescription>
-                            Select the teams this user belongs to. {teams?.length || 0} team{(teams?.length || 0) !== 1 ? 's' : ''} available.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
-                  />
-                )}
+                            ) : (
+                              <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                                {teams.filter(team => team && team.id && team.name).map((team) => (
+                                  <div key={team.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`team-${team.id}`}
+                                      checked={watchTeamIds?.includes(team.id) || false}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          toggleTeamSelection(team.id);
+                                        } else {
+                                          toggleTeamSelection(team.id);
+                                        }
+                                      }}
+                                    />
+                                    <Label 
+                                      htmlFor={`team-${team.id}`} 
+                                      className="cursor-pointer text-sm flex-1"
+                                    >
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">{team.name}</span>
+                                        {team.description && (
+                                          <span className="text-xs text-muted-foreground">{team.description}</span>
+                                        )}
+                                      </div>
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          Select the teams this user belongs to. {teams?.length || 0} team{(teams?.length || 0) !== 1 ? 's' : ''} available.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
               </TabsContent>
               
               <TabsContent value="billing" className="space-y-4">
-                {watchRole !== "client" && (
                   <>
                     <FormField
                       control={form.control}
@@ -669,16 +579,8 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                           <FormMessage />
                         </FormItem>
                       )}
-                    />
+                     />
                   </>
-                )}
-                
-                {watchRole === "client" && (
-                  <p className="text-muted-foreground text-center py-8">
-                    Billing settings not applicable for client users.
-                    Client billing is managed in the client profile.
-                  </p>
-                )}
               </TabsContent>
               
               <TabsContent value="permissions" className="space-y-4">
@@ -688,16 +590,13 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                       Admin users have full access to all features.
                     </p>
                   </div>
-                ) : watchRole === "client" ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      {watchClientRole === "admin" 
-                        ? "Client Admin users can view projects, tasks, and reports including time spent and costs."
-                        : "Client Team users have limited access - can only view projects and tasks."}
-                    </p>
-                  </div>
                 ) : (
                   <div className="space-y-4">
+                    <div className="text-center py-4">
+                      <p className="text-muted-foreground">
+                        Regular users have basic permissions. Use custom roles for additional permissions.
+                      </p>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}

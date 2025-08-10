@@ -15,7 +15,7 @@ export const mockUsers: User[] = [
     name: "Sam Davis",
     email: "sam@manex.com",
     avatar: "/placeholder.svg",
-    role: "manager",
+    role: "user",
     teamIds: ["team-1"],
   },
   {
@@ -23,7 +23,7 @@ export const mockUsers: User[] = [
     name: "Taylor Wilson",
     email: "taylor@manex.com",
     avatar: "/placeholder.svg",
-    role: "developer",
+    role: "user",
     teamIds: ["team-1"],
   },
 ];

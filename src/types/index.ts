@@ -3,7 +3,7 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
-  role: 'admin' | 'manager' | 'developer' | 'client';
+  role: 'admin' | 'user';
   customRoleId?: string;
   status?: 'active' | 'inactive';
   teamIds?: string[];

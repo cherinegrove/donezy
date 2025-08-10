@@ -111,7 +111,7 @@ export function CreateTeamCard({ onTeamCreated }: CreateTeamCardProps) {
         console.warn("CreateTeamCard: Invalid user object", { user });
         return false;
       }
-      if (user.role === "client" || user.is_guest) {
+      if (user.is_guest) {
         return false;
       }
       if (!user.id || typeof user.id !== 'string') {

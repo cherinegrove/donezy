@@ -21,7 +21,7 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    role: "developer" as const,
+    role: "user" as const,
     jobTitle: ""
   });
 
@@ -79,7 +79,7 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
       setFormData({
         name: "",
         email: "",
-        role: "developer",
+        role: "user",
         jobTitle: ""
       });
 
@@ -138,8 +138,7 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="developer">Developer</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="user">User</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>

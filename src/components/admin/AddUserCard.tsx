@@ -17,7 +17,7 @@ export function AddUserCard() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    role: "developer" as const,
+    role: "user" as const,
     clientId: "",
   });
 
@@ -47,7 +47,7 @@ export function AddUserCard() {
         description: `User added successfully. Invitation sent to ${formData.email}`,
       });
 
-      setFormData({ name: "", email: "", role: "developer", clientId: "" });
+      setFormData({ name: "", email: "", role: "user", clientId: "" });
       setIsAddingUser(false);
     } catch (error) {
       toast({
@@ -72,7 +72,7 @@ export function AddUserCard() {
       addUser({
         name: formData.name,
         email: formData.email,
-        role: "client",
+        role: "user",
         clientId: formData.clientId,
         teamIds: [],
         permissions: {
@@ -94,7 +94,7 @@ export function AddUserCard() {
         description: `Guest user added successfully. Invitation sent to ${formData.email}`,
       });
 
-      setFormData({ name: "", email: "", role: "developer", clientId: "" });
+      setFormData({ name: "", email: "", role: "user", clientId: "" });
       setIsAddingGuest(false);
     } catch (error) {
       toast({
@@ -153,8 +153,7 @@ export function AddUserCard() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="developer">Developer</SelectItem>
+                <SelectItem value="user">User</SelectItem>
               </SelectContent>
             </Select>
           </div>
