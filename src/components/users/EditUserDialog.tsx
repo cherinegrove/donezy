@@ -91,6 +91,14 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   const { addUser, updateUser, teams, clients } = useAppContext();
+  
+  // Debug logging
+  console.log('EditUserDialog render:', { 
+    isOpen, 
+    user: user?.name || 'new user', 
+    teamsCount: teams?.length || 0,
+    teamsData: teams
+  });
   const { toast } = useToast();
   const isEditMode = !!user;
   const [activeTab, setActiveTab] = useState("details");
@@ -416,36 +424,50 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                   <FormField
                     control={form.control}
                     name="teamIds"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Teams</FormLabel>
-                        <FormControl>
-                          <Popover open={teamSelectOpen} onOpenChange={setTeamSelectOpen}>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={teamSelectOpen}
-                                className="w-full justify-between bg-background"
-                              >
-                                {watchTeamIds?.length > 0
-                                  ? `${watchTeamIds.length} team${watchTeamIds.length > 1 ? 's' : ''} selected`
-                                  : "Select teams"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-full p-0 bg-background border shadow-md z-50">
-                              <Command className="bg-background">
-                                <CommandInput placeholder="Search teams..." className="bg-background" />
-                                {!teams || teams.length === 0 ? (
+                    render={({ field }) => {
+                      // Debug logging for render
+                      console.log('Teams field render:', { 
+                        teams: teams?.length || 0, 
+                        teamsArray: teams,
+                        fieldValue: field.value,
+                        isArray: Array.isArray(teams)
+                      });
+                      
+                      return (
+                        <FormItem>
+                          <FormLabel>Teams</FormLabel>
+                          <FormControl>
+                            <Popover open={teamSelectOpen} onOpenChange={setTeamSelectOpen}>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={teamSelectOpen}
+                                  className="w-full justify-between bg-background"
+                                >
+                                  {watchTeamIds?.length > 0
+                                    ? `${watchTeamIds.length} team${watchTeamIds.length > 1 ? 's' : ''} selected`
+                                    : "Select teams"}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-full p-0 bg-background border shadow-md z-50">
+                                {/* Complete safety check before rendering Command */}
+                                {!teams || !Array.isArray(teams) ? (
+                                  <div className="p-4 text-center text-sm text-muted-foreground">
+                                    Loading teams...
+                                  </div>
+                                ) : teams.length === 0 ? (
                                   <div className="p-4 text-center text-sm text-muted-foreground">
                                     No teams available. Create teams from the Admin → Teams section.
                                   </div>
                                 ) : (
-                                  <>
+                                  // Only render Command when we have valid teams array with items
+                                  <Command className="bg-background" shouldFilter={true}>
+                                    <CommandInput placeholder="Search teams..." className="bg-background" />
                                     <CommandEmpty>No teams found.</CommandEmpty>
                                     <CommandGroup className="bg-background">
-                                      {teams.map((team) => (
+                                      {teams.filter(team => team && team.id && team.name).map((team) => (
                                         <CommandItem
                                           key={team.id}
                                           value={team.id}
@@ -467,18 +489,18 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                                         </CommandItem>
                                       ))}
                                     </CommandGroup>
-                                  </>
+                                  </Command>
                                 )}
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                        </FormControl>
-                        <FormDescription>
-                          Select the teams this user belongs to. {teams?.length || 0} team{(teams?.length || 0) !== 1 ? 's' : ''} available.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                              </PopoverContent>
+                            </Popover>
+                          </FormControl>
+                          <FormDescription>
+                            Select the teams this user belongs to. {teams?.length || 0} team{(teams?.length || 0) !== 1 ? 's' : ''} available.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                 )}
               </TabsContent>
