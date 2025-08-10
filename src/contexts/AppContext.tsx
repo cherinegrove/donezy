@@ -452,11 +452,29 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const loadTaskTemplates = async () => {
     try {
-      console.log('Loading task templates...');
-      setTaskTemplates(mockTaskTemplates);
-      console.log('Task templates loaded:', mockTaskTemplates.length);
+      console.log('Loading task templates from Supabase...');
+      if (!session?.user) {
+        console.log('No session, using mock templates');
+        setTaskTemplates(mockTaskTemplates);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('task_templates')
+        .select('*')
+        .eq('auth_user_id', session.user.id);
+
+      if (error) {
+        console.error('Error loading task templates:', error);
+        setTaskTemplates(mockTaskTemplates);
+        return;
+      }
+
+      console.log('Task templates loaded from DB:', data?.length || 0);
+      setTaskTemplates(data || []);
     } catch (error) {
       console.error('Error loading task templates:', error);
+      setTaskTemplates([]);
     }
   };
 
