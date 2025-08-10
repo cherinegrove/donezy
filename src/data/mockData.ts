@@ -284,9 +284,137 @@ export const mockPurchases: Purchase[] = [
   },
 ];
 
+// Mock Task Templates
+export const mockTaskTemplates = [
+  {
+    id: "task-template-1",
+    name: "Bug Report",
+    description: "Template for reporting and tracking bugs",
+    type: "task_template" as const,
+    customFields: [
+      {
+        id: "severity",
+        name: "Severity",
+        type: "select" as const,
+        options: ["Low", "Medium", "High", "Critical"],
+        required: true,
+        order: 1
+      },
+      {
+        id: "reproduction-steps",
+        name: "Steps to Reproduce",
+        type: "textarea" as const,
+        required: true,
+        order: 2
+      },
+      {
+        id: "browser",
+        name: "Browser",
+        type: "select" as const,
+        options: ["Chrome", "Firefox", "Safari", "Edge", "Other"],
+        required: false,
+        order: 3
+      }
+    ],
+    fieldOrder: ["severity", "reproduction-steps", "browser"],
+    defaultAssignee: null,
+    defaultStatus: "todo",
+    defaultPriority: "high",
+    estimatedHours: 2,
+    usageCount: 15,
+    tags: ["bug", "development"],
+    createdAt: "2024-01-15T10:00:00Z",
+    updatedAt: "2024-01-15T10:00:00Z"
+  },
+  {
+    id: "task-template-2", 
+    name: "Feature Request",
+    description: "Template for new feature development tasks",
+    type: "task_template" as const,
+    customFields: [
+      {
+        id: "feature-type",
+        name: "Feature Type",
+        type: "select" as const,
+        options: ["UI Enhancement", "New Functionality", "Integration", "Performance"],
+        required: true,
+        order: 1
+      },
+      {
+        id: "user-story",
+        name: "User Story",
+        type: "textarea" as const,
+        required: true,
+        order: 2
+      },
+      {
+        id: "acceptance-criteria",
+        name: "Acceptance Criteria",
+        type: "textarea" as const,
+        required: true,
+        order: 3
+      }
+    ],
+    fieldOrder: ["feature-type", "user-story", "acceptance-criteria"],
+    defaultAssignee: null,
+    defaultStatus: "backlog",
+    defaultPriority: "medium",
+    estimatedHours: 8,
+    usageCount: 8,
+    tags: ["feature", "development"],
+    createdAt: "2024-01-20T14:30:00Z",
+    updatedAt: "2024-01-20T14:30:00Z"
+  },
+  {
+    id: "task-template-3",
+    name: "Client Review",
+    description: "Template for client review and feedback tasks",
+    type: "task_template" as const,
+    customFields: [
+      {
+        id: "review-type",
+        name: "Review Type",
+        type: "select" as const,
+        options: ["Design Review", "Content Review", "Functionality Review", "Final Approval"],
+        required: true,
+        order: 1
+      },
+      {
+        id: "deadline",
+        name: "Client Deadline",
+        type: "date" as const,
+        required: true,
+        order: 2
+      },
+      {
+        id: "deliverables",
+        name: "Deliverables",
+        type: "textarea" as const,
+        required: true,
+        order: 3
+      }
+    ],
+    fieldOrder: ["review-type", "deadline", "deliverables"],
+    defaultAssignee: null,
+    defaultStatus: "todo",
+    defaultPriority: "high",
+    estimatedHours: 1,
+    usageCount: 12,
+    tags: ["client", "review"],
+    createdAt: "2024-01-25T09:15:00Z",
+    updatedAt: "2024-01-25T09:15:00Z"
+  }
+];
+
 export const mockProjectTemplates: ProjectTemplate[] = [];
 
 export const mockComments: any[] = [];
+
+// Mock custom fields
+export const mockCustomFields: any[] = [];
+
+// Mock dashboards  
+export const mockDashboards: any[] = [];
 
 // Helper functions for role management
 export const BUILT_IN_ROLES = {

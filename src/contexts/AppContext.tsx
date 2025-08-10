@@ -4,6 +4,7 @@ import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, Projec
 import { CustomDashboard, SavedReport } from "@/types/dashboard";
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
+import { mockUsers, mockTeams, mockClients, mockProjects, mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockProjectTemplates, mockTaskTemplates, mockCustomRoles, mockCustomFields, mockDashboards } from "@/data/mockData";
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -32,6 +33,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [projectTemplates, setProjectTemplates] = useState<ProjectTemplate[]>([]);
+  const [taskTemplates, setTaskTemplates] = useState<any[]>([]);
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -448,6 +450,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  const loadTaskTemplates = async () => {
+    try {
+      console.log('Loading task templates...');
+      setTaskTemplates(mockTaskTemplates);
+      console.log('Task templates loaded:', mockTaskTemplates.length);
+    } catch (error) {
+      console.error('Error loading task templates:', error);
+    }
+  };
+
   // Load all data when session is available
   useEffect(() => {
     if (session?.user) {
@@ -465,6 +477,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         loadNotes();
         loadProjectStatuses();
         loadCustomRoles();
+        loadTaskTemplates();
         initializeDefaultDashboard();
       }, 100);
     } else {
@@ -2089,6 +2102,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     messages,
     purchases,
     projectTemplates,
+    taskTemplates,
     customRoles,
     comments,
     notes,

@@ -15,6 +15,7 @@ export interface AppContextType {
   messages: Message[];
   purchases: Purchase[];
   projectTemplates: ProjectTemplate[];
+  taskTemplates: any[];
   customRoles: CustomRole[];
   comments: any[];
   notes: Note[];

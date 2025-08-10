@@ -119,11 +119,10 @@ export function CreateTaskDialog({
   isSubtask = false,
   defaultParentTaskId,
 }: CreateTaskDialogProps) {
-  const { projects, users, tasks, customFields, addTask, clients, currentUser } = useAppContext();
+  const { projects, users, tasks, customFields, addTask, clients, currentUser, taskTemplates } = useAppContext();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [clientProjects, setClientProjects] = useState<typeof projects>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("default");
-  const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   
   // Enhanced debugging for custom fields
@@ -163,104 +162,14 @@ export function CreateTaskDialog({
     },
   });
 
-  // Fetch task templates from Supabase
+  // Load templates on component mount
   useEffect(() => {
-    const fetchTaskTemplates = async () => {
-      if (!currentUser) return;
-
-      try {
-        setLoadingTemplates(true);
-        
-        // Fetch standalone task templates
-        const { data: taskTemplatesData, error: taskTemplatesError } = await supabase
-          .from('task_templates')
-          .select('*')
-          .eq('auth_user_id', currentUser.id)
-          .order('created_at', { ascending: false });
-
-        if (taskTemplatesError) throw taskTemplatesError;
-
-        // Fetch project template tasks with project template info
-        const { data: projectTemplateTasksData, error: projectTemplateTasksError } = await supabase
-          .from('project_template_tasks')
-          .select(`
-            *,
-            project_templates!inner(
-              name,
-              auth_user_id
-            )
-          `)
-          .eq('project_templates.auth_user_id', currentUser.id)
-          .order('created_at', { ascending: false });
-
-        if (projectTemplateTasksError) throw projectTemplateTasksError;
-
-        // Convert standalone task templates
-        const templates: TaskTemplate[] = taskTemplatesData.map(template => ({
-          id: template.id,
-          name: template.name,
-          description: template.description || "",
-          defaultPriority: template.default_priority as 'low' | 'medium' | 'high',
-          defaultStatus: template.default_status as TaskStatus,
-          includeCustomFields: template.include_custom_fields || [],
-          fieldOrder: template.field_order || [],
-          usageCount: template.usage_count,
-          type: 'task_template' as const,
-        }));
-
-        // Convert project template tasks
-        const projectTaskTemplates: TaskTemplate[] = projectTemplateTasksData.map(task => ({
-          id: task.id,
-          name: task.name,
-          description: task.description || "",
-          defaultPriority: task.priority as 'low' | 'medium' | 'high',
-          defaultStatus: 'todo' as TaskStatus,
-          includeCustomFields: [],
-          fieldOrder: [],
-          usageCount: 0,
-          type: 'project_template_task' as const,
-          projectTemplateName: task.project_templates.name,
-          estimatedHours: task.estimated_hours,
-        }));
-
-        // Add default template at the beginning
-        const defaultTemplate: TaskTemplate = {
-          id: "default",
-          name: "Default Template",
-          description: "System default template with basic fields",
-          defaultPriority: "medium",
-          defaultStatus: "todo",
-          includeCustomFields: [],
-          fieldOrder: [],
-          usageCount: 0,
-          type: 'task_template' as const,
-        };
-
-        setTaskTemplates([defaultTemplate, ...templates, ...projectTaskTemplates]);
-      } catch (error) {
-        console.error('Error fetching task templates:', error);
-        toast.error("Failed to load task templates");
-        // Set only default template on error
-        setTaskTemplates([{
-          id: "default",
-          name: "Default Template",
-          description: "System default template with basic fields",
-          defaultPriority: "medium",
-          defaultStatus: "todo",
-          includeCustomFields: [],
-          fieldOrder: [],
-          usageCount: 0,
-          type: 'task_template' as const,
-        }]);
-      } finally {
-        setLoadingTemplates(false);
-      }
-    };
-
-    if (open && currentUser) {
-      fetchTaskTemplates();
+    if (!taskTemplates || taskTemplates.length === 0) {
+      console.log('No task templates available');
+    } else {
+      console.log('Task templates loaded:', taskTemplates.length);
     }
-  }, [open, currentUser]);
+  }, [taskTemplates]);
 
   // Get the selected template's custom fields with enhanced debugging
   const getTemplateCustomFields = () => {
@@ -284,33 +193,15 @@ export function CreateTaskDialog({
       return [];
     }
     
-    if (!template.includeCustomFields || template.includeCustomFields.length === 0) {
+    if (!template.customFields || template.customFields.length === 0) {
       console.log('Returning empty - template has no custom fields');
       return [];
     }
     
     console.log('Template found:', template.name);
-    console.log('Template includeCustomFields:', template.includeCustomFields);
+    console.log('Template customFields:', template.customFields);
     
-    // Filter custom fields that are applicable to tasks and included in template
-    const templateFields = customFields.filter(field => {
-      const isApplicableToTasks = field.applicableTo && field.applicableTo.includes('tasks');
-      const isIncludedInTemplate = template.includeCustomFields.includes(field.id);
-      
-      console.log(`Field ${field.name} (${field.id}):`, {
-        isApplicableToTasks,
-        isIncludedInTemplate,
-        applicableTo: field.applicableTo,
-        fieldType: field.type,
-        options: field.options
-      });
-      
-      return isApplicableToTasks && isIncludedInTemplate;
-    });
-    
-    console.log('Filtered template fields:', templateFields.length);
-    console.log('=== getTemplateCustomFields END ===');
-    return templateFields;
+    return template.customFields;
   };
 
   const templateCustomFields = getTemplateCustomFields();
@@ -329,40 +220,29 @@ export function CreateTaskDialog({
       form.setValue("customFields", {});
       
       // Apply template's custom fields (only for non-default templates)
-      if (selectedTemplate !== "default" && template.includeCustomFields && template.includeCustomFields.length > 0) {
-        const orderedFields = template.fieldOrder && template.fieldOrder.length > 0 
-          ? template.fieldOrder 
-          : template.includeCustomFields;
-        
+      if (selectedTemplate !== "default" && template.customFields && template.customFields.length > 0) {
         console.log('Setting up custom fields for template...');
         
         const customFieldsValue: Record<string, any> = {};
-        orderedFields.forEach(fieldId => {
-          if (template.includeCustomFields.includes(fieldId)) {
-            const field = customFields.find(f => f.id === fieldId);
-            if (field) {
-              console.log('Setting default value for field:', field.name, field.type);
-              // Set default value based on field type
-              switch (field.type) {
-                case 'text':
-                  customFieldsValue[fieldId] = '';
-                  break;
-                case 'number':
-                  customFieldsValue[fieldId] = 0;
-                  break;
-                case 'date':
-                  customFieldsValue[fieldId] = '';
-                  break;
-                case 'dropdown':
-                case 'multiselect':
-                  customFieldsValue[fieldId] = field.type === 'multiselect' ? [] : '';
-                  break;
-                default:
-                  customFieldsValue[fieldId] = '';
-              }
-            } else {
-              console.warn('Custom field not found in context:', fieldId);
-            }
+        template.customFields.forEach(field => {
+          console.log('Setting default value for field:', field.name, field.type);
+          // Set default value based on field type
+          switch (field.type) {
+            case 'text':
+              customFieldsValue[field.id] = '';
+              break;
+            case 'number':
+              customFieldsValue[field.id] = 0;
+              break;
+            case 'date':
+              customFieldsValue[field.id] = '';
+              break;
+            case 'dropdown':
+            case 'select':
+              customFieldsValue[field.id] = '';
+              break;
+            default:
+              customFieldsValue[field.id] = '';
           }
         });
         
@@ -479,7 +359,7 @@ export function CreateTaskDialog({
   const orderedFieldsToShow = currentTemplate && currentTemplate.fieldOrder && currentTemplate.fieldOrder.length > 0 && selectedTemplate !== "default"
     ? currentTemplate.fieldOrder
         .map(fieldId => templateCustomFields.find(f => f.id === fieldId))
-        .filter(Boolean) as typeof customFields
+        .filter(Boolean) as typeof templateCustomFields
     : templateCustomFields;
 
   console.log('Final render - orderedFieldsToShow:', orderedFieldsToShow.length);
@@ -514,6 +394,14 @@ export function CreateTaskDialog({
                       <SelectValue placeholder={loadingTemplates ? "Loading templates..." : "Select a template"} />
                     </SelectTrigger>
                     <SelectContent>
+                      {/* Default template */}
+                      <SelectItem value="default">
+                        <div className="flex flex-col">
+                          <span>Default Template</span>
+                          <span className="text-xs text-muted-foreground">Basic task form</span>
+                        </div>
+                      </SelectItem>
+                      
                       {/* Group templates by type */}
                       {taskTemplates.filter(t => t.type === 'task_template').map((template) => (
                         <SelectItem key={template.id} value={template.id}>
