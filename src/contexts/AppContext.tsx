@@ -153,21 +153,36 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
       
-      console.log('Users loaded successfully:', data?.length || 0);
+      console.log('🔍 Raw DB data:', data);
       const convertedUsers = data?.map(convertDbUserToUser) || [];
+      console.log('🔍 Converted users:', convertedUsers.length);
       setUsers(convertedUsers);
       
-      // Set current user based on session email
-      const sessionUser = convertedUsers.find(u => u.email === session.user.email);
-      console.log('🔍 Looking for user with email:', session.user.email);
-      console.log('🔍 Available users:', convertedUsers.map(u => ({ id: u.id, email: u.email, name: u.name })));
-      console.log('🔍 Found session user:', sessionUser ? sessionUser.name : 'NOT FOUND');
+      // Set current user based on auth_user_id match from raw DB data
+      const sessionUserDb = data?.find((dbUser: any) => dbUser.auth_user_id === session.user.id);
+      console.log('🔍 Looking for user with auth_user_id:', session.user.id);
+      console.log('🔍 Available DB users:', data?.map((dbUser: any) => ({ 
+        id: dbUser.id, 
+        auth_user_id: dbUser.auth_user_id, 
+        email: dbUser.email, 
+        name: dbUser.name 
+      })));
+      console.log('🔍 Found session user in DB:', sessionUserDb ? sessionUserDb.name : 'NOT FOUND');
       
-      if (sessionUser) {
+      if (sessionUserDb) {
+        const sessionUser = convertDbUserToUser(sessionUserDb);
         console.log('✅ Current user set:', sessionUser.name);
         setCurrentUser(sessionUser);
       } else {
-        console.warn('⚠️ User not found in database - you may need to refresh');
+        console.warn('⚠️ User not found by auth_user_id - trying email fallback');
+        // Fallback to email match
+        const emailUser = convertedUsers.find(u => u.email === session.user.email);
+        if (emailUser) {
+          console.log('✅ Current user set by email:', emailUser.name);
+          setCurrentUser(emailUser);
+        } else {
+          console.warn('⚠️ User not found by auth_user_id OR email');
+        }
       }
     } catch (error) {
       console.error('Error loading users:', error);
