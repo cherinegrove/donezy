@@ -113,7 +113,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       name: dbUser.name,
       email: dbUser.email,
       avatar: dbUser.avatar || undefined,
-      roleId: dbUser.role_id || "user-role",
+      roleId: dbUser.role_id || dbUser.role || "user-role",
       teamIds: dbUser.team_ids || [],
       jobTitle: dbUser.job_title || undefined,
       clientId: dbUser.client_id || undefined,

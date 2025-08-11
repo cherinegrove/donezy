@@ -35,15 +35,19 @@ export function AppSidebar() {
     }
   };
   
-  // Check if user is admin - check for various admin role names
+  // Check if user is admin - handle both role ID and direct role string
   const userRole = currentUser && customRoles.find(r => r.id === currentUser.roleId);
-  const isAdmin = userRole?.name?.toLowerCase().includes('admin');
+  const directRoleCheck = currentUser?.roleId?.toLowerCase().includes('admin');
+  const customRoleCheck = userRole?.name?.toLowerCase().includes('admin');
+  const isAdmin = directRoleCheck || customRoleCheck;
   
   // Temporary debug logging
   console.log('🔍 Sidebar Debug:', {
     currentUser: currentUser?.id,
     roleId: currentUser?.roleId,
     userRole: userRole?.name,
+    directRoleCheck,
+    customRoleCheck,
     isAdmin,
     customRolesCount: customRoles.length
   });
