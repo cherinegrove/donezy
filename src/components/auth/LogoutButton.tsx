@@ -1,4 +1,4 @@
-
+import React from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
@@ -30,35 +30,43 @@ export function LogoutButton({ variant = 'button' }: LogoutButtonProps) {
 
   const handleLogout = async () => {
     try {
-      console.log("Starting logout process...");
+      console.log("🚪 Force logout initiated...");
       
-      // Clean up auth state first
+      // Clean up auth state immediately
       cleanupAuthState();
       
-      // Sign out from Supabase with global scope
+      // Sign out from Supabase
       try {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (signOutError) {
         console.warn("Supabase signOut error (continuing anyway):", signOutError);
       }
       
-      // Also log out locally to maintain compatibility
+      // Also log out locally
       logout();
       
-      console.log("Logout completed, redirecting...");
+      console.log("✅ Force logout completed, redirecting...");
       
-      // Force page reload to ensure clean state
+      // Force page reload to login
       window.location.href = '/login';
       
     } catch (error) {
-      console.error("Error during logout:", error);
+      console.error("❌ Error during logout:", error);
       
-      // Even if there's an error, clean up and redirect
+      // Force cleanup and redirect even on error
       cleanupAuthState();
       logout();
       window.location.href = '/login';
     }
   };
+
+  // Force logout immediately on component mount (for debugging)
+  React.useEffect(() => {
+    const forceLogout = new URLSearchParams(window.location.search).get('forceLogout');
+    if (forceLogout === 'true') {
+      handleLogout();
+    }
+  }, []);
 
   if (variant === 'menuItem') {
     return (
