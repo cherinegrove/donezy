@@ -36,7 +36,14 @@ export function AppSidebar() {
   };
   
   // Check if user is admin - check for various admin role names
-  const isAdmin = currentUser && customRoles.find(r => r.id === currentUser.roleId)?.name?.toLowerCase().includes('admin');
+  const userRole = currentUser && customRoles.find(r => r.id === currentUser.roleId);
+  const isAdmin = userRole?.name?.toLowerCase().includes('admin');
+  
+  // Debug logging
+  console.log('Current user:', currentUser);
+  console.log('User role:', userRole);
+  console.log('Is admin:', isAdmin);
+  console.log('Custom roles:', customRoles);
   
   return (
     <div
