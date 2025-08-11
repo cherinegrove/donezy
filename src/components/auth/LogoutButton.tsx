@@ -36,7 +36,11 @@ export function LogoutButton({ variant = 'button' }: LogoutButtonProps) {
       cleanupAuthState();
       
       // Sign out from Supabase with global scope
-      await supabase.auth.signOut({ scope: 'global' });
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (signOutError) {
+        console.warn("Supabase signOut error (continuing anyway):", signOutError);
+      }
       
       // Also log out locally to maintain compatibility
       logout();
@@ -44,7 +48,7 @@ export function LogoutButton({ variant = 'button' }: LogoutButtonProps) {
       console.log("Logout completed, redirecting...");
       
       // Force page reload to ensure clean state
-      window.location.href = '/';
+      window.location.href = '/login';
       
     } catch (error) {
       console.error("Error during logout:", error);
@@ -52,7 +56,7 @@ export function LogoutButton({ variant = 'button' }: LogoutButtonProps) {
       // Even if there's an error, clean up and redirect
       cleanupAuthState();
       logout();
-      window.location.href = '/';
+      window.location.href = '/login';
     }
   };
 
