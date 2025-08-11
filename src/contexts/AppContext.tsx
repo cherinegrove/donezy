@@ -158,9 +158,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       // Set current user based on session email
       const sessionUser = convertedUsers.find(u => u.email === session.user.email);
+      console.log('🔍 Looking for user with email:', session.user.email);
+      console.log('🔍 Available users:', convertedUsers.map(u => ({ id: u.id, email: u.email, name: u.name })));
+      console.log('🔍 Found session user:', sessionUser ? sessionUser.name : 'NOT FOUND');
+      
       if (sessionUser) {
-        console.log('Current user found:', sessionUser.name);
+        console.log('✅ Current user set:', sessionUser.name);
         setCurrentUser(sessionUser);
+      } else {
+        console.warn('⚠️ User not found in database - you may need to refresh');
       }
     } catch (error) {
       console.error('Error loading users:', error);
