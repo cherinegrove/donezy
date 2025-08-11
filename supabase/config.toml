@@ -1,1 +1,63 @@
 project_id = "puwxkygdlclcbyxrtppd"
+
+[auth]
+enabled = true
+image = "supabase/gotrue:v2.151.0"
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+refresh_token_rotation_enabled = true
+security_refresh_token_reuse_interval = 10
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[database]
+port = 5432
+shadow_port = 5433
+
+[db]
+shadow_port = 5433
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[functions.api-create-task]
+verify_jwt = false
+
+[functions.api-create-client]
+verify_jwt = false
+
+[functions.api-create-project]
+verify_jwt = false
+
+[storage]
+enabled = true
+image = "supabase/storage-api:v1.0.6"
+file_size_limit = "52428800"
+
+[storage.buckets.videos]
+public = true
+file_size_limit = "52428800"
+allowed_mime_types = ["video/mp4", "video/webm", "video/quicktime"]
+
+[storage.buckets.avatars]
+public = true
+file_size_limit = "1048576"
+allowed_mime_types = ["image/png", "image/jpg", "image/jpeg", "image/gif", "image/webp"]
+
+[storage.buckets.project-files]
+public = false
+file_size_limit = "52428800"
+allowed_mime_types = ["*"]
+
+[edge_runtime]
+enabled = true
+ip_version = "dual"
