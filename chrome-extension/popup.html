@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 350px;
+      min-height: 400px;
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: hsl(var(--background, 0 0% 100%));
+      color: hsl(var(--foreground, 222.2 84% 4.9%));
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid hsl(var(--border, 214.3 31.8% 91.4%));
+    }
+    
+    .logo {
+      width: 24px;
+      height: 24px;
+      background: hsl(var(--primary, 222.2 84% 4.9%));
+      border-radius: 4px;
+    }
+    
+    .title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .section {
+      margin-bottom: 20px;
+    }
+    
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: hsl(var(--foreground, 222.2 84% 4.9%));
+    }
+    
+    .input-group {
+      margin-bottom: 12px;
+    }
+    
+    .input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid hsl(var(--border, 214.3 31.8% 91.4%));
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    .textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+    
+    .select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid hsl(var(--border, 214.3 31.8% 91.4%));
+      border-radius: 6px;
+      font-size: 14px;
+      background: white;
+      box-sizing: border-box;
+    }
+    
+    .button {
+      width: 100%;
+      padding: 10px 16px;
+      background: hsl(var(--primary, 222.2 84% 4.9%));
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .button:hover {
+      background: hsl(var(--primary, 222.2 84% 4.9%) / 0.9);
+    }
+    
+    .button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .button-secondary {
+      background: hsl(var(--secondary, 210 40% 98%));
+      color: hsl(var(--secondary-foreground, 222.2 84% 4.9%));
+      border: 1px solid hsl(var(--border, 214.3 31.8% 91.4%));
+    }
+    
+    .timer-display {
+      text-align: center;
+      font-size: 24px;
+      font-weight: 600;
+      margin: 16px 0;
+      padding: 16px;
+      background: hsl(var(--muted, 210 40% 98%));
+      border-radius: 8px;
+    }
+    
+    .status {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    
+    .status.success {
+      background: hsl(var(--success, 142.1 76.2% 36.3%) / 0.1);
+      color: hsl(var(--success, 142.1 76.2% 36.3%));
+      border: 1px solid hsl(var(--success, 142.1 76.2% 36.3%) / 0.2);
+    }
+    
+    .status.error {
+      background: hsl(var(--destructive, 0 84.2% 60.2%) / 0.1);
+      color: hsl(var(--destructive, 0 84.2% 60.2%));
+      border: 1px solid hsl(var(--destructive, 0 84.2% 60.2%) / 0.2);
+    }
+    
+    .login-section {
+      text-align: center;
+    }
+    
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Section -->
+  <div id="loginSection">
+    <div class="header">
+      <div class="logo"></div>
+      <div class="title">Donezy</div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">Login to Your Account</div>
+      <div class="input-group">
+        <input type="email" id="loginEmail" class="input" placeholder="Email">
+      </div>
+      <div class="input-group">
+        <input type="password" id="loginPassword" class="input" placeholder="Password">
+      </div>
+      <button id="loginButton" class="button">Login</button>
+    </div>
+    
+    <div id="loginStatus" class="status hidden"></div>
+  </div>
+
+  <!-- Main Section -->
+  <div id="mainSection" class="hidden">
+    <div class="header">
+      <div class="logo"></div>
+      <div class="title">Donezy</div>
+      <button id="logoutButton" class="button-secondary" style="margin-left: auto; padding: 4px 8px; font-size: 12px;">Logout</button>
+    </div>
+
+    <!-- Timer Section -->
+    <div class="section">
+      <div class="section-title">Timer</div>
+      <div id="timerDisplay" class="timer-display">00:00:00</div>
+      <button id="timerButton" class="button">Start Timer</button>
+    </div>
+
+    <!-- Quick Task Section -->
+    <div class="section">
+      <div class="section-title">Quick Task</div>
+      <div class="input-group">
+        <input type="text" id="taskTitle" class="input" placeholder="Task title">
+      </div>
+      <div class="input-group">
+        <textarea id="taskDescription" class="input textarea" placeholder="Description (optional)"></textarea>
+      </div>
+      <div class="input-group">
+        <select id="taskProject" class="select">
+          <option value="">Select project (optional)</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <select id="taskPriority" class="select">
+          <option value="medium">Medium Priority</option>
+          <option value="low">Low Priority</option>
+          <option value="high">High Priority</option>
+        </select>
+      </div>
+      <button id="createTaskButton" class="button">Create Task</button>
+    </div>
+
+    <div id="status" class="status hidden"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
