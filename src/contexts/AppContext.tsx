@@ -137,12 +137,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Data loading functions
   const loadUsers = async () => {
     if (!session?.user) {
-      console.log('No session available for loading users');
+      console.log('❌ No session available for loading users');
       return;
     }
     
     try {
-      console.log('Loading users with session:', session.user.id);
+      console.log('🔄 Loading users with session:', session.user.id);
+      console.log('🔄 Session user email:', session.user.email);
       const { data, error } = await supabase
         .from('users')
         .select('*');
