@@ -658,7 +658,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           name: user.name,
           email: user.email,
           avatar: user.avatar,
-          role_id: user.roleId,
+          role: user.roleId,
           team_ids: user.teamIds || [],
           job_title: user.jobTitle,
           client_id: user.clientId,
@@ -703,7 +703,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.name !== undefined) dbUpdates.name = updates.name;
       if (updates.email !== undefined) dbUpdates.email = updates.email;
       if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
-      if (updates.roleId !== undefined) dbUpdates.role_id = updates.roleId;
+      if (updates.roleId !== undefined) dbUpdates.role = updates.roleId;
       if (updates.teamIds !== undefined) dbUpdates.team_ids = updates.teamIds;
       if (updates.jobTitle !== undefined) dbUpdates.job_title = updates.jobTitle;
       if (updates.clientId !== undefined) dbUpdates.client_id = updates.clientId;
