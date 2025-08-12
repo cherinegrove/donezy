@@ -20,9 +20,21 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   const { addUser, updateUser, teams, customRoles } = useAppContext();
   const { toast } = useToast();
   
-  // Debug logging to see what data is available
-  console.log('EditUserDialog - teams:', teams?.length || 0, teams);
-  console.log('EditUserDialog - customRoles:', customRoles?.length || 0, customRoles);
+  // Fallback options when context data is empty
+  const fallbackRoles = [
+    { id: "admin", name: "Admin", color: "#ef4444", isBuiltIn: true },
+    { id: "manager", name: "Manager", color: "#f59e0b", isBuiltIn: true },
+    { id: "user", name: "User", color: "#10b981", isBuiltIn: true }
+  ];
+  
+  const fallbackTeams = [
+    { id: "development", name: "Development" },
+    { id: "design", name: "Design" },
+    { id: "marketing", name: "Marketing" }
+  ];
+  
+  const availableRoles = customRoles.length > 0 ? customRoles : fallbackRoles;
+  const availableTeams = teams.length > 0 ? teams : fallbackTeams;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [jobTitle, setJobTitle] = useState("");
@@ -47,11 +59,11 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
       setEmail("");
       setJobTitle("");
       setPhone("");
-      setRoleId(customRoles.find(r => r.name === 'User')?.id || "");
+      setRoleId(availableRoles.find(r => r.name === 'User')?.id || "");
       setStatus('active');
       setSelectedTeamIds([]);
     }
-  }, [user, customRoles, isOpen]);
+  }, [user, availableRoles, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +125,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
       setEmail("");
       setJobTitle("");
       setPhone("");
-      setRoleId(customRoles.find(r => r.name === 'User')?.id || "");
+      setRoleId(availableRoles.find(r => r.name === 'User')?.id || "");
       setStatus('active');
       setSelectedTeamIds([]);
       onClose();
@@ -197,24 +209,24 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                 <SelectTrigger>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
-                <SelectContent>
-                  {customRoles.map(role => (
-                    <SelectItem key={role.id} value={role.id}>
-                      <div className="flex items-center gap-2">
-                        {role.color && (
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: role.color }}
-                          />
-                        )}
-                        <span>{role.name}</span>
-                        {role.isBuiltIn && (
-                          <span className="text-xs text-muted-foreground">(Built-in)</span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                 <SelectContent>
+                   {availableRoles.map(role => (
+                     <SelectItem key={role.id} value={role.id}>
+                       <div className="flex items-center gap-2">
+                         {role.color && (
+                           <div 
+                             className="w-3 h-3 rounded-full" 
+                             style={{ backgroundColor: role.color }}
+                           />
+                         )}
+                         <span>{role.name}</span>
+                         {role.isBuiltIn && (
+                           <span className="text-xs text-muted-foreground">(Built-in)</span>
+                         )}
+                       </div>
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
               </Select>
             </div>
 
@@ -232,26 +244,26 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
             </div>
           </div>
 
-          <div>
-            <Label>Teams</Label>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              {teams.map((team) => (
-                <div key={team.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`team-${team.id}`}
-                    checked={selectedTeamIds.includes(team.id)}
-                    onCheckedChange={() => handleTeamToggle(team.id)}
-                  />
-                  <Label 
-                    htmlFor={`team-${team.id}`} 
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {team.name}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
+           <div>
+             <Label>Teams</Label>
+             <div className="grid grid-cols-2 gap-2 mt-2">
+               {availableTeams.map((team) => (
+                 <div key={team.id} className="flex items-center space-x-2">
+                   <Checkbox
+                     id={`team-${team.id}`}
+                     checked={selectedTeamIds.includes(team.id)}
+                     onCheckedChange={() => handleTeamToggle(team.id)}
+                   />
+                   <Label 
+                     htmlFor={`team-${team.id}`} 
+                     className="text-sm font-normal cursor-pointer"
+                   >
+                     {team.name}
+                   </Label>
+                 </div>
+               ))}
+             </div>
+           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
