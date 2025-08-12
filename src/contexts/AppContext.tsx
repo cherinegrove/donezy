@@ -1225,18 +1225,28 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const startTimeTracking = async (taskId: string, projectId?: string, clientId?: string) => {
     if (!session?.user || !currentUser) return;
     
+    console.log('🚀 Starting new timer - Initial state:', {
+      activeTimeEntry: activeTimeEntry?.id,
+      isTimerPaused,
+      totalPausedTime,
+      pausedAt
+    });
+    
     // Pause any existing active timer first and wait for it to complete
     if (activeTimeEntry && !isTimerPaused) {
+      console.log('⏸️ Pausing existing timer first');
       await pauseTimeTracking();
     }
     
     // Clear the active timer state to allow new timer to start
+    console.log('🧹 Clearing timer state for new timer');
     setActiveTimeEntry(null);
     setIsTimerPaused(false);
     setPausedAt(null);
     setTotalPausedTime(0);
 
     const startTime = new Date().toISOString();
+    console.log('⏰ Creating new timer entry with start time:', startTime);
     
     const newTimeEntry: Omit<TimeEntry, 'id'> = {
       userId: currentUser.id,
@@ -1250,6 +1260,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     await addTimeEntry(newTimeEntry);
     await loadTimeEntries(); // Reload to get the new active entry
+    
+    console.log('✅ New timer should be active now');
   };
 
   const stopTimeTracking = async (notes?: string) => {
@@ -1298,6 +1310,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const startTime = new Date(timeEntry.startTime).getTime();
     const now = Date.now();
     let elapsedMs = now - startTime - totalPausedTime;
+    
+    console.log('⏱️ getElapsedTime calculation:', {
+      timeEntryId: timeEntry.id,
+      startTime: timeEntry.startTime,
+      totalPausedTime,
+      elapsedMs,
+      isTimerPaused,
+      pausedAt: pausedAt?.toISOString()
+    });
     
     // If currently paused, subtract the current pause duration
     if (isTimerPaused && pausedAt) {
