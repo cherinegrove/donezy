@@ -1225,9 +1225,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const startTimeTracking = async (taskId: string, projectId?: string, clientId?: string) => {
     if (!session?.user || !currentUser) return;
     
-    // Pause any existing active timer first and clear it
+    // Pause any existing active timer first and wait for it to complete
     if (activeTimeEntry && !isTimerPaused) {
-      pauseTimeTracking();
+      await pauseTimeTracking();
     }
     
     // Clear the active timer state to allow new timer to start
