@@ -19,6 +19,10 @@ interface EditUserDialogProps {
 export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   const { addUser, updateUser, teams, customRoles } = useAppContext();
   const { toast } = useToast();
+  
+  // Debug logging to see what data is available
+  console.log('EditUserDialog - teams:', teams?.length || 0, teams);
+  console.log('EditUserDialog - customRoles:', customRoles?.length || 0, customRoles);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [jobTitle, setJobTitle] = useState("");
