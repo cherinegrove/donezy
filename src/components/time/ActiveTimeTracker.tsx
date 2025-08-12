@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function ActiveTimeTracker() {
-  const { activeTimeEntry, stopTimeTracking, deleteTimeEntry, tasks } = useAppContext();
+  const { activeTimeEntry, stopTimeTracking, deleteTimeEntry, tasks, getElapsedTime } = useAppContext();
   const [elapsed, setElapsed] = useState<string>("00:00:00");
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [notes, setNotes] = useState("");
@@ -19,23 +19,12 @@ export function ActiveTimeTracker() {
   useEffect(() => {
     if (!activeTimeEntry) return;
     
-    const startTime = new Date(activeTimeEntry.startTime).getTime();
-    
     const timer = setInterval(() => {
-      const elapsedMs = Date.now() - startTime;
-      const seconds = Math.floor((elapsedMs / 1000) % 60);
-      const minutes = Math.floor((elapsedMs / (1000 * 60)) % 60);
-      const hours = Math.floor(elapsedMs / (1000 * 60 * 60));
-      
-      setElapsed(
-        `${hours.toString().padStart(2, "0")}:${minutes
-          .toString()
-          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
-      );
+      setElapsed(getElapsedTime(activeTimeEntry));
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [activeTimeEntry]);
+  }, [activeTimeEntry, getElapsedTime]);
   
   const handleStopTracking = () => {
     console.log('🔴 ActiveTimeTracker: handleStopTracking called');
