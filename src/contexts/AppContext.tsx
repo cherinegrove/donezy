@@ -1222,7 +1222,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  const startTimeTracking = async (taskId: string, projectId?: string, clientId?: string) => {
+  const startTimeTracking = async (taskId?: string, projectId?: string, clientId?: string) => {
     if (!session?.user || !currentUser) return;
     
     console.log('🚀 Starting new timer - Initial state:', {
@@ -1250,7 +1250,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     const newTimeEntry: Omit<TimeEntry, 'id'> = {
       userId: currentUser.id,
-      taskId,
+      taskId: taskId || undefined,
       projectId,
       clientId,
       startTime,
