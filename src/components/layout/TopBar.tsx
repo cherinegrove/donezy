@@ -150,23 +150,43 @@ export function TopBar() {
             </DropdownMenuContent>
           </DropdownMenu>
           
-          {/* Test 3: Add debugging script for DOM element detection */}
+          {/* Test 3: Comprehensive click debugging */}
           <script
             dangerouslySetInnerHTML={{
               __html: `
-                // Auto-run click detection test
+                // Check for click blockers
                 setTimeout(() => {
-                  const rect = document.querySelector('[data-testid="dropdown-plus-button"]')?.getBoundingClientRect();
-                  if (rect) {
-                    const centerX = rect.left + rect.width / 2;
-                    const centerY = rect.top + rect.height / 2;
-                    const elementAtPoint = document.elementFromPoint(centerX, centerY);
-                    console.log('🎯 Element detection test:', {
-                      buttonRect: rect,
-                      centerCoords: [centerX, centerY],
-                      elementAtPoint: elementAtPoint,
-                      isButtonItself: elementAtPoint?.closest('[data-testid="dropdown-plus-button"]') !== null
-                    });
+                  // Test both buttons
+                  const redButton = document.querySelector('[data-testid="simple-plus-button"]');
+                  const blueButton = document.querySelector('[data-testid="dropdown-plus-button"]');
+                  
+                  [redButton, blueButton].forEach((btn, i) => {
+                    if (btn) {
+                      const rect = btn.getBoundingClientRect();
+                      const centerX = rect.left + rect.width / 2;
+                      const centerY = rect.top + rect.height / 2;
+                      const elementAtPoint = document.elementFromPoint(centerX, centerY);
+                      
+                      console.log(\`🔍 Button \${i + 1} analysis:\`, {
+                        button: btn,
+                        isVisible: rect.width > 0 && rect.height > 0,
+                        hasPointerEvents: getComputedStyle(btn).pointerEvents,
+                        elementAtPoint: elementAtPoint,
+                        isBlocked: elementAtPoint !== btn && !btn.contains(elementAtPoint),
+                        zIndex: getComputedStyle(btn).zIndex,
+                        position: getComputedStyle(btn).position
+                      });
+                      
+                      // Check for overlays
+                      const allElements = document.elementsFromPoint(centerX, centerY);
+                      console.log(\`🎯 All elements at button \${i + 1} location:\`, allElements);
+                    }
+                  });
+                  
+                  // Test click simulation
+                  if (redButton) {
+                    redButton.addEventListener('click', () => console.log('✅ RED BUTTON DOM CLICK DETECTED'));
+                    redButton.click(); // Simulate click
                   }
                 }, 1000);
               `
