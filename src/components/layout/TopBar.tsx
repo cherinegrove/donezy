@@ -8,6 +8,7 @@ import { Menu, Moon, Plus, Search, Sun, Timer, Settings, User } from "lucide-rea
 import { Input } from "@/components/ui/input";
 import { StartTimerDialog } from "@/components/time/StartTimerDialog";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
+import { EditTimeEntryDialog } from "@/components/time/EditTimeEntryDialog";
 
 import { useState } from "react";
 import {
@@ -30,6 +31,7 @@ export function TopBar() {
   const { toggleSidebar } = useSidebar();
   const [isTimerDialogOpen, setIsTimerDialogOpen] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [isManualEntryDialogOpen, setIsManualEntryDialogOpen] = useState(false);
   
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
@@ -114,6 +116,15 @@ export function TopBar() {
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={(e) => {
+                  console.log('📝 ADD MANUAL ENTRY MENU ITEM CLICKED');
+                  setIsManualEntryDialogOpen(true);
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Manual Entry
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={(e) => {
                   console.log('📋 CREATE TASK MENU ITEM CLICKED');
                   setIsTaskDialogOpen(true);
                 }}
@@ -192,6 +203,12 @@ export function TopBar() {
         onOpenChange={setIsTaskDialogOpen}
       />
 
+      <EditTimeEntryDialog
+        isOpen={isManualEntryDialogOpen}
+        onClose={() => setIsManualEntryDialogOpen(false)}
+        timeEntry={undefined}
+        isNewEntry={true}
+      />
 
       {currentUser && (
         <UserProfileDialog
