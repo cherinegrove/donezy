@@ -92,6 +92,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
 
   // Handle activeTimeEntry from backend (only for truly new timers started elsewhere)
   useEffect(() => {
+    console.log('🔄 TimerBox activeTimeEntry effect:', { activeTimeEntry, currentTimersCount: timers.length });
     if (activeTimeEntry) {
       const task = tasks.find(t => t.id === activeTimeEntry.taskId);
       const project = projects.find(p => p.id === task?.projectId);

@@ -1232,14 +1232,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       pausedAt
     });
     
-    // Stop any existing active timer completely (not just pause)
-    if (activeTimeEntry) {
-      console.log('🛑 Stopping existing timer completely');
-      await stopTimeTracking();
-    }
-    
-    // Clear the active timer state to ensure fresh start
-    console.log('🧹 Clearing timer state for new timer');
+    // Don't stop existing timer - let TimerBox handle pausing logic
+    // Just clear the backend active timer state to ensure new timer can start
+    console.log('🔄 Clearing backend timer state for new timer (existing timer will be paused by TimerBox)');
     setActiveTimeEntry(null);
     setIsTimerPaused(false);
     setPausedAt(null);
