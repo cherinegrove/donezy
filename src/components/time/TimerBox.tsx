@@ -14,6 +14,7 @@ interface TimerItem {
   taskId: string;
   taskTitle: string;
   projectName?: string;
+  clientName?: string;
   startTime: Date;
   elapsed: number;
   isPaused: boolean;
@@ -29,7 +30,7 @@ interface TimerBoxProps {
 }
 
 export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
-  const { activeTimeEntry, tasks, projects, stopTimeTracking, startTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, getElapsedTime } = useAppContext();
+  const { activeTimeEntry, tasks, projects, clients, stopTimeTracking, startTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, getElapsedTime } = useAppContext();
   const [timers, setTimers] = useState<TimerItem[]>([]);
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [selectedTimer, setSelectedTimer] = useState<TimerItem | null>(null);
@@ -94,6 +95,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     if (activeTimeEntry) {
       const task = tasks.find(t => t.id === activeTimeEntry.taskId);
       const project = projects.find(p => p.id === task?.projectId);
+      const client = clients.find(c => c.id === activeTimeEntry.clientId);
       
       // Check if we already have this timer locally
       const existingTimer = timers.find(t => t.id === activeTimeEntry.id);
@@ -109,6 +111,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           taskId: activeTimeEntry.taskId,
           taskTitle: task?.title || `Task (${activeTimeEntry.taskId.slice(0, 8)}...)`,
           projectName: project?.name,
+          clientName: client?.name,
           startTime: now,
           elapsed: isNewTimer ? 0 : Math.max(0, now.getTime() - dbStartTime.getTime()),
           isPaused: false,
@@ -131,7 +134,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       // No active time entry from backend - clear all timers
       setTimers([]);
     }
-  }, [activeTimeEntry, tasks, projects]);
+  }, [activeTimeEntry, tasks, projects, clients]);
 
   // Update elapsed time for active timers (both local and backend)
   useEffect(() => {
@@ -308,6 +311,9 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                       <h4 className="font-medium text-sm truncate">{timer.taskTitle}</h4>
                       {timer.projectName && (
                         <p className="text-xs text-muted-foreground">{timer.projectName}</p>
+                      )}
+                      {timer.clientName && (
+                        <p className="text-xs text-muted-foreground/80">Client: {timer.clientName}</p>
                       )}
                       <div className="flex items-center gap-2 mt-2">
                         <div className="font-mono text-lg font-bold">
