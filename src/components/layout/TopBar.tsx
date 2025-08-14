@@ -98,7 +98,11 @@ export function TopBar() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsTimerDialogOpen(true)}>
+              <DropdownMenuItem onClick={() => {
+                console.log('🔘 Plus button clicked - Start Timer option selected');
+                setIsTimerDialogOpen(true);
+                console.log('🔄 Timer dialog should now be open:', true);
+              }}>
                 <Timer className="mr-2 h-4 w-4" />
                 <span>Start Timer</span>
               </DropdownMenuItem>

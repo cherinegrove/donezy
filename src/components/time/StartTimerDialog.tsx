@@ -93,7 +93,10 @@ export function StartTimerDialog({
   const canStartTimer = !!selectedClientId;
   
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      console.log('🔄 StartTimerDialog: open state changing from', open, 'to', newOpen);
+      onOpenChange(newOpen);
+    }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Start Time Tracking</DialogTitle>
