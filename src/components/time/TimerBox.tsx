@@ -96,7 +96,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       const project = projects.find(p => p.id === task?.projectId);
       
       // Check if we already have this timer locally
-      const existingTimer = timers.find(t => t.id === activeTimeEntry.id || t.taskId === activeTimeEntry.taskId);
+      const existingTimer = timers.find(t => t.id === activeTimeEntry.id);
       
       if (!existingTimer) {
         // Check if this is a timer we just created
@@ -124,18 +124,12 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         
         console.log('TimerBox - creating new timer from backend:', timerItem);
         
-        // Mark all other timers as inactive
-        setTimers(prev => [
-          ...prev.map(t => ({ ...t, isActive: false })),
-          timerItem
-        ]);
+        // CLEAR ALL OLD TIMERS when a new timer starts from backend
+        setTimers([timerItem]);
       }
     } else {
-      // No active time entry from backend - mark all non-local timers as inactive
-      setTimers(prev => prev.map(t => ({ 
-        ...t, 
-        isActive: t.isLocalOnly ? t.isActive : false 
-      })));
+      // No active time entry from backend - clear all timers
+      setTimers([]);
     }
   }, [activeTimeEntry, tasks, projects]);
 
