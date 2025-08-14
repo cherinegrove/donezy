@@ -427,7 +427,10 @@ const TimeTracking = () => {
             Track time spent on tasks and projects
           </p>
         </div>
-        <Button onClick={handleAddNewEntry}>
+        <Button onClick={() => {
+          console.log('🟢 ADD MANUAL ENTRY BUTTON CLICKED');
+          handleAddNewEntry();
+        }}>
           <Plus className="h-4 w-4 mr-2" />
           Add Manual Entry
         </Button>
