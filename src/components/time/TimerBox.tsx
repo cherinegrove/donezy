@@ -127,8 +127,18 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         
         console.log('TimerBox - creating new timer from backend:', timerItem);
         
-        // CLEAR ALL OLD TIMERS when a new timer starts from backend
-        setTimers([timerItem]);
+        // PAUSE existing timers instead of clearing them when a new timer starts
+        setTimers(prev => {
+          const pausedTimers = prev.map(existingTimer => ({
+            ...existingTimer,
+            isActive: false,
+            isPaused: true,
+            pausedAt: new Date(),
+            isLocalOnly: true // Convert to local-only when paused
+          }));
+          
+          return [...pausedTimers, timerItem];
+        });
       }
     } else {
       // No active time entry from backend - clear all timers
