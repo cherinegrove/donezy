@@ -85,19 +85,47 @@ export function TopBar() {
             />
           </div>
           
-          {/* Quick Action Plus Button */}
+          {/* Quick Action Plus Button - DEBUGGING VERSION */}
+          
+          {/* Test 1: Simple button to bypass DropdownMenu */}
+          <Button 
+            variant="default" 
+            size="icon" 
+            className="rounded-full bg-red-500 text-white ml-2 mr-2"
+            onClick={() => {
+              console.log('🟥 SIMPLE BUTTON CLICKED - THIS SHOULD WORK');
+              setIsTimerDialogOpen(true);
+            }}
+            data-testid="simple-plus-button"
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
+          
+          {/* Test 2: Original DropdownMenu with extra debugging */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="default" 
                 size="icon" 
                 className="rounded-full bg-primary text-primary-foreground ml-2"
+                data-testid="dropdown-plus-button"
+                onClick={(e) => {
+                  console.log('🔵 DROPDOWN TRIGGER CLICKED - Direct click handler');
+                  console.log('🔍 Click event details:', {
+                    target: e.target,
+                    currentTarget: e.currentTarget,
+                    elementFromPoint: document.elementFromPoint(e.clientX, e.clientY)
+                  });
+                }}
               >
                 <Plus className="h-5 w-5" />
                 <span className="sr-only">Quick actions</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent 
+              align="end"
+              className="bg-background border shadow-md z-50"
+            >
               <DropdownMenuItem onClick={() => {
                 console.log('🔘 Plus button clicked - Start Timer option selected');
                 console.log('🔍 Current state before opening dialog:', {
@@ -121,6 +149,29 @@ export function TopBar() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          
+          {/* Test 3: Add debugging script for DOM element detection */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                // Auto-run click detection test
+                setTimeout(() => {
+                  const rect = document.querySelector('[data-testid="dropdown-plus-button"]')?.getBoundingClientRect();
+                  if (rect) {
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    const elementAtPoint = document.elementFromPoint(centerX, centerY);
+                    console.log('🎯 Element detection test:', {
+                      buttonRect: rect,
+                      centerCoords: [centerX, centerY],
+                      elementAtPoint: elementAtPoint,
+                      isButtonItself: elementAtPoint?.closest('[data-testid="dropdown-plus-button"]') !== null
+                    });
+                  }
+                }, 1000);
+              `
+            }}
+          />
         </div>
         
         <div className="flex items-center gap-4">
