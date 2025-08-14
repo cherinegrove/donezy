@@ -175,30 +175,20 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
 
     console.log('handlePauseTimer - timer:', timer);
 
-    // If this is the active backend timer, use AppContext pause/resume
-    if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
-      if (isTimerPaused) {
-        resumeTimeTracking();
-      } else {
-        pauseTimeTracking();
-      }
-      return;
-    }
-
-    // For local-only timers, continue with local state management
+    // Always handle pause/resume locally, regardless of whether it's a backend timer
+    // This allows true pause/resume functionality without stopping the backend timer
     if (timer.isActive && !timer.isPaused) {
-      // PAUSE: Just update local state, no backend calls
-      console.log('Pausing timer locally only');
+      // PAUSE: Update local state only, keep backend timer running in background
+      console.log('Pausing timer locally');
       setTimers(prev => prev.map(t => t.id === timerId ? {
         ...t,
         isPaused: true,
         pausedAt: new Date(),
-        isActive: false,
-        isLocalOnly: true // Now it's local-only
+        isActive: false
       } : t));
     } else if (timer.isPaused) {
-      // RESUME: Just update local state, no backend calls
-      console.log('Resuming timer locally only');
+      // RESUME: Update local state only, sync back with backend timer
+      console.log('Resuming timer locally');
       
       // Calculate pause duration and adjust elapsed time
       const pauseDuration = timer.pausedAt ? Date.now() - timer.pausedAt.getTime() : 0;
@@ -208,8 +198,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         isActive: t.id === timerId,
         isPaused: t.id === timerId ? false : t.isPaused,
         pausedAt: t.id === timerId ? undefined : t.pausedAt,
-        totalPausedTime: t.id === timerId ? (t.totalPausedTime || 0) + pauseDuration : t.totalPausedTime,
-        isLocalOnly: t.id === timerId ? true : t.isLocalOnly // Keep it local-only
+        totalPausedTime: t.id === timerId ? (t.totalPausedTime || 0) + pauseDuration : t.totalPausedTime
       })));
     }
   };
