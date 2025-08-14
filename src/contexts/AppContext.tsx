@@ -295,6 +295,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
+      console.log('🔄 Loading time entries from database...');
       const { data, error } = await supabase
         .from('time_entries')
         .select('*');
@@ -303,6 +304,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         console.error('Error loading time entries:', error);
         return;
       }
+      
+      console.log('📊 Raw time entries from database:', data);
       
       const convertedTimeEntries = data?.map((entry: any) => ({
         id: entry.id,
@@ -319,10 +322,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         rejectionReason: entry.rejection_reason || undefined
       })) || [];
       
+      console.log('✅ Converted time entries:', convertedTimeEntries);
       setTimeEntries(convertedTimeEntries);
       
       // Find active time entry (one without end_time)
       const activeEntry = convertedTimeEntries.find(entry => !entry.endTime);
+      console.log('🎯 Found active entry:', activeEntry);
       setActiveTimeEntry(activeEntry || null);
     } catch (error) {
       console.error('Error loading time entries:', error);
@@ -1227,6 +1232,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     console.log('🚀 Starting new timer - Initial state:', {
       activeTimeEntry: activeTimeEntry?.id,
+      taskId,
+      projectId,
+      clientId,
       isTimerPaused,
       totalPausedTime,
       pausedAt
@@ -1249,7 +1257,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       status: 'pending'
     };
 
+    console.log('📝 New time entry to create:', newTimeEntry);
     await addTimeEntry(newTimeEntry);
+    console.log('⏳ Time entry created, now reloading all entries...');
     await loadTimeEntries(); // Reload to get the new active entry
     
     console.log('✅ New timer should be active now');
