@@ -87,27 +87,51 @@ export function TopBar() {
           
           {/* Quick Action Plus Button - FIXED VERSION */}
           
-          {/* Working button that bypasses DropdownMenu issues */}
-          <Button 
-            variant="default" 
-            size="icon" 
-            className="rounded-full bg-primary text-primary-foreground"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              console.log('🟢 PLUS BUTTON CLICKED SUCCESSFULLY');
-              setIsTimerDialogOpen(true);
-            }}
-            onMouseDown={(e) => {
-              console.log('🔽 Button mouse down detected');
-            }}
-            onMouseUp={(e) => {
-              console.log('🔼 Button mouse up detected');
-            }}
-          >
-            <Plus className="h-5 w-5" />
-            <span className="sr-only">Start Timer</span>
-          </Button>
+          {/* Quick Action Plus Button with React debugging */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="default" 
+                size="icon" 
+                className="rounded-full bg-primary text-primary-foreground"
+                onClick={(e) => {
+                  console.log('🟢 DROPDOWN TRIGGER CLICKED');
+                }}
+              >
+                <Plus className="h-5 w-5" />
+                <span className="sr-only">Quick Actions</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  console.log('🚀 START TIMER MENU ITEM CLICKED');
+                  setIsTimerDialogOpen(true);
+                }}
+              >
+                <Timer className="mr-2 h-4 w-4" />
+                Start Timer
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  console.log('📋 CREATE TASK MENU ITEM CLICKED');
+                  setIsTaskDialogOpen(true);
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create Task
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  console.log('📁 CREATE PROJECT MENU ITEM CLICKED');
+                  setIsProjectDialogOpen(true);
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create Project
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         
         <div className="flex items-center gap-4">
