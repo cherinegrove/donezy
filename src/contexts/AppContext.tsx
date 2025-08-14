@@ -1232,13 +1232,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       pausedAt
     });
     
-    // Don't stop existing timer - let TimerBox handle pausing logic
-    // Just clear the backend active timer state to ensure new timer can start
-    console.log('🔄 Clearing backend timer state for new timer (existing timer will be paused by TimerBox)');
-    setActiveTimeEntry(null);
-    setIsTimerPaused(false);
-    setPausedAt(null);
-    setTotalPausedTime(0);
+    // Don't clear activeTimeEntry immediately - let the new timer creation handle the transition
+    // This allows TimerBox to properly pause the existing timer before the new one takes over
+    console.log('🔄 Starting new timer (existing timer will be paused by TimerBox when new timer becomes active)');
 
     const startTime = new Date().toISOString();
     console.log('⏰ Creating new timer entry with start time:', startTime);
