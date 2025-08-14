@@ -73,10 +73,19 @@ export function StartTimerDialog({
     : [];
   
   const handleStartTimer = () => {
+    console.log('🎯 StartTimerDialog: handleStartTimer called with:', {
+      selectedClientId,
+      selectedProjectId,
+      selectedTaskId
+    });
+    
     if (selectedClientId) {
+      console.log('🚀 StartTimerDialog: Calling AppContext startTimeTracking...');
       startTimeTracking(selectedTaskId || undefined, selectedProjectId || undefined, selectedClientId);
       onStartTimer();
       onOpenChange(false);
+    } else {
+      console.error('❌ StartTimerDialog: No client selected!');
     }
   };
   
