@@ -25,7 +25,7 @@ import { TimerBox } from "@/components/time/TimerBox";
 import { getRoleName } from "@/utils/roleUtils";
 
 export function TopBar() {
-  const { currentUser, clients, customRoles } = useAppContext();
+  const { currentUser, clients, customRoles, activeTimeEntry } = useAppContext();
   const { theme, setTheme } = useTheme();
   const { toggleSidebar } = useSidebar();
   const [isTimerDialogOpen, setIsTimerDialogOpen] = useState(false);
@@ -100,6 +100,11 @@ export function TopBar() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => {
                 console.log('🔘 Plus button clicked - Start Timer option selected');
+                console.log('🔍 Current state before opening dialog:', {
+                  isTimerDialogOpen,
+                  hasActiveTimer: !!activeTimeEntry,
+                  activeTimerId: activeTimeEntry?.id
+                });
                 setIsTimerDialogOpen(true);
                 console.log('🔄 Timer dialog should now be open:', true);
               }}>
