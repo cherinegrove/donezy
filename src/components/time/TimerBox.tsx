@@ -141,8 +141,9 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         });
       }
     } else {
-      // No active time entry from backend - clear all timers
-      setTimers([]);
+      // No active time entry from backend - only clear if we have no local timers either
+      // This prevents clearing paused local timers when activeTimeEntry briefly becomes null
+      setTimers(prev => prev.filter(timer => timer.isLocalOnly));
     }
   }, [activeTimeEntry, tasks, projects, clients]);
 
