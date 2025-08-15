@@ -25,6 +25,13 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
     jobTitle: ""
   });
 
+  // Debug logging
+  console.log("🔍 TeamMemberInviteForm Debug:", {
+    isLoading,
+    formData,
+    currentUser: currentUser?.name || "No user"
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
@@ -112,9 +119,14 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => {
+                  console.log("🔍 TeamMember Name input change:", e.target.value);
+                  setFormData(prev => ({ ...prev, name: e.target.value }));
+                }}
                 placeholder="John Doe"
                 required
+                onFocus={() => console.log("🔍 TeamMember Name input focused")}
+                onBlur={() => console.log("🔍 TeamMember Name input blurred")}
               />
             </div>
             <div>
@@ -123,9 +135,14 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) => {
+                  console.log("🔍 TeamMember Email input change:", e.target.value);
+                  setFormData(prev => ({ ...prev, email: e.target.value }));
+                }}
                 placeholder="john@company.com"
                 required
+                onFocus={() => console.log("🔍 TeamMember Email input focused")}
+                onBlur={() => console.log("🔍 TeamMember Email input blurred")}
               />
             </div>
           </div>

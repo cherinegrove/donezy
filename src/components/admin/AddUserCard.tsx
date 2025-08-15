@@ -21,6 +21,14 @@ export function AddUserCard() {
     clientId: "",
   });
 
+  // Debug logging
+  console.log("🔍 AddUserCard Debug:", {
+    isAddingUser,
+    isAddingGuest,
+    formData,
+    clientsCount: clients?.length || 0
+  });
+
   const handleAddUser = async () => {
     if (!formData.name || !formData.email) {
       toast({
@@ -130,8 +138,13 @@ export function AddUserCard() {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => {
+                  console.log("🔍 Name input change:", e.target.value);
+                  setFormData({ ...formData, name: e.target.value });
+                }}
                 placeholder="Enter name"
+                onFocus={() => console.log("🔍 Name input focused")}
+                onBlur={() => console.log("🔍 Name input blurred")}
               />
             </div>
             <div className="space-y-2">
@@ -140,8 +153,13 @@ export function AddUserCard() {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => {
+                  console.log("🔍 Email input change:", e.target.value);
+                  setFormData({ ...formData, email: e.target.value });
+                }}
                 placeholder="Enter email"
+                onFocus={() => console.log("🔍 Email input focused")}
+                onBlur={() => console.log("🔍 Email input blurred")}
               />
             </div>
           </div>

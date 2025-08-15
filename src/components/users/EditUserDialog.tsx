@@ -19,6 +19,15 @@ interface EditUserDialogProps {
 export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   const { addUser, updateUser, teams, customRoles } = useAppContext();
   const { toast } = useToast();
+
+  // Debug logging
+  console.log("🔍 EditUserDialog Debug:", {
+    isOpen,
+    isEditing: !!user,
+    userName: user?.name || "No user (creating new)",
+    teamsCount: teams?.length || 0,
+    customRolesCount: customRoles?.length || 0
+  });
   
   // Fallback options when context data is empty
   const fallbackRoles = [
@@ -163,9 +172,15 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
               <Input
                 id="name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  console.log("🔍 EditUserDialog Name input change:", e.target.value);
+                  setName(e.target.value);
+                }}
                 placeholder="John Doe"
                 required
+                onFocus={() => console.log("🔍 EditUserDialog Name input focused")}
+                onBlur={() => console.log("🔍 EditUserDialog Name input blurred")}
+                onClick={() => console.log("🔍 EditUserDialog Name input clicked")}
               />
             </div>
             <div>
@@ -174,9 +189,15 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  console.log("🔍 EditUserDialog Email input change:", e.target.value);
+                  setEmail(e.target.value);
+                }}
                 placeholder="john@company.com"
                 required
+                onFocus={() => console.log("🔍 EditUserDialog Email input focused")}
+                onBlur={() => console.log("🔍 EditUserDialog Email input blurred")}
+                onClick={() => console.log("🔍 EditUserDialog Email input clicked")}
               />
             </div>
           </div>
