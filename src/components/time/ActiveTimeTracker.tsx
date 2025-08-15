@@ -86,6 +86,30 @@ export function ActiveTimeTracker() {
     };
   }, []);
 
+  // Also sync with activeTimeEntry to ensure we don't miss updates
+  useEffect(() => {
+    if (activeTimeEntry) {
+      // Add a small delay to let TimerBox process the change first
+      const timeout = setTimeout(() => {
+        const savedTimers = localStorage.getItem('activeTimers');
+        if (savedTimers) {
+          try {
+            const parsedTimers = JSON.parse(savedTimers).map((timer: any) => ({
+              ...timer,
+              startTime: new Date(timer.startTime),
+              pausedAt: timer.pausedAt ? new Date(timer.pausedAt) : undefined
+            }));
+            setTimers(parsedTimers);
+          } catch (error) {
+            console.error('Error loading timers from localStorage:', error);
+          }
+        }
+      }, 100); // Small delay to let TimerBox update first
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [activeTimeEntry]);
+
   // Don't manage activeTimeEntry sync here - let TimerBox handle it
   // and just read from localStorage
 
@@ -110,12 +134,7 @@ export function ActiveTimeTracker() {
     return () => clearInterval(interval);
   }, [activeTimeEntry, getElapsedTime]);
 
-  // Save timers to localStorage
-  useEffect(() => {
-    if (timers.length > 0) {
-      localStorage.setItem('activeTimers', JSON.stringify(timers));
-    }
-  }, [timers]);
+  // Don't save timers to localStorage - let TimerBox handle that
 
   const formatTime = (milliseconds: number): string => {
     const totalSeconds = Math.floor(milliseconds / 1000);
@@ -125,32 +144,61 @@ export function ActiveTimeTracker() {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const reloadTimersFromStorage = () => {
+    const savedTimers = localStorage.getItem('activeTimers');
+    if (savedTimers) {
+      try {
+        const parsedTimers = JSON.parse(savedTimers).map((timer: any) => ({
+          ...timer,
+          startTime: new Date(timer.startTime),
+          pausedAt: timer.pausedAt ? new Date(timer.pausedAt) : undefined
+        }));
+        setTimers(parsedTimers);
+      } catch (error) {
+        console.error('Error loading timers from localStorage:', error);
+      }
+    } else {
+      setTimers([]);
+    }
+  };
+
   const handlePauseTimer = (timer: TimerItem) => {
     if (timer.isLocalOnly) {
-      // Handle local timer pause/resume
-      setTimers(prev => prev.map(t => {
-        if (t.id === timer.id) {
-          if (t.isPaused) {
-            // Resume
-            const now = new Date();
-            const pauseDuration = t.pausedAt ? now.getTime() - t.pausedAt.getTime() : 0;
-            return {
-              ...t,
-              isPaused: false,
-              pausedAt: undefined,
-              totalPausedTime: (t.totalPausedTime || 0) + pauseDuration
-            };
-          } else {
-            // Pause
-            return {
-              ...t,
-              isPaused: true,
-              pausedAt: new Date()
-            };
-          }
+      // Update localStorage directly and reload
+      const savedTimers = localStorage.getItem('activeTimers');
+      if (savedTimers) {
+        try {
+          const parsedTimers = JSON.parse(savedTimers);
+          const updatedTimers = parsedTimers.map((t: any) => {
+            if (t.id === timer.id) {
+              if (t.isPaused) {
+                // Resume
+                const now = new Date();
+                const pauseDuration = t.pausedAt ? now.getTime() - new Date(t.pausedAt).getTime() : 0;
+                return {
+                  ...t,
+                  isPaused: false,
+                  pausedAt: null,
+                  totalPausedTime: (t.totalPausedTime || 0) + pauseDuration
+                };
+              } else {
+                // Pause
+                return {
+                  ...t,
+                  isPaused: true,
+                  pausedAt: new Date().toISOString()
+                };
+              }
+            }
+            return t;
+          });
+          localStorage.setItem('activeTimers', JSON.stringify(updatedTimers));
+          window.dispatchEvent(new CustomEvent('timersUpdated'));
+          reloadTimersFromStorage();
+        } catch (error) {
+          console.error('Error updating timer:', error);
         }
-        return t;
-      }));
+      }
     } else {
       // Handle backend timer pause/resume
       if (timer.isPaused) {
@@ -158,6 +206,7 @@ export function ActiveTimeTracker() {
       } else {
         pauseTimeTracking();
       }
+      // The backend action will trigger activeTimeEntry changes which will reload timers
     }
   };
 
@@ -170,13 +219,23 @@ export function ActiveTimeTracker() {
     if (!selectedTimer) return;
 
     if (selectedTimer.isLocalOnly) {
-      // For local timers, we might need to create a time entry
-      // For now, just remove it from the list
-      setTimers(prev => prev.filter(t => t.id !== selectedTimer.id));
+      // Remove from localStorage and reload
+      const savedTimers = localStorage.getItem('activeTimers');
+      if (savedTimers) {
+        try {
+          const parsedTimers = JSON.parse(savedTimers);
+          const updatedTimers = parsedTimers.filter((t: any) => t.id !== selectedTimer.id);
+          localStorage.setItem('activeTimers', JSON.stringify(updatedTimers));
+          window.dispatchEvent(new CustomEvent('timersUpdated'));
+          reloadTimersFromStorage();
+        } catch (error) {
+          console.error('Error removing timer:', error);
+        }
+      }
     } else {
       // For backend timers, use the context function
       stopTimeTracking(notes);
-      setTimers(prev => prev.filter(t => t.id !== selectedTimer.id));
+      // This will trigger activeTimeEntry changes which will reload timers
     }
 
     setStopDialogOpen(false);
@@ -186,10 +245,22 @@ export function ActiveTimeTracker() {
 
   const handleDeleteTimer = (timer: TimerItem) => {
     if (timer.isLocalOnly) {
-      setTimers(prev => prev.filter(t => t.id !== timer.id));
+      // Remove from localStorage and reload
+      const savedTimers = localStorage.getItem('activeTimers');
+      if (savedTimers) {
+        try {
+          const parsedTimers = JSON.parse(savedTimers);
+          const updatedTimers = parsedTimers.filter((t: any) => t.id !== timer.id);
+          localStorage.setItem('activeTimers', JSON.stringify(updatedTimers));
+          window.dispatchEvent(new CustomEvent('timersUpdated'));
+          reloadTimersFromStorage();
+        } catch (error) {
+          console.error('Error removing timer:', error);
+        }
+      }
     } else {
       deleteTimeEntry(timer.id);
-      setTimers(prev => prev.filter(t => t.id !== timer.id));
+      // This will trigger changes which will reload timers
     }
   };
 
