@@ -1322,8 +1322,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setPausedAt(null);
     console.log('✅ Timer resumed successfully');
   };
-    console.log('▶️ Timer resumed in AppContext');
-  };
 
   const getElapsedTime = (timeEntry: TimeEntry | null = activeTimeEntry): string => {
     if (!timeEntry) return "00:00:00";
