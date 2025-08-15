@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -1738,12 +1738,12 @@ export type Database = {
       get_account_limits: {
         Args: { account_user_id: string }
         Returns: {
-          max_users: number
-          max_guests: number
-          current_users: number
-          current_guests: number
-          can_add_user: boolean
           can_add_guest: boolean
+          can_add_user: boolean
+          current_guests: number
+          current_users: number
+          max_guests: number
+          max_users: number
         }[]
       }
       get_current_user_organization: {
@@ -1752,25 +1752,25 @@ export type Database = {
       }
       has_system_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["system_role_type"]
+          _user_id: string
         }
         Returns: boolean
       }
       log_support_action: {
         Args: {
           _action: string
-          _target_user_id?: string
           _details?: Json
           _ip_address?: unknown
+          _target_user_id?: string
         }
         Returns: undefined
       }
       track_usage: {
         Args: {
-          resource_type_param: string
-          resource_id_param?: string
           amount_param?: number
+          resource_id_param?: string
+          resource_type_param: string
           user_uuid?: string
         }
         Returns: undefined
