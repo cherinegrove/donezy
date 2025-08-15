@@ -80,6 +80,13 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       const project = projects.find(p => p.id === task?.projectId);
       const client = clients.find(c => c.id === activeTimeEntry.clientId);
       
+      console.log('TimerBox - Timer creation debug:', {
+        activeTimeEntryClientId: activeTimeEntry.clientId,
+        clientsLength: clients.length,
+        foundClient: client,
+        clientName: client?.name
+      });
+      
       // Check if we already have this timer locally
       const existingTimer = timers.find(t => t.id === activeTimeEntry.id);
       
