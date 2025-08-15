@@ -675,10 +675,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
+      // Generate a unique auth_user_id for this user
+      const authUserId = crypto.randomUUID();
+      
       const { data, error } = await supabase
         .from('users')
         .insert({
-          auth_user_id: session.user.id,
+          auth_user_id: authUserId,
           name: user.name,
           email: user.email,
           avatar: user.avatar,
