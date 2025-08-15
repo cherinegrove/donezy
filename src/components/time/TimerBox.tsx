@@ -39,31 +39,10 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
 
   // Load timers from localStorage on mount and clean duplicates
   useEffect(() => {
-    const savedTimers = localStorage.getItem('activeTimers');
-    if (savedTimers) {
-      const parsedTimers = JSON.parse(savedTimers).map((timer: any) => ({
-        ...timer,
-        startTime: new Date(timer.startTime),
-        pausedAt: timer.pausedAt ? new Date(timer.pausedAt) : undefined,
-        isLocalOnly: timer.isLocalOnly || false
-      }));
-      
-      // Remove duplicates by ID and keep the latest one
-      const uniqueTimers = parsedTimers.reduce((acc: TimerItem[], timer: TimerItem) => {
-        const existingIndex = acc.findIndex(t => t.id === timer.id);
-        if (existingIndex === -1) {
-          acc.push(timer);
-        } else {
-          // Keep the one with the more recent start time
-          if (timer.startTime > acc[existingIndex].startTime) {
-            acc[existingIndex] = timer;
-          }
-        }
-        return acc;
-      }, []);
-      
-      setTimers(uniqueTimers);
-    }
+    console.log('🧹 TimerBox: Clearing old localStorage timers on mount');
+    // Clear old localStorage timers completely to start fresh
+    localStorage.removeItem('activeTimers');
+    setTimers([]);
   }, []);
 
   // Save timers to localStorage whenever timers change - ensure no duplicates

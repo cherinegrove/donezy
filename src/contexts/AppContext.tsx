@@ -1244,9 +1244,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       pausedAt
     });
     
-    // Don't clear activeTimeEntry immediately - let the new timer creation handle the transition
-    // This allows TimerBox to properly pause the existing timer before the new one takes over
-    console.log('🔄 Starting new timer (existing timer will be paused by TimerBox when new timer becomes active)');
+    // FIRST: Stop any existing timer before starting a new one
+    if (activeTimeEntry) {
+      console.log('🛑 Stopping existing timer before starting new one');
+      await stopTimeTracking('Auto-stopped when starting new timer');
+    }
+    
+    // Clear any paused state
+    setIsTimerPaused(false);
+    setPausedAt(null);
+    setTotalPausedTime(0);
+    
+    console.log('🔄 Creating new timer entry...');
 
     const startTime = new Date().toISOString();
     console.log('⏰ Creating new timer entry with start time:', startTime);
