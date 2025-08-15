@@ -329,10 +329,52 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.log('✅ Converted time entries:', convertedTimeEntries);
       setTimeEntries(convertedTimeEntries);
       
-      // Find active time entry (one without end_time)
-      const activeEntry = convertedTimeEntries.find(entry => !entry.endTime);
-      console.log('🎯 Found active entry:', activeEntry);
-      setActiveTimeEntry(activeEntry || null);
+      // Cleanup: Find and fix multiple active timers for current user
+      const activeEntries = convertedTimeEntries.filter(entry => 
+        !entry.endTime && entry.userId === currentUser?.id
+      );
+      
+      console.log('🎯 Found active entries for current user:', activeEntries);
+      
+      if (activeEntries.length > 1) {
+        console.warn('⚠️ Multiple active timers found! Cleaning up...');
+        // Keep the most recent one, stop the others
+        const sortedActive = activeEntries.sort((a, b) => 
+          new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+        );
+        const keepTimer = sortedActive[0];
+        const stopTimers = sortedActive.slice(1);
+        
+        // Stop the older timers
+        for (const timer of stopTimers) {
+          console.log('🛑 Auto-stopping old timer:', timer.id);
+          const duration = Math.floor((Date.now() - new Date(timer.startTime).getTime()) / (1000 * 60));
+          
+          const { error: stopError } = await supabase
+            .from('time_entries')
+            .update({
+              end_time: new Date().toISOString(),
+              duration: Math.max(1, duration)
+            })
+            .eq('id', timer.id);
+          
+          if (stopError) {
+            console.error('Error stopping duplicate timer:', stopError);
+          }
+        }
+        
+        setActiveTimeEntry(keepTimer);
+        console.log('✅ Cleanup complete. Active timer:', keepTimer.id);
+        
+        // Reload to get updated data
+        setTimeout(() => loadTimeEntries(), 1000);
+      } else if (activeEntries.length === 1) {
+        setActiveTimeEntry(activeEntries[0]);
+        console.log('✅ Single active timer found:', activeEntries[0].id);
+      } else {
+        setActiveTimeEntry(null);
+        console.log('✅ No active timers found');
+      }
     } catch (error) {
       console.error('Error loading time entries:', error);
     }
@@ -1248,10 +1290,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       pausedAt
     });
     
-    // FIRST: Stop any existing timer before starting a new one
+    // CRITICAL: Stop ALL active timers for this user before starting new one
+    console.log('🛑 Stopping all existing active timers for user...');
+    
+    // Stop active timer via state management
     if (activeTimeEntry) {
-      console.log('🛑 Stopping existing timer before starting new one');
       await stopTimeTracking('Auto-stopped when starting new timer');
+    }
+    
+    // Also stop any other active timers directly in database (failsafe)
+    const { error: stopAllError } = await supabase
+      .from('time_entries')
+      .update({
+        end_time: new Date().toISOString(),
+        duration: 1
+      })
+      .eq('user_id', currentUser.id)
+      .is('end_time', null);
+    
+    if (stopAllError) {
+      console.error('Error stopping existing timers:', stopAllError);
     }
     
     // Clear any paused state
