@@ -190,7 +190,10 @@ export function TopBar() {
       <StartTimerDialog 
         open={isTimerDialogOpen} 
         onOpenChange={setIsTimerDialogOpen}
-        onStartTimer={() => {}}
+        onStartTimer={() => {
+          console.log('✅ Timer started from TopBar');
+          setIsTimerDialogOpen(false);
+        }}
       />
       
       <CreateProjectDialog

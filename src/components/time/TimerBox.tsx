@@ -190,33 +190,40 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     const timer = timers.find(t => t.id === timerId);
     if (!timer) return;
 
-    console.log('handlePauseTimer - timer:', timer);
+    console.log('🎯 TimerBox handlePauseTimer - timer:', timer);
 
-    // Always handle pause/resume locally, regardless of whether it's a backend timer
-    // This allows true pause/resume functionality without stopping the backend timer
-    if (timer.isActive && !timer.isPaused) {
-      // PAUSE: Update local state only, keep backend timer running in background
-      console.log('Pausing timer locally');
-      setTimers(prev => prev.map(t => t.id === timerId ? {
-        ...t,
-        isPaused: true,
-        pausedAt: new Date(),
-        isActive: false
-      } : t));
-    } else if (timer.isPaused) {
-      // RESUME: Update local state only, sync back with backend timer
-      console.log('Resuming timer locally');
-      
-      // Calculate pause duration and adjust elapsed time
-      const pauseDuration = timer.pausedAt ? Date.now() - timer.pausedAt.getTime() : 0;
-      
-      setTimers(prev => prev.map(t => ({
-        ...t,
-        isActive: t.id === timerId,
-        isPaused: t.id === timerId ? false : t.isPaused,
-        pausedAt: t.id === timerId ? undefined : t.pausedAt,
-        totalPausedTime: t.id === timerId ? (t.totalPausedTime || 0) + pauseDuration : t.totalPausedTime
-      })));
+    // For backend timers (activeTimeEntry), call AppContext functions
+    if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
+      if (timer.isActive && !timer.isPaused && !isTimerPaused) {
+        console.log('🔄 Pausing backend timer via AppContext');
+        pauseTimeTracking();
+      } else if ((timer.isPaused || isTimerPaused)) {
+        console.log('🔄 Resuming backend timer via AppContext');
+        resumeTimeTracking();
+      }
+    } else {
+      // For local-only timers, handle locally
+      if (timer.isActive && !timer.isPaused) {
+        console.log('⏸️ Pausing local timer');
+        setTimers(prev => prev.map(t => t.id === timerId ? {
+          ...t,
+          isPaused: true,
+          pausedAt: new Date(),
+          isActive: false
+        } : t));
+      } else if (timer.isPaused) {
+        console.log('▶️ Resuming local timer');
+        
+        const pauseDuration = timer.pausedAt ? Date.now() - timer.pausedAt.getTime() : 0;
+        
+        setTimers(prev => prev.map(t => ({
+          ...t,
+          isActive: t.id === timerId,
+          isPaused: t.id === timerId ? false : t.isPaused,
+          pausedAt: t.id === timerId ? undefined : t.pausedAt,
+          totalPausedTime: t.id === timerId ? (t.totalPausedTime || 0) + pauseDuration : t.totalPausedTime
+        })));
+      }
     }
   };
 
