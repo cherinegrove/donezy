@@ -67,6 +67,9 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     }
     
     localStorage.setItem('activeTimers', JSON.stringify(uniqueTimers));
+    
+    // Notify other components that timers have been updated
+    window.dispatchEvent(new CustomEvent('timersUpdated'));
   }, [timers]);
 
   // Handle activeTimeEntry from backend (only for truly new timers started elsewhere)

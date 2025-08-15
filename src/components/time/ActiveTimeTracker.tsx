@@ -42,68 +42,52 @@ export function ActiveTimeTracker() {
   const [selectedTimer, setSelectedTimer] = useState<TimerItem | null>(null);
   const [notes, setNotes] = useState("");
 
-  // Load timers from localStorage on mount
+  // Load timers from localStorage on mount and keep in sync
   useEffect(() => {
-    const savedTimers = localStorage.getItem('activeTimers');
-    if (savedTimers) {
-      try {
-        const parsedTimers = JSON.parse(savedTimers).map((timer: any) => ({
-          ...timer,
-          startTime: new Date(timer.startTime),
-          pausedAt: timer.pausedAt ? new Date(timer.pausedAt) : undefined
-        }));
-        setTimers(parsedTimers);
-      } catch (error) {
-        console.error('Error loading timers from localStorage:', error);
+    const loadTimers = () => {
+      const savedTimers = localStorage.getItem('activeTimers');
+      if (savedTimers) {
+        try {
+          const parsedTimers = JSON.parse(savedTimers).map((timer: any) => ({
+            ...timer,
+            startTime: new Date(timer.startTime),
+            pausedAt: timer.pausedAt ? new Date(timer.pausedAt) : undefined
+          }));
+          setTimers(parsedTimers);
+        } catch (error) {
+          console.error('Error loading timers from localStorage:', error);
+        }
+      } else {
+        setTimers([]);
       }
-    }
+    };
+
+    // Load initially
+    loadTimers();
+
+    // Listen for localStorage changes (from TimerBox updates)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'activeTimers') {
+        loadTimers();
+      }
+    };
+
+    // Listen for custom events from TimerBox
+    const handleTimerUpdate = () => {
+      loadTimers();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('timersUpdated', handleTimerUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('timersUpdated', handleTimerUpdate);
+    };
   }, []);
 
-  // Sync with activeTimeEntry from backend
-  useEffect(() => {
-    if (activeTimeEntry) {
-      const task = tasks.find(t => t.id === activeTimeEntry.taskId);
-      const project = projects.find(p => p.id === task?.projectId);
-      const client = clients.find(c => c.id === activeTimeEntry.clientId);
-      
-      const existingTimer = timers.find(t => t.id === activeTimeEntry.id);
-      
-      if (!existingTimer) {
-        const now = new Date();
-        const timerItem: TimerItem = {
-          id: activeTimeEntry.id,
-          taskId: activeTimeEntry.taskId,
-          taskTitle: task?.title || `Task (${activeTimeEntry.taskId.slice(0, 8)}...)`,
-          projectName: project?.name,
-          clientName: client?.name,
-          startTime: now,
-          elapsed: 0,
-          isPaused: false,
-          totalPausedTime: 0,
-          isActive: true,
-          isLocalOnly: false
-        };
-        
-        // Convert existing backend timers to local paused timers
-        setTimers(prev => {
-          const updatedTimers = prev.map(existingTimer => {
-            if (!existingTimer.isLocalOnly) {
-              return {
-                ...existingTimer,
-                isActive: false,
-                isPaused: true,
-                pausedAt: new Date(),
-                isLocalOnly: true
-              };
-            }
-            return existingTimer;
-          });
-          
-          return [...updatedTimers, timerItem];
-        });
-      }
-    }
-  }, [activeTimeEntry, tasks, projects, clients]);
+  // Don't manage activeTimeEntry sync here - let TimerBox handle it
+  // and just read from localStorage
 
   // Update elapsed time for all timers
   useEffect(() => {
