@@ -95,12 +95,18 @@ export function StartTimerDialog({
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
       console.log('🔄 StartTimerDialog: open state changing from', open, 'to', newOpen);
+      if (newOpen) {
+        console.log('📊 StartTimerDialog: Available clients:', clients.length, clients.map(c => c.name));
+        console.log('📋 Can start timer:', canStartTimer, 'Selected client:', selectedClientId);
+      }
       onOpenChange(newOpen);
     }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Start Time Tracking</DialogTitle>
-          <DialogDescription>Select a client to start tracking time</DialogDescription>
+          <DialogDescription>
+            {clients.length === 0 ? 'No clients available - create a client first' : 'Select a client to start tracking time'}
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
