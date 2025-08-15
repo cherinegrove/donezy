@@ -137,7 +137,15 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
   // Checks if current user can approve/decline a time entry
   const canApproveTimeEntry = () => {
     // Only admins can approve/decline time entries
-    return currentUser && (currentUser.roleId === 'admin' || customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin');
+    const isAdmin = currentUser && (currentUser.roleId === 'admin' || customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin');
+    console.log("🔍 TimeEntryTable canApproveTimeEntry:", {
+      currentUser: currentUser?.name,
+      currentUserRole: currentUser?.roleId,
+      customRoles: customRoles?.map(r => ({ id: r.id, name: r.name })),
+      isAdmin,
+      hasCurrentUser: !!currentUser
+    });
+    return isAdmin;
   };
 
   const handleApproveTimeEntry = (entry: TimeEntry, billable: boolean = true) => {
@@ -239,6 +247,18 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-background border z-50">
+                          {(() => {
+                            const canApprove = canApproveTimeEntry();
+                            const isPending = entry.status === 'pending';
+                            console.log("🔍 TimeEntryTable dropdown debug:", {
+                              entryId: entry.id,
+                              entryStatus: entry.status,
+                              canApprove,
+                              isPending,
+                              showApproveOptions: canApprove && isPending
+                            });
+                            return null;
+                          })()}
                           {canApproveTimeEntry() && entry.status === 'pending' && (
                             <>
                               <DropdownMenuItem 
