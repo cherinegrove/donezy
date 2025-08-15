@@ -359,10 +359,10 @@ const TimeTracking = () => {
   };
 
   // Timer control handlers using AppContext
-  const handlePauseTimer = () => {
+  const handlePauseTimer = async () => {
     console.log('🔸 TimeTracking: Pause/Resume clicked');
     if (isTimerPaused) {
-      resumeTimeTracking();
+      await resumeTimeTracking();
       console.log('▶️ Timer resumed');
     } else {
       pauseTimeTracking();

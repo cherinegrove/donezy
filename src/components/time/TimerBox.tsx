@@ -185,7 +185,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  const handlePauseTimer = (timerId: string) => {
+  const handlePauseTimer = async (timerId: string) => {
     const timer = timers.find(t => t.id === timerId);
     if (!timer) return;
 
@@ -198,7 +198,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         pauseTimeTracking();
       } else if ((timer.isPaused || isTimerPaused)) {
         console.log('🔄 Resuming backend timer via AppContext');
-        resumeTimeTracking();
+        await resumeTimeTracking();
       }
     } else {
       // For local-only timers, handle locally

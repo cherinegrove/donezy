@@ -94,7 +94,7 @@ export interface AppContextType {
   startTimeTracking: (taskId: string, projectId?: string, clientId?: string) => void;
   stopTimeTracking: (notes?: string) => void;
   pauseTimeTracking: () => void;
-  resumeTimeTracking: () => void;
+  resumeTimeTracking: () => Promise<void>;
   getElapsedTime: (timeEntry?: TimeEntry | null) => string;
   updateTimeEntryStatus: (timeEntryId: string, status: string, reason?: string) => void;
   

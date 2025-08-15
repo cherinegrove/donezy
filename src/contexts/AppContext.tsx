@@ -1370,10 +1370,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('⏸️ Timer paused in AppContext');
   };
 
-  const resumeTimeTracking = () => {
+  const resumeTimeTracking = async () => {
     if (!activeTimeEntry || !isTimerPaused || !pausedAt) return;
     
     console.log('▶️ Resuming paused timer:', activeTimeEntry.id);
+    
+    // CRITICAL: Stop any other active timers before resuming this one
+    const { error: stopOthersError } = await supabase
+      .from('time_entries')
+      .update({
+        end_time: new Date().toISOString(),
+        duration: 1
+      })
+      .eq('user_id', currentUser?.id)
+      .is('end_time', null)
+      .neq('id', activeTimeEntry.id);
+    
+    if (stopOthersError) {
+      console.error('Error stopping other active timers:', stopOthersError);
+    }
+    
     const pauseDuration = Date.now() - pausedAt.getTime();
     setTotalPausedTime(prev => prev + pauseDuration);
     setIsTimerPaused(false);
