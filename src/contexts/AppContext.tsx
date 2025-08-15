@@ -1163,6 +1163,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           rejectionReason: data.rejection_reason || undefined
         };
         setTimeEntries(prev => [...prev, newTimeEntry]);
+        return newTimeEntry;
       }
     } catch (error) {
       console.error('Error adding time entry:', error);
@@ -1314,10 +1315,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const resumeTimeTracking = () => {
     if (!activeTimeEntry || !isTimerPaused || !pausedAt) return;
     
+    console.log('▶️ Resuming paused timer:', activeTimeEntry.id);
     const pauseDuration = Date.now() - pausedAt.getTime();
     setTotalPausedTime(prev => prev + pauseDuration);
     setIsTimerPaused(false);
     setPausedAt(null);
+    console.log('✅ Timer resumed successfully');
+  };
     console.log('▶️ Timer resumed in AppContext');
   };
 
