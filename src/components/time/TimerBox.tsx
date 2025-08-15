@@ -89,42 +89,43 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       const project = projects.find(p => p.id === task?.projectId);
       const client = clients.find(c => c.id === activeTimeEntry.clientId);
       
-      console.log('TimerBox - Timer creation debug:', {
-        activeTimeEntryClientId: activeTimeEntry.clientId,
-        clientsLength: clients.length,
-        foundClient: client,
-        clientName: client?.name
-      });
-      
-      // Check if we already have this timer locally
-      const existingTimer = timers.find(t => t.id === activeTimeEntry.id);
-      
-      if (!existingTimer) {
-        // Check if this is a timer we just created
-        const isNewTimer = newlyCreatedTimerId === activeTimeEntry.id;
-        const now = new Date();
-        const dbStartTime = new Date(activeTimeEntry.startTime);
+        console.log('TimerBox - Timer creation debug:', {
+          activeTimeEntryClientId: activeTimeEntry.clientId,
+          clientsLength: clients.length,
+          foundClient: client,
+          clientName: client?.name
+        });
         
-        const timerItem: TimerItem = {
-          id: activeTimeEntry.id,
-          taskId: activeTimeEntry.taskId,
-          taskTitle: task?.title || `Task (${activeTimeEntry.taskId.slice(0, 8)}...)`,
-          projectName: project?.name,
-          clientName: client?.name,
-          startTime: now,
-          elapsed: isNewTimer ? 0 : Math.max(0, now.getTime() - dbStartTime.getTime()),
-          isPaused: false,
-          totalPausedTime: 0,
-          isActive: true,
-          isLocalOnly: false // This came from the backend
-        };
+        // Check if we already have this timer locally
+        const existingTimer = timers.find(t => t.id === activeTimeEntry.id);
         
-        // Clear the newly created timer ID since we've processed it
-        if (isNewTimer) {
-          setNewlyCreatedTimerId(null);
-        }
-        
-        console.log('TimerBox - creating new timer from backend:', timerItem);
+        if (!existingTimer) {
+          // Check if this is a timer we just created
+          const isNewTimer = newlyCreatedTimerId === activeTimeEntry.id;
+          const now = new Date();
+          const dbStartTime = new Date(activeTimeEntry.startTime);
+          
+          const timerItem: TimerItem = {
+            id: activeTimeEntry.id,
+            taskId: activeTimeEntry.taskId,
+            taskTitle: task?.title || `Task (${activeTimeEntry.taskId.slice(0, 8)}...)`,
+            projectName: project?.name,
+            clientName: client?.name,
+            startTime: now,
+            elapsed: isNewTimer ? 0 : Math.max(0, now.getTime() - dbStartTime.getTime()),
+            isPaused: false,
+            totalPausedTime: 0,
+            isActive: true,
+            isLocalOnly: false // This came from the backend
+          };
+          
+          // Clear the newly created timer ID since we've processed it
+          if (isNewTimer) {
+            setNewlyCreatedTimerId(null);
+          }
+          
+          console.log('TimerBox - creating new timer from backend:', timerItem);
+          console.log('TimerBox - current timers before adding:', timers.map(t => ({ id: t.id, taskTitle: t.taskTitle, clientName: t.clientName })));
         
         // Convert existing backend timers to local paused timers, but keep existing local timers as-is
         setTimers(prev => {
