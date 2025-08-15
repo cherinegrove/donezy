@@ -314,7 +314,7 @@ const TimeTracking = () => {
     if (entry.userId === currentUser?.id) return true;
     
     // Admins can edit any entry
-    if (customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin') return true;
+    if (currentUser && customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin') return true;
     
     return false;
   };
