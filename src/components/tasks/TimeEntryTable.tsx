@@ -11,9 +11,17 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Clock } from "lucide-react";
+import { Edit, Trash2, Clock, MoreHorizontal, CheckCircle, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { TimeEntry, TimeEntryStatus } from "@/types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 interface TimeEntryTableProps {
   taskId?: string;
@@ -23,7 +31,8 @@ interface TimeEntryTableProps {
 }
 
 export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = false }: TimeEntryTableProps) {
-  const { timeEntries, deleteTimeEntry, updateTimeEntryStatus, tasks, projects, clients, users, activeTimeEntry } = useAppContext();
+  const { timeEntries, deleteTimeEntry, updateTimeEntryStatus, tasks, projects, clients, users, activeTimeEntry, currentUser, customRoles } = useAppContext();
+  const { toast } = useToast();
 
   let filteredEntries = timeEntries;
   
@@ -114,6 +123,46 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
     return activeTimeEntry && entry.id === activeTimeEntry.id;
   };
 
+  // Checks if current user can edit a time entry
+  const canEditTimeEntry = (entry: TimeEntry) => {
+    // Users can edit their own entries
+    if (entry.userId === currentUser?.id) return true;
+    
+    // Admins can edit any entry
+    if (currentUser && (currentUser.roleId === 'admin' || customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin')) return true;
+    
+    return false;
+  };
+
+  // Checks if current user can approve/decline a time entry
+  const canApproveTimeEntry = () => {
+    // Only admins can approve/decline time entries
+    return currentUser && (currentUser.roleId === 'admin' || customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin');
+  };
+
+  const handleApproveTimeEntry = (entry: TimeEntry, billable: boolean = true) => {
+    if (!currentUser) return;
+    
+    const status = billable ? "approved-billable" : "approved-non-billable";
+    updateTimeEntryStatus(entry.id, status, currentUser.id);
+    
+    toast({
+      title: "Time Entry Approved",
+      description: `The time entry has been marked as ${billable ? 'billable' : 'non-billable'}.`,
+    });
+  };
+  
+  const handleDeclineTimeEntry = (entry: TimeEntry) => {
+    if (!currentUser) return;
+    
+    updateTimeEntryStatus(entry.id, "declined", currentUser.id);
+    
+    toast({
+      title: "Time Entry Declined",
+      description: "The time entry has been declined.",
+    });
+  };
+
   if (sortedEntries.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -182,18 +231,57 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
                 <TableCell>
                   <div className="flex items-center gap-2">
                     {!isActive && (
-                      <>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => deleteTimeEntry(entry.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-background border z-50">
+                          {canApproveTimeEntry() && entry.status === 'pending' && (
+                            <>
+                              <DropdownMenuItem 
+                                onClick={() => handleApproveTimeEntry(entry, true)}
+                                className="text-green-600 focus:text-green-600"
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                <span>Approve (Billable)</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleApproveTimeEntry(entry, false)}
+                                className="text-blue-600 focus:text-blue-600"
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                <span>Approve (Non-billable)</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleDeclineTimeEntry(entry)}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <XCircle className="mr-2 h-4 w-4" />
+                                <span>Decline</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
+                          {canEditTimeEntry(entry) && (
+                            <DropdownMenuItem>
+                              <Edit className="mr-2 h-4 w-4" />
+                              <span>Edit Time Entry</span>
+                            </DropdownMenuItem>
+                          )}
+                          {canEditTimeEntry(entry) && (
+                            <DropdownMenuItem 
+                              onClick={() => deleteTimeEntry(entry.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              <span>Delete</span>
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                     {isActive && (
                       <span className="text-xs text-muted-foreground">Timer running</span>
