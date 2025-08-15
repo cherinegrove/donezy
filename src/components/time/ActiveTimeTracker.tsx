@@ -7,13 +7,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function ActiveTimeTracker() {
-  const { activeTimeEntry, stopTimeTracking, deleteTimeEntry, tasks, getElapsedTime } = useAppContext();
+  const { activeTimeEntry, stopTimeTracking, deleteTimeEntry, tasks, projects, clients, getElapsedTime } = useAppContext();
   const [elapsed, setElapsed] = useState<string>("00:00:00");
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [notes, setNotes] = useState("");
   
   const activeTask = activeTimeEntry 
     ? tasks.find(task => task.id === activeTimeEntry.taskId) 
+    : null;
+  
+  const activeProject = activeTask 
+    ? projects.find(project => project.id === activeTask.projectId)
+    : null;
+    
+  const activeClient = activeTimeEntry 
+    ? clients.find(client => client.id === activeTimeEntry.clientId)
     : null;
   
   useEffect(() => {
@@ -61,7 +69,15 @@ export function ActiveTimeTracker() {
           <span className="mr-2 text-sm font-medium text-green-800 dark:text-green-400">
             Currently tracking:
           </span>
-          <span className="text-sm font-medium">{activeTask?.title}</span>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium">{activeTask?.title}</span>
+            {activeProject && (
+              <span className="text-xs text-green-600 dark:text-green-400">{activeProject.name}</span>
+            )}
+            {activeClient && (
+              <span className="text-xs text-green-600/80 dark:text-green-400/80">Client: {activeClient.name}</span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-base font-mono font-bold">{elapsed}</div>
