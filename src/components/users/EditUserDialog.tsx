@@ -157,8 +157,17 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={isOpen} onOpenChange={onClose} modal={true}>
+      <DialogContent 
+        className="sm:max-w-[425px]"
+        onOpenAutoFocus={(e) => {
+          console.log("🔍 Dialog auto focus event");
+          // Don't prevent default - let it focus naturally
+        }}
+        onPointerDownOutside={(e) => {
+          console.log("🔍 Dialog pointer down outside");
+        }}
+      >
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Edit User" : "Add New User"}
@@ -174,6 +183,13 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                 value={name}
                 onChange={(e) => {
                   console.log("🔍 EditUserDialog Name input change:", e.target.value);
+                  console.log("🔍 Input event details:", {
+                    target: e.target,
+                    type: e.type,
+                    currentTarget: e.currentTarget,
+                    disabled: e.target.disabled,
+                    readOnly: e.target.readOnly
+                  });
                   setName(e.target.value);
                 }}
                 placeholder="John Doe"
@@ -182,6 +198,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                 onBlur={() => console.log("🔍 EditUserDialog Name input blurred")}
                 onClick={() => console.log("🔍 EditUserDialog Name input clicked")}
                 onMouseEnter={() => console.log("🔍 EditUserDialog Name input mouse enter")}
+                onKeyDown={(e) => console.log("🔍 Key pressed:", e.key, "Input value:", e.currentTarget.value)}
               />
             </div>
             <div>
