@@ -158,7 +158,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] z-50 relative">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Edit User" : "Add New User"}
@@ -178,9 +178,13 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                 }}
                 placeholder="John Doe"
                 required
+                style={{ pointerEvents: 'auto', zIndex: 1 }}
+                className="relative z-10"
                 onFocus={() => console.log("🔍 EditUserDialog Name input focused")}
                 onBlur={() => console.log("🔍 EditUserDialog Name input blurred")}
                 onClick={() => console.log("🔍 EditUserDialog Name input clicked")}
+                onMouseEnter={() => console.log("🔍 EditUserDialog Name input mouse enter")}
+                disabled={false}
               />
             </div>
             <div>
@@ -195,9 +199,13 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                 }}
                 placeholder="john@company.com"
                 required
+                style={{ pointerEvents: 'auto', zIndex: 1 }}
+                className="relative z-10"
                 onFocus={() => console.log("🔍 EditUserDialog Email input focused")}
                 onBlur={() => console.log("🔍 EditUserDialog Email input blurred")}
                 onClick={() => console.log("🔍 EditUserDialog Email input clicked")}
+                onMouseEnter={() => console.log("🔍 EditUserDialog Email input mouse enter")}
+                disabled={false}
               />
             </div>
           </div>
