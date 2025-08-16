@@ -233,6 +233,20 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           isActive: true,
           totalPausedTime: (t.totalPausedTime || 0) + pauseDuration
         } : t));
+      } else if (!timer.isLocalOnly && timer.isPaused) {
+        // This timer claims to be a backend timer but it's not the current activeTimeEntry
+        // Convert it to a local timer and start it
+        console.log('🔄 Converting orphaned backend timer to local and starting');
+        const pauseDuration = timer.pausedAt ? Date.now() - timer.pausedAt.getTime() : 0;
+        
+        setTimers(prev => prev.map(t => t.id === timerId ? {
+          ...t,
+          isPaused: false,
+          pausedAt: undefined,
+          isActive: true,
+          isLocalOnly: true, // Convert to local
+          totalPausedTime: (t.totalPausedTime || 0) + pauseDuration
+        } : t));
       }
     } else if (timer.isActive && !timer.isPaused) {
       // Pausing an active timer
