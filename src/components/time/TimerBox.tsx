@@ -201,6 +201,13 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         await resumeTimeTracking();
       }
     } else {
+      // For local-only timers, first pause any currently running backend timer
+      if (timer.isPaused && activeTimeEntry && !isTimerPaused) {
+        console.log('⏸️ First pausing current backend timer before resuming local timer');
+        pauseTimeTracking();
+      }
+      
+      // Then handle the local timer
       // For local-only timers, handle locally
       if (timer.isActive && !timer.isPaused) {
         console.log('⏸️ Pausing local timer');
