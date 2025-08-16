@@ -127,25 +127,14 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           console.log('TimerBox - creating new timer from backend:', timerItem);
           console.log('TimerBox - current timers before adding:', timers.map(t => ({ id: t.id, taskTitle: t.taskTitle, clientName: t.clientName })));
         
-        // Convert existing backend timers to local paused timers, but keep existing local timers as-is
+        // Remove any existing backend timers since we can only have one active timer
         setTimers(prev => {
-          const updatedTimers = prev.map(existingTimer => {
-            // If this is a backend timer (not local-only), convert it to local paused
-            if (!existingTimer.isLocalOnly) {
-              console.log('Converting backend timer to local paused:', existingTimer.id);
-              return {
-                ...existingTimer,
-                isActive: false,
-                isPaused: true,
-                pausedAt: new Date(),
-                isLocalOnly: true // Convert to local-only when paused
-              };
-            }
-            // Keep local timers as-is (they might already be paused)
-            return existingTimer;
-          });
+          // Keep only local-only timers that are truly local (not converted from backend)
+          const localOnlyTimers = prev.filter(timer => timer.isLocalOnly);
           
-          return [...updatedTimers, timerItem];
+          console.log('Removing old backend timers, keeping local timers:', localOnlyTimers.length);
+          
+          return [...localOnlyTimers, timerItem];
         });
       }
     }
