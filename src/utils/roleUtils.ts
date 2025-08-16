@@ -31,7 +31,13 @@ export const hasPermission = (user: User, roles: CustomRole[], feature: string, 
 
 export const getRoleName = (user: User, roles: CustomRole[]): string => {
   const role = getUserRole(user, roles);
-  return role?.name || 'Unknown Role';
+  if (role?.name) return role.name;
+  
+  // Fallback for direct role strings
+  if (user.roleId === 'admin') return 'Super Admin';
+  if (user.roleId === 'user') return 'User';
+  
+  return 'Unknown Role';
 };
 
 export const canManageUsers = (user: User, roles: CustomRole[]): boolean => {

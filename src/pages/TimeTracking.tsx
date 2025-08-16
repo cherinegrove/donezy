@@ -323,8 +323,14 @@ const TimeTracking = () => {
 
   // Checks if current user can approve/decline a time entry
   const canApproveTimeEntry = () => {
-    // Only admins can approve/decline time entries
-    return currentUser && customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin';
+    if (!currentUser) return false;
+    
+    // Check for direct admin role
+    if (currentUser.roleId === 'admin') return true;
+    
+    // Check for custom role with Admin name
+    const userRole = customRoles.find(r => r.id === currentUser.roleId);
+    return userRole?.name === 'Admin';
   };
   
   const handleEditTimeEntry = (entry: TimeEntry) => {
