@@ -402,16 +402,16 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                          variant="ghost"
                          size="sm"
                          onClick={() => handlePauseTimer(timer.id)}
-                         className={cn(
-                           "h-8 w-8 p-0",
-                           (timer.isPaused || (!timer.isLocalOnly && isTimerPaused)) ? "text-green-600 hover:text-green-700" : "text-yellow-600 hover:text-yellow-700"
-                         )}
-                       >
-                         {(timer.isPaused || (!timer.isLocalOnly && isTimerPaused)) ? (
-                           <Play className="h-4 w-4" />
-                         ) : (
-                           <Pause className="h-4 w-4" />
-                         )}
+                          className={cn(
+                            "h-8 w-8 p-0",
+                            (!timer.isActive || timer.isPaused || (!timer.isLocalOnly && isTimerPaused)) ? "text-green-600 hover:text-green-700" : "text-yellow-600 hover:text-yellow-700"
+                          )}
+                        >
+                          {(!timer.isActive || timer.isPaused || (!timer.isLocalOnly && isTimerPaused)) ? (
+                            <Play className="h-4 w-4" />
+                          ) : (
+                            <Pause className="h-4 w-4" />
+                          )}
                       </Button>
                       
                       <Button
