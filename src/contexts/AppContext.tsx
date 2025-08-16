@@ -1375,20 +1375,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     console.log('▶️ Resuming paused timer:', activeTimeEntry.id);
     
-    // CRITICAL: Stop any other active timers before resuming this one
-    const { error: stopOthersError } = await supabase
-      .from('time_entries')
-      .update({
-        end_time: new Date().toISOString(),
-        duration: 1
-      })
-      .eq('user_id', currentUser?.id)
-      .is('end_time', null)
-      .neq('id', activeTimeEntry.id);
-    
-    if (stopOthersError) {
-      console.error('Error stopping other active timers:', stopOthersError);
-    }
+    // Note: We don't stop other timers here anymore - only users should stop timers
+    // If there are other active timers, they should be handled by the UI layer
     
     const pauseDuration = Date.now() - pausedAt.getTime();
     setTotalPausedTime(prev => prev + pauseDuration);
