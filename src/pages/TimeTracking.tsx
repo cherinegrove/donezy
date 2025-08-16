@@ -206,16 +206,18 @@ const TimeTracking = () => {
   // Active timer for the Active tab
   const activeTimer = getActiveTimer();
   
-  // Generate monthly report data grouped by client
+  // Generate monthly report data grouped by client - only approved timers
   const getMonthlyDataByClient = () => {
     const [year, month] = selectedMonth.split('-').map(Number);
     const startDate = startOfMonth(new Date(year, month - 1));
     const endDate = endOfMonth(new Date(year, month - 1));
     
-    // Get entries for the selected month
+    // Get entries for the selected month - only approved timers
     const monthEntries = timeEntries.filter(entry => {
       const entryDate = new Date(entry.startTime);
-      return entryDate >= startDate && entryDate <= endDate;
+      const isInMonth = entryDate >= startDate && entryDate <= endDate;
+      const isApproved = entry.status === 'approved-billable' || entry.status === 'approved-non-billable';
+      return isInMonth && isApproved;
     });
     
     // Group entries by client first
@@ -446,14 +448,19 @@ const TimeTracking = () => {
         <TabsContent value="active" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Active Timer</CardTitle>
+              <CardTitle>Active Timer List</CardTitle>
+              <p className="text-sm text-muted-foreground">All unsaved timers (running and paused)</p>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {activeTimer ? (
+                {/* Backend Active Timer */}
+                {activeTimer && (
                   <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
                     <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-green-600 dark:text-green-400 animate-pulse" />
+                      <Clock className={cn(
+                        "h-5 w-5 text-green-600 dark:text-green-400",
+                        !isTimerPaused && "animate-pulse"
+                      )} />
                       <div>
                         <h3 className="font-medium text-green-800 dark:text-green-200">
                           {activeTimer.task?.title || "Unknown Task"}
@@ -463,6 +470,7 @@ const TimeTracking = () => {
                         </p>
                         <p className="text-xs text-green-500 dark:text-green-500">
                           Started: {format(new Date(activeTimer.timeEntry.startTime), "HH:mm")}
+                          {isTimerPaused && " • PAUSED"}
                         </p>
                       </div>
                     </div>
@@ -516,10 +524,15 @@ const TimeTracking = () => {
                        </div>
                     </div>
                   </div>
-                ) : (
+                )}
+
+                {/* TODO: Add local timers from TimerBox here */}
+                {/* This would require integrating with the TimerBox component or shared state */}
+                
+                {!activeTimer && (
                   <div className="text-center py-8 text-muted-foreground">
                     <Clock className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p className="text-lg">No active timer</p>
+                    <p className="text-lg">No active timers</p>
                     <p className="text-sm">Start a timer from a task or project to track your time</p>
                   </div>
                 )}
@@ -717,7 +730,10 @@ const TimeTracking = () => {
         <TabsContent value="reports" className="space-y-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Monthly Time Summary by Client</CardTitle>
+              <div>
+                <CardTitle>Monthly Summary - Approved Time Only</CardTitle>
+                <p className="text-sm text-muted-foreground">Shows only approved billable and non-billable time entries</p>
+              </div>
               <Select
                 value={selectedMonth}
                 onValueChange={setSelectedMonth}
