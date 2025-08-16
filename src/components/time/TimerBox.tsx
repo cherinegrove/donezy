@@ -219,6 +219,16 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       }));
       
       // Now handle the specific timer
+      console.log('🔄 Determining how to resume timer:', {
+        timerId: timer.id,
+        isLocalOnly: timer.isLocalOnly,
+        isPaused: timer.isPaused,
+        activeTimeEntryId: activeTimeEntry?.id,
+        isBackendTimer: !timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id,
+        isLocalTimer: timer.isLocalOnly && timer.isPaused,
+        isOrphanedBackendTimer: !timer.isLocalOnly && timer.isPaused && (!activeTimeEntry || timer.id !== activeTimeEntry.id)
+      });
+
       if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
         console.log('🔄 Resuming backend timer via AppContext');
         await resumeTimeTracking();
@@ -247,6 +257,8 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           isLocalOnly: true, // Convert to local
           totalPausedTime: (t.totalPausedTime || 0) + pauseDuration
         } : t));
+      } else {
+        console.error('❌ Unhandled timer resume scenario:', timer);
       }
     } else if (timer.isActive && !timer.isPaused) {
       // Pausing an active timer
