@@ -411,7 +411,10 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                        <Button
                          variant="ghost"
                          size="sm"
-                         onClick={() => handlePauseTimer(timer.id)}
+                         onClick={() => {
+                           console.log('🖱️ Button clicked for timer:', timer.id.slice(0, 8), timer.clientName);
+                           handlePauseTimer(timer.id);
+                         }}
                           className={cn(
                             "h-8 w-8 p-0",
                             (!timer.isActive || timer.isPaused || (!timer.isLocalOnly && isTimerPaused)) ? "text-green-600 hover:text-green-700" : "text-yellow-600 hover:text-yellow-700"
