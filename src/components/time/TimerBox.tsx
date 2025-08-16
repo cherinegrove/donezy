@@ -202,6 +202,21 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       if (activeTimeEntry && !isTimerPaused) {
         console.log('⏸️ Pausing backend timer before resuming selected timer');
         pauseTimeTracking();
+        
+        // Also update the local state of the backend timer to reflect it's now paused
+        setTimers(prev => prev.map(t => {
+          if (!t.isLocalOnly && t.id === activeTimeEntry.id) {
+            console.log('⏸️ Updating local state of paused backend timer:', t.id);
+            return {
+              ...t,
+              isPaused: true,
+              pausedAt: new Date(),
+              isActive: false,
+              isLocalOnly: true // Convert to local since it's no longer the active backend timer
+            };
+          }
+          return t;
+        }));
       }
       
       // Pause any active local timers
