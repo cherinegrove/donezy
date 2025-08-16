@@ -655,37 +655,60 @@ const TimeTracking = () => {
                                 {entry.endTime ? format(new Date(entry.endTime), " HH:mm") : " now"}
                               </div>
                               
-                              {canEditTimeEntry(entry) && (
+                              {/* Always show dropdown if user can edit OR approve */}
+                              {(canEditTimeEntry(entry) || canApproveTimeEntry()) && (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      className="h-8 w-8 p-0 bg-background border border-border hover:bg-accent"
+                                    >
                                       <ChevronDown className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleEditTimeEntry(entry)}>
-                                      Edit Time Entry
-                                    </DropdownMenuItem>
+                                  <DropdownMenuContent 
+                                    align="end" 
+                                    className="w-56 bg-background border border-border shadow-lg z-50"
+                                  >
+                                    {canEditTimeEntry(entry) && (
+                                      <DropdownMenuItem onClick={() => handleEditTimeEntry(entry)}>
+                                        <Edit className="h-4 w-4 mr-2" />
+                                        Edit Time Entry
+                                      </DropdownMenuItem>
+                                    )}
+                                    
                                     {canApproveTimeEntry() && entry.status === 'pending' && (
                                       <>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem 
-                                          className="text-green-600 dark:text-green-400"
+                                          className="text-green-600 dark:text-green-400 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-900/20"
                                           onClick={() => handleApproveTimeEntry(entry, true)}
                                         >
-                                          Approve (Billable)
+                                          ✓ Approve (Billable)
                                         </DropdownMenuItem>
                                         <DropdownMenuItem 
-                                          className="text-blue-600 dark:text-blue-400"
+                                          className="text-blue-600 dark:text-blue-400 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-900/20"
                                           onClick={() => handleApproveTimeEntry(entry, false)}
                                         >
-                                          Approve (Non-billable)
+                                          ✓ Approve (Non-billable)
                                         </DropdownMenuItem>
                                         <DropdownMenuItem 
-                                          className="text-red-600 dark:text-red-400"
+                                          className="text-red-600 dark:text-red-400 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
                                           onClick={() => handleDeclineTimeEntry(entry)}
                                         >
-                                          Decline
+                                          ✗ Decline
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                    
+                                    {canApproveTimeEntry() && entry.status !== 'pending' && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem disabled>
+                                          Status: {entry.status === 'approved-billable' ? 'Approved (Billable)' : 
+                                                  entry.status === 'approved-non-billable' ? 'Approved (Non-billable)' : 
+                                                  entry.status === 'declined' ? 'Declined' : entry.status}
                                         </DropdownMenuItem>
                                       </>
                                     )}
