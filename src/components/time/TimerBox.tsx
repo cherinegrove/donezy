@@ -367,7 +367,17 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                 <p className="text-sm text-muted-foreground">Start a timer from the + menu</p>
               </div>
             ) : (
-              timers.map((timer) => (
+              timers.map((timer) => {
+                console.log('🖼️ Rendering timer:', {
+                  id: timer.id.slice(0, 8),
+                  clientName: timer.clientName,
+                  isActive: timer.isActive,
+                  isPaused: timer.isPaused,
+                  isLocalOnly: timer.isLocalOnly,
+                  shouldShowPlay: !timer.isActive || timer.isPaused || (!timer.isLocalOnly && isTimerPaused),
+                  backendIsTimerPaused: isTimerPaused
+                });
+                return (
                 <div key={timer.id} className="space-y-3">
                   <div className="flex items-start justify-between p-3 rounded-lg border bg-card">
                     <div className="flex-1 min-w-0">
@@ -434,7 +444,8 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                     </div>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </CardContent>
         </Card>
