@@ -188,7 +188,12 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                     type: e.type,
                     currentTarget: e.currentTarget,
                     disabled: e.target.disabled,
-                    readOnly: e.target.readOnly
+                    readOnly: e.target.readOnly,
+                    computedStyle: window.getComputedStyle(e.target),
+                    parentElement: e.target.parentElement?.tagName,
+                    inputValue: e.target.value,
+                    selectionStart: e.target.selectionStart,
+                    selectionEnd: e.target.selectionEnd
                   });
                   setName(e.target.value);
                 }}
