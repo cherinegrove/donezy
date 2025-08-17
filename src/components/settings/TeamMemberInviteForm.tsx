@@ -64,7 +64,7 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
         return;
       }
 
-      // Add the user to the system
+      // Add the user to the system without auth_user_id (indicating pending invite)
       await addUser({
         name: formData.name,
         email: formData.email,
@@ -74,7 +74,9 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
         teamIds: [],
         currency: "USD",
         employmentType: "full-time",
-        billingType: "hourly"
+        billingType: "hourly",
+        // Don't set auth_user_id - this indicates the invite is pending
+        status: 'active' // Will show as "invite sent" due to missing auth_user_id
       });
 
       toast({

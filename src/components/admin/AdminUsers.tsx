@@ -77,12 +77,23 @@ export default function AdminUsers() {
     }
   };
 
-  const getStatusColor = (status?: string) => {
+  const getUserStatus = (user: User) => {
+    // If user has auth_user_id, they have accepted invite and created account
+    if (user.auth_user_id) {
+      return user.status === 'inactive' ? 'inactive' : 'active';
+    }
+    // If user exists but no auth_user_id, invite was sent but not accepted
+    return 'invite sent';
+  };
+
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       case 'inactive':
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case 'invite sent':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
     }
@@ -145,8 +156,8 @@ export default function AdminUsers() {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge className={getStatusColor(user.status)}>
-                    {user.status || 'active'}
+                  <Badge className={getStatusColor(getUserStatus(user))}>
+                    {getUserStatus(user)}
                   </Badge>
                 </TableCell>
                 <TableCell>

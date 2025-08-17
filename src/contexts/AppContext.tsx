@@ -110,6 +110,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const convertDbUserToUser = (dbUser: any): User => {
     return {
       id: dbUser.id,
+      auth_user_id: dbUser.auth_user_id || undefined,
       name: dbUser.name,
       email: dbUser.email,
       avatar: dbUser.avatar || undefined,
