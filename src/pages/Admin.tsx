@@ -185,66 +185,24 @@ const Admin = () => {
 
         <TabsContent value="account-settings" className="space-y-6">
           <div className="space-y-6">
-            <Accordion type="multiple" defaultValue={["task-management", "project-management", "account-settings"]} className="space-y-4">
-              
-              {/* Task Management Section */}
-              <AccordionItem value="task-management" className="border rounded-lg">
-                <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                  <div className="flex items-center gap-3">
-                    <CheckSquare className="h-5 w-5 text-primary" />
-                    <div className="text-left">
-                      <h3 className="font-semibold">Task Management</h3>
-                      <p className="text-sm text-muted-foreground">Configure task statuses, templates, and custom fields</p>
-                    </div>
+            <div className="border rounded-lg">
+              <div className="px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <Settings className="h-5 w-5 text-primary" />
+                  <div className="text-left">
+                    <h3 className="font-semibold">Account Settings</h3>
+                    <p className="text-sm text-muted-foreground">Manage custom fields and global system settings</p>
                   </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-6 pb-6">
-                  <div className="space-y-6">
-                    <TaskStatusManager />
-                    <TaskTemplateManager />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* Project Management Section */}
-              <AccordionItem value="project-management" className="border rounded-lg">
-                <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                  <div className="flex items-center gap-3">
-                    <Folder className="h-5 w-5 text-primary" />
-                    <div className="text-left">
-                      <h3 className="font-semibold">Project Management</h3>
-                      <p className="text-sm text-muted-foreground">Configure project statuses and settings</p>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-6 pb-6">
-                  <div className="space-y-6">
-                    <ProjectStatusManager />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* Account Settings Section */}
-              <AccordionItem value="account-settings" className="border rounded-lg">
-                <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                  <div className="flex items-center gap-3">
-                    <Settings className="h-5 w-5 text-primary" />
-                    <div className="text-left">
-                      <h3 className="font-semibold">Account Settings</h3>
-                      <p className="text-sm text-muted-foreground">Manage custom fields and global system settings</p>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-6 pb-6">
-                  <div className="space-y-6">
-                    <CustomFieldsManager />
-                    <NativeFieldsManager />
-                    <SystemPreferences />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-              
-            </Accordion>
+                </div>
+              </div>
+              <div className="px-6 pb-6">
+                <div className="space-y-6">
+                  <CustomFieldsManager />
+                  <NativeFieldsManager />
+                  <SystemPreferences />
+                </div>
+              </div>
+            </div>
           </div>
         </TabsContent>
       </Tabs>
