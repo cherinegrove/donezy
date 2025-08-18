@@ -1437,6 +1437,21 @@ export type Database = {
           },
         ]
       }
+      test: {
+        Row: {
+          created_at: string
+          id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+        }
+        Relationships: []
+      }
       time_entries: {
         Row: {
           auth_user_id: string
