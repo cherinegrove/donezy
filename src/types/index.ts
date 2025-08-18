@@ -6,6 +6,7 @@ export interface User {
   avatar?: string;
   roleId: string; // References either built-in role or custom role
   status?: 'active' | 'inactive';
+  organizationId?: string;
   teamIds?: string[];
   jobTitle?: string;
   clientId?: string;

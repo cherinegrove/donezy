@@ -115,6 +115,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       email: dbUser.email,
       avatar: dbUser.avatar || undefined,
       roleId: dbUser.role_id || dbUser.role || "user-role",
+      organizationId: dbUser.organization_id || undefined,
       teamIds: dbUser.team_ids || [],
       jobTitle: dbUser.job_title || undefined,
       clientId: dbUser.client_id || undefined,
@@ -745,7 +746,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           notification_preferences: user.notificationPreferences ? JSON.stringify(user.notificationPreferences) : null,
           is_guest: user.is_guest,
           guest_of_user_id: user.guest_of_user_id,
-          guest_permissions: user.guest_permissions ? JSON.stringify(user.guest_permissions) : null
+          guest_permissions: user.guest_permissions ? JSON.stringify(user.guest_permissions) : null,
+          organization_id: currentUser?.organizationId // Assign new users to the current user's organization
         })
         .select()
         .single();
