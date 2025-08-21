@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, UserPlus, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export function AddUserCard() {
   const { addUser, clients } = useAppContext();
@@ -114,14 +115,29 @@ export function AddUserCard() {
   };
 
   const sendInvitationEmail = async (email: string, name: string, type: "user" | "guest") => {
-    // This would integrate with your email service (like Resend via Supabase Edge Functions)
-    console.log(`Sending ${type} invitation to ${email} for ${name}`);
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // In a real implementation, you would call your email service here
-    // Example: await supabase.functions.invoke('send-invitation', { email, name, type });
+    try {
+      console.log(`Sending ${type} invitation to ${email} for ${name}`);
+      
+      const { data, error } = await supabase.functions.invoke('send-invite-email', {
+        body: {
+          email,
+          name,
+          type,
+          subject: `You've been invited to join our platform as a ${type}`,
+        }
+      });
+
+      if (error) {
+        console.error('Error sending invitation email:', error);
+        throw error;
+      }
+
+      console.log('Invitation email sent successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('Failed to send invitation email:', error);
+      throw error;
+    }
   };
 
   if (isAddingUser) {
