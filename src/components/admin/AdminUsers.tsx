@@ -42,13 +42,11 @@ export default function AdminUsers() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deleteDialogUser, setDeleteDialogUser] = useState<User | null>(null);
 
-  // Filter users based on search term and exclude current user
+  // Filter users based on search term (show all users including current user)
   const filteredUsers = users.filter(user => 
-    user.id !== currentUser?.id && (
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getRoleName(user, customRoles).toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getRoleName(user, customRoles).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleEditUser = (user: User) => {
