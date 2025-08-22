@@ -721,13 +721,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
-      // Generate a unique auth_user_id for this user
-      const authUserId = crypto.randomUUID();
-      
+      // For new user invitations, don't set auth_user_id yet - they'll get it when they sign up
       const { data, error } = await supabase
         .from('users')
         .insert({
-          auth_user_id: authUserId,
+          auth_user_id: null, // Set to null for invited users
           name: user.name,
           email: user.email,
           avatar: user.avatar,
@@ -762,6 +760,29 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (data) {
         const newUser = convertDbUserToUser(data);
         setUsers(prev => [...prev, newUser]);
+        
+        // Send invitation email
+        try {
+          const inviteLink = `${window.location.origin}/signup?invite=${encodeURIComponent(user.email)}`;
+          
+          const { error: emailError } = await supabase.functions.invoke('send-invite-email', {
+            body: {
+              email: user.email,
+              name: user.name,
+              inviterName: currentUser?.name || 'Team Admin',
+              inviteLink: inviteLink,
+              type: 'user'
+            }
+          });
+
+          if (emailError) {
+            console.error('Error sending invitation email:', emailError);
+          } else {
+            console.log('Invitation email sent successfully to:', user.email);
+          }
+        } catch (emailErr) {
+          console.error('Error sending invitation email:', emailErr);
+        }
       }
     } catch (error) {
       console.error('Error adding user:', error);
