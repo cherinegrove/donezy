@@ -1709,6 +1709,93 @@ export type Database = {
           },
         ]
       }
+      users_email_duplicates: {
+        Row: {
+          auth_user_id: string | null
+          avatar: string | null
+          billing_rate: number | null
+          billing_type: string | null
+          client_id: string | null
+          client_role: string | null
+          created_at: string | null
+          currency: string | null
+          email: string | null
+          employment_type: string | null
+          guest_of_user_id: string | null
+          guest_permissions: Json | null
+          hourly_rate: number | null
+          id: string | null
+          is_guest: boolean | null
+          job_title: string | null
+          manager_id: string | null
+          monthly_rate: number | null
+          name: string | null
+          notification_preferences: Json | null
+          organization_id: string | null
+          permissions: Json | null
+          phone: string | null
+          role: string | null
+          team_ids: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          auth_user_id?: string | null
+          avatar?: string | null
+          billing_rate?: number | null
+          billing_type?: string | null
+          client_id?: string | null
+          client_role?: string | null
+          created_at?: string | null
+          currency?: string | null
+          email?: string | null
+          employment_type?: string | null
+          guest_of_user_id?: string | null
+          guest_permissions?: Json | null
+          hourly_rate?: number | null
+          id?: string | null
+          is_guest?: boolean | null
+          job_title?: string | null
+          manager_id?: string | null
+          monthly_rate?: number | null
+          name?: string | null
+          notification_preferences?: Json | null
+          organization_id?: string | null
+          permissions?: Json | null
+          phone?: string | null
+          role?: string | null
+          team_ids?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          auth_user_id?: string | null
+          avatar?: string | null
+          billing_rate?: number | null
+          billing_type?: string | null
+          client_id?: string | null
+          client_role?: string | null
+          created_at?: string | null
+          currency?: string | null
+          email?: string | null
+          employment_type?: string | null
+          guest_of_user_id?: string | null
+          guest_permissions?: Json | null
+          hourly_rate?: number | null
+          id?: string | null
+          is_guest?: boolean | null
+          job_title?: string | null
+          manager_id?: string | null
+          monthly_rate?: number | null
+          name?: string | null
+          notification_preferences?: Json | null
+          organization_id?: string | null
+          permissions?: Json | null
+          phone?: string | null
+          role?: string | null
+          team_ids?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       video_folders: {
         Row: {
           created_at: string
