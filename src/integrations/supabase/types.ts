@@ -1024,7 +1024,7 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "users"
-            referencedColumns: ["id"]
+            referencedColumns: ["auth_user_id"]
           },
         ]
       }
@@ -1616,7 +1616,7 @@ export type Database = {
       }
       users: {
         Row: {
-          auth_user_id: string | null
+          auth_user_id: string
           avatar: string | null
           billing_rate: number | null
           billing_type: string | null
@@ -1629,7 +1629,6 @@ export type Database = {
           guest_of_user_id: string | null
           guest_permissions: Json | null
           hourly_rate: number | null
-          id: string
           is_guest: boolean | null
           job_title: string | null
           manager_id: string | null
@@ -1644,7 +1643,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          auth_user_id?: string | null
+          auth_user_id: string
           avatar?: string | null
           billing_rate?: number | null
           billing_type?: string | null
@@ -1657,7 +1656,6 @@ export type Database = {
           guest_of_user_id?: string | null
           guest_permissions?: Json | null
           hourly_rate?: number | null
-          id?: string
           is_guest?: boolean | null
           job_title?: string | null
           manager_id?: string | null
@@ -1672,7 +1670,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          auth_user_id?: string | null
+          auth_user_id?: string
           avatar?: string | null
           billing_rate?: number | null
           billing_type?: string | null
@@ -1685,7 +1683,6 @@ export type Database = {
           guest_of_user_id?: string | null
           guest_permissions?: Json | null
           hourly_rate?: number | null
-          id?: string
           is_guest?: boolean | null
           job_title?: string | null
           manager_id?: string | null
