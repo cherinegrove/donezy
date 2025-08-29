@@ -125,8 +125,8 @@ export function ChannelMessageComposer({
       setContent(newText);
       
       // Add user to mentioned users list
-      if (!mentionedUsers.includes(user.id)) {
-        setMentionedUsers([...mentionedUsers, user.id]);
+      if (!mentionedUsers.includes(user.auth_user_id)) {
+        setMentionedUsers([...mentionedUsers, user.auth_user_id]);
       }
       
       // Focus and set cursor position after the mention
@@ -144,7 +144,7 @@ export function ChannelMessageComposer({
     setMentionQuery("");
   };
 
-  const otherUsers = users.filter(user => user.id !== currentUser?.id);
+  const otherUsers = users.filter(user => user.auth_user_id !== currentUser?.auth_user_id);
 
   return (
     <div className="relative">
@@ -188,7 +188,7 @@ export function ChannelMessageComposer({
       {mentionedUsers.length > 0 && (
         <div className="mt-2 text-xs text-muted-foreground">
           Mentioning: {mentionedUsers.map(userId => {
-            const user = users.find(u => u.id === userId);
+            const user = users.find(u => u.auth_user_id === userId);
             return user?.name;
           }).join(', ')}
         </div>

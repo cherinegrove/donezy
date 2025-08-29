@@ -41,13 +41,13 @@ export function SubscriptionManager() {
     if (!currentUser) return;
     
     try {
-      console.log('Fetching subscription for user:', currentUser.id);
+      console.log('Fetching subscription for user:', currentUser.auth_user_id);
       
       // First try to get existing subscription
       const { data, error } = await supabase
         .from('account_subscriptions')
         .select('*')
-        .eq('user_id', currentUser.id)
+        .eq('user_id', currentUser.auth_user_id)
         .maybeSingle();
       
       if (error) {
@@ -69,7 +69,7 @@ export function SubscriptionManager() {
         console.log('No subscription found, creating default subscription');
         
         const defaultSubscription = {
-          user_id: currentUser.id,
+          user_id: currentUser.auth_user_id,
           plan_type: 'free',
           max_users: 1,
           max_guests: 1,
@@ -113,7 +113,7 @@ export function SubscriptionManager() {
     
     try {
       const { data, error } = await supabase.rpc('get_account_limits', {
-        account_user_id: currentUser.id
+        account_user_id: currentUser.auth_user_id
       });
       
       if (error) throw error;
@@ -143,7 +143,7 @@ export function SubscriptionManager() {
           monthly_cost: 25.00, // Base paid plan cost
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', currentUser.id);
+        .eq('user_id', currentUser.auth_user_id);
 
       if (error) throw error;
 
@@ -182,7 +182,7 @@ export function SubscriptionManager() {
           monthly_cost: newCost,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', currentUser.id);
+        .eq('user_id', currentUser.auth_user_id);
 
       if (error) throw error;
 
@@ -231,7 +231,7 @@ export function SubscriptionManager() {
           monthly_cost: newCost,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', currentUser.id);
+        .eq('user_id', currentUser.auth_user_id);
 
       if (error) throw error;
 
@@ -270,7 +270,7 @@ export function SubscriptionManager() {
           monthly_cost: newCost,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', currentUser.id);
+        .eq('user_id', currentUser.auth_user_id);
 
       if (error) throw error;
 
@@ -320,7 +320,7 @@ export function SubscriptionManager() {
           monthly_cost: newCost,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', currentUser.id);
+        .eq('user_id', currentUser.auth_user_id);
 
       if (error) throw error;
 

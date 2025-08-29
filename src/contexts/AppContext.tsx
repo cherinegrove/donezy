@@ -109,8 +109,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Helper function to convert database users to User type
   const convertDbUserToUser = (dbUser: any): User => {
     return {
-      id: dbUser.id,
-      auth_user_id: dbUser.auth_user_id || undefined,
+      id: dbUser.auth_user_id, // Use auth_user_id as the id
+      auth_user_id: dbUser.auth_user_id,
       name: dbUser.name,
       email: dbUser.email,
       avatar: dbUser.avatar || undefined,
@@ -164,7 +164,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const sessionUserDb = data?.find((dbUser: any) => dbUser.auth_user_id === session.user.id);
       console.log('🔍 Looking for user with auth_user_id:', session.user.id);
       console.log('🔍 Available DB users:', data?.map((dbUser: any) => ({ 
-        id: dbUser.id, 
         auth_user_id: dbUser.auth_user_id, 
         email: dbUser.email, 
         name: dbUser.name 
@@ -333,7 +332,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       // Cleanup: Find and fix multiple active timers for current user
       const activeEntries = convertedTimeEntries.filter(entry => 
-        !entry.endTime && entry.userId === currentUser?.id
+        !entry.endTime && entry.userId === currentUser?.auth_user_id
       );
       
       console.log('🎯 Found active entries for current user:', activeEntries);
@@ -820,7 +819,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const { error } = await supabase
         .from('users')
         .update(dbUpdates)
-        .eq('id', userId);
+        .eq('auth_user_id', userId);
 
       if (error) {
         console.error('Error updating user:', error);
@@ -842,7 +841,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const { error } = await supabase
         .from('users')
         .delete()
-        .eq('id', userId);
+        .eq('auth_user_id', userId);
 
       if (error) {
         console.error('Error deleting user:', error);

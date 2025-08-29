@@ -88,6 +88,7 @@ export const mockCustomRoles: CustomRole[] = [
 export const mockUsers: User[] = [
   {
     id: "user-1",
+    auth_user_id: "user-1",
     name: "Alex Johnson",
     email: "alex@manex.com",
     avatar: "/placeholder.svg",
@@ -96,7 +97,8 @@ export const mockUsers: User[] = [
     teamIds: ["team-1"],
   },
   {
-    id: "user-2",
+    id: "user-2", 
+    auth_user_id: "user-2",
     name: "Sam Davis",
     email: "sam@manex.com",
     avatar: "/placeholder.svg",
@@ -106,6 +108,7 @@ export const mockUsers: User[] = [
   },
   {
     id: "user-3",
+    auth_user_id: "user-3",
     name: "Taylor Wilson",
     email: "taylor@manex.com",
     avatar: "/placeholder.svg",

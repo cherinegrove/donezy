@@ -90,38 +90,11 @@ export function SignupForm() {
       if (authData.user) {
         console.log("Supabase signup success for:", authData.user.email);
         
-        // Update the profiles table in Supabase
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: authData.user.id,
-            display_name: values.name,
-            role: 'admin', // Set as admin in profiles
-            email: values.email,
-            avatar_url: `https://i.pravatar.cc/300?img=${Math.floor(Math.random() * 70)}`
-          }, { onConflict: 'id' });
+        // Note: profiles table doesn't exist in current schema
+        // User will be created automatically via the handle_new_user trigger
         
-        if (profileError) {
-          console.error("Error updating user profile:", profileError);
-        }
-
-        // Create user record in the users table with admin role
-        const { error: userError } = await supabase
-          .from('users')
-          .insert({
-            auth_user_id: authData.user.id,
-            name: values.name,
-            email: values.email,
-            role: 'admin', // Set as admin in users table
-            avatar: `https://i.pravatar.cc/300?img=${Math.floor(Math.random() * 70)}`,
-            team_ids: [],
-            currency: 'USD'
-          });
-
-        if (userError) {
-          console.error("Error creating user record:", userError);
-          // Don't throw here, as the auth user was created successfully
-        }
+        // User record will be created automatically via the handle_new_user trigger
+        console.log("User record will be created automatically via trigger");
 
         // If email confirmation is disabled or user is already confirmed
         if (authData.session) {

@@ -61,7 +61,7 @@ export default function AdminUsers() {
 
   const handleToggleStatus = (user: User) => {
     const newStatus = user.status === 'active' ? 'inactive' : 'active';
-    updateUser(user.id, { status: newStatus });
+    updateUser(user.auth_user_id, { status: newStatus });
   };
 
   const handleDeleteUser = (user: User) => {
@@ -70,7 +70,7 @@ export default function AdminUsers() {
 
   const confirmDelete = () => {
     if (deleteDialogUser) {
-      deleteUser(deleteDialogUser.id);
+      deleteUser(deleteDialogUser.auth_user_id);
       setDeleteDialogUser(null);
     }
   };
@@ -132,7 +132,7 @@ export default function AdminUsers() {
           </TableHeader>
           <TableBody>
             {filteredUsers.map((user) => (
-              <TableRow key={user.id}>
+              <TableRow key={user.auth_user_id}>
                 <TableCell>
                   <div className="flex items-center space-x-3">
                     <Avatar>

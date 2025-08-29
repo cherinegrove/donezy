@@ -119,7 +119,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
 
       // Enrich with user data and process reply counts
       const enrichedMessages = data?.map(message => {
-        const sender = users.find(u => u.id === message.from_user_id);
+        const sender = users.find(u => u.auth_user_id === message.from_user_id);
         const enriched = {
           ...message,
           mentioned_users: message.mentioned_users || [],
@@ -145,7 +145,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
     if (users.length > 0 && messages.length > 0) {
       console.log('Users loaded, re-enriching messages');
       const enrichedMessages = messages.map(message => {
-        const sender = users.find(u => u.id === message.from_user_id);
+        const sender = users.find(u => u.auth_user_id === message.from_user_id);
         return {
           ...message,
           sender_name: sender?.name || message.from_user_id || 'Unknown User',
@@ -170,15 +170,15 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
       content, 
       mentionedUsers, 
       channelId, 
-      userId: currentUser.id,
-      sessionUserId: session.user.id 
+      userId: currentUser.auth_user_id,
+      sessionUserId: session.user.id
     });
 
     try {
       const messageData = {
         channel_id: channelId,
-        from_user_id: currentUser.id,
-        to_user_id: currentUser.id,
+        from_user_id: currentUser.auth_user_id,
+        to_user_id: currentUser.auth_user_id,
         subject: 'Channel Message',
         content,
         mentioned_users: mentionedUsers,
@@ -209,7 +209,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
           .from('messages')
           .select('id')
           .eq('channel_id', channelId)
-          .eq('from_user_id', currentUser.id)
+          .eq('from_user_id', currentUser.auth_user_id)
           .order('timestamp', { ascending: false })
           .limit(1)
           .single();
@@ -233,7 +233,7 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
     
     // Replace @mentions with styled spans
     mentionedUsers.forEach(userId => {
-      const user = users.find(u => u.id === userId);
+      const user = users.find(u => u.auth_user_id === userId);
       if (user) {
         const mentionRegex = new RegExp(`@${user.name}`, 'g');
         formattedContent = formattedContent.replace(

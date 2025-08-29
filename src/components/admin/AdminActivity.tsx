@@ -48,15 +48,15 @@ const generateMockActivity = (
   // Generate login activities
   users.forEach(user => {
     activities.push({
-      id: `login-${user.id}-1`,
-      userId: user.id,
+      id: `login-${user.auth_user_id}-1`,
+      userId: user.auth_user_id,
       type: 'login',
       details: 'User logged in',
       timestamp: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)).toISOString()
     });
     activities.push({
-      id: `logout-${user.id}-1`,
-      userId: user.id,
+      id: `logout-${user.auth_user_id}-1`,
+      userId: user.auth_user_id,
       type: 'logout',
       details: 'User logged out',
       timestamp: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)).toISOString()
@@ -149,7 +149,7 @@ export default function AdminActivity() {
   };
 
   const getUserById = (userId: string) => {
-    return users.find(user => user.id === userId);
+    return users.find(user => user.auth_user_id === userId);
   };
 
   return (
@@ -222,7 +222,7 @@ export default function AdminActivity() {
             <SelectContent>
               <SelectItem value="all">All Users</SelectItem>
               {users.map(user => (
-                <SelectItem key={user.id} value={user.id}>
+                <SelectItem key={user.auth_user_id} value={user.auth_user_id}>
                   {user.name}
                 </SelectItem>
               ))}

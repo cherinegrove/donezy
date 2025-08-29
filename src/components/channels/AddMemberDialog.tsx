@@ -36,7 +36,7 @@ export function AddMemberDialog({
   const [loading, setLoading] = useState(false);
 
   // Filter out users who are already members
-  const availableUsers = users.filter(user => !existingMemberIds.includes(user.id));
+  const availableUsers = users.filter(user => !existingMemberIds.includes(user.auth_user_id));
 
   const handleUserToggle = (userId: string, checked: boolean | string) => {
     const isChecked = checked === true;
@@ -98,12 +98,12 @@ export function AddMemberDialog({
               {availableUsers.length > 0 ? (
                 availableUsers.map(user => (
                   <div
-                    key={user.id}
+                    key={user.auth_user_id}
                     className="flex items-center space-x-3 p-2 rounded hover:bg-muted"
                   >
                     <Checkbox
-                      checked={selectedUserIds.includes(user.id)}
-                      onCheckedChange={(checked) => handleUserToggle(user.id, checked)}
+                      checked={selectedUserIds.includes(user.auth_user_id)}
+                      onCheckedChange={(checked) => handleUserToggle(user.auth_user_id, checked)}
                     />
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user.avatar} />

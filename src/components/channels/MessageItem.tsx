@@ -89,7 +89,7 @@ export function MessageItem({ message, onReply, formatMessageContent }: MessageI
     try {
       // Check if user already reacted with this emoji
       const existingReaction = reactions.find(r => 
-        r.emoji === emoji && r.users.includes(currentUser.id)
+        r.emoji === emoji && r.users.includes(currentUser.auth_user_id)
       );
 
       if (existingReaction) {
@@ -98,7 +98,7 @@ export function MessageItem({ message, onReply, formatMessageContent }: MessageI
           .from('message_reactions')
           .delete()
           .eq('message_id', message.id)
-          .eq('user_id', currentUser.id)
+          .eq('user_id', currentUser.auth_user_id)
           .eq('emoji', emoji);
 
         if (error) throw error;
@@ -108,7 +108,7 @@ export function MessageItem({ message, onReply, formatMessageContent }: MessageI
           .from('message_reactions')
           .insert({
             message_id: message.id,
-            user_id: currentUser.id,
+            user_id: currentUser.auth_user_id,
             emoji: emoji
           });
 
@@ -164,7 +164,7 @@ export function MessageItem({ message, onReply, formatMessageContent }: MessageI
                 variant="outline"
                 size="sm"
                 className={`h-6 px-2 text-xs ${
-                  currentUser && reaction.users.includes(currentUser.id) 
+                  currentUser && reaction.users.includes(currentUser.auth_user_id) 
                     ? 'bg-primary/20 border-primary' 
                     : ''
                 }`}

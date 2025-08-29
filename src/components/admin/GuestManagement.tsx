@@ -23,7 +23,7 @@ import {
 
 // Define a local type for guest users from the database
 interface DbGuestUser {
-  id: string;
+  auth_user_id: string;
   name: string;
   email: string;
   avatar?: string;
@@ -64,7 +64,7 @@ export function GuestManagement() {
     
     try {
       const { data, error } = await supabase.rpc('get_account_limits', {
-        account_user_id: currentUser.id
+        account_user_id: currentUser.auth_user_id
       });
       
       if (error) throw error;
@@ -89,8 +89,8 @@ export function GuestManagement() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, avatar, is_guest, guest_of_user_id, guest_permissions')
-        .eq('guest_of_user_id', currentUser.id)
+        .select('auth_user_id, name, email, avatar, is_guest, guest_of_user_id, guest_permissions')
+        .eq('guest_of_user_id', currentUser.auth_user_id)
         .eq('is_guest', true);
       
       if (error) throw error;
@@ -133,15 +133,19 @@ export function GuestManagement() {
     try {
       setLoading(true);
       
+      // Generate a UUID for auth_user_id since this is a guest user without Supabase auth
+      const guestAuthId = crypto.randomUUID();
+      
       // Insert new guest user
       const { data, error } = await supabase
         .from('users')
         .insert({
+          auth_user_id: guestAuthId,
           name: guestForm.name,
           email: guestForm.email,
           role: 'client',
           is_guest: true,
-          guest_of_user_id: currentUser.id,
+          guest_of_user_id: currentUser.auth_user_id,
           guest_permissions: guestForm.permissions,
         })
         .select()
@@ -187,7 +191,7 @@ export function GuestManagement() {
       const { error } = await supabase
         .from('users')
         .delete()
-        .eq('id', guestId);
+        .eq('auth_user_id', guestId);
 
       if (error) throw error;
 
@@ -369,7 +373,7 @@ export function GuestManagement() {
 
             <div className="space-y-3">
               {guestUsers.map((guest) => (
-                <div key={guest.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div key={guest.auth_user_id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <Avatar>
                       <AvatarImage src={guest.avatar} />
@@ -387,7 +391,7 @@ export function GuestManagement() {
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => handleRemoveGuest(guest.id)}
+                      onClick={() => handleRemoveGuest(guest.auth_user_id)}
                     >
                       Remove
                     </Button>

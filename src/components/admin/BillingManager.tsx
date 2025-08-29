@@ -38,7 +38,7 @@ export function BillingManager() {
       const { data, error } = await supabase
         .from('account_subscriptions')
         .select('*')
-        .eq('user_id', currentUser.id)
+        .eq('user_id', currentUser.auth_user_id)
         .single();
       
       if (error) throw error;
@@ -61,7 +61,7 @@ export function BillingManager() {
     
     try {
       const { data, error } = await supabase.rpc('get_account_limits', {
-        account_user_id: currentUser.id
+        account_user_id: currentUser.auth_user_id
       });
       
       if (error) throw error;
@@ -91,7 +91,7 @@ export function BillingManager() {
           monthly_cost: newCost,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', currentUser.id);
+        .eq('user_id', currentUser.auth_user_id);
 
       if (error) throw error;
 
@@ -140,7 +140,7 @@ export function BillingManager() {
           monthly_cost: newCost,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', currentUser.id);
+        .eq('user_id', currentUser.auth_user_id);
 
       if (error) throw error;
 

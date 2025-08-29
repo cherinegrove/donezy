@@ -52,7 +52,7 @@ export function CreateChannelDialog({
           name: formData.name,
           description: formData.description,
           is_private: formData.isPrivate,
-          created_by: currentUser.id,
+          created_by: currentUser.auth_user_id,
         })
         .select()
         .single();
@@ -64,7 +64,7 @@ export function CreateChannelDialog({
         .from('channel_members')
         .insert({
           channel_id: channelData.id,
-          user_id: currentUser.id,
+          user_id: currentUser.auth_user_id,
           role: 'admin',
         });
 
