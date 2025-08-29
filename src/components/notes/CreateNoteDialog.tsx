@@ -75,7 +75,7 @@ export function CreateNoteDialog({ open, onOpenChange }: CreateNoteDialogProps) 
       title: data.title,
       content: data.content,
       color: selectedColor,
-      userId: currentUser.id,
+      userId: currentUser.auth_user_id,
       archived: false,
     };
 

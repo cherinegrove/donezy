@@ -68,7 +68,7 @@ export function MessageThread({ parentMessage, channelId, onClose }: MessageThre
       if (error) throw error;
 
       const enrichedReplies: ThreadMessage[] = data?.map(reply => {
-        const sender = users.find(u => u.id === reply.from_user_id);
+        const sender = users.find(u => u.auth_user_id === reply.from_user_id);
         return {
           id: reply.id,
           content: reply.content,
@@ -96,8 +96,8 @@ export function MessageThread({ parentMessage, channelId, onClose }: MessageThre
       const replyData = {
         channel_id: channelId,
         parent_message_id: parentMessage.id,
-        from_user_id: currentUser.id,
-        to_user_id: currentUser.id,
+        from_user_id: currentUser.auth_user_id,
+        to_user_id: currentUser.auth_user_id,
         subject: 'Thread Reply',
         content,
         mentioned_users: mentionedUsers,
@@ -123,7 +123,7 @@ export function MessageThread({ parentMessage, channelId, onClose }: MessageThre
     let formattedContent = content;
     
     mentionedUsers.forEach(userId => {
-      const user = users.find(u => u.id === userId);
+      const user = users.find(u => u.auth_user_id === userId);
       if (user) {
         const mentionRegex = new RegExp(`@${user.name}`, 'g');
         formattedContent = formattedContent.replace(

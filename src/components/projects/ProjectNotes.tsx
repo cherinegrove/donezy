@@ -111,7 +111,7 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
   const notes = getProjectNotes(projectId);
   
   const getUserById = (userId: string) => {
-    return users.find(user => user.id === userId) || {
+    return users.find(user => user.auth_user_id === userId) || {
       id: userId,
       name: "Unknown User",
       avatar: ""
@@ -133,7 +133,7 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
     if (currentUser) {
       addProjectNote({
         projectId,
-        userId: currentUser.id,
+        userId: currentUser.auth_user_id,
         content: newNote,
         mentionedUserIds
       });
@@ -208,7 +208,7 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
                     </div>
                     
                     {/* Show edit/delete buttons if current user is the author */}
-                    {currentUser && currentUser.id === note.userId && (
+                    {currentUser && currentUser.auth_user_id === note.userId && (
                       <div className="flex items-center gap-1">
                         <Button 
                           variant="ghost" 

@@ -347,8 +347,8 @@ export function CustomFieldsManager() {
       for (const field of reorderedFields) {
         await supabase
           .from('custom_fields')
-          .update({ field_order: field.order })
-          .eq('id', field.id);
+        .update({ field_order: field.order })
+        .eq('id', field.id);
       }
       
       toast({

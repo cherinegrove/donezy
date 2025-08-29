@@ -64,7 +64,7 @@ export function ComposeMessageDialog({
     }
     
     sendMessage({
-      senderId: currentUser?.id || "",
+      senderId: currentUser?.auth_user_id || "",
       recipientIds: recipients,
       content,
       taskId: "", // Temporary placeholder for task ID
@@ -146,8 +146,8 @@ export function ComposeMessageDialog({
       setContent(newText);
       
       // Add the mentioned user to recipients if they're not already added
-      if (!recipients.includes(user.id)) {
-        setRecipients([...recipients, user.id]);
+      if (!recipients.includes(user.auth_user_id)) {
+        setRecipients([...recipients, user.auth_user_id]);
       }
       
       // Focus back on textarea and set cursor after the inserted mention
@@ -165,7 +165,7 @@ export function ComposeMessageDialog({
   };
   
   // Filter users (excluding current user)
-  const otherUsers = users.filter(user => user.id !== currentUser?.id);
+  const otherUsers = users.filter(user => user.auth_user_id !== currentUser?.auth_user_id);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -183,9 +183,9 @@ export function ComposeMessageDialog({
               </SelectTrigger>
               <SelectContent>
                 {otherUsers
-                  .filter(user => !recipients.includes(user.id))
+                  .filter(user => !recipients.includes(user.auth_user_id))
                   .map(user => (
-                    <SelectItem key={user.id} value={user.id}>
+                    <SelectItem key={user.auth_user_id} value={user.auth_user_id}>
                       {user.name}
                     </SelectItem>
                   ))}
@@ -195,7 +195,7 @@ export function ComposeMessageDialog({
             {recipients.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {recipients.map(recipientId => {
-                  const user = users.find(u => u.id === recipientId);
+                  const user = users.find(u => u.auth_user_id === recipientId);
                   return (
                     <Button
                       key={recipientId}

@@ -68,7 +68,7 @@ export function TaskTemplatesList({ onCreateTemplate, onUseTemplate, refreshTrig
 
     try {
       setLoading(true);
-      console.log('Fetching templates for currentUser.id:', currentUser.id);
+      console.log('Fetching templates for currentUser.auth_user_id:', currentUser.auth_user_id);
       
       // Get current session to compare
       const { data: sessionData } = await supabase.auth.getSession();
@@ -77,7 +77,7 @@ export function TaskTemplatesList({ onCreateTemplate, onUseTemplate, refreshTrig
       const { data, error } = await supabase
         .from('task_templates')
         .select('*')
-        .eq('auth_user_id', sessionData.session?.user?.id || currentUser.id)
+        .eq('auth_user_id', sessionData.session?.user?.id || currentUser.auth_user_id)
         .order('created_at', { ascending: false });
       
       console.log('Templates query result:', { data, error });
@@ -124,7 +124,7 @@ export function TaskTemplatesList({ onCreateTemplate, onUseTemplate, refreshTrig
           include_custom_fields: template.includeCustomFields,
           field_order: template.fieldOrder,
           form_fields: template.formFields || [],
-          auth_user_id: currentUser.id,
+          auth_user_id: currentUser.auth_user_id,
         });
 
       if (error) throw error;
@@ -153,7 +153,7 @@ export function TaskTemplatesList({ onCreateTemplate, onUseTemplate, refreshTrig
         .from('task_templates')
         .delete()
         .eq('id', templateToDelete)
-        .eq('auth_user_id', currentUser.id);
+        .eq('auth_user_id', currentUser.auth_user_id);
 
       if (error) throw error;
 

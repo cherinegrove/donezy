@@ -182,7 +182,7 @@ export function EditTimeEntryDialog({ isOpen, onClose, timeEntry, isNewEntry = f
       taskId: taskId || undefined,
       projectId: projectId || undefined,
       clientId,
-      userId: currentUser.id,
+      userId: currentUser.auth_user_id,
       startTime: startDateTime.toISOString(),
       endTime: endDateTime.toISOString(),
       duration,

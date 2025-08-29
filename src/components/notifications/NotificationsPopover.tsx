@@ -18,7 +18,7 @@ export function NotificationsPopover({ children }: { children?: React.ReactNode 
   // Get unread notifications for current user
   const unreadNotifications = currentUser 
     ? messages.filter(msg => 
-        msg.recipientIds.includes(currentUser.id) && 
+        msg.recipientIds.includes(currentUser.auth_user_id) && 
         !msg.read
       )
     : [];

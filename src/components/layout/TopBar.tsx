@@ -217,7 +217,7 @@ export function TopBar() {
         <UserProfileDialog
           open={isProfileDialogOpen}
           onOpenChange={setIsProfileDialogOpen}
-          userId={currentUser.id}
+          userId={currentUser.auth_user_id}
         />
       )}
     </header>

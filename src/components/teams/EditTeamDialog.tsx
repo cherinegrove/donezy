@@ -112,7 +112,7 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
       if (user.is_guest) {
         return false;
       }
-      if (!user.id || typeof user.id !== 'string') {
+      if (!user.auth_user_id || typeof user.auth_user_id !== 'string') {
         console.warn("EditTeamDialog: User missing valid id", { user });
         return false;
       }
@@ -214,11 +214,11 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
                         {eligibleUsers && eligibleUsers.length > 0 ? (
                           eligibleUsers.map((user) => (
                             <SelectItem 
-                              key={user.id} 
-                              value={user.id}
-                              disabled={safeSelectedValues.includes(user.id)}
+                              key={user.auth_user_id} 
+                              value={user.auth_user_id}
+                              disabled={safeSelectedValues.includes(user.auth_user_id)}
                             >
-                              {user.name} {safeSelectedValues.includes(user.id) ? "✓" : ""}
+                              {user.name} {safeSelectedValues.includes(user.auth_user_id) ? "✓" : ""}
                             </SelectItem>
                           ))
                         ) : (
@@ -269,7 +269,7 @@ export function EditTeamDialog({ team, open, onClose }: EditTeamDialogProps) {
                     <SelectContent>
                       {eligibleUsers && eligibleUsers.length > 0 ? (
                         eligibleUsers.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
+                          <SelectItem key={user.auth_user_id} value={user.auth_user_id}>
                             {user.name}
                           </SelectItem>
                         ))

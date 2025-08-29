@@ -48,21 +48,21 @@ export function CommentSection({ taskId }: CommentSectionProps) {
         u.name.toLowerCase().startsWith(firstName.toLowerCase())
       );
       
-      if (mentionedUser && !mentionedUserIds.includes(mentionedUser.id)) {
-        mentionedUserIds.push(mentionedUser.id);
+      if (mentionedUser && !mentionedUserIds.includes(mentionedUser.auth_user_id)) {
+        mentionedUserIds.push(mentionedUser.auth_user_id);
       }
     });
     
     // Add the comment to the task
-    const commentId = addComment(taskId, currentUser.id, comment, mentionedUserIds);
+    const commentId = addComment(taskId, currentUser.auth_user_id, comment, mentionedUserIds);
     
     // Create notification messages for each mentioned user and task assignee/collaborators
     if (task) {
       // For mentions
       mentionedUserIds.forEach(userId => {
-        if (userId !== currentUser.id) {
+        if (userId !== currentUser.auth_user_id) {
           createMessage({
-            senderId: currentUser.id,
+            senderId: currentUser.auth_user_id,
             recipientIds: [userId],
             content: `You were mentioned in a comment on task "${task.title}"`,
             commentId: commentId,
@@ -73,9 +73,9 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       });
       
       // For task assignee
-      if (task.assigneeId && task.assigneeId !== currentUser.id && !mentionedUserIds.includes(task.assigneeId)) {
+      if (task.assigneeId && task.assigneeId !== currentUser.auth_user_id && !mentionedUserIds.includes(task.assigneeId)) {
         createMessage({
-          senderId: currentUser.id,
+          senderId: currentUser.auth_user_id,
           recipientIds: [task.assigneeId],
           content: `New comment on task "${task.title}" you're assigned to`,
           commentId: commentId,
@@ -88,12 +88,12 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       if (task.collaboratorIds && task.collaboratorIds.length > 0) {
         task.collaboratorIds.forEach(collaboratorId => {
           if (
-            collaboratorId !== currentUser.id && 
+            collaboratorId !== currentUser.auth_user_id &&
             collaboratorId !== task.assigneeId && 
             !mentionedUserIds.includes(collaboratorId)
           ) {
             createMessage({
-              senderId: currentUser.id,
+              senderId: currentUser.auth_user_id,
               recipientIds: [collaboratorId],
               content: `New comment on task "${task.title}" you're collaborating on`,
               commentId: commentId,
@@ -213,14 +213,14 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   };
   
   // Filter users for mentions (exclude current user)
-  const otherUsers = safeUsers.filter(user => user.id !== currentUser?.id);
+  const otherUsers = safeUsers.filter(user => user.auth_user_id !== currentUser?.auth_user_id);
 
   // Format comment content with mentions
   const formatCommentContent = (content: string, mentionedUserIds: string[] = []) => {
     let formattedContent = content;
     
     mentionedUserIds.forEach(userId => {
-      const user = safeUsers.find(u => u.id === userId);
+      const user = safeUsers.find(u => u.auth_user_id === userId);
       if (user) {
         const mentionRegex = new RegExp(`@${user.name}`, 'g');
         formattedContent = formattedContent.replace(
@@ -242,7 +242,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
         <div className="space-y-4">
           {task.comments && task.comments.length > 0 ? (
             task.comments.map(comment => {
-              const commentUser = users.find(u => u.id === comment.userId);
+              const commentUser = users.find(u => u.auth_user_id === comment.userId);
               return (
                 <div key={comment.id} className="flex gap-3">
                   <Avatar className="h-8 w-8">

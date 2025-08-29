@@ -52,7 +52,7 @@ export function AssigneeSelect({ field, value, onChange }: AssigneeSelectProps) 
         <SelectItem value="unassigned">Unassigned</SelectItem>
         {safeUsers.length > 0 ? (
           safeUsers.map(user => (
-            <SelectItem key={user.id} value={user.id}>
+            <SelectItem key={user.auth_user_id} value={user.auth_user_id}>
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
                   <AvatarImage src={user.avatar} />

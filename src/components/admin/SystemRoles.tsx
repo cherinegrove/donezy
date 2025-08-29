@@ -308,9 +308,9 @@ export default function SystemRoles() {
                 </SelectTrigger>
                 <SelectContent className="bg-background border-border z-50 max-h-60 overflow-y-auto">
                   {allUsers
-                    .filter(user => !userSystemRoles.some(ur => ur.user_id === user.id))
+                    .filter(user => !userSystemRoles.some(ur => ur.user_id === user.auth_user_id))
                     .map((user) => (
-                      <SelectItem key={user.id} value={user.id} className="cursor-pointer">
+                      <SelectItem key={user.auth_user_id} value={user.auth_user_id} className="cursor-pointer">
                         {user.email} {user.user_metadata?.display_name && `(${user.user_metadata.display_name})`}
                       </SelectItem>
                     ))}

@@ -17,7 +17,7 @@ export const TaskWatchButton = ({ task, variant = "outline", size = "icon" }: Ta
   
   if (!currentUser) return null;
   
-  const isWatching = task.watcherIds?.includes(currentUser.id) || false;
+  const isWatching = task.watcherIds?.includes(currentUser.auth_user_id) || false;
   
   const handleToggleWatch = (e?: React.MouseEvent) => {
     if (e) {
@@ -25,9 +25,9 @@ export const TaskWatchButton = ({ task, variant = "outline", size = "icon" }: Ta
     }
     
     if (isWatching) {
-      unwatchTask(task.id, currentUser.id);
+      unwatchTask(task.id, currentUser.auth_user_id);
     } else {
-      watchTask(task.id, currentUser.id);
+      watchTask(task.id, currentUser.auth_user_id);
     }
   };
   

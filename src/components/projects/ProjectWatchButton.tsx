@@ -17,13 +17,13 @@ export const ProjectWatchButton = ({ project, variant = "outline", size = "icon"
   
   if (!currentUser) return null;
   
-  const isWatching = project.watcherIds?.includes(currentUser.id) || false;
+  const isWatching = project.watcherIds?.includes(currentUser.auth_user_id) || false;
   
   const handleToggleWatch = () => {
     if (isWatching) {
-      unwatchProject(project.id, currentUser.id);
+      unwatchProject(project.id, currentUser.auth_user_id);
     } else {
-      watchProject(project.id, currentUser.id);
+      watchProject(project.id, currentUser.auth_user_id);
     }
   };
   

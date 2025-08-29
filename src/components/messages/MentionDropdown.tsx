@@ -69,7 +69,7 @@ export function MentionDropdown({
             
             return (
               <div
-                key={user.id}
+                key={user.auth_user_id}
                 onClick={() => onSelect(user)}
                 className="flex items-center px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer rounded"
               >

@@ -43,7 +43,7 @@ export function CollaboratorSelect({ field }: CollaboratorSelectProps) {
   };
 
   const selectedUsers = (field.value || []).map(id => 
-    users.find(user => user.id === id)
+    users.find(user => user.auth_user_id === id)
   ).filter(Boolean);
 
   return (
@@ -55,8 +55,8 @@ export function CollaboratorSelect({ field }: CollaboratorSelectProps) {
         <SelectContent>
           <SelectItem value="clear">Clear all collaborators</SelectItem>
           {users.map((user) => (
-            <SelectItem key={user.id} value={user.id}>
-              {user.name} {field.value?.includes(user.id) ? "✓" : ""}
+            <SelectItem key={user.auth_user_id} value={user.auth_user_id}>
+              {user.name} {field.value?.includes(user.auth_user_id) ? "✓" : ""}
             </SelectItem>
           ))}
         </SelectContent>
@@ -66,12 +66,12 @@ export function CollaboratorSelect({ field }: CollaboratorSelectProps) {
       {selectedUsers.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {selectedUsers.map((user) => (
-            <Badge key={user.id} variant="secondary" className="text-xs">
+            <Badge key={user.auth_user_id} variant="secondary" className="text-xs">
               {user.name}
               <button
                 type="button"
                 className="ml-1 rounded-full outline-none focus:ring-2 focus:ring-offset-2"
-                onClick={() => handleRemove(user.id)}
+                onClick={() => handleRemove(user.auth_user_id)}
               >
                 <X className="h-3 w-3" />
                 <span className="sr-only">Remove {user.name}</span>

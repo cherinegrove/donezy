@@ -152,7 +152,7 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
     if (!currentUser) return;
     
     const status = billable ? "approved-billable" : "approved-non-billable";
-    updateTimeEntryStatus(entry.id, status, currentUser.id);
+    updateTimeEntryStatus(entry.id, status, currentUser.auth_user_id);
     
     toast({
       title: "Time Entry Approved",
@@ -163,7 +163,7 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
   const handleDeclineTimeEntry = (entry: TimeEntry) => {
     if (!currentUser) return;
     
-    updateTimeEntryStatus(entry.id, "declined", currentUser.id);
+    updateTimeEntryStatus(entry.id, "declined", currentUser.auth_user_id);
     
     toast({
       title: "Time Entry Declined",

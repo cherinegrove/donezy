@@ -155,7 +155,7 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
       const { data: template, error: templateError } = await supabase
         .from('project_templates')
         .insert({
-          auth_user_id: currentUser.id,
+          auth_user_id: currentUser.auth_user_id,
           name: data.name,
           description: data.description,
           service_type: data.serviceType,
@@ -179,7 +179,7 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
           .from('project_template_tasks')
           .insert({
             template_id: template.id,
-            auth_user_id: currentUser.id,
+            auth_user_id: currentUser.auth_user_id,
             name: task.name,
             description: task.description,
             estimated_hours: task.estimatedHours,
@@ -199,7 +199,7 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
             .from('project_template_subtasks')
             .insert({
               template_task_id: createdTask.id,
-              auth_user_id: currentUser.id,
+              auth_user_id: currentUser.auth_user_id,
               name: subtask.name,
               description: subtask.description,
               estimated_hours: subtask.estimatedHours,

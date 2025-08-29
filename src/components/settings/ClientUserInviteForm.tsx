@@ -53,7 +53,7 @@ export function ClientUserInviteForm({ clientId, onSuccess }: ClientUserInviteFo
         currency: "USD",
         clientId: targetClientId,
         is_guest: false,
-        guest_of_user_id: currentUser.id,
+        guest_of_user_id: currentUser.auth_user_id,
         guest_permissions: {
           canViewClients: true,
           canViewProjects: true,

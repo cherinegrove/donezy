@@ -333,7 +333,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
                     <SelectContent className="bg-background border shadow-md z-50">
                       <SelectItem value="">No owner assigned</SelectItem>
                       {users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
+                        <SelectItem key={user.auth_user_id} value={user.auth_user_id}>
                           {user.name}
                         </SelectItem>
                       ))}
@@ -362,8 +362,8 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="bg-background border shadow-md z-50">
-                      {users.filter(user => !(field.value || []).includes(user.id)).map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
+                      {users.filter(user => !(field.value || []).includes(user.auth_user_id)).map((user) => (
+                        <SelectItem key={user.auth_user_id} value={user.auth_user_id}>
                           {user.name}
                         </SelectItem>
                       ))}
@@ -372,7 +372,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
                   {field.value && field.value.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {field.value.map((collaboratorId) => {
-                        const collaborator = users.find(u => u.id === collaboratorId);
+                        const collaborator = users.find(u => u.auth_user_id === collaboratorId);
                         return collaborator ? (
                           <div key={collaboratorId} className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm">
                             {collaborator.name}

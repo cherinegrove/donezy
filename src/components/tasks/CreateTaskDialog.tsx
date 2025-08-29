@@ -269,8 +269,8 @@ export function CreateTaskDialog({
             usage_count: template.usageCount + 1,
             updated_at: new Date().toISOString()
           })
-          .eq('id', templateId)
-          .eq('auth_user_id', currentUser.id);
+        .eq('id', templateId)
+        .eq('auth_user_id', currentUser.auth_user_id);
       }
       // Note: We don't update usage count for project template tasks
     } catch (error) {
@@ -596,7 +596,7 @@ export function CreateTaskDialog({
                               <SelectContent>
                                 <SelectItem value="">No assignee</SelectItem>
                                 {users.map((user) => (
-                                  <SelectItem key={user.id} value={user.id}>
+                                  <SelectItem key={user.auth_user_id} value={user.auth_user_id}>
                                     {user.name}
                                   </SelectItem>
                                 ))}

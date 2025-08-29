@@ -27,7 +27,7 @@ export function Assignee2Select({ field }: Assignee2SelectProps) {
       <SelectContent>
         <SelectItem value="">No assignee 2</SelectItem>
         {users.map((user) => (
-          <SelectItem key={user.id} value={user.id}>
+          <SelectItem key={user.auth_user_id} value={user.auth_user_id}>
             {user.name}
           </SelectItem>
         ))}

@@ -93,7 +93,7 @@ export function MessageView({ message, onReply }: MessageViewProps) {
     }
     
     if (task && currentUser) {
-      addComment(task.id, currentUser.id, content);
+      addComment(task.id, currentUser.auth_user_id, content);
       
       toast({
         title: "Reply sent",
@@ -119,7 +119,7 @@ export function MessageView({ message, onReply }: MessageViewProps) {
   };
   
   // Filter out the current user from the users list for mentions
-  const mentionableUsers = users ? users.filter(user => user.id !== currentUser?.id) : [];
+  const mentionableUsers = users ? users.filter(user => user.auth_user_id !== currentUser?.auth_user_id) : [];
   
   // Format the last comment renderer
   const renderLastComment = () => {

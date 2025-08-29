@@ -37,7 +37,7 @@ export function ProfileSettings() {
         </TabsList>
         
         <TabsContent value="profile" className="space-y-6">
-          <ProfileInformationCard userId={currentUser.id} />
+          <ProfileInformationCard userId={currentUser.auth_user_id} />
         </TabsContent>
         
         <TabsContent value="notifications" className="space-y-6">
@@ -47,7 +47,7 @@ export function ProfileSettings() {
               Configure how you want to receive notifications for different events. You can choose to receive notifications in the app, via email, or both.
             </p>
           </div>
-          <GeneralNotificationSettings userId={currentUser.id} />
+          <GeneralNotificationSettings userId={currentUser.auth_user_id} />
         </TabsContent>
         
         {customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin' && (
@@ -58,7 +58,7 @@ export function ProfileSettings() {
                 Configure notifications for management activities such as client updates, project changes, and team activities.
               </p>
             </div>
-            <ManagerNotificationSettings userId={currentUser.id} />
+            <ManagerNotificationSettings userId={currentUser.auth_user_id} />
           </TabsContent>
         )}
       </Tabs>
