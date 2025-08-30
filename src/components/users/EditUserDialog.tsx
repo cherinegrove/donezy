@@ -97,7 +97,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
 
     try {
       if (isEditing && user) {
-        updateUser(user.id, {
+        updateUser(user.auth_user_id, {
           name,
           email,
           jobTitle,

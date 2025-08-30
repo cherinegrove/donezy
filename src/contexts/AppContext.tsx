@@ -827,7 +827,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       setUsers(prev => prev.map(user => 
-        user.id === userId ? { ...user, ...updates } : user
+        user.auth_user_id === userId ? { ...user, ...updates } : user
       ));
     } catch (error) {
       console.error('Error updating user:', error);
@@ -848,14 +848,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
 
-      setUsers(prev => prev.filter(user => user.id !== userId));
+      setUsers(prev => prev.filter(user => user.auth_user_id !== userId));
     } catch (error) {
       console.error('Error deleting user:', error);
     }
   };
 
   const getUserById = (userId: string): User | undefined => {
-    return users.find(user => user.id === userId);
+    return users.find(user => user.auth_user_id === userId);
   };
 
   // Client functions
@@ -1330,7 +1330,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         end_time: new Date().toISOString(),
         duration: 1
       })
-      .eq('user_id', currentUser.id)
+      .eq('user_id', currentUser.auth_user_id)
       .is('end_time', null);
     
     if (stopAllError) {
@@ -1348,7 +1348,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('⏰ Creating new timer entry with start time:', startTime);
     
     const newTimeEntry: Omit<TimeEntry, 'id'> = {
-      userId: currentUser.id,
+      userId: currentUser.auth_user_id,
       taskId: taskId || undefined,
       projectId,
       clientId,

@@ -20,7 +20,7 @@ export function TeamOverview() {
   // Calculate task statistics for each team member
   const teamMemberStats = teamMembers.map(user => {
     // Get tasks assigned to this user
-    const assignedTasks = tasks.filter(task => task.assigneeId === user.id);
+    const assignedTasks = tasks.filter(task => task.assigneeId === user.auth_user_id);
     
     // Calculate completion percentage
     const totalTasks = assignedTasks.length;
@@ -73,7 +73,7 @@ export function TeamOverview() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {teamMemberStats.map(({ user, totalTasks, completedTasks, completionPercentage, overdueTasks, tasksDueSoon, currentTask }) => (
-          <Card key={user.id}>
+          <Card key={user.auth_user_id}>
             <CardHeader className="pb-2">
               <div className="flex items-center space-x-2">
                 <Avatar>

@@ -270,8 +270,8 @@ const Home = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="me">Myself</SelectItem>
-                    {users.filter(user => user.id !== currentUser?.id).map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
+                    {users.filter(user => user.auth_user_id !== currentUser?.auth_user_id).map((user) => (
+                      <SelectItem key={user.auth_user_id} value={user.auth_user_id}>
                         {user.name}
                       </SelectItem>
                     ))}

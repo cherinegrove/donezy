@@ -34,7 +34,7 @@ export interface AppContextType {
   logout: () => Promise<boolean>;
   
   // User functions
-  addUser: (user: Omit<User, 'id'>) => void;
+  addUser: (user: Omit<User, 'id' | 'auth_user_id'>) => void;
   updateUser: (userId: string, updates: Partial<User>) => void;
   deleteUser: (userId: string) => void;
   getUserById: (userId: string) => User | undefined;

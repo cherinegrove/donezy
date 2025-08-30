@@ -249,7 +249,7 @@ export function UsersManagementTab({
             const client = clients.find(c => c.id === user.clientId);
             return (
               <div 
-                key={user.id} 
+                key={user.auth_user_id} 
                 className="flex items-center justify-between p-3 bg-muted/20 rounded-md"
               >
                 <div className="flex items-center gap-3">

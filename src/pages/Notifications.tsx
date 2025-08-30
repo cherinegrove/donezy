@@ -18,7 +18,7 @@ export default function Notifications() {
   // Get all notifications for current user
   const allNotifications = currentUser 
     ? messages.filter(msg => 
-        msg.recipientIds.includes(currentUser.id)
+        msg.recipientIds.includes(currentUser.auth_user_id)
       )
     : [];
 
@@ -78,7 +78,7 @@ export default function Notifications() {
     return (
       <div className="space-y-2">
         {filteredNotifications.map(notification => {
-          const sender = users.find(user => user.id === notification.senderId);
+          const sender = users.find(user => user.auth_user_id === notification.senderId);
           return (
             <Button
               key={notification.id}
@@ -175,7 +175,7 @@ export default function Notifications() {
               <div className="flex items-center gap-2 mb-2">
                 {getNotificationIcon(selectedNotification)}
                 <h3 className="text-xl font-semibold">
-                  {users.find(user => user.id === selectedNotification.senderId)?.name}
+                  {users.find(user => user.auth_user_id === selectedNotification.senderId)?.name}
                 </h3>
                 {!selectedNotification.read && <Badge variant="destructive">New</Badge>}
               </div>

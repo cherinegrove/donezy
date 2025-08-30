@@ -96,7 +96,7 @@ export function UserProfileDialog({
     try {
       // Create unique filename
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${user.auth_user_id}/${Date.now()}.${fileExt}`;
       
       // Upload file to Supabase Storage
       const { data, error } = await supabase.storage

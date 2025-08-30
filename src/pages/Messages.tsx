@@ -32,7 +32,7 @@ export default function Messages() {
         <Input type="search" placeholder="Search messages..." className="mb-4" />
         <div className="space-y-2">
           {messages.map(message => {
-            const sender = users.find(user => user.id === message.senderId);
+            const sender = users.find(user => user.auth_user_id === message.senderId);
             return (
               <Button
                 key={message.id}
@@ -61,7 +61,7 @@ export default function Messages() {
           <div>
             <div className="mb-4">
               <h3 className="text-xl font-semibold">
-                {users.find(user => user.id === selectedMessage.senderId)?.name}
+                {users.find(user => user.auth_user_id === selectedMessage.senderId)?.name}
               </h3>
               <p className="text-sm text-muted-foreground">
                 {getMessageContext(selectedMessage)}

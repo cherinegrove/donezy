@@ -1,6 +1,6 @@
 export interface User {
-  id: string;
-  auth_user_id?: string;
+  auth_user_id: string;
+  id: string; // Alias for auth_user_id for backward compatibility
   name: string;
   email: string;
   avatar?: string;
