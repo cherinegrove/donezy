@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { EditUserDialog } from "@/components/users/EditUserDialog";
+import { InviteUserWithEmail } from "@/components/settings/InviteUserWithEmail";
 import { User } from "@/types";
 import { Building, Pencil, Plus, Users as UsersIcon } from "lucide-react";
 import {
@@ -14,12 +15,14 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const Users = () => {
   const { teams, users, clients, customRoles } = useAppContext();
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [activeTab, setActiveTab] = useState("internal");
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
 
   // Define filter options - create separate arrays for different tabs
@@ -84,7 +87,7 @@ const Users = () => {
 
   const handleCreateUser = (isClientUser: boolean = false) => {
     setSelectedUser(undefined);
-    setIsEditUserDialogOpen(true);
+    setIsInviteDialogOpen(true);
   };
 
   const handleEditUser = (user: User) => {
@@ -285,6 +288,19 @@ const Users = () => {
         isOpen={isEditUserDialogOpen}
         onClose={() => setIsEditUserDialogOpen(false)}
       />
+      
+      <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Invite New User</DialogTitle>
+          </DialogHeader>
+          <InviteUserWithEmail 
+            onSuccess={() => {
+              setIsInviteDialogOpen(false);
+            }} 
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
