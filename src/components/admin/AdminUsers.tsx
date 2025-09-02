@@ -11,7 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EditUserDialog } from "@/components/users/EditUserDialog";
-import { AddUserCard } from "@/components/admin/AddUserCard";
+import { InviteUserWithEmail } from "@/components/settings/InviteUserWithEmail";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { User } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,7 @@ export default function AdminUsers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [deleteDialogUser, setDeleteDialogUser] = useState<User | null>(null);
 
   // Filter users based on search term (show all users including current user)
@@ -55,8 +57,7 @@ export default function AdminUsers() {
   };
 
   const handleAddUser = () => {
-    setSelectedUser(undefined);
-    setIsEditDialogOpen(true);
+    setIsInviteDialogOpen(true);
   };
 
   const handleToggleStatus = (user: User) => {
@@ -224,6 +225,19 @@ export default function AdminUsers() {
           setSelectedUser(undefined);
         }}
       />
+
+      <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Invite New User</DialogTitle>
+          </DialogHeader>
+          <InviteUserWithEmail 
+            onSuccess={() => {
+              setIsInviteDialogOpen(false);
+            }} 
+          />
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleteDialogUser} onOpenChange={() => setDeleteDialogUser(null)}>
         <AlertDialogContent>
