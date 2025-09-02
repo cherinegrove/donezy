@@ -31,8 +31,8 @@ export function InviteUserWithEmail({ onSuccess }: InviteUserWithEmailProps) {
     setIsLoading(true);
     
     try {
-      // Create the invite link (you can customize this based on your app's domain)
-      const inviteLink = `${window.location.origin}/signup?invite=${encodeURIComponent(formData.email)}`;
+      // Create the invite link (simpler signup flow)
+      const inviteLink = `${window.location.origin}/signup`;
       
       // Send the invite email
       console.log("🔍 Calling send-invite-email function...");
