@@ -42,7 +42,7 @@ const handler = async (req: Request): Promise<Response> => {
         inviter_name: inviterName,
         company_name: companyName || 'Donezy'
       },
-      redirectTo: inviteLink
+      redirectTo: `https://app.donezy.io/signup`
     });
 
     if (error) {
