@@ -5,7 +5,7 @@ export interface User {
   email: string;
   avatar?: string;
   roleId: string; // References either built-in role or custom role
-  status?: 'active' | 'inactive';
+  status?: 'active' | 'inactive' | 'deleted';
   organizationId?: string;
   teamIds?: string[];
   jobTitle?: string;

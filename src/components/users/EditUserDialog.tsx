@@ -49,7 +49,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   const [jobTitle, setJobTitle] = useState("");
   const [phone, setPhone] = useState("");
   const [roleId, setRoleId] = useState("");
-  const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [status, setStatus] = useState<'active' | 'inactive' | 'deleted'>('active');
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
 
   const isEditing = !!user;
@@ -277,13 +277,14 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
 
             <div>
               <Label htmlFor="status">Status</Label>
-              <Select value={status} onValueChange={(value: 'active' | 'inactive') => setStatus(value)}>
+              <Select value={status} onValueChange={(value: 'active' | 'inactive' | 'deleted') => setStatus(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="deleted">Deleted</SelectItem>
                 </SelectContent>
               </Select>
             </div>

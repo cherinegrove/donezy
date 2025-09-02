@@ -838,19 +838,28 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
+      // Soft delete: Update user status to 'deleted' instead of removing record
       const { error } = await supabase
         .from('users')
-        .delete()
+        .update({ 
+          status: 'deleted',
+          updated_at: new Date().toISOString()
+        })
         .eq('auth_user_id', userId);
 
       if (error) {
-        console.error('Error deleting user:', error);
+        console.error('Error soft deleting user:', error);
         return;
       }
 
-      setUsers(prev => prev.filter(user => user.auth_user_id !== userId));
+      // Update local state to reflect the soft delete
+      setUsers(prev => prev.map(user => 
+        user.auth_user_id === userId 
+          ? { ...user, status: 'deleted' } 
+          : user
+      ));
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error('Error soft deleting user:', error);
     }
   };
 

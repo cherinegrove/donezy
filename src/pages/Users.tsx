@@ -8,7 +8,7 @@ import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { EditUserDialog } from "@/components/users/EditUserDialog";
 import { InviteUserWithEmail } from "@/components/settings/InviteUserWithEmail";
 import { User } from "@/types";
-import { Building, Pencil, Plus, Users as UsersIcon } from "lucide-react";
+import { Building, Pencil, Plus, Users as UsersIcon, Trash2 } from "lucide-react";
 import {
   Tabs,
   TabsContent,
@@ -16,14 +16,18 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 const Users = () => {
-  const { teams, users, clients, customRoles } = useAppContext();
+  const { toast } = useToast();
+  const { teams, users, clients, customRoles, deleteUser } = useAppContext();
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [activeTab, setActiveTab] = useState("internal");
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
+  const [deleteDialogUser, setDeleteDialogUser] = useState<User | null>(null);
 
   // Define filter options - create separate arrays for different tabs
   const internalFilterOptions: FilterOption[] = [
@@ -57,7 +61,10 @@ const Users = () => {
   ];
 
   const getUsersInTeam = (teamId: string) => {
-    const filteredUsers = users.filter(user => user.teamIds.includes(teamId));
+    // Filter out deleted users from team members
+    const filteredUsers = users.filter(user => 
+      user.teamIds.includes(teamId) && user.status !== 'deleted'
+    );
     
     // Apply role filters if any
     if (activeFilters.roles && activeFilters.roles.length > 0) {
@@ -71,8 +78,9 @@ const Users = () => {
   };
 
   // Filter users based on their type (internal or client users by clientId)
-  const internalUsers = users.filter(user => !user.clientId);
-  const clientUsers = users.filter(user => user.clientId);
+  // Also filter out deleted users
+  const internalUsers = users.filter(user => !user.clientId && user.status !== 'deleted');
+  const clientUsers = users.filter(user => user.clientId && user.status !== 'deleted');
 
   // Apply client filter for client users
   const filteredClientUsers = activeFilters.clients && activeFilters.clients.length > 0
@@ -93,6 +101,21 @@ const Users = () => {
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
     setIsEditUserDialogOpen(true);
+  };
+
+  const handleDeleteUser = (user: User) => {
+    setDeleteDialogUser(user);
+  };
+
+  const confirmDelete = () => {
+    if (deleteDialogUser) {
+      deleteUser(deleteDialogUser.auth_user_id);
+      setDeleteDialogUser(null);
+      toast({
+        title: "User Deleted",
+        description: `${deleteDialogUser.name} has been soft deleted and will no longer appear in the user list.`,
+      });
+    }
   };
 
   // Filter teams based on team filter
@@ -176,14 +199,25 @@ const Users = () => {
                                 <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full capitalize">
                                   {customRoles.find(r => r.id === member.roleId)?.name || 'Unknown'}
                                 </span>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleEditUser(member)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                  <span className="sr-only">Edit</span>
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleEditUser(member)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                    <span className="sr-only">Edit</span>
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleDeleteUser(member)}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Delete</span>
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -249,14 +283,25 @@ const Users = () => {
                         <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                           Client
                         </span>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleEditUser(user)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                          <span className="sr-only">Edit</span>
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDeleteUser(user)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -301,6 +346,26 @@ const Users = () => {
           />
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteDialogUser} onOpenChange={() => setDeleteDialogUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteDialogUser?.name}"? This will mark the user as deleted and they will no longer appear in the user list. This action can be reversed by changing their status back to "Active" in the edit dialog.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
