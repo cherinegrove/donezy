@@ -31,8 +31,8 @@ export function InviteUserWithEmail({ onSuccess }: InviteUserWithEmailProps) {
     setIsLoading(true);
     
     try {
-      // Create the invite link (simpler signup flow)
-      const inviteLink = `${window.location.origin}/signup`;
+      // Create the invite link using your configured domain
+      const inviteLink = `https://app.donezy.io/signup`;
       
       // Send the invite email
       console.log("🔍 Calling send-invite-email function...");
