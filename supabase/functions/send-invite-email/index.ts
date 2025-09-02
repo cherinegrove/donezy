@@ -1,8 +1,12 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+// Use Supabase client for built-in email functionality
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL") ?? "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,47 +32,27 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { email, name, role, inviterName, companyName, inviteLink }: InviteEmailRequest = await req.json();
 
-    const emailResponse = await resend.emails.send({
-      from: "Manex <onboarding@resend.dev>",
-      to: [email],
-      subject: `You've been invited to join ${companyName || 'the team'} on Manex`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h1 style="color: #333; text-align: center;">You're Invited!</h1>
-          
-          <p>Hi ${name},</p>
-          
-          <p>${inviterName} has invited you to join ${companyName || 'their team'} on Manex as a <strong>${role}</strong>.</p>
-          
-          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #495057;">What is Manex?</h3>
-            <p style="margin-bottom: 0;">Manex is a comprehensive project management and time tracking platform that helps teams collaborate effectively and manage their work efficiently.</p>
-          </div>
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${inviteLink}" 
-               style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
-              Accept Invitation
-            </a>
-          </div>
-          
-          <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-          <p style="word-break: break-all; color: #6c757d; font-size: 14px;">${inviteLink}</p>
-          
-          <hr style="border: none; border-top: 1px solid #dee2e6; margin: 30px 0;">
-          
-          <p style="color: #6c757d; font-size: 12px; text-align: center;">
-            If you didn't expect this invitation, you can safely ignore this email.
-            <br>
-            This invitation was sent by ${inviterName} (${email}).
-          </p>
-        </div>
-      `,
+    console.log("Attempting to send invite email to:", email);
+
+    // Use Supabase Auth to invite user directly - this uses your configured SMTP
+    const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
+      data: {
+        name: name,
+        role: role,
+        inviter_name: inviterName,
+        company_name: companyName || 'Donezy'
+      },
+      redirectTo: inviteLink
     });
 
-    console.log("Invite email sent successfully:", emailResponse);
+    if (error) {
+      console.error("Supabase invite error:", error);
+      throw error;
+    }
 
-    return new Response(JSON.stringify(emailResponse), {
+    console.log("Invite sent successfully via Supabase:", data);
+
+    return new Response(JSON.stringify({ success: true, data }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",

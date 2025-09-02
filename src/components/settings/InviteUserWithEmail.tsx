@@ -27,6 +27,7 @@ export function InviteUserWithEmail({ onSuccess }: InviteUserWithEmailProps) {
     e.preventDefault();
     if (!currentUser) return;
 
+    console.log("🔍 Starting invite process for:", formData.email);
     setIsLoading(true);
     
     try {
@@ -34,16 +35,19 @@ export function InviteUserWithEmail({ onSuccess }: InviteUserWithEmailProps) {
       const inviteLink = `${window.location.origin}/signup?invite=${encodeURIComponent(formData.email)}`;
       
       // Send the invite email
-      const { error: emailError } = await supabase.functions.invoke('send-invite-email', {
+      console.log("🔍 Calling send-invite-email function...");
+      const { data, error: emailError } = await supabase.functions.invoke('send-invite-email', {
         body: {
           email: formData.email,
           name: formData.name,
           role: formData.role,
           inviterName: currentUser.name,
-          companyName: "Your Company", // You can make this dynamic
+          companyName: "Donezy",
           inviteLink: inviteLink
         }
       });
+
+      console.log("🔍 Function response:", { data, emailError });
 
       if (emailError) {
         console.error("Error sending invite email:", emailError);
