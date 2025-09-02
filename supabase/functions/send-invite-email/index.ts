@@ -46,6 +46,15 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (error) {
       console.error("Supabase invite error:", error);
+      // Handle the case where user already exists
+      if (error.message?.includes("already been registered")) {
+        return new Response(JSON.stringify({ 
+          error: "A user with this email address already exists. Please use a different email or contact the user directly." 
+        }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
       throw error;
     }
 
