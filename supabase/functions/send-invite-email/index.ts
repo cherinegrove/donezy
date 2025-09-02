@@ -1,8 +1,7 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Use Supabase client for built-in email functionality
+// Supabase client with Service Role (needed for invite)
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -20,29 +19,29 @@ interface InviteEmailRequest {
   role: string;
   inviterName: string;
   companyName?: string;
-  inviteLink: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { email, name, role, inviterName, companyName, inviteLink }: InviteEmailRequest = await req.json();
+    const { email, name, role, inviterName, companyName }: InviteEmailRequest =
+      await req.json();
 
     console.log("Attempting to send invite email to:", email);
 
-    // Use Supabase Auth to invite user directly - this uses your configured SMTP
+    // Invite user with Supabase Auth (uses your SMTP)
     const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
       data: {
-        name: name,
-        role: role,
+        name,
+        role,
         inviter_name: inviterName,
-        company_name: companyName || 'Donezy'
+        company_name: companyName || "Donezy",
       },
-      redirectTo: `https://app.donezy.io/signup`
+      // 👇 IMPORTANT: Send users to your confirm route
+      redirectTo: "https://app.donezy.io/confirm",
     });
 
     if (error) {
@@ -61,13 +60,10 @@ const handler = async (req: Request): Promise<Response> => {
     });
   } catch (error: any) {
     console.error("Error in send-invite-email function:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 
