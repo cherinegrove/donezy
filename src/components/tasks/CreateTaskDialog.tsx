@@ -39,8 +39,8 @@ const createTaskSchema = (isSubtask: boolean) => {
   const baseSchema = {
     title: z.string().min(1, { message: "Title is required" }),
     description: z.string(),
-    clientId: z.string().optional(),
-    projectId: z.string().min(1, { message: "Project is required" }),
+    clientId: z.string().min(1, { message: "Client is required" }),
+    projectId: z.string().optional(),
     assigneeId: z.string().optional(),
     collaboratorIds: z.array(z.string()).optional(),
     status: z.string().min(1, { message: "Status is required" }),
@@ -491,14 +491,14 @@ export function CreateTaskDialog({
                       name="clientId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Client (Optional)</FormLabel>
+                          <FormLabel>Client</FormLabel>
                           <FormControl>
                             <Select 
                               value={field.value} 
                               onValueChange={field.onChange}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a client (optional)" />
+                                <SelectValue placeholder="Select a client" />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="">No client</SelectItem>
@@ -520,14 +520,14 @@ export function CreateTaskDialog({
                       name="projectId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Project</FormLabel>
+                          <FormLabel>Project (Optional)</FormLabel>
                           <FormControl>
                             <Select 
                               value={field.value} 
                               onValueChange={field.onChange}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a project" />
+                                <SelectValue placeholder="Select a project (optional)" />
                               </SelectTrigger>
                               <SelectContent>
                                 {/* Show all projects if no client selected, or filtered projects if client selected */}
