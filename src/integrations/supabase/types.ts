@@ -771,6 +771,33 @@ export type Database = {
         }
         Relationships: []
       }
+      project_reminders: {
+        Row: {
+          created_at: string
+          email_sent_to: string
+          id: string
+          project_id: string
+          reminder_type: string
+          sent_at: string
+        }
+        Insert: {
+          created_at?: string
+          email_sent_to: string
+          id?: string
+          project_id: string
+          reminder_type: string
+          sent_at?: string
+        }
+        Update: {
+          created_at?: string
+          email_sent_to?: string
+          id?: string
+          project_id?: string
+          reminder_type?: string
+          sent_at?: string
+        }
+        Relationships: []
+      }
       project_status_definitions: {
         Row: {
           auth_user_id: string
@@ -956,6 +983,7 @@ export type Database = {
           name: string
           organization_id: string | null
           owner_id: string | null
+          reminder_date: string | null
           service_type: string
           start_date: string | null
           status: string
@@ -976,6 +1004,7 @@ export type Database = {
           name: string
           organization_id?: string | null
           owner_id?: string | null
+          reminder_date?: string | null
           service_type?: string
           start_date?: string | null
           status?: string
@@ -996,6 +1025,7 @@ export type Database = {
           name?: string
           organization_id?: string | null
           owner_id?: string | null
+          reminder_date?: string | null
           service_type?: string
           start_date?: string | null
           status?: string
