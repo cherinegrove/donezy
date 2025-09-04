@@ -29,7 +29,29 @@ const handler = async (req: Request): Promise<Response> => {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     
-    console.log('Checking for due date reminders on:', todayStr);
+    console.log('Checking for task reminders on:', todayStr);
+    
+    // Find tasks starting today that haven't had start date reminders sent
+    const { data: startTasks, error: startTasksError } = await supabase
+      .from('tasks')
+      .select(`
+        id,
+        title,
+        description,
+        start_date,
+        auth_user_id,
+        assignee_id,
+        users!inner(name, email)
+      `)
+      .eq('start_date', todayStr)
+      .not('auth_user_id', 'is', null);
+    
+    if (startTasksError) {
+      console.error('Error fetching start date tasks:', startTasksError);
+      throw startTasksError;
+    }
+    
+    console.log('Found', startTasks?.length || 0, 'tasks starting today');
     
     // Find tasks due today that haven't had due date reminders sent
     const { data: dueTasks, error: dueTasksError } = await supabase
@@ -76,6 +98,59 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Found', reminderTasks?.length || 0, 'tasks with custom reminders today');
     
     let emailsSent = 0;
+    
+    // Process start date reminders
+    for (const task of startTasks || []) {
+      // Check if we already sent a start date reminder for this task
+      const { data: existingReminder } = await supabase
+        .from('task_reminders')
+        .select('id')
+        .eq('task_id', task.id)
+        .eq('reminder_type', 'start_date')
+        .single();
+      
+      if (existingReminder) {
+        console.log(`Start date reminder already sent for task ${task.id}`);
+        continue;
+      }
+      
+      try {
+        // Send email using Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
+          task.users.email,
+          {
+            data: {
+              task_title: task.title,
+              task_description: task.description || '',
+              reminder_type: 'start_date',
+              task_start_date: task.start_date,
+              subject: `Task Starting Today: ${task.title}`,
+            },
+            redirectTo: `${supabaseUrl.replace('.supabase.co', '')}/tasks`,
+          }
+        );
+        
+        if (authError) {
+          console.error('Error sending start date reminder email:', authError);
+          continue;
+        }
+        
+        // Record that we sent this reminder
+        await supabase
+          .from('task_reminders')
+          .insert({
+            task_id: task.id,
+            reminder_type: 'start_date',
+            email_sent_to: task.users.email,
+          });
+        
+        emailsSent++;
+        console.log(`Sent start date reminder for task: ${task.title} to ${task.users.email}`);
+        
+      } catch (error) {
+        console.error(`Failed to send start date reminder for task ${task.id}:`, error);
+      }
+    }
     
     // Process due date reminders
     for (const task of dueTasks || []) {
@@ -189,6 +264,7 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         emailsSent,
+        startTasksChecked: startTasks?.length || 0,
         dueTasksChecked: dueTasks?.length || 0,
         reminderTasksChecked: reminderTasks?.length || 0
       }),
