@@ -40,7 +40,7 @@ const createTaskSchema = (isSubtask: boolean) => {
     title: z.string().min(1, { message: "Title is required" }),
     description: z.string(),
     clientId: z.string().min(1, { message: "Client is required" }),
-    projectId: z.string().optional(),
+    projectId: z.string().min(1, { message: "Project is required" }),
     assigneeId: z.string().optional(),
     collaboratorIds: z.array(z.string()).optional(),
     status: z.string().min(1, { message: "Status is required" }),
