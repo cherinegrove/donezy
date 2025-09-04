@@ -626,7 +626,8 @@ export function CreateTaskDialog({
                     />
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Status and Priority Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="status"
@@ -669,7 +670,10 @@ export function CreateTaskDialog({
                         </FormItem>
                       )}
                     />
+                  </div>
 
+                  {/* Start Date and Due Date Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="startDate"
@@ -683,9 +687,7 @@ export function CreateTaskDialog({
                         </FormItem>
                       )}
                     />
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="dueDate"
@@ -699,24 +701,25 @@ export function CreateTaskDialog({
                         </FormItem>
                       )}
                     />
-
-                    <FormField
-                      control={form.control}
-                      name="reminderDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Reminder Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <p className="text-xs text-muted-foreground">
-                            Get an email reminder on this date
-                          </p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </div>
+
+                  {/* Reminder Date on its own line */}
+                  <FormField
+                    control={form.control}
+                    name="reminderDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Reminder Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          Get an email reminder on this date
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   
                   {/* Custom Fields - Show when there are template fields available - REMOVED MultiSelect usage */}
                   {orderedFieldsToShow.length > 0 && (
