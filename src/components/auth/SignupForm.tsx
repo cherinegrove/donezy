@@ -123,12 +123,25 @@ export function SignupForm() {
       }
     } catch (error) {
       console.error("Signup error:", error);
-      setSignupError(error instanceof Error ? error.message : "An error occurred during signup. Please try again.");
-      toast({
-        title: "Error creating account",
-        description: error instanceof Error ? error.message : "An error occurred during signup. Please try again.",
-        variant: "destructive",
-      });
+      
+      // Check if user already exists
+      const errorMessage = error instanceof Error ? error.message : "An error occurred during signup. Please try again.";
+      
+      if (errorMessage.includes("already been registered") || errorMessage.includes("already exists") || errorMessage.includes("User already registered")) {
+        setSignupError("It looks like you already have an account with this email address. Please try logging in or use the forgot password option if you need to reset your password.");
+        toast({
+          title: "Account already exists",
+          description: "Try logging in or use forgot password if needed.",
+          variant: "destructive",
+        });
+      } else {
+        setSignupError(errorMessage);
+        toast({
+          title: "Error creating account",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
