@@ -6,11 +6,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface EmailData {
-  name: string;
-  role: string;
-  inviter_name: string;
-  company_name: string;
+interface WebhookData {
+  type: 'task_reminder';
+  reminder_type: 'start_date' | 'due_date' | 'custom_reminder';
+  task: {
+    id: string;
+    title: string;
+    description: string;
+    start_date?: string;
+    due_date?: string;
+    reminder_date?: string;
+  };
+  recipients: {
+    name: string;
+    email: string;
+    role: 'assignee' | 'collaborator';
+  }[];
+  timestamp: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -143,43 +155,61 @@ const handler = async (req: Request): Promise<Response> => {
         }
       }
       
-      // Send emails to all recipients
-      for (const recipient of recipients) {
+      // Prepare webhook data for all recipients
+      if (recipients.length > 0) {
+        const webhookData: WebhookData = {
+          type: 'task_reminder',
+          reminder_type: 'start_date',
+          task: {
+            id: task.id,
+            title: task.title,
+            description: task.description || '',
+            start_date: task.start_date,
+          },
+          recipients: recipients.map(recipient => ({
+            name: recipient.name,
+            email: recipient.email,
+            role: task.assignee_id === recipient.auth_user_id ? 'assignee' : 'collaborator' as const
+          })),
+          timestamp: new Date().toISOString(),
+        };
+
         try {
-          // Send email using Supabase Auth
-          const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
-            recipient.email,
-            {
-              data: {
-                task_title: task.title,
-                task_description: task.description || '',
-                reminder_type: 'start_date',
-                task_start_date: task.start_date,
-                subject: `Task Starting Today: ${task.title}`,
+          // Send webhook to automation platform
+          const webhookUrl = Deno.env.get('REMINDER_WEBHOOK_URL');
+          if (webhookUrl) {
+            const response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
               },
-              redirectTo: `${supabaseUrl.replace('.supabase.co', '')}/tasks`,
+              body: JSON.stringify(webhookData),
+            });
+            
+            if (!response.ok) {
+              console.error('Webhook failed:', response.status, response.statusText);
+            } else {
+              console.log(`Sent start date reminder webhook for task: ${task.title}`);
             }
-          );
-          
-          if (authError) {
-            console.error('Error sending start date reminder email:', authError);
-            continue;
+          } else {
+            console.log('No webhook URL configured, skipping reminder for task:', task.title);
           }
           
           // Record that we sent this reminder
-          await supabase
-            .from('task_reminders')
-            .insert({
-              task_id: task.id,
-              reminder_type: 'start_date',
-              email_sent_to: recipient.email,
-            });
+          for (const recipient of recipients) {
+            await supabase
+              .from('task_reminders')
+              .insert({
+                task_id: task.id,
+                reminder_type: 'start_date',
+                email_sent_to: recipient.email,
+              });
+          }
           
-          emailsSent++;
-          console.log(`Sent start date reminder for task: ${task.title} to ${recipient.email}`);
+          emailsSent += recipients.length;
           
         } catch (error) {
-          console.error(`Failed to send start date reminder for task ${task.id} to ${recipient.email}:`, error);
+          console.error(`Failed to send start date reminder webhook for task ${task.id}:`, error);
         }
       }
     }
@@ -228,43 +258,61 @@ const handler = async (req: Request): Promise<Response> => {
         }
       }
       
-      // Send emails to all recipients
-      for (const recipient of recipients) {
+      // Prepare webhook data for all recipients
+      if (recipients.length > 0) {
+        const webhookData: WebhookData = {
+          type: 'task_reminder',
+          reminder_type: 'due_date',
+          task: {
+            id: task.id,
+            title: task.title,
+            description: task.description || '',
+            due_date: task.due_date,
+          },
+          recipients: recipients.map(recipient => ({
+            name: recipient.name,
+            email: recipient.email,
+            role: task.assignee_id === recipient.auth_user_id ? 'assignee' : 'collaborator' as const
+          })),
+          timestamp: new Date().toISOString(),
+        };
+
         try {
-          // Send email using Supabase Auth
-          const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
-            recipient.email,
-            {
-              data: {
-                task_title: task.title,
-                task_description: task.description || '',
-                reminder_type: 'due_date',
-                task_due_date: task.due_date,
-                subject: `Task Due Today: ${task.title}`,
+          // Send webhook to automation platform
+          const webhookUrl = Deno.env.get('REMINDER_WEBHOOK_URL');
+          if (webhookUrl) {
+            const response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
               },
-              redirectTo: `${supabaseUrl.replace('.supabase.co', '')}/tasks`,
+              body: JSON.stringify(webhookData),
+            });
+            
+            if (!response.ok) {
+              console.error('Webhook failed:', response.status, response.statusText);
+            } else {
+              console.log(`Sent due date reminder webhook for task: ${task.title}`);
             }
-          );
-          
-          if (authError) {
-            console.error('Error sending due date reminder email:', authError);
-            continue;
+          } else {
+            console.log('No webhook URL configured, skipping reminder for task:', task.title);
           }
           
           // Record that we sent this reminder
-          await supabase
-            .from('task_reminders')
-            .insert({
-              task_id: task.id,
-              reminder_type: 'due_date',
-              email_sent_to: recipient.email,
-            });
+          for (const recipient of recipients) {
+            await supabase
+              .from('task_reminders')
+              .insert({
+                task_id: task.id,
+                reminder_type: 'due_date',
+                email_sent_to: recipient.email,
+              });
+          }
           
-          emailsSent++;
-          console.log(`Sent due date reminder for task: ${task.title} to ${recipient.email}`);
+          emailsSent += recipients.length;
           
         } catch (error) {
-          console.error(`Failed to send due date reminder for task ${task.id} to ${recipient.email}:`, error);
+          console.error(`Failed to send due date reminder webhook for task ${task.id}:`, error);
         }
       }
     }
@@ -313,53 +361,71 @@ const handler = async (req: Request): Promise<Response> => {
         }
       }
       
-      // Send emails to all recipients
-      for (const recipient of recipients) {
+      // Prepare webhook data for all recipients
+      if (recipients.length > 0) {
+        const webhookData: WebhookData = {
+          type: 'task_reminder',
+          reminder_type: 'custom_reminder',
+          task: {
+            id: task.id,
+            title: task.title,
+            description: task.description || '',
+            reminder_date: task.reminder_date,
+          },
+          recipients: recipients.map(recipient => ({
+            name: recipient.name,
+            email: recipient.email,
+            role: task.assignee_id === recipient.auth_user_id ? 'assignee' : 'collaborator' as const
+          })),
+          timestamp: new Date().toISOString(),
+        };
+
         try {
-          // Send email using Supabase Auth
-          const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
-            recipient.email,
-            {
-              data: {
-                task_title: task.title,
-                task_description: task.description || '',
-                reminder_type: 'custom_reminder',
-                task_due_date: task.due_date,
-                subject: `Task Reminder: ${task.title}`,
+          // Send webhook to automation platform
+          const webhookUrl = Deno.env.get('REMINDER_WEBHOOK_URL');
+          if (webhookUrl) {
+            const response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
               },
-              redirectTo: `${supabaseUrl.replace('.supabase.co', '')}/tasks`,
+              body: JSON.stringify(webhookData),
+            });
+            
+            if (!response.ok) {
+              console.error('Webhook failed:', response.status, response.statusText);
+            } else {
+              console.log(`Sent custom reminder webhook for task: ${task.title}`);
             }
-          );
-          
-          if (authError) {
-            console.error('Error sending custom reminder email:', authError);
-            continue;
+          } else {
+            console.log('No webhook URL configured, skipping reminder for task:', task.title);
           }
           
           // Record that we sent this reminder
-          await supabase
-            .from('task_reminders')
-            .insert({
-              task_id: task.id,
-              reminder_type: 'custom_reminder',
-              email_sent_to: recipient.email,
-            });
+          for (const recipient of recipients) {
+            await supabase
+              .from('task_reminders')
+              .insert({
+                task_id: task.id,
+                reminder_type: 'custom_reminder',
+                email_sent_to: recipient.email,
+              });
+          }
           
-          emailsSent++;
-          console.log(`Sent custom reminder for task: ${task.title} to ${recipient.email}`);
+          emailsSent += recipients.length;
           
         } catch (error) {
-          console.error(`Failed to send custom reminder for task ${task.id} to ${recipient.email}:`, error);
+          console.error(`Failed to send custom reminder webhook for task ${task.id}:`, error);
         }
       }
     }
     
-    console.log(`Task reminder check complete. Sent ${emailsSent} emails.`);
+    console.log(`Task reminder check complete. Sent ${emailsSent} webhook notifications.`);
     
     return new Response(
       JSON.stringify({ 
         success: true, 
-        emailsSent,
+        webhooksSent: emailsSent,
         startTasksChecked: startTasks?.length || 0,
         dueTasksChecked: dueTasks?.length || 0,
         reminderTasksChecked: reminderTasks?.length || 0
