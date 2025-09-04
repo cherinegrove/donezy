@@ -1083,32 +1083,47 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Task functions
   const addTask = async (task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>) => {
-    if (!session?.user) return;
+    console.log('🟢 addTask called with:', task);
+    
+    if (!session?.user) {
+      console.log('❌ No session or user found');
+      return;
+    }
+    
+    console.log('🟢 Session user ID:', session.user.id);
     
     try {
+      console.log('🟢 Attempting to insert task into database...');
+      
+      const insertData = {
+        auth_user_id: session.user.id,
+        title: task.title,
+        description: task.description,
+        project_id: task.projectId || null,
+        assignee_id: task.assigneeId || null,
+        status: task.status,
+        priority: task.priority,
+        due_date: task.dueDate || null,
+        estimated_hours: task.estimatedHours,
+        actual_hours: task.actualHours,
+        watcher_ids: task.watcherIds || [],
+        collaborator_ids: task.collaboratorIds || []
+      };
+      
+      console.log('🟢 Insert data:', insertData);
+      
       const { data, error } = await supabase
         .from('tasks')
-        .insert({
-          auth_user_id: session.user.id,
-          title: task.title,
-          description: task.description,
-          project_id: task.projectId || null,
-          assignee_id: task.assigneeId || null,
-          status: task.status,
-          priority: task.priority,
-          due_date: task.dueDate || null,
-          estimated_hours: task.estimatedHours,
-          actual_hours: task.actualHours,
-          watcher_ids: task.watcherIds || [],
-          collaborator_ids: task.collaboratorIds || []
-        })
+        .insert(insertData)
         .select()
         .single();
 
       if (error) {
-        console.error('Error adding task:', error);
-        return;
+        console.error('❌ Database error adding task:', error);
+        throw error;
       }
+
+      console.log('🟢 Task inserted successfully:', data);
 
       if (data) {
         const newTask: Task = {
@@ -1127,10 +1142,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           comments: [],
           collaboratorIds: data.collaborator_ids || []
         };
-        setTasks(prev => [...prev, newTask]);
+        
+        console.log('🟢 Adding task to local state:', newTask);
+        setTasks(prev => {
+          const newTasks = [...prev, newTask];
+          console.log('🟢 New tasks array length:', newTasks.length);
+          return newTasks;
+        });
+        console.log('🟢 Task successfully added to local state');
       }
     } catch (error) {
-      console.error('Error adding task:', error);
+      console.error('❌ Error adding task:', error);
+      throw error;
     }
   };
 
