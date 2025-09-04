@@ -41,7 +41,7 @@ const handler = async (req: Request): Promise<Response> => {
         start_date,
         auth_user_id,
         assignee_id,
-        users!inner(name, email)
+        collaborator_ids
       `)
       .eq('start_date', todayStr)
       .not('auth_user_id', 'is', null);
@@ -63,7 +63,7 @@ const handler = async (req: Request): Promise<Response> => {
         due_date,
         auth_user_id,
         assignee_id,
-        users!inner(name, email)
+        collaborator_ids
       `)
       .eq('due_date', todayStr)
       .not('auth_user_id', 'is', null);
@@ -85,7 +85,7 @@ const handler = async (req: Request): Promise<Response> => {
         reminder_date,
         auth_user_id,
         assignee_id,
-        users!inner(name, email)
+        collaborator_ids
       `)
       .eq('reminder_date', todayStr)
       .not('auth_user_id', 'is', null);
@@ -114,41 +114,73 @@ const handler = async (req: Request): Promise<Response> => {
         continue;
       }
       
-      try {
-        // Send email using Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
-          task.users.email,
-          {
-            data: {
-              task_title: task.title,
-              task_description: task.description || '',
-              reminder_type: 'start_date',
-              task_start_date: task.start_date,
-              subject: `Task Starting Today: ${task.title}`,
-            },
-            redirectTo: `${supabaseUrl.replace('.supabase.co', '')}/tasks`,
-          }
-        );
+      // Get list of recipients (assignee + collaborators, excluding creator)
+      const recipients = [];
+      
+      // Add assignee if exists and different from creator
+      if (task.assignee_id && task.assignee_id !== task.auth_user_id) {
+        const { data: assigneeUser } = await supabase
+          .from('users')
+          .select('name, email')
+          .eq('auth_user_id', task.assignee_id)
+          .single();
         
-        if (authError) {
-          console.error('Error sending start date reminder email:', authError);
-          continue;
+        if (assigneeUser) {
+          recipients.push(assigneeUser);
         }
+      }
+      
+      // Add collaborators if exist and different from creator
+      if (task.collaborator_ids && task.collaborator_ids.length > 0) {
+        const { data: collaboratorUsers } = await supabase
+          .from('users')
+          .select('name, email, auth_user_id')
+          .in('auth_user_id', task.collaborator_ids)
+          .neq('auth_user_id', task.auth_user_id);
         
-        // Record that we sent this reminder
-        await supabase
-          .from('task_reminders')
-          .insert({
-            task_id: task.id,
-            reminder_type: 'start_date',
-            email_sent_to: task.users.email,
-          });
-        
-        emailsSent++;
-        console.log(`Sent start date reminder for task: ${task.title} to ${task.users.email}`);
-        
-      } catch (error) {
-        console.error(`Failed to send start date reminder for task ${task.id}:`, error);
+        if (collaboratorUsers) {
+          recipients.push(...collaboratorUsers);
+        }
+      }
+      
+      // Send emails to all recipients
+      for (const recipient of recipients) {
+        try {
+          // Send email using Supabase Auth
+          const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
+            recipient.email,
+            {
+              data: {
+                task_title: task.title,
+                task_description: task.description || '',
+                reminder_type: 'start_date',
+                task_start_date: task.start_date,
+                subject: `Task Starting Today: ${task.title}`,
+              },
+              redirectTo: `${supabaseUrl.replace('.supabase.co', '')}/tasks`,
+            }
+          );
+          
+          if (authError) {
+            console.error('Error sending start date reminder email:', authError);
+            continue;
+          }
+          
+          // Record that we sent this reminder
+          await supabase
+            .from('task_reminders')
+            .insert({
+              task_id: task.id,
+              reminder_type: 'start_date',
+              email_sent_to: recipient.email,
+            });
+          
+          emailsSent++;
+          console.log(`Sent start date reminder for task: ${task.title} to ${recipient.email}`);
+          
+        } catch (error) {
+          console.error(`Failed to send start date reminder for task ${task.id} to ${recipient.email}:`, error);
+        }
       }
     }
     
@@ -167,41 +199,73 @@ const handler = async (req: Request): Promise<Response> => {
         continue;
       }
       
-      try {
-        // Send email using Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
-          task.users.email,
-          {
-            data: {
-              task_title: task.title,
-              task_description: task.description || '',
-              reminder_type: 'due_date',
-              task_due_date: task.due_date,
-              subject: `Task Due Today: ${task.title}`,
-            },
-            redirectTo: `${supabaseUrl.replace('.supabase.co', '')}/tasks`,
-          }
-        );
+      // Get list of recipients (assignee + collaborators, excluding creator)
+      const recipients = [];
+      
+      // Add assignee if exists and different from creator
+      if (task.assignee_id && task.assignee_id !== task.auth_user_id) {
+        const { data: assigneeUser } = await supabase
+          .from('users')
+          .select('name, email')
+          .eq('auth_user_id', task.assignee_id)
+          .single();
         
-        if (authError) {
-          console.error('Error sending due date reminder email:', authError);
-          continue;
+        if (assigneeUser) {
+          recipients.push(assigneeUser);
         }
+      }
+      
+      // Add collaborators if exist and different from creator
+      if (task.collaborator_ids && task.collaborator_ids.length > 0) {
+        const { data: collaboratorUsers } = await supabase
+          .from('users')
+          .select('name, email, auth_user_id')
+          .in('auth_user_id', task.collaborator_ids)
+          .neq('auth_user_id', task.auth_user_id);
         
-        // Record that we sent this reminder
-        await supabase
-          .from('task_reminders')
-          .insert({
-            task_id: task.id,
-            reminder_type: 'due_date',
-            email_sent_to: task.users.email,
-          });
-        
-        emailsSent++;
-        console.log(`Sent due date reminder for task: ${task.title} to ${task.users.email}`);
-        
-      } catch (error) {
-        console.error(`Failed to send due date reminder for task ${task.id}:`, error);
+        if (collaboratorUsers) {
+          recipients.push(...collaboratorUsers);
+        }
+      }
+      
+      // Send emails to all recipients
+      for (const recipient of recipients) {
+        try {
+          // Send email using Supabase Auth
+          const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
+            recipient.email,
+            {
+              data: {
+                task_title: task.title,
+                task_description: task.description || '',
+                reminder_type: 'due_date',
+                task_due_date: task.due_date,
+                subject: `Task Due Today: ${task.title}`,
+              },
+              redirectTo: `${supabaseUrl.replace('.supabase.co', '')}/tasks`,
+            }
+          );
+          
+          if (authError) {
+            console.error('Error sending due date reminder email:', authError);
+            continue;
+          }
+          
+          // Record that we sent this reminder
+          await supabase
+            .from('task_reminders')
+            .insert({
+              task_id: task.id,
+              reminder_type: 'due_date',
+              email_sent_to: recipient.email,
+            });
+          
+          emailsSent++;
+          console.log(`Sent due date reminder for task: ${task.title} to ${recipient.email}`);
+          
+        } catch (error) {
+          console.error(`Failed to send due date reminder for task ${task.id} to ${recipient.email}:`, error);
+        }
       }
     }
     
@@ -220,41 +284,73 @@ const handler = async (req: Request): Promise<Response> => {
         continue;
       }
       
-      try {
-        // Send email using Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
-          task.users.email,
-          {
-            data: {
-              task_title: task.title,
-              task_description: task.description || '',
-              reminder_type: 'custom_reminder',
-              task_due_date: task.due_date,
-              subject: `Task Reminder: ${task.title}`,
-            },
-            redirectTo: `${supabaseUrl.replace('.supabase.co', '')}/tasks`,
-          }
-        );
+      // Get list of recipients (assignee + collaborators, excluding creator)
+      const recipients = [];
+      
+      // Add assignee if exists and different from creator
+      if (task.assignee_id && task.assignee_id !== task.auth_user_id) {
+        const { data: assigneeUser } = await supabase
+          .from('users')
+          .select('name, email')
+          .eq('auth_user_id', task.assignee_id)
+          .single();
         
-        if (authError) {
-          console.error('Error sending custom reminder email:', authError);
-          continue;
+        if (assigneeUser) {
+          recipients.push(assigneeUser);
         }
+      }
+      
+      // Add collaborators if exist and different from creator
+      if (task.collaborator_ids && task.collaborator_ids.length > 0) {
+        const { data: collaboratorUsers } = await supabase
+          .from('users')
+          .select('name, email, auth_user_id')
+          .in('auth_user_id', task.collaborator_ids)
+          .neq('auth_user_id', task.auth_user_id);
         
-        // Record that we sent this reminder
-        await supabase
-          .from('task_reminders')
-          .insert({
-            task_id: task.id,
-            reminder_type: 'custom_reminder',
-            email_sent_to: task.users.email,
-          });
-        
-        emailsSent++;
-        console.log(`Sent custom reminder for task: ${task.title} to ${task.users.email}`);
-        
-      } catch (error) {
-        console.error(`Failed to send custom reminder for task ${task.id}:`, error);
+        if (collaboratorUsers) {
+          recipients.push(...collaboratorUsers);
+        }
+      }
+      
+      // Send emails to all recipients
+      for (const recipient of recipients) {
+        try {
+          // Send email using Supabase Auth
+          const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
+            recipient.email,
+            {
+              data: {
+                task_title: task.title,
+                task_description: task.description || '',
+                reminder_type: 'custom_reminder',
+                task_due_date: task.due_date,
+                subject: `Task Reminder: ${task.title}`,
+              },
+              redirectTo: `${supabaseUrl.replace('.supabase.co', '')}/tasks`,
+            }
+          );
+          
+          if (authError) {
+            console.error('Error sending custom reminder email:', authError);
+            continue;
+          }
+          
+          // Record that we sent this reminder
+          await supabase
+            .from('task_reminders')
+            .insert({
+              task_id: task.id,
+              reminder_type: 'custom_reminder',
+              email_sent_to: recipient.email,
+            });
+          
+          emailsSent++;
+          console.log(`Sent custom reminder for task: ${task.title} to ${recipient.email}`);
+          
+        } catch (error) {
+          console.error(`Failed to send custom reminder for task ${task.id} to ${recipient.email}:`, error);
+        }
       }
     }
     
