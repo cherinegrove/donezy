@@ -1246,6 +1246,41 @@ export type Database = {
         }
         Relationships: []
       }
+      task_reminders: {
+        Row: {
+          created_at: string
+          email_sent_to: string
+          id: string
+          reminder_type: string
+          sent_at: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_sent_to: string
+          id?: string
+          reminder_type: string
+          sent_at?: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          email_sent_to?: string
+          id?: string
+          reminder_type?: string
+          sent_at?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_reminders_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_status_definitions: {
         Row: {
           auth_user_id: string
@@ -1338,6 +1373,7 @@ export type Database = {
           organization_id: string | null
           priority: string
           project_id: string
+          reminder_date: string | null
           status: string
           title: string
           updated_at: string
@@ -1356,6 +1392,7 @@ export type Database = {
           organization_id?: string | null
           priority?: string
           project_id: string
+          reminder_date?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -1374,6 +1411,7 @@ export type Database = {
           organization_id?: string | null
           priority?: string
           project_id?: string
+          reminder_date?: string | null
           status?: string
           title?: string
           updated_at?: string
