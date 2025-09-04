@@ -5,10 +5,11 @@ import { Send } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 import { MentionDropdown } from "../messages/MentionDropdown";
 import { User } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChannelMessageComposerProps {
   channelId: string;
-  onSendMessage: (content: string, mentionedUsers: string[]) => void;
+  onSendMessage: (content: string, mentionedUsers: string[]) => Promise<string | void>;
   placeholder?: string;
 }
 
@@ -26,12 +27,35 @@ export function ChannelMessageComposer({
   const [mentionedUsers, setMentionedUsers] = useState<string[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!content.trim()) return;
 
-    onSendMessage(content, mentionedUsers);
-    setContent("");
-    setMentionedUsers([]);
+    try {
+      const messageId = await onSendMessage(content, mentionedUsers);
+      
+      // Send mention notifications
+      if (messageId && mentionedUsers.length > 0) {
+        for (const mentionedUserId of mentionedUsers) {
+          try {
+            await supabase.functions.invoke('send-mention-notification', {
+              body: {
+                mentionedUserId,
+                messageId,
+                mentionerName: currentUser?.name || 'Someone',
+                messageContent: content
+              }
+            });
+          } catch (notifyError) {
+            console.error('Failed to send mention notification:', notifyError);
+          }
+        }
+      }
+      
+      setContent("");
+      setMentionedUsers([]);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

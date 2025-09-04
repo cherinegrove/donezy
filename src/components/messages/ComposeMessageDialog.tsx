@@ -21,7 +21,8 @@ import { useState, useRef } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MentionDropdown } from "./MentionDropdown";
-import { User } from "@/types"; 
+import { User } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ComposeMessageDialogProps {
   open: boolean;
@@ -36,6 +37,7 @@ export function ComposeMessageDialog({
   
   const [recipients, setRecipients] = useState<string[]>([]);
   const [content, setContent] = useState("");
+  const [mentionedUsers, setMentionedUsers] = useState<string[]>([]);
   
   // Mention states
   const [mentionQuery, setMentionQuery] = useState("");
@@ -44,7 +46,7 @@ export function ComposeMessageDialog({
   const [cursorPosition, setCursorPosition] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
-  const handleSend = () => {
+  const handleSend = async () => {
     if (recipients.length === 0) {
       toast({
         title: "Error",
@@ -63,17 +65,43 @@ export function ComposeMessageDialog({
       return;
     }
     
-    sendMessage({
-      senderId: currentUser?.auth_user_id || "",
-      recipientIds: recipients,
-      content,
-      taskId: "", // Temporary placeholder for task ID
-      commentId: "" // Temporary placeholder for comment ID
-    });
-    
-    setRecipients([]);
-    setContent("");
-    onOpenChange(false);
+    try {
+      const messageId = await sendMessage({
+        senderId: currentUser?.auth_user_id || "",
+        recipientIds: recipients,
+        content,
+        taskId: "", // Temporary placeholder for task ID
+        commentId: "" // Temporary placeholder for comment ID
+      });
+      
+      // Send mention notifications
+      for (const mentionedUserId of mentionedUsers) {
+        try {
+          await supabase.functions.invoke('send-mention-notification', {
+            body: {
+              mentionedUserId,
+              messageId,
+              mentionerName: currentUser?.name || 'Someone',
+              messageContent: content
+            }
+          });
+        } catch (notifyError) {
+          console.error('Failed to send mention notification:', notifyError);
+        }
+      }
+      
+      setRecipients([]);
+      setContent("");
+      setMentionedUsers([]);
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive",
+      });
+    }
   };
   
   const handleAddRecipient = (userId: string) => {
@@ -145,9 +173,12 @@ export function ComposeMessageDialog({
       
       setContent(newText);
       
-      // Add the mentioned user to recipients if they're not already added
+      // Add the mentioned user to recipients and mentioned users list
       if (!recipients.includes(user.auth_user_id)) {
         setRecipients([...recipients, user.auth_user_id]);
+      }
+      if (!mentionedUsers.includes(user.auth_user_id)) {
+        setMentionedUsers([...mentionedUsers, user.auth_user_id]);
       }
       
       // Focus back on textarea and set cursor after the inserted mention
