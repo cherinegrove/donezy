@@ -70,6 +70,9 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   const [dueDate, setDueDate] = useState<Date | undefined>(
     task.dueDate ? new Date(task.dueDate) : undefined
   );
+  const [reminderDate, setReminderDate] = useState<Date | undefined>(
+    task.reminderDate ? new Date(task.reminderDate) : undefined
+  );
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
 
@@ -83,6 +86,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     setCollaboratorIds(task.collaboratorIds || []);
     setProjectId(task.projectId);
     setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
+    setReminderDate(task.reminderDate ? new Date(task.reminderDate) : undefined);
   }, [task]);
 
   const handleSaveChanges = () => {
@@ -95,6 +99,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       collaboratorIds,
       projectId,
       dueDate: dueDate ? dueDate.toISOString() : undefined,
+      reminderDate: reminderDate ? reminderDate.toISOString() : undefined,
     });
 
     toast({
@@ -235,6 +240,34 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                   <StatusSelect
                     field={{ value: status, onChange: handleStatusChange }}
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Reminder Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {reminderDate ? format(reminderDate, "PPP") : "No reminder set"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={reminderDate}
+                        onSelect={setReminderDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <p className="text-xs text-muted-foreground">
+                    Get an email reminder on this date
+                  </p>
                 </div>
               </div>
             </TabsContent>

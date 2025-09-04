@@ -47,6 +47,7 @@ const createTaskSchema = (isSubtask: boolean) => {
     priority: z.string().min(1, { message: "Priority is required" }),
     startDate: z.string().optional(),
     dueDate: z.string().optional(),
+    reminderDate: z.string().optional(),
     customFields: z.record(z.string(), z.any()),
   };
 
@@ -158,6 +159,7 @@ export function CreateTaskDialog({
       priority: "medium",
       startDate: "",
       dueDate: "",
+      reminderDate: "",
       customFields: {},
     },
   });
@@ -330,6 +332,7 @@ export function CreateTaskDialog({
         priority: data.priority as "low" | "medium" | "high",
         startDate: data.startDate,
         dueDate: data.dueDate,
+        reminderDate: data.reminderDate,
         customFields: data.customFields || {},
         subtasks: [],
       });
@@ -682,19 +685,38 @@ export function CreateTaskDialog({
                     />
                   </div>
 
-                  <FormField
-                    control={form.control}
-                    name="dueDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Due Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="dueDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Due Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="reminderDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Reminder Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">
+                            Get an email reminder on this date
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                   
                   {/* Custom Fields - Show when there are template fields available - REMOVED MultiSelect usage */}
                   {orderedFieldsToShow.length > 0 && (

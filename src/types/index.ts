@@ -166,6 +166,7 @@ export interface Task {
   priority: 'low' | 'medium' | 'high';
   startDate?: string;
   dueDate?: string;
+  reminderDate?: string;
   customFields?: Record<string, any>;
   subtasks?: Task[];
   createdAt: string;

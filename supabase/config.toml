@@ -38,6 +38,9 @@ verify_jwt = false
 [functions.api-create-project]
 verify_jwt = false
 
+[functions.send-task-reminders]
+verify_jwt = false
+
 [storage]
 enabled = true
 image = "supabase/storage-api:v1.0.6"
