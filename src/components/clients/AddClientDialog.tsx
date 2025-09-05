@@ -84,13 +84,17 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
       return;
     }
 
-    if (isSubmitting) return; // Prevent double submission
+    if (isSubmitting) {
+      console.log("🛑 Submission already in progress, blocking duplicate");
+      return;
+    }
 
-    console.log("Submitting client data:", data);
+    console.log("🚀 Starting client submission:", data);
     setIsSubmitting(true);
     
     try {
       // Use the context function which handles both DB insertion and state update
+      console.log("📞 Calling addClient from context...");
       await addClient({
         name: data.name,
         email: data.email,
@@ -103,6 +107,7 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
         currency: data.currency || "USD",
         createdAt: new Date().toISOString(),
       });
+      console.log("✅ addClient completed successfully");
       
       toast({
         title: "Client added",
@@ -301,7 +306,16 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                onClick={(e) => {
+                  if (isSubmitting) {
+                    e.preventDefault();
+                    console.log("🛑 Button click blocked - already submitting");
+                  }
+                }}
+              >
                 {isSubmitting ? "Adding..." : "Add Client"}
               </Button>
             </div>

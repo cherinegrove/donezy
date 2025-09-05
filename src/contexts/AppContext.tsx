@@ -908,9 +908,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Client functions
   const addClient = async (client: Omit<Client, 'id'>) => {
-    if (!session?.user) return;
+    console.log("🔵 addClient called with:", client);
+    if (!session?.user) {
+      console.log("❌ No session/user, returning early");
+      return;
+    }
     
     try {
+      console.log("🔵 Inserting client into database...");
       const { data, error } = await supabase
         .from('clients')
         .insert({
@@ -924,6 +929,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         })
         .select()
         .single();
+      console.log("🔵 Database insert result:", { data, error });
 
       if (error) {
         console.error('Error adding client:', error);
@@ -941,6 +947,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           createdAt: data.created_at,
           status: (data.status as 'active' | 'inactive') || 'active'
         };
+        console.log("🔵 Adding client to state:", newClient);
         setClients(prev => [...prev, newClient]);
       }
     } catch (error) {
