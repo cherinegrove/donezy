@@ -12,8 +12,8 @@ enable_signup = true
 
 [auth.email]
 enable_signup = true
-double_confirm_changes = false
-enable_confirmations = false
+double_confirm_changes = true
+enable_confirmations = true
 
 [database]
 port = 5432
