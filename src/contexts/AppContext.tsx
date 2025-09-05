@@ -409,6 +409,44 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  const loadMessages = async () => {
+    if (!session?.user) return;
+    
+    try {
+      console.log('🔄 Loading messages...');
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`to_user_id.eq.${session.user.id},from_user_id.eq.${session.user.id}`)
+        .order('timestamp', { ascending: false });
+      
+      if (error) {
+        console.error('Error loading messages:', error);
+        return;
+      }
+      
+      console.log('🔍 Raw messages from DB:', data);
+      
+      // Convert database messages to Message interface
+      const convertedMessages: Message[] = data?.map((dbMsg: any) => ({
+        id: dbMsg.id,
+        senderId: dbMsg.from_user_id,
+        recipientIds: [dbMsg.to_user_id], // Convert single to_user_id to array
+        content: dbMsg.content,
+        timestamp: dbMsg.timestamp,
+        read: dbMsg.read,
+        taskId: dbMsg.task_id,
+        projectId: dbMsg.project_id
+      })) || [];
+      
+      console.log('🔍 Converted messages:', convertedMessages);
+      setMessages(convertedMessages);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+
+  };
+
   const loadNotes = async () => {
     if (!session?.user) return;
     
@@ -605,6 +643,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         loadTasks();
         loadTimeEntries();
         loadTeams();
+        loadMessages();
         loadNotes();
         loadProjectStatuses();
         loadCustomRoles();
