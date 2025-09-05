@@ -45,6 +45,16 @@ const clientSchema = z.object({
   ),
   currency: z.string().optional(),
   status: z.enum(["active", "inactive"]).default("active"),
+  packageType: z.enum(["retainer", "paygo", "project"]).optional(),
+  retainerPeriod: z.enum(["monthly", "quarterly", "annually"]).optional(),
+  retainerHours: z.preprocess(
+    (val) => (val === "" || val === undefined) ? undefined : Number(val),
+    z.number().min(0).optional()
+  ),
+  paygoMonthlyLimit: z.preprocess(
+    (val) => (val === "" || val === undefined) ? undefined : Number(val),
+    z.number().min(0).optional()
+  ),
 });
 
 type ClientFormData = z.infer<typeof clientSchema>;
@@ -71,6 +81,10 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
       billableRate: undefined,
       currency: "USD",
       status: "active",
+      packageType: undefined,
+      retainerPeriod: undefined,
+      retainerHours: undefined,
+      paygoMonthlyLimit: undefined,
     },
   });
 
@@ -274,6 +288,99 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
                 )}
               />
             </div>
+            
+            <FormField
+              control={form.control}
+              name="packageType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Package Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select package type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="retainer">Retainer</SelectItem>
+                      <SelectItem value="paygo">PayGo</SelectItem>
+                      <SelectItem value="project">Project</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {form.watch("packageType") === "retainer" && (
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="retainerPeriod"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Retainer Period</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select period" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="quarterly">Quarterly</SelectItem>
+                          <SelectItem value="annually">Annually</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="retainerHours"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Retainer Hours</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          placeholder="40" 
+                          step="1"
+                          min="0"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+
+            {form.watch("packageType") === "paygo" && (
+              <FormField
+                control={form.control}
+                name="paygoMonthlyLimit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Monthly Limit</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="100" 
+                        step="1"
+                        min="0"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             
             <FormField
               control={form.control}
