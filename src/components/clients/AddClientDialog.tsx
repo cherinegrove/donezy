@@ -84,50 +84,25 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
       return;
     }
 
+    if (isSubmitting) return; // Prevent double submission
+
     console.log("Submitting client data:", data);
     setIsSubmitting(true);
     
     try {
-      const { data: clientData, error } = await supabase
-        .from('clients')
-        .insert({
-          auth_user_id: session.user.id,
-          name: data.name,
-          email: data.email,
-          phone: data.phone || null,
-          address: data.address || null,
-          website: data.website || null,
-          status: data.status,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Error creating client:", error);
-        throw error;
-      }
-
-      console.log("Client created successfully:", clientData);
-      
-      // Add client to context state with the correct ID from Supabase
-      if (addClient && clientData) {
-        const newClient = {
-          id: clientData.id, // Use the ID from Supabase
-          name: clientData.name,
-          email: clientData.email,
-          phone: clientData.phone || "",
-          address: clientData.address || "",
-          website: clientData.website || "",
-          status: clientData.status as "active" | "inactive",
-          contactName: data.contactName || "",
-          billableRate: data.billableRate || 0,
-          currency: data.currency || "USD",
-          createdAt: clientData.created_at,
-        };
-        
-        console.log("Adding client to context:", newClient);
-        addClient(newClient);
-      }
+      // Use the context function which handles both DB insertion and state update
+      await addClient({
+        name: data.name,
+        email: data.email,
+        phone: data.phone || "",
+        address: data.address || "",
+        website: data.website || "",
+        status: data.status,
+        contactName: data.contactName || "",
+        billableRate: data.billableRate || 0,
+        currency: data.currency || "USD",
+        createdAt: new Date().toISOString(),
+      });
       
       toast({
         title: "Client added",
