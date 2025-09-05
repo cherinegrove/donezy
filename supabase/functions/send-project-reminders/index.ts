@@ -175,28 +175,30 @@ const handler = async (req: Request): Promise<Response> => {
         };
 
         try {
-          // Send webhook to automation platform
-          const webhookUrl = Deno.env.get('REMINDER_WEBHOOK_URL');
-          if (webhookUrl) {
-            const response = await fetch(webhookUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(webhookData),
-            });
-            
-            if (!response.ok) {
-              console.error('Webhook failed:', response.status, response.statusText);
-            } else {
-              console.log(`Sent start date reminder webhook for project: ${project.name}`);
-            }
-          } else {
-            console.log('No webhook URL configured, skipping reminder for project:', project.name);
-          }
-          
-          // Record that we sent this reminder
+          // Create notification messages instead of sending emails
           for (const recipient of recipients) {
+            const { data: recipientUser } = await supabase
+              .from('users')
+              .select('auth_user_id')
+              .eq('email', recipient.email)
+              .single();
+
+            if (recipientUser) {
+              // Create notification message
+              await supabase
+                .from('messages')
+                .insert({
+                  auth_user_id: recipientUser.auth_user_id,
+                  from_user_id: 'system',
+                  to_user_id: recipientUser.auth_user_id,
+                  subject: `Project Starting Today: ${project.name}`,
+                  content: `The project "${project.name}" is scheduled to start today. ${project.description ? project.description : ''}`,
+                  priority: 'normal',
+                  read: false
+                });
+            }
+
+            // Record that we sent this reminder
             await supabase
               .from('project_reminders')
               .insert({
@@ -206,6 +208,7 @@ const handler = async (req: Request): Promise<Response> => {
               });
           }
           
+          console.log(`Created start date reminder notifications for project: ${project.name}`);
           emailsSent += recipients.length;
           
         } catch (error) {
@@ -278,28 +281,30 @@ const handler = async (req: Request): Promise<Response> => {
         };
 
         try {
-          // Send webhook to automation platform
-          const webhookUrl = Deno.env.get('REMINDER_WEBHOOK_URL');
-          if (webhookUrl) {
-            const response = await fetch(webhookUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(webhookData),
-            });
-            
-            if (!response.ok) {
-              console.error('Webhook failed:', response.status, response.statusText);
-            } else {
-              console.log(`Sent due date reminder webhook for project: ${project.name}`);
-            }
-          } else {
-            console.log('No webhook URL configured, skipping reminder for project:', project.name);
-          }
-          
-          // Record that we sent this reminder
+          // Create notification messages instead of sending emails
           for (const recipient of recipients) {
+            const { data: recipientUser } = await supabase
+              .from('users')
+              .select('auth_user_id')
+              .eq('email', recipient.email)
+              .single();
+
+            if (recipientUser) {
+              // Create notification message
+              await supabase
+                .from('messages')
+                .insert({
+                  auth_user_id: recipientUser.auth_user_id,
+                  from_user_id: 'system',
+                  to_user_id: recipientUser.auth_user_id,
+                  subject: `Project Due Today: ${project.name}`,
+                  content: `The project "${project.name}" is due today. Please ensure all deliverables are completed on time. ${project.description ? project.description : ''}`,
+                  priority: 'high',
+                  read: false
+                });
+            }
+
+            // Record that we sent this reminder
             await supabase
               .from('project_reminders')
               .insert({
@@ -309,6 +314,7 @@ const handler = async (req: Request): Promise<Response> => {
               });
           }
           
+          console.log(`Created due date reminder notifications for project: ${project.name}`);
           emailsSent += recipients.length;
           
         } catch (error) {
@@ -381,28 +387,30 @@ const handler = async (req: Request): Promise<Response> => {
         };
 
         try {
-          // Send webhook to automation platform
-          const webhookUrl = Deno.env.get('REMINDER_WEBHOOK_URL');
-          if (webhookUrl) {
-            const response = await fetch(webhookUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(webhookData),
-            });
-            
-            if (!response.ok) {
-              console.error('Webhook failed:', response.status, response.statusText);
-            } else {
-              console.log(`Sent custom reminder webhook for project: ${project.name}`);
-            }
-          } else {
-            console.log('No webhook URL configured, skipping reminder for project:', project.name);
-          }
-          
-          // Record that we sent this reminder
+          // Create notification messages instead of sending emails
           for (const recipient of recipients) {
+            const { data: recipientUser } = await supabase
+              .from('users')
+              .select('auth_user_id')
+              .eq('email', recipient.email)
+              .single();
+
+            if (recipientUser) {
+              // Create notification message
+              await supabase
+                .from('messages')
+                .insert({
+                  auth_user_id: recipientUser.auth_user_id,
+                  from_user_id: 'system',
+                  to_user_id: recipientUser.auth_user_id,
+                  subject: `Project Reminder: ${project.name}`,
+                  content: `You have a reminder set for the project "${project.name}". ${project.description ? project.description : ''}`,
+                  priority: 'normal',
+                  read: false
+                });
+            }
+
+            // Record that we sent this reminder
             await supabase
               .from('project_reminders')
               .insert({
@@ -412,6 +420,7 @@ const handler = async (req: Request): Promise<Response> => {
               });
           }
           
+          console.log(`Created custom reminder notifications for project: ${project.name}`);
           emailsSent += recipients.length;
           
         } catch (error) {
