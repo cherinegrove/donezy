@@ -89,12 +89,12 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
         status: project.status || projectStatuses[0]?.value || "",
         startDate: project.startDate || "",
         dueDate: project.dueDate || "",
-        allocatedHours: project.allocatedHours || undefined,
-        ownerId: project.ownerId || "",
-        collaboratorIds: project.collaboratorIds || [],
+        allocatedHours: typeof project.allocatedHours === 'number' ? project.allocatedHours : undefined,
+        ownerId: (typeof project.ownerId === 'string' && project.ownerId !== '') ? project.ownerId : "",
+        collaboratorIds: Array.isArray(project.collaboratorIds) ? project.collaboratorIds : [],
       });
     }
-  }, [form, open, project]);
+  }, [form, open, project, projectStatuses]);
 
   const onSubmit = async (data: ProjectFormData) => {
     if (!project) {
@@ -117,10 +117,10 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
         clientId: data.clientId,
         serviceType: data.serviceType,
         status: data.status,
-        startDate: data.startDate || "",
-        dueDate: data.dueDate || "",
-        allocatedHours: data.allocatedHours || 0,
-        ownerId: data.ownerId || "",
+        startDate: data.startDate || null,
+        dueDate: data.dueDate || null,
+        allocatedHours: data.allocatedHours || null,
+        ownerId: data.ownerId || null,
         collaboratorIds: data.collaboratorIds || [],
       });
 
@@ -324,7 +324,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Project Owner</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select project owner" />
