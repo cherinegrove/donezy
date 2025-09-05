@@ -14,6 +14,7 @@ import { TimeLogsCard } from "@/components/dashboard/cards/TimeLogsCard";
 
 import { RecentTasksCard } from "@/components/dashboard/cards/RecentTasksCard";
 import { NotificationsCard } from "@/components/dashboard/cards/NotificationsCard";
+import { TaskRemindersCard } from "@/components/dashboard/cards/TaskRemindersCard";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 
 const Home = () => {
@@ -216,6 +217,20 @@ const Home = () => {
             </CardContent>
           </Card>
         );
+      case "task-reminders":
+        return (
+          <Card key={cardType}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                Task Reminders Today
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TaskRemindersCard onRemove={onRemove} />
+            </CardContent>
+          </Card>
+        );
       default:
         return null;
     }
@@ -328,7 +343,7 @@ const Home = () => {
                 <CardTitle className="flex items-center gap-2 text-red-800">
                   <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                   <AlertTriangle className="h-5 w-5" />
-                  High Risk Overdue Tasks ({overdueHighRiskTasks.length})
+                  Overdue Tasks ({overdueHighRiskTasks.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -356,7 +371,7 @@ const Home = () => {
                   </div>
                 ) : (
                   <p className="text-center py-6 text-muted-foreground">
-                    No high-risk overdue tasks
+                    No overdue tasks
                   </p>
                 )}
               </CardContent>
@@ -367,6 +382,7 @@ const Home = () => {
         case "time-logs":
         case "recent-tasks":
         case "notifications":
+        case "task-reminders":
           return renderCard(sectionId as CardType);
 
         case "tasks":
@@ -482,8 +498,8 @@ const Home = () => {
         </div>
         <CardSelector 
           selectedCards={sectionOrder.filter(section => 
-            ["collaborator-tasks", "time-logs", "recent-tasks", "notifications"].includes(section)
-          ) as CardType[]} 
+            ["collaborator-tasks", "time-logs", "recent-tasks", "notifications", "task-reminders"].includes(section)
+          ) as CardType[]}
           onCardToggle={handleCardToggle} 
         />
       </div>

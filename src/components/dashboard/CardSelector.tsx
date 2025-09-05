@@ -8,7 +8,8 @@ export type CardType =
   | "collaborator-tasks"
   | "time-logs" 
   | "recent-tasks"
-  | "notifications";
+  | "notifications"
+  | "task-reminders";
 
 interface CardOption {
   id: CardType;
@@ -36,6 +37,11 @@ const availableCards: CardOption[] = [
     id: "notifications",
     name: "Unread Notifications",
     description: "Unread messages and notifications"
+  },
+  {
+    id: "task-reminders",
+    name: "Task Reminders Today",
+    description: "Tasks due today that need attention"
   }
 ];
 
