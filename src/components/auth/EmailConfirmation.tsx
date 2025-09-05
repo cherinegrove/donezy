@@ -17,19 +17,15 @@ export function EmailConfirmation() {
   useEffect(() => {
     const confirmUser = async () => {
       try {
-        // Get the token from URL parameters
-        const token = searchParams.get('token');
-        const type = searchParams.get('type');
+        // Get the code from URL parameters (new Supabase auth flow)
+        const code = searchParams.get('code');
         
-        if (!token || type !== 'signup') {
+        if (!code) {
           throw new Error('Invalid confirmation link');
         }
 
-        // Verify the email using the token
-        const { data, error } = await supabase.auth.verifyOtp({
-          token_hash: token,
-          type: 'signup'
-        });
+        // Exchange the code for a session
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
         if (error) throw error;
 
