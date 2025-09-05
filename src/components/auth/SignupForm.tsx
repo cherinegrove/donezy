@@ -79,7 +79,7 @@ export function SignupForm() {
             name: values.name,
             role: "admin", // First user is admin
           },
-          emailRedirectTo: `${window.location.origin}/confirm`
+          emailRedirectTo: `${window.location.origin}/email-confirmation`
         }
       });
       
