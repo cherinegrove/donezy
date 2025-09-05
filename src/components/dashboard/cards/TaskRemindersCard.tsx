@@ -6,12 +6,12 @@ import { isToday, parseISO, format } from "date-fns";
 export const TaskRemindersCard = ({ onRemove }: { onRemove?: () => void }) => {
   const { tasks, currentUser } = useAppContext();
 
-  // Get tasks due today that should trigger reminders
+  // Get tasks with reminder dates set for today
   const taskRemindersToday = tasks
     .filter(task => 
       (task.assigneeId === currentUser?.id || task.collaboratorIds?.includes(currentUser?.id)) &&
-      task.dueDate &&
-      isToday(parseISO(task.dueDate)) &&
+      task.reminderDate &&
+      isToday(parseISO(task.reminderDate)) &&
       task.status !== "done"
     )
     .sort((a, b) => {
@@ -35,7 +35,7 @@ export const TaskRemindersCard = ({ onRemove }: { onRemove?: () => void }) => {
                 <div>
                   <p className="text-sm font-medium">{task.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    Due today • {task.priority} priority
+                    Reminder today • {task.priority} priority
                   </p>
                 </div>
                 <div className={`text-xs px-2 py-1 rounded ${
