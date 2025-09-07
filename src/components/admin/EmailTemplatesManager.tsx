@@ -15,13 +15,77 @@ interface EmailTemplate {
   name: string;
   subject: string;
   content: string;
-  type: 'task_assignment' | 'project_update' | 'due_reminder' | 'weekly_report' | 'welcome';
+  type: 'task_due_today' | 'task_reminder' | 'task_overdue' | 'task_assignment' | 'project_added' | 'task_collaborator' | 'mentioned';
   isActive: boolean;
 }
 
 const defaultTemplates: EmailTemplate[] = [
   {
     id: '1',
+    name: 'Task Due Today',
+    subject: 'Task Due Today: {{task_title}}',
+    content: `Hello {{user_name}},
+
+Your task "{{task_title}}" is due today.
+
+Project: {{project_name}}
+Priority: {{priority}}
+Due Date: {{due_date}}
+
+Description:
+{{task_description}}
+
+Please complete this task today to stay on track.
+
+Best regards,
+{{company_name}} Team`,
+    type: 'task_due_today',
+    isActive: true
+  },
+  {
+    id: '2',
+    name: 'Task Reminder',
+    subject: 'Task Reminder: {{task_title}}',
+    content: `Hello {{user_name}},
+
+This is a reminder about your upcoming task:
+
+Task: {{task_title}}
+Project: {{project_name}}
+Due Date: {{due_date}}
+Priority: {{priority}}
+
+Please make sure to complete this task on time.
+
+Best regards,
+{{company_name}} Team`,
+    type: 'task_reminder',
+    isActive: true
+  },
+  {
+    id: '3',
+    name: 'Task Overdue',
+    subject: 'Overdue Task: {{task_title}}',
+    content: `Hello {{user_name}},
+
+Your task "{{task_title}}" is now overdue.
+
+Project: {{project_name}}
+Priority: {{priority}}
+Due Date: {{due_date}}
+
+Description:
+{{task_description}}
+
+Please complete this task as soon as possible.
+
+Best regards,
+{{company_name}} Team`,
+    type: 'task_overdue',
+    isActive: true
+  },
+  {
+    id: '4',
     name: 'Task Assignment',
     subject: 'New Task Assigned: {{task_title}}',
     content: `Hello {{user_name}},
@@ -44,59 +108,70 @@ Best regards,
     isActive: true
   },
   {
-    id: '2', 
-    name: 'Project Update',
-    subject: 'Project Update: {{project_name}}',
+    id: '5',
+    name: 'Added to Project',
+    subject: 'You\'ve been added to project: {{project_name}}',
     content: `Hello {{user_name}},
 
-There has been an update to project "{{project_name}}":
+You have been added to the project "{{project_name}}".
 
-{{update_details}}
+Project Description:
+{{project_description}}
 
-Please check your dashboard for more information.
+You can now:
+- View project details
+- Access project tasks
+- Collaborate with team members
+- Track project progress
+
+Please log in to your dashboard to get started.
 
 Best regards,
 {{company_name}} Team`,
-    type: 'project_update',
+    type: 'project_added',
     isActive: true
   },
   {
-    id: '3',
-    name: 'Task Due Reminder',
-    subject: 'Task Due Soon: {{task_title}}',
+    id: '6',
+    name: 'Added as Task Collaborator',
+    subject: 'You\'ve been added as collaborator: {{task_title}}',
     content: `Hello {{user_name}},
 
-This is a reminder that your task "{{task_title}}" is due {{due_date}}.
+You have been added as a collaborator to the task "{{task_title}}".
 
+Task Details:
 Project: {{project_name}}
+Due Date: {{due_date}}
 Priority: {{priority}}
 
-Please complete this task as soon as possible.
+Description:
+{{task_description}}
+
+You can now collaborate and contribute to this task.
 
 Best regards,
 {{company_name}} Team`,
-    type: 'due_reminder',
+    type: 'task_collaborator',
     isActive: true
   },
   {
-    id: '4',
-    name: 'Welcome Email',
-    subject: 'Welcome to {{company_name}}!',
+    id: '7',
+    name: 'You\'ve been Mentioned',
+    subject: 'You were mentioned in: {{context_title}}',
     content: `Hello {{user_name}},
 
-Welcome to {{company_name}}! We're excited to have you on board.
+You have been mentioned by {{mention_by}} in {{context_type}} "{{context_title}}".
 
-Your account has been created and you can now:
-- Access your dashboard
-- View assigned tasks
-- Collaborate with your team
-- Track your progress
+Message:
+{{mention_message}}
 
-If you have any questions, please don't hesitate to reach out.
+Project: {{project_name}}
+
+Please log in to view the full conversation and respond.
 
 Best regards,
 {{company_name}} Team`,
-    type: 'welcome',
+    type: 'mentioned',
     isActive: true
   }
 ];
@@ -182,11 +257,13 @@ export const EmailTemplatesManager = () => {
 
   const getTypeBadgeColor = (type: string) => {
     switch (type) {
+      case 'task_due_today': return 'bg-red-100 text-red-800';
+      case 'task_reminder': return 'bg-yellow-100 text-yellow-800';
+      case 'task_overdue': return 'bg-red-100 text-red-800';
       case 'task_assignment': return 'bg-blue-100 text-blue-800';
-      case 'project_update': return 'bg-green-100 text-green-800';
-      case 'due_reminder': return 'bg-orange-100 text-orange-800';
-      case 'weekly_report': return 'bg-purple-100 text-purple-800';
-      case 'welcome': return 'bg-pink-100 text-pink-800';
+      case 'project_added': return 'bg-green-100 text-green-800';
+      case 'task_collaborator': return 'bg-purple-100 text-purple-800';
+      case 'mentioned': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -293,11 +370,13 @@ export const EmailTemplatesManager = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="task_due_today">Task Due Today</SelectItem>
+                          <SelectItem value="task_reminder">Task Reminder</SelectItem>
+                          <SelectItem value="task_overdue">Task Overdue</SelectItem>
                           <SelectItem value="task_assignment">Task Assignment</SelectItem>
-                          <SelectItem value="project_update">Project Update</SelectItem>
-                          <SelectItem value="due_reminder">Due Reminder</SelectItem>
-                          <SelectItem value="weekly_report">Weekly Report</SelectItem>
-                          <SelectItem value="welcome">Welcome</SelectItem>
+                          <SelectItem value="project_added">Added to Project</SelectItem>
+                          <SelectItem value="task_collaborator">Task Collaborator</SelectItem>
+                          <SelectItem value="mentioned">Mentioned</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -348,17 +427,19 @@ export const EmailTemplatesManager = () => {
                     </div>
                   </div>
 
-                  <div className="bg-muted p-3 rounded text-sm">
-                    <h4 className="font-medium mb-2">Available Variables:</h4>
-                    <div className="text-muted-foreground space-y-1">
-                      <p><code>{'{{user_name}}'}</code> - Recipient's name</p>
-                      <p><code>{'{{task_title}}'}</code> - Task title</p>
-                      <p><code>{'{{project_name}}'}</code> - Project name</p>
-                      <p><code>{'{{due_date}}'}</code> - Due date</p>
-                      <p><code>{'{{priority}}'}</code> - Task priority</p>
-                      <p><code>{'{{company_name}}'}</code> - Company name</p>
+                    <div className="bg-muted p-3 rounded text-sm">
+                      <h4 className="font-medium mb-2">Available Variables:</h4>
+                      <div className="text-muted-foreground space-y-1">
+                        <p><code>{'{{user_name}}'}</code> - Recipient's name</p>
+                        <p><code>{'{{task_title}}'}</code> - Task title</p>
+                        <p><code>{'{{project_name}}'}</code> - Project name</p>
+                        <p><code>{'{{due_date}}'}</code> - Due date</p>
+                        <p><code>{'{{priority}}'}</code> - Task priority</p>
+                        <p><code>{'{{company_name}}'}</code> - Company name</p>
+                        <p><code>{'{{mention_by}}'}</code> - Person who mentioned you</p>
+                        <p><code>{'{{context_type}}'}</code> - Where you were mentioned (task/comment)</p>
+                      </div>
                     </div>
-                  </div>
                 </div>
               </>
             ) : (
