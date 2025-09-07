@@ -197,6 +197,9 @@ const Admin = () => {
               </div>
               <div className="px-6 pb-6">
                 <div className="space-y-6">
+                  <TaskStatusManager />
+                  <ProjectStatusManager />
+                  <TaskTemplateManager />
                   <CustomFieldsManager />
                   <NativeFieldsManager />
                   <SystemPreferences />
