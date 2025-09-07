@@ -67,7 +67,9 @@ export default function AdminUsers() {
   };
 
   const handleToggleStatus = (user: User) => {
-    const newStatus = user.status === 'active' ? 'inactive' : 'active';
+    const currentStatus = getUserStatus(user);
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    console.log('🔄 Toggling user status from', currentStatus, 'to', newStatus, 'for user:', user.email);
     updateUser(user.auth_user_id, { status: newStatus });
   };
 
@@ -198,7 +200,7 @@ export default function AdminUsers() {
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
                         <UserX className="h-4 w-4 mr-2" />
-                        {user.status === 'active' ? 'Deactivate' : 'Activate'}
+                        {getUserStatus(user) === 'active' ? 'Deactivate' : 'Activate'}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
