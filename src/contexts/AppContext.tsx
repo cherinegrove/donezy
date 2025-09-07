@@ -876,6 +876,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const deleteUser = async (userId: string) => {
     if (!session?.user) return;
     
+    console.log('🗑️ Attempting to delete user with ID:', userId);
+    const userToDelete = users.find(u => u.auth_user_id === userId);
+    console.log('🗑️ User to delete:', userToDelete);
+    
     try {
       // Soft delete: Update user status to 'deleted' instead of removing record
       const { error } = await supabase
@@ -887,18 +891,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .eq('auth_user_id', userId);
 
       if (error) {
-        console.error('Error soft deleting user:', error);
+        console.error('❌ Error soft deleting user:', error);
         return;
       }
 
+      console.log('✅ User successfully soft deleted in database');
+
       // Update local state to reflect the soft delete
-      setUsers(prev => prev.map(user => 
-        user.auth_user_id === userId 
-          ? { ...user, status: 'deleted' } 
-          : user
-      ));
+      setUsers(prev => {
+        const updatedUsers = prev.map(user => 
+          user.auth_user_id === userId 
+            ? { ...user, status: 'deleted' as const } 
+            : user
+        );
+        console.log('🔄 Updated users state, user now marked as deleted');
+        return updatedUsers;
+      });
     } catch (error) {
-      console.error('Error soft deleting user:', error);
+      console.error('❌ Error soft deleting user:', error);
     }
   };
 
