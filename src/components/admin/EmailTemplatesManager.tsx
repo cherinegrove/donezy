@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Send, Eye, Edit, Plus } from "lucide-react";
+import { Mail, Send, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -201,19 +200,25 @@ export const EmailTemplatesManager = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="templates" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="templates">Templates</TabsTrigger>
-            <TabsTrigger value="editor">Template Editor</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="templates" className="space-y-4">
-            <div className="grid gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Templates List */}
+          <div className="space-y-4">
+            <h3 className="font-medium">Email Templates</h3>
+            <div className="space-y-3">
               {templates.map((template) => (
-                <div key={template.id} className="border rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between">
+                <div 
+                  key={template.id} 
+                  className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                    selectedTemplate?.id === template.id ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+                  }`}
+                  onClick={() => {
+                    setSelectedTemplate(template);
+                    setIsEditing(false);
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium">{template.name}</h4>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{template.name}</h3>
                       <Badge className={getTypeBadgeColor(template.type)}>
                         {template.type.replace('_', ' ')}
                       </Badge>
@@ -223,55 +228,45 @@ export const EmailTemplatesManager = () => {
                         </Badge>
                       )}
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedTemplate(template);
-                        setIsEditing(true);
-                      }}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Subject: {template.subject}
+                    {template.subject}
                   </p>
                 </div>
               ))}
             </div>
-          </TabsContent>
+          </div>
 
-          <TabsContent value="editor" className="space-y-4">
+          {/* Template Editor */}
+          <div className="space-y-4">
             {selectedTemplate ? (
-              <div className="space-y-4">
+              <>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">
-                    {isEditing ? 'Edit' : 'Preview'} Template: {selectedTemplate.name}
+                  <h3 className="font-medium">
+                    {isEditing ? 'Edit' : 'Preview'}: {selectedTemplate.name}
                   </h3>
                   <div className="flex gap-2">
                     {!isEditing && (
-                      <Button variant="outline" onClick={() => setIsEditing(true)}>
+                      <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
                     )}
                     {isEditing && (
                       <>
-                        <Button variant="outline" onClick={() => setIsEditing(false)}>
+                        <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
                           Cancel
                         </Button>
-                        <Button onClick={handleSaveTemplate}>
-                          Save Template
+                        <Button size="sm" onClick={handleSaveTemplate}>
+                          Save
                         </Button>
                       </>
                     )}
                   </div>
                 </div>
 
-                <div className="grid gap-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <div>
                       <Label htmlFor="template-name">Template Name</Label>
                       <Input
@@ -332,7 +327,7 @@ export const EmailTemplatesManager = () => {
                         content: e.target.value
                       })}
                       disabled={!isEditing}
-                      rows={12}
+                      rows={8}
                       placeholder="Enter email content with {{variables}}"
                     />
                   </div>
@@ -346,37 +341,34 @@ export const EmailTemplatesManager = () => {
                         onChange={(e) => setTestEmail(e.target.value)}
                         type="email"
                       />
-                      <Button onClick={handleSendTestEmail} variant="outline">
+                      <Button onClick={handleSendTestEmail} variant="outline" size="sm">
                         <Send className="h-4 w-4 mr-1" />
-                        Send Test
+                        Test
                       </Button>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Test emails will use sample data for template variables
-                    </p>
                   </div>
 
-                  <div className="bg-muted p-3 rounded">
+                  <div className="bg-muted p-3 rounded text-sm">
                     <h4 className="font-medium mb-2">Available Variables:</h4>
-                    <div className="text-sm text-muted-foreground space-y-1">
+                    <div className="text-muted-foreground space-y-1">
                       <p><code>{'{{user_name}}'}</code> - Recipient's name</p>
                       <p><code>{'{{task_title}}'}</code> - Task title</p>
                       <p><code>{'{{project_name}}'}</code> - Project name</p>
                       <p><code>{'{{due_date}}'}</code> - Due date</p>
                       <p><code>{'{{priority}}'}</code> - Task priority</p>
                       <p><code>{'{{company_name}}'}</code> - Company name</p>
-                      <p><code>{'{{task_description}}'}</code> - Task description</p>
                     </div>
                   </div>
                 </div>
-              </div>
+              </>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Select a template from the Templates tab to edit</p>
+              <div className="text-center py-8 text-muted-foreground">
+                <Mail className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Select a template from the left to edit</p>
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
