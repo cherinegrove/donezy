@@ -18,6 +18,7 @@ import Clients from "@/pages/Clients";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { SystemPreferences } from "@/components/admin/SystemPreferences";
 import { DefaultNotificationSettings } from "@/components/admin/DefaultNotificationSettings";
+import { EmailTemplatesManager } from "@/components/admin/EmailTemplatesManager";
 import { isAdmin } from "@/utils/roleUtils";
 
 const Admin = () => {
@@ -202,6 +203,7 @@ const Admin = () => {
                   <CustomFieldsManager />
                   <NativeFieldsManager />
                   <DefaultNotificationSettings />
+                  <EmailTemplatesManager />
                   <SystemPreferences />
                 </div>
               </div>
