@@ -51,6 +51,12 @@ export default function AdminUsers() {
     getRoleName(user, customRoles).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  console.log('🔍 AdminUsers Debug - Total users:', users.length);
+  console.log('🔍 AdminUsers Debug - Filtered users:', filteredUsers.length);
+  console.log('🔍 AdminUsers Debug - Users with target emails:', 
+    users.filter(u => ['cherine.grove@gmail.com', 'cherine+donezy@cybersolve.net'].includes(u.email))
+  );
+
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
     setIsEditDialogOpen(true);
