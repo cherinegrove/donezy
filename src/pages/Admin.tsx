@@ -6,7 +6,6 @@ import AdminActivity from "@/components/admin/AdminActivity";
 import AdminTeams from "@/components/admin/AdminTeams";
 import AdminRoles from "@/components/admin/AdminRoles";
 import { TaskStatusManager } from "@/components/admin/TaskStatusManager";
-import { TaskTemplateManager } from "@/components/admin/TaskTemplateManager";
 import { ProjectStatusManager } from "@/components/admin/ProjectStatusManager";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
 import { NativeFieldsManager } from "@/components/admin/NativeFieldsManager";
@@ -199,7 +198,6 @@ const Admin = () => {
                 <div className="space-y-6">
                   <TaskStatusManager />
                   <ProjectStatusManager />
-                  <TaskTemplateManager />
                   <CustomFieldsManager />
                   <NativeFieldsManager />
                   <SystemPreferences />
