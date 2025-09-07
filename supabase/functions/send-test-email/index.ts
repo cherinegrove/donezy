@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "npm:resend@2.0.0";
 
-// Use service role to send emails
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-);
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,38 +26,35 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending test email to:", email);
     console.log("Subject:", subject);
 
-    // Send test email using Supabase Auth admin
-    const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-      data: {
-        test_email: true,
-        custom_subject: subject,
-        custom_content: content,
-      },
-      redirectTo: `${req.headers.get('origin') || 'https://app.donezy.io'}/admin`,
+    // Send email using Resend
+    const emailResponse = await resend.emails.send({
+      from: "Donezy <onboarding@resend.dev>", // Replace with your verified domain
+      to: [email],
+      subject: `[TEST] ${subject}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+          <div style="background-color: #ff6b35; color: white; padding: 10px; text-align: center; margin-bottom: 20px; border-radius: 5px;">
+            <strong>TEST EMAIL - Email Template Preview</strong>
+          </div>
+          <div style="background-color: white; padding: 20px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h2 style="color: #333; margin-top: 0;">${subject}</h2>
+            <div style="color: #666; line-height: 1.6; white-space: pre-line;">
+              ${content}
+            </div>
+          </div>
+          <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
+            This is a test email sent from your Donezy email template system.
+          </div>
+        </div>
+      `,
     });
 
-    if (error) {
-      console.error("Error sending test email:", error);
-      
-      // Handle case where user already exists
-      if (error.message?.includes("already been registered")) {
-        return new Response(JSON.stringify({ 
-          error: "Test email functionality requires a new email address. The recipient already has an account." 
-        }), {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
-      }
-      
-      throw error;
-    }
-
-    console.log("Test email sent successfully:", data);
+    console.log("Test email sent successfully:", emailResponse);
 
     return new Response(JSON.stringify({ 
       success: true, 
       message: "Test email sent successfully",
-      data 
+      data: emailResponse 
     }), {
       status: 200,
       headers: {
