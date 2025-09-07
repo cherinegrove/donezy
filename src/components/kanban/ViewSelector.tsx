@@ -1,9 +1,9 @@
 
-import { LayoutGrid, LayoutList, ChartGantt, Kanban } from "lucide-react";
+import { LayoutGrid, LayoutList, Kanban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-type ViewMode = "list" | "gantt" | "kanban";
+type ViewMode = "list" | "kanban";
 
 interface ViewSelectorProps {
   currentView: ViewMode;
@@ -27,23 +27,6 @@ export function ViewSelector({ currentView, onViewChange }: ViewSelectorProps) {
             </Button>
           </TooltipTrigger>
           <TooltipContent>List view</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={currentView === "gantt" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => onViewChange("gantt")}
-            >
-              <ChartGantt className="h-4 w-4" />
-              <span className="sr-only">Gantt view</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Gantt view</TooltipContent>
         </Tooltip>
       </TooltipProvider>
       

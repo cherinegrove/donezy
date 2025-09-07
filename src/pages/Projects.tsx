@@ -44,7 +44,7 @@ const Projects = () => {
   const [isUseTemplateDialogOpen, setIsUseTemplateDialogOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
   const [activeTab, setActiveTab] = useState("projects");
-  const [currentView, setCurrentView] = useState<"list" | "gantt" | "kanban">("kanban");
+  const [currentView, setCurrentView] = useState<"list" | "kanban">("kanban");
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const navigate = useNavigate();
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});

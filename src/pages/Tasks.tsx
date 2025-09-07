@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type ViewMode = "list" | "gantt" | "kanban";
+type ViewMode = "list" | "kanban";
 
 export default function Tasks() {
   const { tasks, projects, users, clients } = useAppContext();

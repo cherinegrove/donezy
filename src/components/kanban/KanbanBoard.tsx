@@ -3,7 +3,6 @@ import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
 import { useState, useEffect } from "react";
 import { EditTaskDialog } from "../tasks/EditTaskDialog";
-import { GanttChart } from "./GanttChart";
 import { Settings, Edit2, CheckSquare, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 
-type ViewMode = "list" | "gantt" | "kanban";
+type ViewMode = "list" | "kanban";
 type DisplayOption = "project" | "client" | "assignee" | "parentTask" | "dueDate" | "priority" | "status" | "collaborators";
 
 interface KanbanBoardProps {
@@ -220,8 +219,6 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
 
   // Render toolbar with selection controls and display options
   const renderToolbar = () => {
-    if (viewMode === "gantt") return null;
-    
     return (
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
@@ -382,31 +379,6 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
             />
           )}
         </div>
-      </div>
-    );
-  }
-  
-  // Render Gantt view
-  if (viewMode === "gantt") {
-    return (
-      <div className="w-full">
-        <GanttChart tasks={tasks} />
-        
-        {selectedTask && (
-          <EditTaskDialog
-            task={selectedTask}
-            open={isEditDialogOpen}
-            onOpenChange={setIsEditDialogOpen}
-          />
-        )}
-        
-        {nestedSelectedTask && (
-          <EditTaskDialog
-            task={nestedSelectedTask}
-            open={isNestedDialogOpen}
-            onOpenChange={setIsNestedDialogOpen}
-          />
-        )}
       </div>
     );
   }

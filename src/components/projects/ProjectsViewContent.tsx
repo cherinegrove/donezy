@@ -1,10 +1,9 @@
 import { ProjectsGrid } from "./ProjectsGrid";
 import { ProjectsList } from "./ProjectsList";
-import { ProjectsGantt } from "./ProjectsGantt";
 import type { Project } from "@/types";
 
 interface ProjectsViewContentProps {
-  currentView: "list" | "gantt" | "kanban";
+  currentView: "list" | "kanban";
   projects: Project[];
   getProjectProgress: (projectId: string) => number;
   getClientName: (clientId: string) => string;
@@ -47,18 +46,6 @@ export function ProjectsViewContent({
         onEdit={onEdit}
         onDelete={onDelete}
         onCardClick={onCardClick}
-      />
-    );
-  }
-
-  if (currentView === "gantt") {
-    return (
-      <ProjectsGantt
-        projects={projects}
-        getProjectProgress={getProjectProgress}
-        getClientName={getClientName}
-        onEdit={onEdit}
-        onDelete={onDelete}
       />
     );
   }
