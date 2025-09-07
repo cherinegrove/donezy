@@ -417,11 +417,11 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
       {renderToolbar()}
       
       <div className="overflow-x-auto">
-        <div className="flex gap-4 min-w-max pb-4">
+        <div className="flex gap-3 min-w-max pb-4">
           {columns.map((column) => (
             <div
               key={column.id}
-              className="flex-1 min-w-[250px]"
+              className="flex-1 min-w-[200px] max-w-[220px]"
               onDragOver={handleDragOver}
               onDrop={() => handleDrop(column.id)}
             >
@@ -436,7 +436,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                   </span>
                 </div>
                 
-                <div className="space-y-3 min-h-[500px]">
+                <div className="space-y-2 min-h-[400px]">
                   {tasksByStatus[column.id].map(task => (
                     <div
                       key={task.id}
