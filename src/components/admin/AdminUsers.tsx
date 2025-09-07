@@ -68,9 +68,22 @@ export default function AdminUsers() {
 
   const handleToggleStatus = (user: User) => {
     const currentStatus = getUserStatus(user);
+    
+    // Only allow toggle for users who have confirmed their accounts
+    if (currentStatus === 'invite sent') {
+      console.log('⚠️ Cannot toggle status for user with pending invite:', user.email);
+      return;
+    }
+    
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     console.log('🔄 Toggling user status from', currentStatus, 'to', newStatus, 'for user:', user.email);
     updateUser(user.auth_user_id, { status: newStatus });
+  };
+
+  const handleResendInvite = (user: User) => {
+    console.log('📧 Resending invite to:', user.email);
+    // TODO: Implement resend invite functionality
+    // This would typically call an edge function to send another invitation email
   };
 
   const handleDeleteUser = (user: User) => {
@@ -198,10 +211,19 @@ export default function AdminUsers() {
                         <Edit className="h-4 w-4 mr-2" />
                         Edit User
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
-                        <UserX className="h-4 w-4 mr-2" />
-                        {getUserStatus(user) === 'active' ? 'Deactivate' : 'Activate'}
-                      </DropdownMenuItem>
+                      
+                      {getUserStatus(user) === 'invite sent' ? (
+                        <DropdownMenuItem onClick={() => handleResendInvite(user)}>
+                          <UserX className="h-4 w-4 mr-2" />
+                          Resend Invite
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
+                          <UserX className="h-4 w-4 mr-2" />
+                          {getUserStatus(user) === 'active' ? 'Deactivate' : 'Activate'}
+                        </DropdownMenuItem>
+                      )}
+                      
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
                         onClick={() => handleDeleteUser(user)}
