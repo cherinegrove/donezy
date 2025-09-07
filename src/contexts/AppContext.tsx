@@ -881,25 +881,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('🗑️ User to delete:', userToDelete);
     
     try {
-      // Check if the users table has a 'status' column by checking the existing users
-      console.log('🗑️ Sample user data to check columns:', users[0]);
-      
-      // Soft delete: Update user status to 'deleted' instead of removing record
+      // Hard delete: Remove user from database completely
       const { data, error } = await supabase
         .from('users')
-        .update({ 
-          updated_at: new Date().toISOString()
-        })
+        .delete()
         .eq('auth_user_id', userId)
         .select();
 
       if (error) {
-        console.error('❌ Error soft deleting user:', error);
+        console.error('❌ Error deleting user:', error);
         console.error('❌ Error details:', JSON.stringify(error, null, 2));
         return;
       }
 
-      console.log('✅ User successfully soft deleted in database:', data);
+      console.log('✅ User successfully deleted from database:', data);
 
       // Update local state to remove the user from the list
       setUsers(prev => {
@@ -908,7 +903,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return updatedUsers;
       });
     } catch (error) {
-      console.error('❌ Error soft deleting user:', error);
+      console.error('❌ Error deleting user:', error);
     }
   };
 
