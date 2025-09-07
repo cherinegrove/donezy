@@ -66,11 +66,13 @@ export default function AdminUsers() {
   };
 
   const handleDeleteUser = (user: User) => {
+    console.log('🎯 Delete button clicked for user:', user.email, user.auth_user_id);
     setDeleteDialogUser(user);
   };
 
   const confirmDelete = () => {
     if (deleteDialogUser) {
+      console.log('🎯 Confirming delete for user:', deleteDialogUser.email, deleteDialogUser.auth_user_id);
       deleteUser(deleteDialogUser.auth_user_id);
       setDeleteDialogUser(null);
     }
