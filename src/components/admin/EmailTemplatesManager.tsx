@@ -218,7 +218,12 @@ export const EmailTemplatesManager = () => {
         priority: "High",
         task_description: "This is a sample task description",
         company_name: "Your Company",
-        update_details: "This is a sample project update"
+        update_details: "This is a sample project update",
+        mention_by: "Jane Smith",
+        context_type: "task comment",
+        context_title: "Sample Task",
+        mention_message: "Hey @john, can you check this out?",
+        project_description: "This is a sample project for testing"
       };
 
       let processedSubject = selectedTemplate.subject;
@@ -230,10 +235,10 @@ export const EmailTemplatesManager = () => {
         processedContent = processedContent.replace(new RegExp(placeholder, 'g'), value);
       });
 
-      // Use Supabase auth to send email
-      const { error } = await supabase.auth.admin.inviteUserByEmail(testEmail, {
-        data: {
-          email_template: 'test',
+      // Call the edge function to send the test email
+      const { data, error } = await supabase.functions.invoke('send-test-email', {
+        body: {
+          email: testEmail,
           subject: processedSubject,
           content: processedContent
         }
