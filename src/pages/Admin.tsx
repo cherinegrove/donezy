@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import Clients from "@/pages/Clients";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { SystemPreferences } from "@/components/admin/SystemPreferences";
+import { DefaultNotificationSettings } from "@/components/admin/DefaultNotificationSettings";
 import { isAdmin } from "@/utils/roleUtils";
 
 const Admin = () => {
@@ -200,6 +201,7 @@ const Admin = () => {
                   <ProjectStatusManager />
                   <CustomFieldsManager />
                   <NativeFieldsManager />
+                  <DefaultNotificationSettings />
                   <SystemPreferences />
                 </div>
               </div>

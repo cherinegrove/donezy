@@ -34,13 +34,6 @@ export function SystemPreferences() {
   const [selectedTimezone, setSelectedTimezone] = useState("UTC");
   const [currencies, setCurrencies] = useState(DEFAULT_CURRENCIES);
   const [newCurrency, setNewCurrency] = useState({ code: "", name: "", symbol: "" });
-  const [defaultNotifications, setDefaultNotifications] = useState({
-    emailNotifications: true,
-    taskAssignments: true,
-    projectUpdates: true,
-    dueReminders: true,
-    weeklyReports: false
-  });
 
   const handleAddCurrency = () => {
     if (newCurrency.code && newCurrency.name && newCurrency.symbol) {
@@ -151,76 +144,6 @@ export function SystemPreferences() {
               <Plus className="h-4 w-4 mr-1" />
               Add
             </Button>
-          </div>
-        </div>
-
-        {/* Default Notification Settings */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Bell className="h-4 w-4 text-primary" />
-            <Label className="font-medium">Default Notification Settings</Label>
-          </div>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Email Notifications</Label>
-                <p className="text-sm text-muted-foreground">Enable email notifications for new users by default</p>
-              </div>
-              <Switch
-                checked={defaultNotifications.emailNotifications}
-                onCheckedChange={(checked) => 
-                  setDefaultNotifications({ ...defaultNotifications, emailNotifications: checked })
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Task Assignments</Label>
-                <p className="text-sm text-muted-foreground">Notify users when they are assigned to tasks</p>
-              </div>
-              <Switch
-                checked={defaultNotifications.taskAssignments}
-                onCheckedChange={(checked) => 
-                  setDefaultNotifications({ ...defaultNotifications, taskAssignments: checked })
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Project Updates</Label>
-                <p className="text-sm text-muted-foreground">Notify users about project status changes</p>
-              </div>
-              <Switch
-                checked={defaultNotifications.projectUpdates}
-                onCheckedChange={(checked) => 
-                  setDefaultNotifications({ ...defaultNotifications, projectUpdates: checked })
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Due Date Reminders</Label>
-                <p className="text-sm text-muted-foreground">Send reminders for upcoming due dates</p>
-              </div>
-              <Switch
-                checked={defaultNotifications.dueReminders}
-                onCheckedChange={(checked) => 
-                  setDefaultNotifications({ ...defaultNotifications, dueReminders: checked })
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Weekly Reports</Label>
-                <p className="text-sm text-muted-foreground">Send weekly summary reports to users</p>
-              </div>
-              <Switch
-                checked={defaultNotifications.weeklyReports}
-                onCheckedChange={(checked) => 
-                  setDefaultNotifications({ ...defaultNotifications, weeklyReports: checked })
-                }
-              />
-            </div>
           </div>
         </div>
 
