@@ -393,7 +393,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
           {columns.map((column) => (
             <div
               key={column.id}
-              className="flex-1 min-w-[220px] max-w-[220px]"
+              className="flex-1 min-w-[250px] max-w-[250px]"
               onDragOver={handleDragOver}
               onDrop={() => handleDrop(column.id)}
             >
