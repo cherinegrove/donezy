@@ -15,6 +15,7 @@ import { ConvertToTemplateDialog } from "@/components/projects/ConvertToTemplate
 import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
 import { ProjectNotesSimple } from "@/components/projects/ProjectNotesSimple";
 import { ProjectFilesAdvanced } from "@/components/projects/ProjectFilesAdvanced";
+import { BulkEditTasksDialog } from "@/components/tasks/BulkEditTasksDialog";
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -23,6 +24,8 @@ export default function ProjectDetails() {
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+  const [bulkEditTaskIds, setBulkEditTaskIds] = useState<string[]>([]);
   
   // Update project when projects state changes
   useEffect(() => {
@@ -132,6 +135,11 @@ export default function ProjectDetails() {
   const handleCloseEditDialog = () => {
     console.log("Closing edit dialog");
     setEditDialogOpen(false);
+  };
+
+  const handleBulkEdit = (taskIds: string[]) => {
+    setBulkEditTaskIds(taskIds);
+    setIsBulkEditOpen(true);
   };
 
   return (
@@ -316,7 +324,12 @@ export default function ProjectDetails() {
         </TabsList>
         
         <TabsContent value="tasks">
-          <KanbanBoard tasks={projectTasks} projectId={projectId} viewMode="kanban" />
+          <KanbanBoard 
+            tasks={projectTasks} 
+            projectId={projectId} 
+            viewMode="kanban" 
+            onBulkEdit={handleBulkEdit}
+          />
         </TabsContent>
         
         <TabsContent value="notes">
@@ -338,6 +351,12 @@ export default function ProjectDetails() {
         project={project}
         open={editDialogOpen}
         onClose={handleCloseEditDialog}
+      />
+      
+      <BulkEditTasksDialog
+        open={isBulkEditOpen}
+        onOpenChange={setIsBulkEditOpen}
+        taskIds={bulkEditTaskIds}
       />
     </div>
   );
