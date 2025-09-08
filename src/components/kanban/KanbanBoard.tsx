@@ -182,6 +182,9 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   };
 
   const handleEdit = () => {
+    console.log('handleEdit called with selectedTaskIds:', selectedTaskIds);
+    console.log('onBulkEdit function exists:', !!onBulkEdit);
+    
     if (selectedTaskIds.length === 1) {
       // Single task edit
       const task = tasks.find(t => t.id === selectedTaskIds[0]);
@@ -192,9 +195,13 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
       }
     } else if (selectedTaskIds.length > 1) {
       // Bulk edit
+      console.log('Attempting bulk edit with taskIds:', selectedTaskIds);
       if (onBulkEdit) {
+        console.log('Calling onBulkEdit function');
         onBulkEdit(selectedTaskIds);
         clearSelection();
+      } else {
+        console.log('onBulkEdit function not provided');
       }
     }
   };
