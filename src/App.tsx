@@ -28,6 +28,7 @@ import Admin from "./pages/Admin";
 import Dashboards from "./pages/Dashboards";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
+import ConfirmInvite from "./pages/ConfirmInvite";
 
 // Simplified Protected route component
 const ProtectedRoute = ({ 
@@ -166,6 +167,7 @@ const AppRoutes = () => {
       <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/email-confirmation" element={<EmailConfirmation />} />
+      <Route path="/confirm" element={<ConfirmInvite />} />
       
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
