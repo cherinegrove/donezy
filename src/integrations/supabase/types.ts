@@ -1707,6 +1707,7 @@ export type Database = {
           permissions: Json | null
           phone: string | null
           role: string
+          status: string
           team_ids: string[] | null
           updated_at: string
         }
@@ -1734,6 +1735,7 @@ export type Database = {
           permissions?: Json | null
           phone?: string | null
           role?: string
+          status?: string
           team_ids?: string[] | null
           updated_at?: string
         }
@@ -1761,6 +1763,7 @@ export type Database = {
           permissions?: Json | null
           phone?: string | null
           role?: string
+          status?: string
           team_ids?: string[] | null
           updated_at?: string
         }
