@@ -43,7 +43,7 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
       const inviteLink = `${window.location.origin}/signup?invite=${encodeURIComponent(formData.email)}&role=${formData.role}`;
       
       // Send the invite email
-      const { error: emailError } = await supabase.functions.invoke('send-invite-email', {
+      const { data, error: emailError } = await supabase.functions.invoke('send-invite-email', {
         body: {
           email: formData.email,
           name: formData.name,
@@ -56,9 +56,19 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
 
       if (emailError) {
         console.error("Error sending invite email:", emailError);
+        
+        // Try to get the specific error message from the response
+        let errorMessage = "Failed to send invitation email.";
+        
+        if (data?.error) {
+          errorMessage = data.error;
+        } else if (emailError.message?.includes("non-2xx")) {
+          errorMessage = "A user with this email address already exists. Please use a different email or contact the user directly.";
+        }
+        
         toast({
           title: "Error",
-          description: "Failed to send invitation email. Please check your email configuration.",
+          description: errorMessage,
           variant: "destructive"
         });
         return;

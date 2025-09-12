@@ -51,9 +51,19 @@ export function InviteUserWithEmail({ onSuccess }: InviteUserWithEmailProps) {
 
       if (emailError) {
         console.error("Error sending invite email:", emailError);
+        
+        // Try to get the specific error message from the response
+        let errorMessage = "Failed to send invitation email.";
+        
+        if (data?.error) {
+          errorMessage = data.error;
+        } else if (emailError.message?.includes("non-2xx")) {
+          errorMessage = "A user with this email address already exists. Please use a different email or contact the user directly.";
+        }
+        
         toast({
           title: "Error",
-          description: "Failed to send invitation email. Please try again.",
+          description: errorMessage,
           variant: "destructive"
         });
         return;
