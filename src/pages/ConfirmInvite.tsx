@@ -54,8 +54,21 @@ export default function ConfirmInvite() {
 
         // For invited users, they need to set up their password
         if (type === 'invite' || type === 'signup') {
-          // Check if this is a valid invite by trying to verify the token
+          // For Supabase invitations, we have tokenHash and type
           if (tokenHash && type) {
+            console.log('Processing invitation with tokenHash:', tokenHash, 'type:', type);
+            
+            // Don't verify here - just set up for password creation
+            // The verification will happen when they set their password
+            if (type === 'signup') {
+              // Get user email from search params or try to extract from any available data
+              const emailParam = searchParams.get('email');
+              setUserEmail(emailParam || 'your account');
+              setStatus('password-setup');
+              return;
+            }
+            
+            // For type=invite, verify the token first
             const { data, error } = await supabase.auth.verifyOtp({
               token_hash: tokenHash,
               type: type as any
@@ -128,14 +141,24 @@ export default function ConfirmInvite() {
         type: type as any,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('OTP verification error:', error);
+        throw new Error('Invalid or expired invitation link');
+      }
+
+      console.log('OTP verified successfully, user:', data.user?.email);
 
       // Now update the password
       const { error: updateError } = await supabase.auth.updateUser({
         password: values.password
       });
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Password update error:', updateError);
+        throw updateError;
+      }
+
+      console.log('Password set successfully for user');
 
       setStatus('success');
       
