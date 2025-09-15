@@ -41,7 +41,7 @@ const handler = async (req: Request): Promise<Response> => {
         company_name: companyName || "Donezy",
       },
       // 👇 IMPORTANT: Send users to your confirm route
-      redirectTo: `${req.headers.get('origin') || 'http://localhost:3000'}/confirm`,
+      redirectTo: `${req.headers.get('origin') || 'https://app.donezy.io'}/confirm`,
     });
 
     if (error) {
