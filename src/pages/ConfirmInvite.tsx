@@ -47,6 +47,8 @@ export default function ConfirmInvite() {
         const type = searchParams.get('type');
 
         console.log('Invite confirmation parameters:', { token, tokenHash, type });
+        console.log('Full URL:', window.location.href);
+        console.log('Search params string:', searchParams.toString());
 
         if (!token && !tokenHash) {
           throw new Error('Invalid invitation link - missing token');
