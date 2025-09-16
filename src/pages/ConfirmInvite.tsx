@@ -41,36 +41,73 @@ export default function ConfirmInvite() {
   useEffect(() => {
     const handleInviteConfirmation = async () => {
       try {
-        // Get the token/code from URL parameters
-        const token = searchParams.get('token');
+        // Get various possible parameters from URL
+        const accessToken = searchParams.get('access_token');
+        const refreshToken = searchParams.get('refresh_token');
         const tokenHash = searchParams.get('token_hash');
         const type = searchParams.get('type');
+        const code = searchParams.get('code');
+        const inviteToken = searchParams.get('token');
 
-        console.log('Invite confirmation parameters:', { token, tokenHash, type });
+        console.log('Invite confirmation parameters:', { 
+          accessToken: accessToken ? 'present' : 'missing',
+          refreshToken: refreshToken ? 'present' : 'missing', 
+          tokenHash: tokenHash ? 'present' : 'missing',
+          type, 
+          code: code ? 'present' : 'missing',
+          inviteToken: inviteToken ? 'present' : 'missing'
+        });
         console.log('Full URL:', window.location.href);
-        console.log('Search params string:', searchParams.toString());
 
-        if (!token && !tokenHash) {
-          throw new Error('Invalid invitation link - missing token');
-        }
+        // Handle invite flow with access_token (most common for invites)
+        if (accessToken && refreshToken) {
+          console.log('Processing invite with access_token flow');
+          
+          // Set the session using the tokens
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
 
-        // For invited users, they need to set up their password
-        if (type === 'invite' || type === 'signup') {
-          // For Supabase invitations, we have tokenHash and type
-          if (tokenHash && type) {
-            console.log('Processing invitation with tokenHash:', tokenHash, 'type:', type);
+          if (error) {
+            console.error('Session setting error:', error);
+            throw new Error('Invalid or expired invitation link');
+          }
+
+          if (data.user) {
+            console.log('User from access_token:', data.user.email);
+            setUserEmail(data.user.email || '');
             
-            // Don't verify here - just set up for password creation
-            // The verification will happen when they set their password
-            if (type === 'signup') {
-              // Get user email from search params or try to extract from any available data
-              const emailParam = searchParams.get('email');
-              setUserEmail(emailParam || 'your account');
+            // Check if user needs to set password (invited users typically do)
+            // If the user was invited, they need to set their password
+            if (data.user.invited_at && !data.user.email_confirmed_at) {
               setStatus('password-setup');
               return;
+            } else {
+              // User is already confirmed, redirect to app
+              setStatus('success');
+              toast({
+                title: "Welcome back!",
+                description: "You're already logged in. Redirecting to dashboard...",
+              });
+              setTimeout(() => navigate('/'), 2000);
+              return;
             }
-            
-            // For type=invite, verify the token first
+          }
+        }
+
+        // Handle legacy token_hash flow
+        if (tokenHash && type) {
+          console.log('Processing invitation with tokenHash:', tokenHash, 'type:', type);
+          
+          if (type === 'signup') {
+            const emailParam = searchParams.get('email');
+            setUserEmail(emailParam || 'your account');
+            setStatus('password-setup');
+            return;
+          }
+          
+          if (type === 'invite') {
             const { data, error } = await supabase.auth.verifyOtp({
               token_hash: tokenHash,
               type: type as any
@@ -89,9 +126,9 @@ export default function ConfirmInvite() {
           }
         }
 
-        // If we have a code, exchange it for a session (regular confirmation flow)
-        const code = searchParams.get('code');
+        // Handle regular confirmation flow with code
         if (code) {
+          console.log('Processing regular confirmation with code');
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           
           if (error) throw error;
@@ -107,9 +144,12 @@ export default function ConfirmInvite() {
               navigate('/');
             }, 2000);
           }
-        } else {
-          throw new Error('Invalid confirmation link');
+          return;
         }
+
+        // If no valid parameters found
+        throw new Error('Invalid confirmation link - missing required parameters');
+        
       } catch (error) {
         console.error('Invitation confirmation error:', error);
         setStatus('error');
@@ -130,27 +170,33 @@ export default function ConfirmInvite() {
     setIsSettingPassword(true);
     
     try {
-      const tokenHash = searchParams.get('token_hash');
-      const type = searchParams.get('type');
-
-      if (!tokenHash || !type) {
-        throw new Error('Invalid invitation parameters');
+      // Get current session (should be set from the access_token)
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // Try to get access_token from URL if session not found
+        const accessToken = searchParams.get('access_token');
+        const refreshToken = searchParams.get('refresh_token');
+        
+        if (accessToken && refreshToken) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          if (error) {
+            throw new Error('Unable to authenticate. Please try clicking the invite link again.');
+          }
+          
+          console.log('Session set from tokens for password update');
+        } else {
+          throw new Error('No valid session found. Please click the invite link again.');
+        }
       }
 
-      // Verify the OTP and set the password
-      const { data, error } = await supabase.auth.verifyOtp({
-        token_hash: tokenHash,
-        type: type as any,
-      });
+      console.log('Updating password for invited user');
 
-      if (error) {
-        console.error('OTP verification error:', error);
-        throw new Error('Invalid or expired invitation link');
-      }
-
-      console.log('OTP verified successfully, user:', data.user?.email);
-
-      // Now update the password
+      // Update the password using the current session
       const { error: updateError } = await supabase.auth.updateUser({
         password: values.password
       });
