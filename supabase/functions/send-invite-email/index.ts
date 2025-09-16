@@ -40,8 +40,8 @@ const handler = async (req: Request): Promise<Response> => {
         inviter_name: inviterName,
         company_name: companyName || "Donezy",
       },
-      // 👇 IMPORTANT: Send users to your confirm route
-      redirectTo: 'https://app.donezy.io/confirm',
+      // Dynamic redirect URL - works for both local and production
+      redirectTo: `${req.headers.get('origin') || 'https://app.donezy.io'}/confirm`,
     });
 
     if (error) {
