@@ -127,11 +127,31 @@ export function LoginForm() {
     setResetEmail(values.email);
     
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+      // Generate password reset link using Supabase
+      const { data, error } = await supabase.auth.resetPasswordForEmail(values.email, {
         redirectTo: window.location.origin + '/reset-password',
       });
       
       if (error) throw error;
+      
+      // Send custom email using our edge function
+      const { error: emailError } = await supabase.functions.invoke('send-recovery-email', {
+        body: {
+          email: values.email,
+          resetLink: `${window.location.origin}/reset-password`
+        }
+      });
+      
+      if (emailError) {
+        console.error("Email sending error:", emailError);
+        // Don't throw here - the reset was still created, just notify differently
+        toast({
+          title: "Password reset created",
+          description: `Password reset was created but email delivery failed. Please try again or contact support.`,
+          variant: "destructive",
+        });
+        return;
+      }
       
       setForgotPasswordSuccess(true);
       
@@ -141,9 +161,19 @@ export function LoginForm() {
       });
     } catch (error) {
       console.error("Password reset error:", error);
+      let errorMessage = "Failed to send password reset email";
+      
+      if (error instanceof Error) {
+        if (error.message.includes("rate")) {
+          errorMessage = "Too many requests. Please wait a few minutes before trying again.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send password reset email",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
