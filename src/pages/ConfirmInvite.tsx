@@ -36,22 +36,25 @@ export default function ConfirmInvite() {
     },
   });
 
-  // Step 1: Verify invite token
+  // Step 1: Verify invite link
   useEffect(() => {
     const token = searchParams.get("token");
     const type = searchParams.get("type");
 
     if (!token || type !== "invite") {
-      setErrorMessage("Invalid or missing invite token");
+      setErrorMessage("Invalid or missing invite link");
       setStatus("error");
       return;
     }
 
     const verifyInvite = async () => {
-      const { error } = await supabase.auth.verifyOtp({ token_hash: token, type: "invite" });
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: "invite",
+      });
 
       if (error) {
-        console.error("Error verifying invite:", error);
+        console.error("Invite verification error:", error);
         setErrorMessage("Invite verification failed. Please request a new invite.");
         setStatus("error");
       } else {
@@ -64,21 +67,19 @@ export default function ConfirmInvite() {
 
   // Step 2: Handle password setup
   const onSubmit = async (values: z.infer<typeof passwordSchema>) => {
-    try {
-      const { error } = await supabase.auth.updateUser({ password: values.password });
+    const { error } = await supabase.auth.updateUser({
+      password: values.password,
+    });
 
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-        return;
-      }
-
-      setStatus("success");
-      toast({ title: "Success", description: "Password set successfully!" });
-      navigate("/dashboard");
-    } catch (err: any) {
-      console.error("Password setup error:", err);
-      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
+    if (error) {
+      console.error("Password update error:", error);
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
     }
+
+    setStatus("success");
+    toast({ title: "Success", description: "Password set successfully!" });
+    navigate("/dashboard");
   };
 
   if (status === "loading") {
@@ -113,7 +114,6 @@ export default function ConfirmInvite() {
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="confirmPassword"
@@ -125,7 +125,6 @@ export default function ConfirmInvite() {
                   </FormItem>
                 )}
               />
-
               <Button type="submit" className="w-full">Set Password</Button>
             </form>
           </Form>
