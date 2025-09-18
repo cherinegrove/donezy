@@ -127,32 +127,12 @@ export function LoginForm() {
     setResetEmail(values.email);
     
     try {
-      // Generate password reset link using Supabase
-      const resetUrl = `${window.location.origin}/reset-password`;
-      const { data, error } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: resetUrl,
+      // Use Supabase's native password reset functionality
+      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       
       if (error) throw error;
-      
-      // Send custom email using our edge function
-      const { error: emailError } = await supabase.functions.invoke('send-recovery-email', {
-        body: {
-          email: values.email,
-          resetLink: resetUrl
-        }
-      });
-      
-      if (emailError) {
-        console.error("Email sending error:", emailError);
-        // Don't throw here - the reset was still created, just notify differently
-        toast({
-          title: "Password reset created",
-          description: `Password reset was created but email delivery failed. Please try again or contact support.`,
-          variant: "destructive",
-        });
-        return;
-      }
       
       setForgotPasswordSuccess(true);
       
