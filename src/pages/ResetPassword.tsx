@@ -47,8 +47,28 @@ export default function ResetPassword() {
   useEffect(() => {
     const checkHash = async () => {
       try {
-        // Check URL fragments for auth tokens (Supabase puts them there)
+        // Check for error parameters in both query string and hash
+        const urlParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        
+        const queryError = urlParams.get('error');
+        const hashError = hashParams.get('error');
+        const errorCode = urlParams.get('error_code') || hashParams.get('error_code');
+        const errorDescription = urlParams.get('error_description') || hashParams.get('error_description');
+        
+        if (queryError || hashError) {
+          // Handle specific error cases
+          if (errorCode === 'otp_expired') {
+            setError("Password reset link has expired. Please request a new one.");
+          } else if (errorDescription) {
+            setError(decodeURIComponent(errorDescription.replace(/\+/g, ' ')));
+          } else {
+            setError("Invalid password reset link. Please request a new one.");
+          }
+          return;
+        }
+        
+        // Check URL fragments for auth tokens (Supabase puts them there)
         const accessToken = hashParams.get('access_token');
         const type = hashParams.get('type');
         
