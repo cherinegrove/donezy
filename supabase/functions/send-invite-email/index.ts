@@ -31,6 +31,20 @@ const handler = async (req: Request): Promise<Response> => {
       await req.json();
 
     console.log("Attempting to send invite email to:", email);
+    
+    // Determine the correct redirect URL
+    const origin = req.headers.get('origin');
+    const referer = req.headers.get('referer');
+    console.log("Origin header:", origin);
+    console.log("Referer header:", referer);
+    
+    // Build redirect URL - always use /confirm for invites
+    let redirectUrl = 'https://app.donezy.io/confirm';
+    if (origin && origin.includes('localhost')) {
+      redirectUrl = `${origin}/confirm`;
+    }
+    
+    console.log("Using redirect URL:", redirectUrl);
 
     // Invite user with Supabase Auth (uses your SMTP)
     const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
@@ -40,8 +54,7 @@ const handler = async (req: Request): Promise<Response> => {
         inviter_name: inviterName,
         company_name: companyName || "Donezy",
       },
-      // Dynamic redirect URL - works for both local and production
-      redirectTo: `${req.headers.get('origin') || 'https://app.donezy.io'}/confirm`,
+      redirectTo: redirectUrl,
     });
 
     if (error) {
