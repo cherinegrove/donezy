@@ -39,27 +39,54 @@ export default function ConfirmInvite() {
   // Step 1: Verify invite link
   useEffect(() => {
     const token = searchParams.get("token");
+    const tokenHash = searchParams.get("token_hash");
     const type = searchParams.get("type");
+    const email = searchParams.get("email");
 
-    if (!token || type !== "invite") {
+    if (!token && !tokenHash) {
       setErrorMessage("Invalid or missing invite link");
       setStatus("error");
       return;
     }
 
     const verifyInvite = async () => {
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash: token,
-        type: "invite",
-      });
+      let session = null;
+      let error = null;
+
+      if (tokenHash) {
+        // Handle token_hash flow (newer Supabase format)
+        const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(tokenHash);
+        session = data?.session;
+        error = exchangeError;
+      } else if (token && type === "invite") {
+        // Handle token + type=invite flow (older format)
+        const { data, error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: token,
+          type: "invite",
+          email,
+        });
+        session = data?.session;
+        error = verifyError;
+      } else {
+        setErrorMessage("Invalid invite link format");
+        setStatus("error");
+        return;
+      }
 
       if (error) {
         console.error("Invite verification error:", error);
         setErrorMessage("Invite verification failed. Please request a new invite.");
         setStatus("error");
-      } else {
-        setStatus("password-setup");
+        return;
       }
+
+      if (!session) {
+        setErrorMessage("Failed to establish session. Please try again.");
+        setStatus("error");
+        return;
+      }
+
+      setStatus("password-setup");
     };
 
     verifyInvite();
