@@ -799,17 +799,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const newUser = convertDbUserToUser(data);
         setUsers(prev => [...prev, newUser]);
         
-        // Send invitation email
+        // Send invitation email via Supabase Auth
         try {
-          const inviteLink = `${window.location.origin}/signup?invite=${encodeURIComponent(user.email)}`;
-          
           const { error: emailError } = await supabase.functions.invoke('send-invite-email', {
             body: {
               email: user.email,
               name: user.name,
+              role: user.roleId,
               inviterName: currentUser?.name || 'Team Admin',
-              inviteLink: inviteLink,
-              type: 'user'
+              companyName: "Donezy"
             }
           });
 

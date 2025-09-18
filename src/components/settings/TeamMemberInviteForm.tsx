@@ -39,18 +39,15 @@ export function TeamMemberInviteForm({ onSuccess }: TeamMemberInviteFormProps) {
     setIsLoading(true);
     
     try {
-      // Create the invite link
-      const inviteLink = `${window.location.origin}/signup?invite=${encodeURIComponent(formData.email)}&role=${formData.role}`;
-      
-      // Send the invite email
+      // Send the invite email via Supabase Auth
       const { data, error: emailError } = await supabase.functions.invoke('send-invite-email', {
         body: {
           email: formData.email,
           name: formData.name,
           role: formData.role,
+          jobTitle: formData.jobTitle,
           inviterName: currentUser.name,
-          companyName: "Your Team",
-          inviteLink: inviteLink
+          companyName: "Donezy"
         }
       });
 

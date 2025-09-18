@@ -31,10 +31,7 @@ export function InviteUserWithEmail({ onSuccess }: InviteUserWithEmailProps) {
     setIsLoading(true);
     
     try {
-      // Create the invite link using your configured domain
-      const inviteLink = `https://app.donezy.io/signup`;
-      
-      // Send the invite email
+      // Send the invite email via Supabase Auth
       console.log("🔍 Calling send-invite-email function...");
       const { data, error: emailError } = await supabase.functions.invoke('send-invite-email', {
         body: {
@@ -42,8 +39,7 @@ export function InviteUserWithEmail({ onSuccess }: InviteUserWithEmailProps) {
           name: formData.name,
           role: formData.role,
           inviterName: currentUser.name,
-          companyName: "Donezy",
-          inviteLink: inviteLink
+          companyName: "Donezy"
         }
       });
 
