@@ -47,16 +47,25 @@ export default function ResetPassword() {
   useEffect(() => {
     const checkHash = async () => {
       try {
-        // This method will check if there's a valid recovery hash in the URL
-        const { data, error } = await supabase.auth.getSession();
+        // Check URL fragments for auth tokens (Supabase puts them there)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const type = hashParams.get('type');
         
-        if (error) {
-          throw error;
+        if (type === 'recovery' && accessToken) {
+          // We have a valid recovery token in the URL
+          setValidHash(true);
+          console.log("Valid recovery token found in URL");
+        } else {
+          // Check if we already have a session (user might have refreshed the page)
+          const { data, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            throw error;
+          }
+          
+          setValidHash(!!data.session);
         }
-        
-        // If we have a session and are on the reset password page, it means 
-        // the hash was valid and we're authorized to reset the password
-        setValidHash(!!data.session);
       } catch (err) {
         console.error("Error checking reset hash:", err);
         setError("Invalid or expired password reset link. Please request a new one.");
