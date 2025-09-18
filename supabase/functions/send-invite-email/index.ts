@@ -32,15 +32,25 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Attempting to send invite email to:", email);
     
-    // Determine the correct redirect URL
+    // Determine the correct redirect URL based on environment
     const origin = req.headers.get('origin');
     const referer = req.headers.get('referer');
     console.log("Origin header:", origin);
     console.log("Referer header:", referer);
     
-    // Build redirect URL - always use /confirm for invites
+    // Build redirect URL - use /confirm for invites
     let redirectUrl = 'https://app.donezy.io/confirm';
-    if (origin && origin.includes('localhost')) {
+    
+    // Handle localhost development
+    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      redirectUrl = `${origin}/confirm`;
+    }
+    // Handle Lovable preview URLs
+    else if (origin && origin.includes('lovableproject.com')) {
+      redirectUrl = `${origin}/confirm`;
+    }
+    // Handle custom domains or other production URLs
+    else if (origin && !origin.includes('supabase')) {
       redirectUrl = `${origin}/confirm`;
     }
     

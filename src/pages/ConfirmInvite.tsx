@@ -41,7 +41,7 @@ export default function ConfirmInvite() {
   useEffect(() => {
     const handleInviteConfirmation = async () => {
       try {
-        // Get parameters from URL - Supabase sends different params for different flows
+        // Get parameters from URL - check for different types of invite flows
         const token = searchParams.get('token');
         const tokenHash = searchParams.get('token_hash');
         const type = searchParams.get('type');
@@ -59,18 +59,17 @@ export default function ConfirmInvite() {
         });
         console.log('Full URL:', window.location.href);
 
-        // Handle invite flow with token + type=invite (traditional invite flow)
-        if (token && type === 'invite') {
-          console.log('Processing traditional invite flow with token + type=invite');
+        // Primary invite flow: token_hash with type=invite
+        if (tokenHash && type === 'invite') {
+          console.log('Processing invite flow with token_hash + type=invite');
           
-          // Verify the invite token and establish session
           const { data, error } = await supabase.auth.verifyOtp({
-            token_hash: token,
+            token_hash: tokenHash,
             type: 'invite'
           });
 
           if (error) {
-            console.error('Invite token verification error:', error);
+            console.error('Invite verification error:', error);
             throw new Error('Invalid or expired invitation link. Please request a new invitation.');
           }
 
@@ -78,28 +77,38 @@ export default function ConfirmInvite() {
             console.log('Invite verified successfully for user:', data.user.email);
             setUserEmail(data.user.email || '');
             
-            // Check if user needs to set password (invited users typically do)
-            if (data.user.invited_at && !data.user.email_confirmed_at) {
-              setStatus('password-setup');
-              return;
-            } else {
-              // User is already confirmed, redirect to app
-              setStatus('success');
-              toast({
-                title: "Welcome back!",
-                description: "You're already logged in. Redirecting to dashboard...",
-              });
-              setTimeout(() => navigate('/'), 2000);
-              return;
-            }
+            // For invited users, they need to set a password
+            setStatus('password-setup');
+            return;
           }
         }
 
-        // Handle invite flow with access_token (modern invite flow)
-        if (accessToken && refreshToken) {
-          console.log('Processing modern invite flow with access_token');
+        // Legacy invite flow: token with type=invite
+        if (token && type === 'invite') {
+          console.log('Processing legacy invite flow with token + type=invite');
           
-          // Set the session using the tokens
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: 'invite'
+          });
+
+          if (error) {
+            console.error('Legacy invite verification error:', error);
+            throw new Error('Invalid or expired invitation link. Please request a new invitation.');
+          }
+
+          if (data.user && data.session) {
+            console.log('Legacy invite verified successfully for user:', data.user.email);
+            setUserEmail(data.user.email || '');
+            setStatus('password-setup');
+            return;
+          }
+        }
+
+        // Modern invite flow with access_token
+        if (accessToken && refreshToken) {
+          console.log('Processing access token invite flow');
+          
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
@@ -114,16 +123,16 @@ export default function ConfirmInvite() {
             console.log('User from access_token:', data.user.email);
             setUserEmail(data.user.email || '');
             
-            // Check if user needs to set password (invited users typically do)
-            if (data.user.invited_at && !data.user.email_confirmed_at) {
+            // Check if user needs to set password
+            if (data.user.invited_at) {
               setStatus('password-setup');
               return;
             } else {
               // User is already confirmed, redirect to app
               setStatus('success');
               toast({
-                title: "Welcome back!",
-                description: "You're already logged in. Redirecting to dashboard...",
+                title: "Welcome!",
+                description: "Redirecting to dashboard...",
               });
               setTimeout(() => navigate('/'), 2000);
               return;
@@ -131,39 +140,9 @@ export default function ConfirmInvite() {
           }
         }
 
-        // Handle token_hash flow (alternative invite flow)
-        if (tokenHash && type) {
-          console.log('Processing tokenHash flow with type:', type);
-          
-          if (type === 'signup') {
-            const emailParam = searchParams.get('email');
-            setUserEmail(emailParam || 'your account');
-            setStatus('password-setup');
-            return;
-          }
-          
-          if (type === 'invite') {
-            const { data, error } = await supabase.auth.verifyOtp({
-              token_hash: tokenHash,
-              type: 'invite'
-            });
-
-            if (error) {
-              console.error('Token hash verification error:', error);
-              throw new Error('Invalid or expired invitation link');
-            }
-
-            if (data.user) {
-              setUserEmail(data.user.email || '');
-              setStatus('password-setup');
-              return;
-            }
-          }
-        }
-
-        // Handle regular confirmation flow with code (email confirmation)
+        // Email confirmation flow with code
         if (code) {
-          console.log('Processing regular email confirmation with code');
+          console.log('Processing email confirmation with code');
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           
           if (error) {
@@ -175,7 +154,35 @@ export default function ConfirmInvite() {
             setStatus('success');
             toast({
               title: "Account confirmed!",
-              description: "Welcome to Donezy! You can now access your account.",
+              description: "Welcome to Donezy! Redirecting to dashboard...",
+            });
+
+            setTimeout(() => {
+              navigate('/');
+            }, 2000);
+          }
+          return;
+        }
+
+        // Signup flow with token_hash
+        if (tokenHash && type === 'signup') {
+          console.log('Processing signup confirmation with token_hash');
+          
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: 'signup'
+          });
+
+          if (error) {
+            console.error('Signup verification error:', error);
+            throw new Error('Invalid or expired confirmation link');
+          }
+
+          if (data.user) {
+            setStatus('success');
+            toast({
+              title: "Account confirmed!",
+              description: "Welcome to Donezy! Redirecting to dashboard...",
             });
 
             setTimeout(() => {
@@ -189,13 +196,13 @@ export default function ConfirmInvite() {
         throw new Error('Invalid confirmation link - missing required parameters');
         
       } catch (error) {
-        console.error('Invitation confirmation error:', error);
+        console.error('Confirmation error:', error);
         setStatus('error');
-        setErrorMessage(error instanceof Error ? error.message : 'Failed to process invitation');
+        setErrorMessage(error instanceof Error ? error.message : 'Failed to process confirmation');
         
         toast({
           title: "Confirmation failed",
-          description: error instanceof Error ? error.message : 'Failed to process invitation',
+          description: error instanceof Error ? error.message : 'Failed to process confirmation',
           variant: "destructive",
         });
       }
