@@ -128,8 +128,9 @@ export function LoginForm() {
     
     try {
       // Generate password reset link using Supabase
+      const resetUrl = `${window.location.origin}/reset-password`;
       const { data, error } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: window.location.origin + '/reset-password',
+        redirectTo: resetUrl,
       });
       
       if (error) throw error;
@@ -138,7 +139,7 @@ export function LoginForm() {
       const { error: emailError } = await supabase.functions.invoke('send-recovery-email', {
         body: {
           email: values.email,
-          resetLink: `${window.location.origin}/reset-password`
+          resetLink: resetUrl
         }
       });
       
