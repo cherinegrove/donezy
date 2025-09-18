@@ -165,7 +165,7 @@ const AppRoutes = () => {
       {/* Public routes */}
       <Route path="/login" element={<PublicRoute element={<Login />} />} />
       <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/reset-password" element={<PublicRoute element={<ResetPassword />} />} />
       <Route path="/email-confirmation" element={<EmailConfirmation />} />
       {/* Confirm route should NOT be wrapped in PublicRoute since it handles invite flow */}
       <Route path="/confirm" element={<ConfirmInvite />} />
