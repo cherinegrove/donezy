@@ -41,30 +41,22 @@ export default function ConfirmInvite() {
   useEffect(() => {
     const handleInviteConfirmation = async () => {
       try {
-        // Get parameters from URL - check for different types of invite flows
+        // Get parameters from URL after Supabase redirect
         const token = searchParams.get('token');
-        const tokenHash = searchParams.get('token_hash');
         const type = searchParams.get('type');
-        const accessToken = searchParams.get('access_token');
-        const refreshToken = searchParams.get('refresh_token');
-        const code = searchParams.get('code');
 
         console.log('URL parameters:', { 
           token: token ? 'present' : 'missing',
-          tokenHash: tokenHash ? 'present' : 'missing',
-          accessToken: accessToken ? 'present' : 'missing',
-          refreshToken: refreshToken ? 'present' : 'missing',
-          type, 
-          code: code ? 'present' : 'missing'
+          type
         });
         console.log('Full URL:', window.location.href);
 
-        // Primary invite flow: token_hash with type=invite
-        if (tokenHash && type === 'invite') {
-          console.log('Processing invite flow with token_hash + type=invite');
+        // Handle invite flow: token with type=invite (from Supabase redirect)
+        if (token && type === 'invite') {
+          console.log('Processing invite flow with token + type=invite');
           
           const { data, error } = await supabase.auth.verifyOtp({
-            token_hash: tokenHash,
+            token_hash: token,
             type: 'invite'
           });
 
@@ -83,62 +75,11 @@ export default function ConfirmInvite() {
           }
         }
 
-        // Legacy invite flow: token with type=invite
-        if (token && type === 'invite') {
-          console.log('Processing legacy invite flow with token + type=invite');
-          
-          const { data, error } = await supabase.auth.verifyOtp({
-            token_hash: token,
-            type: 'invite'
-          });
-
-          if (error) {
-            console.error('Legacy invite verification error:', error);
-            throw new Error('Invalid or expired invitation link. Please request a new invitation.');
-          }
-
-          if (data.user && data.session) {
-            console.log('Legacy invite verified successfully for user:', data.user.email);
-            setUserEmail(data.user.email || '');
-            setStatus('password-setup');
-            return;
-          }
-        }
-
-        // Modern invite flow with access_token
-        if (accessToken && refreshToken) {
-          console.log('Processing access token invite flow');
-          
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
-
-          if (error) {
-            console.error('Session setting error:', error);
-            throw new Error('Invalid or expired invitation link');
-          }
-
-          if (data.user) {
-            console.log('User from access_token:', data.user.email);
-            setUserEmail(data.user.email || '');
-            
-            // Check if user needs to set password
-            if (data.user.invited_at) {
-              setStatus('password-setup');
-              return;
-            } else {
-              // User is already confirmed, redirect to app
-              setStatus('success');
-              toast({
-                title: "Welcome!",
-                description: "Redirecting to dashboard...",
-              });
-              setTimeout(() => navigate('/'), 2000);
-              return;
-            }
-          }
-        }
+        // Handle other confirmation flows (signup, etc.)
+        const tokenHash = searchParams.get('token_hash');
+        const accessToken = searchParams.get('access_token');
+        const refreshToken = searchParams.get('refresh_token');
+        const code = searchParams.get('code');
 
         // Email confirmation flow with code
         if (code) {
@@ -190,6 +131,28 @@ export default function ConfirmInvite() {
             }, 2000);
           }
           return;
+        }
+
+        // Modern invite flow with access_token (fallback)
+        if (accessToken && refreshToken) {
+          console.log('Processing access token invite flow');
+          
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (error) {
+            console.error('Session setting error:', error);
+            throw new Error('Invalid or expired invitation link');
+          }
+
+          if (data.user) {
+            console.log('User from access_token:', data.user.email);
+            setUserEmail(data.user.email || '');
+            setStatus('password-setup');
+            return;
+          }
         }
 
         // If no valid parameters found
