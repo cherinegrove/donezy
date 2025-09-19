@@ -163,18 +163,12 @@ const ErrorBoundary = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={<PublicRoute element={<Login />} />} />
-      <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
-      <Route path="/reset-password" element={<PublicRoute element={<ResetPassword />} />} />
-      <Route path="/set-password" element={
-        (() => {
-          console.log("SetPassword route accessed");
-          return <SetPassword />;
-        })()
-      } />
+      {/* Public routes - always accessible */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/set-password" element={<SetPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/email-confirmation" element={<EmailConfirmation />} />
-      {/* Confirm route should NOT be wrapped in PublicRoute since it handles invite flow */}
       <Route path="/confirm" element={<ConfirmInvite />} />
       
       {/* Protected routes */}
@@ -205,9 +199,9 @@ const AppRoutes = () => {
         />
         <Route path="/time" element={<TimeTracking />} />
         <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/dashboards" element={<Dashboards />} />
-                  <Route path="/settings" element={<Settings />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/dashboards" element={<Dashboards />} />
+        <Route path="/settings" element={<Settings />} />
         <Route 
           path="/admin" 
           element={
