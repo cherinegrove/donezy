@@ -35,19 +35,11 @@ export default function SetPassword() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [error, setError] = useState<string>('');
 
-  // Handle recovery token verification instead of session check
+  // Handle recovery token verification - always check token regardless of session
   useEffect(() => {
     const handleRecovery = async () => {
       console.log("SetPassword: Starting recovery token verification");
       console.log("SetPassword: Current URL:", window.location.href);
-      
-      // Check if we already have an active session (user clicked link while logged in)
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        console.log("SetPassword: User already has active session");
-        setIsCheckingAuth(false);
-        return;
-      }
       
       // Extract token, type, and email from URL parameters AND hash fragments
       const urlParams = new URLSearchParams(window.location.search);
