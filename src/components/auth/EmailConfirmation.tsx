@@ -51,9 +51,9 @@ export function EmailConfirmation() {
             description: "Your account has been verified. You now have admin access.",
           });
 
-          // Redirect to dashboard after a short delay
+          // Redirect to password setup page after a short delay
           setTimeout(() => {
-            navigate('/');
+            navigate('/set-password');
           }, 2000);
         }
       } catch (error) {

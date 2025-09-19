@@ -24,7 +24,8 @@ import Notes from "./pages/Notes";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ResetPassword from "./pages/ResetPassword";
-import Admin from "./pages/Admin"; 
+import SetPassword from "./pages/SetPassword";
+import Admin from "./pages/Admin";
 import Dashboards from "./pages/Dashboards";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
@@ -166,6 +167,7 @@ const AppRoutes = () => {
       <Route path="/login" element={<PublicRoute element={<Login />} />} />
       <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
       <Route path="/reset-password" element={<PublicRoute element={<ResetPassword />} />} />
+      <Route path="/set-password" element={<PublicRoute element={<SetPassword />} />} />
       <Route path="/email-confirmation" element={<EmailConfirmation />} />
       {/* Confirm route should NOT be wrapped in PublicRoute since it handles invite flow */}
       <Route path="/confirm" element={<ConfirmInvite />} />
