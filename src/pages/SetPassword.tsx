@@ -27,6 +27,9 @@ const setPasswordSchema = z.object({
 type SetPasswordFormData = z.infer<typeof setPasswordSchema>;
 
 export default function SetPassword() {
+  console.log("SetPassword: Component mounted");
+  console.log("SetPassword: URL on mount:", window.location.href);
+  
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
