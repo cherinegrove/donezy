@@ -38,12 +38,21 @@ export default function SetPassword() {
   // Handle recovery token verification instead of session check
   useEffect(() => {
     const handleRecovery = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get("token");
-      const type = params.get("type");
-      const email = params.get("email");
+      console.log("SetPassword: Starting recovery token verification");
+      console.log("SetPassword: Current URL:", window.location.href);
+      
+      // Check both query params and hash fragments for the token
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      
+      const token = urlParams.get("token") || hashParams.get("access_token");
+      const type = urlParams.get("type") || hashParams.get("type");
+      const email = urlParams.get("email") || hashParams.get("email");
+      
+      console.log("SetPassword: Extracted params:", { token: token ? "present" : "missing", type, email });
 
       if (token && type === "recovery" && email) {
+        console.log("SetPassword: Valid recovery params found, verifying OTP");
         const { error } = await supabase.auth.verifyOtp({
           token,
           type: "recovery",
@@ -51,13 +60,15 @@ export default function SetPassword() {
         });
 
         if (error) {
-          console.error("Recovery verification failed:", error.message);
+          console.error("SetPassword: Recovery verification failed:", error.message);
           setError("Invalid or expired reset link");
           setIsCheckingAuth(false);
         } else {
+          console.log("SetPassword: Recovery verification successful");
           setIsCheckingAuth(false); // allow form to render
         }
       } else {
+        console.error("SetPassword: Missing recovery parameters:", { token: !!token, type, email });
         setError("Missing recovery parameters. Please use the link from your reset email.");
         setIsCheckingAuth(false);
       }
