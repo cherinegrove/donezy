@@ -41,13 +41,11 @@ export default function SetPassword() {
       console.log("SetPassword: Starting recovery token verification");
       console.log("SetPassword: Current URL:", window.location.href);
       
-      // Check both query params and hash fragments for the token
+      // Extract token, type, and email from URL parameters
       const urlParams = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      
-      const token = urlParams.get("token") || hashParams.get("access_token");
-      const type = urlParams.get("type") || hashParams.get("type");
-      const email = urlParams.get("email") || hashParams.get("email");
+      const token = urlParams.get("token");
+      const type = urlParams.get("type");
+      const email = urlParams.get("email");
       
       console.log("SetPassword: Extracted params:", { token: token ? "present" : "missing", type, email });
 
