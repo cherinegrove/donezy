@@ -33,25 +33,38 @@ export default function SetPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [error, setError] = useState<string>('');
 
-  // Check authentication status before showing the form
+  // Handle recovery token verification instead of session check
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          navigate('/login');
-          return;
+    const handleRecovery = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("token");
+      const type = params.get("type");
+      const email = params.get("email");
+
+      if (token && type === "recovery" && email) {
+        const { error } = await supabase.auth.verifyOtp({
+          token,
+          type: "recovery",
+          email,
+        });
+
+        if (error) {
+          console.error("Recovery verification failed:", error.message);
+          setError("Invalid or expired reset link");
+          setIsCheckingAuth(false);
+        } else {
+          setIsCheckingAuth(false); // allow form to render
         }
+      } else {
+        setError("Missing recovery parameters. Please use the link from your reset email.");
         setIsCheckingAuth(false);
-      } catch (error) {
-        console.error('Auth check error:', error);
-        navigate('/login');
       }
     };
 
-    checkAuth();
-  }, [navigate]);
+    handleRecovery();
+  }, []);
 
   const form = useForm<SetPasswordFormData>({
     resolver: zodResolver(setPasswordSchema),
@@ -90,11 +103,38 @@ export default function SetPassword() {
     }
   };
 
-  // Show loading while checking authentication
+  // Show loading while checking recovery token
   if (isCheckingAuth) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-muted/30">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        <p className="mt-4 text-muted-foreground">Verifying reset link...</p>
+      </div>
+    );
+  }
+
+  // Show error if recovery verification failed
+  if (error) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-muted/30">
+        <div className="mb-8 flex items-center gap-2">
+          <FileText className="h-10 w-10" />
+          <h1 className="text-3xl font-bold">donezy</h1>
+        </div>
+        
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl text-red-600">Reset Link Invalid</CardTitle>
+            <CardDescription>
+              {error}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate('/login')} className="w-full">
+              Return to Login
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
