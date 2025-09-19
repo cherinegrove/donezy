@@ -127,8 +127,8 @@ export function LoginForm() {
     setResetEmail(values.email);
     
     try {
-      // Use Supabase's native password reset functionality
-      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+      // Generate recovery link using Supabase
+      const { data, error } = await supabase.auth.resetPasswordForEmail(values.email, {
         redirectTo: `${window.location.origin}/set-password?email=${encodeURIComponent(values.email)}`,
       });
       
