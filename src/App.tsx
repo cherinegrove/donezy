@@ -164,7 +164,7 @@ const ErrorBoundary = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Public routes - always accessible */}
+      {/* Public routes - always accessible, no auth checks */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/set-password" element={<SetPassword />} />
