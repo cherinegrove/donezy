@@ -75,8 +75,14 @@ export default function SetPassword() {
           hash: window.location.hash,
           pathname: window.location.pathname
         });
-        setError("Missing recovery token. Please use the link from your reset email.");
-        setIsCheckingAuth(false);
+        
+        // TEMPORARY: Don't show error immediately, wait a bit longer
+        console.log("SetPassword: Waiting 2 seconds for potential redirects...");
+        setTimeout(() => {
+          console.log("SetPassword: Still no token after waiting, showing error");
+          setError("Missing recovery token. Please use the link from your reset email.");
+          setIsCheckingAuth(false);
+        }, 2000);
         return;
       }
 
