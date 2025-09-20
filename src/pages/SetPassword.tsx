@@ -45,6 +45,8 @@ export default function SetPassword() {
     const handleRecovery = async () => {
       console.log("SetPassword: Starting recovery token verification");
       console.log("SetPassword: Current URL:", window.location.href);
+      console.log("SetPassword: Search params:", window.location.search);
+      console.log("SetPassword: Hash:", window.location.hash);
       
       // Extract token, type, and email from URL parameters AND hash fragments
       const urlParams = new URLSearchParams(window.location.search);
@@ -56,38 +58,47 @@ export default function SetPassword() {
       const email = urlParams.get("email") || hashParams.get("email");
       
       console.log("SetPassword: Extracted params:", { 
-        token: token ? "present" : "missing", 
+        token: token ? `${token.substring(0, 20)}...` : "missing", 
         type, 
         email,
         hasHash: window.location.hash.length > 0,
-        hasQuery: window.location.search.length > 0
+        hasQuery: window.location.search.length > 0,
+        fullHash: window.location.hash,
+        fullQuery: window.location.search
       });
 
-      if (token) {
-        console.log("SetPassword: Valid recovery token found, verifying OTP");
-        try {
-          const { error } = await supabase.auth.verifyOtp({
-            token,
-            type: type as any,
-            email: email || undefined,
-          });
-
-          if (error) {
-            console.error("SetPassword: Recovery verification failed:", error.message);
-            setError("Invalid or expired reset link. Please request a new password reset.");
-            setIsCheckingAuth(false);
-          } else {
-            console.log("SetPassword: Recovery verification successful");
-            setIsCheckingAuth(false); // allow form to render
-          }
-        } catch (error) {
-          console.error("SetPassword: OTP verification error:", error);
-          setError("Error verifying reset link. Please try again.");
-          setIsCheckingAuth(false);
-        }
-      } else {
+      if (!token) {
         console.error("SetPassword: No recovery token found in URL");
+        console.log("SetPassword: Full URL breakdown:", {
+          href: window.location.href,
+          search: window.location.search,
+          hash: window.location.hash,
+          pathname: window.location.pathname
+        });
         setError("Missing recovery token. Please use the link from your reset email.");
+        setIsCheckingAuth(false);
+        return;
+      }
+
+      console.log("SetPassword: Valid recovery token found, verifying OTP");
+      try {
+        const { error } = await supabase.auth.verifyOtp({
+          token,
+          type: type as any,
+          email: email || undefined,
+        });
+
+        if (error) {
+          console.error("SetPassword: Recovery verification failed:", error.message);
+          setError("Invalid or expired reset link. Please request a new password reset.");
+          setIsCheckingAuth(false);
+        } else {
+          console.log("SetPassword: Recovery verification successful");
+          setIsCheckingAuth(false); // allow form to render
+        }
+      } catch (error) {
+        console.error("SetPassword: OTP verification error:", error);
+        setError("Error verifying reset link. Please try again.");
         setIsCheckingAuth(false);
       }
     };
