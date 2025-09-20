@@ -19,6 +19,9 @@ export default function ForgotPassword() {
       redirectTo: "https://app.donezy.io/set-password",
     });
 
+    console.log("🔧 Password reset requested for:", email);
+    console.log("🔧 Redirect URL:", "https://app.donezy.io/set-password");
+
     if (error) {
       setError(error.message);
     } else {
