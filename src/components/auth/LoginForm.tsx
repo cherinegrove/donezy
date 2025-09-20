@@ -234,6 +234,11 @@ export function LoginForm() {
         >
           Forgot password?
         </button>
+        <p className="mt-4 text-sm text-center">
+          <a href="/forgot-password" className="text-blue-600 hover:underline">
+            Forgot your password?
+          </a>
+        </p>
       </div>
 
       {/* Forgot Password Dialog */}

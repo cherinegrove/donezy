@@ -25,6 +25,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ResetPassword from "./pages/ResetPassword";
 import SetPassword from "./pages/SetPassword";
+import ForgotPassword from "./pages/ForgotPassword";
 import Admin from "./pages/Admin";
 import Dashboards from "./pages/Dashboards";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
@@ -168,6 +169,7 @@ const AppRoutes = () => {
       <Route path="/signup" element={<Signup />} />
       <Route path="/set-password" element={<SetPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/email-confirmation" element={<EmailConfirmation />} />
       <Route path="/confirm" element={<ConfirmInvite />} />
       
