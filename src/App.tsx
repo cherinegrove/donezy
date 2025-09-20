@@ -167,7 +167,13 @@ const AppRoutes = () => {
       {/* Public routes - always accessible, no auth checks */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/set-password" element={<SetPassword />} />
+      <Route path="/set-password" element={
+        (() => {
+          console.log("🔧 SetPassword route accessed!");
+          console.log("🔧 Current URL:", window.location.href);
+          return <SetPassword />;
+        })()
+      } />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/email-confirmation" element={<EmailConfirmation />} />
