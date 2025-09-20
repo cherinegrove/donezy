@@ -231,39 +231,37 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <BrowserRouter>
-            <Routes>
-              {/* Critical auth route - completely isolated */}
-              <Route path="/set-password" element={
-                <>
-                  <Toaster />
-                  <Sonner />
-                  {(() => {
-                    console.log("🔧 SetPassword route hit directly!");
-                    console.log("🔧 Current URL:", window.location.href);
-                    console.log("🔧 Hash:", window.location.hash);
-                    console.log("🔧 Search:", window.location.search);
-                    return <SetPassword />;
-                  })()}
-                </>
-              } />
-              
-              {/* All other routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/email-confirmation" element={<EmailConfirmation />} />
-              <Route path="/confirm" element={<ConfirmInvite />} />
-              
-              {/* Protected routes within AppProvider */}
-              <Route path="/*" element={
-                <AppProvider>
-                  <AppRoutes />
-                </AppProvider>
-              } />
-            </Routes>
-            <Toaster />
-            <Sonner />
+            <AppProvider>
+              <Routes>
+                {/* Critical auth route - completely isolated */}
+                <Route path="/set-password" element={
+                  <>
+                    <Toaster />
+                    <Sonner />
+                    {(() => {
+                      console.log("🔧 SetPassword route hit directly!");
+                      console.log("🔧 Current URL:", window.location.href);
+                      console.log("🔧 Hash:", window.location.hash);
+                      console.log("🔧 Search:", window.location.search);
+                      return <SetPassword />;
+                    })()}
+                  </>
+                } />
+                
+                {/* All other routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/email-confirmation" element={<EmailConfirmation />} />
+                <Route path="/confirm" element={<ConfirmInvite />} />
+                
+                {/* Protected routes */}
+                <Route path="/*" element={<AppRoutes />} />
+              </Routes>
+              <Toaster />
+              <Sonner />
+            </AppProvider>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
