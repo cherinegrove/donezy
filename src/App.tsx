@@ -231,11 +231,25 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <BrowserRouter>
-            <AppProvider>
-              <Toaster />
-              <Sonner />
-              <AppRoutes />
-            </AppProvider>
+            <Routes>
+              {/* Critical auth route - outside AppProvider to avoid any interference */}
+              <Route path="/set-password" element={
+                <>
+                  <Toaster />
+                  <Sonner />
+                  <SetPassword />
+                </>
+              } />
+              
+              {/* All other routes within AppProvider */}
+              <Route path="/*" element={
+                <AppProvider>
+                  <Toaster />
+                  <Sonner />
+                  <AppRoutes />
+                </AppProvider>
+              } />
+            </Routes>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
