@@ -226,16 +226,8 @@ export function LoginForm() {
       </Form>
 
       <div className="flex flex-col space-y-2 text-center text-sm">
-        <button 
-          type="button" 
-          onClick={() => setShowForgotPassword(true)} 
-          className="text-primary hover:underline focus:outline-none"
-          disabled={isLoading}
-        >
-          Forgot password?
-        </button>
         <p className="mt-4 text-sm text-center">
-          <a href="/forgot-password" className="text-blue-600 hover:underline">
+          <a href="/forgot-password" className="text-primary hover:underline">
             Forgot your password?
           </a>
         </p>
