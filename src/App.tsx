@@ -232,24 +232,38 @@ const App = () => {
         <TooltipProvider>
           <BrowserRouter>
             <Routes>
-              {/* Critical auth route - outside AppProvider to avoid any interference */}
+              {/* Critical auth route - completely isolated */}
               <Route path="/set-password" element={
                 <>
                   <Toaster />
                   <Sonner />
-                  <SetPassword />
+                  {(() => {
+                    console.log("🔧 SetPassword route hit directly!");
+                    console.log("🔧 Current URL:", window.location.href);
+                    console.log("🔧 Hash:", window.location.hash);
+                    console.log("🔧 Search:", window.location.search);
+                    return <SetPassword />;
+                  })()}
                 </>
               } />
               
-              {/* All other routes within AppProvider */}
+              {/* All other routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/email-confirmation" element={<EmailConfirmation />} />
+              <Route path="/confirm" element={<ConfirmInvite />} />
+              
+              {/* Protected routes within AppProvider */}
               <Route path="/*" element={
                 <AppProvider>
-                  <Toaster />
-                  <Sonner />
                   <AppRoutes />
                 </AppProvider>
               } />
             </Routes>
+            <Toaster />
+            <Sonner />
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
