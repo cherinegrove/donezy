@@ -27,10 +27,11 @@ const setPasswordSchema = z.object({
 type SetPasswordFormData = z.infer<typeof setPasswordSchema>;
 
 export default function SetPassword() {
-  console.log("SetPassword: Component mounted");
-  console.log("SetPassword: URL on mount:", window.location.href);
-  console.log("SetPassword: Current URL params:", window.location.search);
-  console.log("SetPassword: Current URL hash:", window.location.hash);
+  console.log("🔥 SetPassword: Component STARTING TO MOUNT");
+  console.log("🔥 SetPassword: URL on mount:", window.location.href);
+  console.log("🔥 SetPassword: Current URL params:", window.location.search);
+  console.log("🔥 SetPassword: Current URL hash:", window.location.hash);
+  console.log("🔥 SetPassword: Component rendered at:", new Date().toISOString());
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -43,10 +44,10 @@ export default function SetPassword() {
   // Handle recovery token verification - always check token regardless of session
   useEffect(() => {
     const handleRecovery = async () => {
-      console.log("SetPassword: Starting recovery token verification");
-      console.log("SetPassword: Current URL:", window.location.href);
-      console.log("SetPassword: Search params:", window.location.search);
-      console.log("SetPassword: Hash:", window.location.hash);
+      console.log("🔥 SetPassword: USEEFFECT STARTED - Starting recovery token verification");
+      console.log("🔥 SetPassword: Current URL:", window.location.href);
+      console.log("🔥 SetPassword: Search params:", window.location.search);
+      console.log("🔥 SetPassword: Hash:", window.location.hash);
       
       // Extract token, type, and email from URL parameters AND hash fragments
       const urlParams = new URLSearchParams(window.location.search);
@@ -151,6 +152,7 @@ export default function SetPassword() {
 
   // Show loading while checking recovery token
   if (isCheckingAuth) {
+    console.log("🔥 SetPassword: RENDERING LOADING STATE");
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-muted/30">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
@@ -161,6 +163,7 @@ export default function SetPassword() {
 
   // Show error if recovery verification failed
   if (error) {
+    console.log("🔥 SetPassword: RENDERING ERROR STATE:", error);
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-muted/30">
         <div className="mb-8 flex items-center gap-2">
@@ -185,6 +188,7 @@ export default function SetPassword() {
     );
   }
 
+  console.log("🔥 SetPassword: RENDERING MAIN FORM");
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-muted/30">
       <div className="mb-8 flex items-center gap-2">
