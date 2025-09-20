@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -227,9 +227,9 @@ export function LoginForm() {
 
       <div className="flex flex-col space-y-2 text-center text-sm">
         <p className="mt-4 text-sm text-center">
-          <a href="/forgot-password" className="text-primary hover:underline">
+          <Link to="/forgot-password" className="text-primary hover:underline">
             Forgot your password?
-          </a>
+          </Link>
         </p>
       </div>
 
