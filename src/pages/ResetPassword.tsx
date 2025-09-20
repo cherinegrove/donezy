@@ -219,10 +219,10 @@ export default function ResetPassword() {
             <Alert className="bg-destructive/10 border-destructive/20">
               <AlertDescription className="text-center py-4">
                 <p className="font-medium">Invalid or expired reset link</p>
-                <p className="mt-2">Please request a new password reset.</p>
-                <Button asChild className="mt-4">
-                  <Link to="/login">Return to Login</Link>
-                </Button>
+                <p className="mt-2">Please request a new password reset from the login page.</p>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Reset links expire after 1 hour for security purposes.
+                </p>
               </AlertDescription>
             </Alert>
           )}
