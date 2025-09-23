@@ -16,7 +16,7 @@ export default function ForgotPassword() {
     setError("");
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://app.donezy.io/set-password",
+      redirectTo: `${window.location.origin}/set-password`,
     });
 
     console.log("🔧 Password reset requested for:", email);

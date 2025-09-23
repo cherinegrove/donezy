@@ -129,7 +129,7 @@ export function LoginForm() {
     try {
       // Generate recovery link using Supabase
       const { data, error } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: `https://app.donezy.io/set-password?email=${encodeURIComponent(values.email)}`,
+        redirectTo: `${window.location.origin}/set-password?email=${encodeURIComponent(values.email)}`,
       });
       
       if (error) throw error;
