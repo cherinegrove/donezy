@@ -169,14 +169,16 @@ const App = () => {
           <BrowserRouter>
             <AppProvider>
               <Routes>
+                {/* Standalone auth routes - no protection needed */}
+                <Route path="/set-password" element={<SetPassword />} />
+                <Route path="/email-confirmation" element={<EmailConfirmation />} />
+                <Route path="/confirm" element={<ConfirmInvite />} />
+                
                 {/* Public routes - accessible without authentication */}
                 <Route path="/login" element={<PublicRoute element={<Login />} />} />
                 <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
-                <Route path="/set-password" element={<SetPassword />} />
                 <Route path="/forgot-password" element={<PublicRoute element={<ForgotPassword />} />} />
                 <Route path="/reset-password" element={<PublicRoute element={<ResetPassword />} />} />
-                <Route path="/email-confirmation" element={<EmailConfirmation />} />
-                <Route path="/confirm" element={<ConfirmInvite />} />
                 
                 {/* Protected routes */}
                 <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
