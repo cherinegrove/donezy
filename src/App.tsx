@@ -170,7 +170,13 @@ const App = () => {
             <AppProvider>
               <Routes>
                 {/* Standalone auth routes - no protection needed */}
-                <Route path="/set-password" element={<SetPassword />} />
+                <Route path="/set-password" element={
+                  <>
+                    <Toaster />
+                    <Sonner />
+                    <SetPassword />
+                  </>
+                } />
                 <Route path="/email-confirmation" element={<EmailConfirmation />} />
                 <Route path="/confirm" element={<ConfirmInvite />} />
                 
