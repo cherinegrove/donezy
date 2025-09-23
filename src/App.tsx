@@ -170,11 +170,11 @@ const App = () => {
             <AppProvider>
               <Routes>
                 {/* Public routes - accessible without authentication */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
+                <Route path="/login" element={<PublicRoute element={<Login />} />} />
+                <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
                 <Route path="/set-password" element={<SetPassword />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/forgot-password" element={<PublicRoute element={<ForgotPassword />} />} />
+                <Route path="/reset-password" element={<PublicRoute element={<ResetPassword />} />} />
                 <Route path="/email-confirmation" element={<EmailConfirmation />} />
                 <Route path="/confirm" element={<ConfirmInvite />} />
                 
