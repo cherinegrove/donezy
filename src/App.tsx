@@ -160,70 +160,6 @@ const ErrorBoundary = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// The AppRoutes component needs to be inside the AppProvider
-const AppRoutes = () => {
-  return (
-    <Routes>
-      {/* Public routes - always accessible, no auth checks */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/set-password" element={
-        (() => {
-          console.log("🔧 SetPassword route accessed!");
-          console.log("🔧 Current URL:", window.location.href);
-          return <SetPassword />;
-        })()
-      } />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/email-confirmation" element={<EmailConfirmation />} />
-      <Route path="/confirm" element={<ConfirmInvite />} />
-      
-      {/* Protected routes */}
-      <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
-        <Route index element={<Home />} />
-        <Route path="/projects" element={<Projects />} />
-        <Route path="/projects/:projectId" element={<ProjectDetails />} />
-        <Route path="/tasks" element={<Tasks />} />
-        <Route path="/notes" element={<Notes />} />
-        <Route 
-          path="/clients" 
-          element={
-            <ProtectedRoute 
-              element={<Clients />} 
-              allowedRoles={['admin', 'manager', 'developer']} 
-            />
-          } 
-        />
-        <Route path="/clients/:clientId" element={<ClientDetails />} />
-        <Route 
-          path="/team" 
-          element={
-            <ProtectedRoute 
-              element={<Team />} 
-              allowedRoles={['admin', 'manager']} 
-            />
-          } 
-        />
-        <Route path="/time" element={<TimeTracking />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/dashboards" element={<Dashboards />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route 
-          path="/admin" 
-          element={
-            <ProtectedRoute 
-              element={<Admin />} 
-              allowedRoles={['admin']} 
-            />
-          } 
-        />
-        <Route path="*" element={<NotFound />} />
-      </Route>
-    </Routes>
-  );
-};
 
 const App = () => {
   return (
@@ -231,41 +167,63 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <BrowserRouter>
-            <Routes>
-              {/* Critical auth route - completely isolated outside AppProvider */}
-              <Route path="/set-password" element={
-                <>
-                  <Toaster />
-                  <Sonner />
-                  {(() => {
-                    console.log("🔧 SetPassword route hit directly!");
-                    console.log("🔧 Current URL:", window.location.href);
-                    console.log("🔧 Hash:", window.location.hash);
-                    console.log("🔧 Search:", window.location.search);
-                    return <SetPassword />;
-                  })()}
-                </>
-              } />
-              
-              {/* All other routes wrapped in AppProvider */}
-              <Route path="/*" element={
-                <AppProvider>
-                  <Routes>
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route path="/email-confirmation" element={<EmailConfirmation />} />
-                    <Route path="/confirm" element={<ConfirmInvite />} />
-                    
-                    {/* Protected routes */}
-                    <Route path="/*" element={<AppRoutes />} />
-                  </Routes>
-                  <Toaster />
-                  <Sonner />
-                </AppProvider>
-              } />
-            </Routes>
+            <AppProvider>
+              <Routes>
+                {/* Public routes - accessible without authentication */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/set-password" element={<SetPassword />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/email-confirmation" element={<EmailConfirmation />} />
+                <Route path="/confirm" element={<ConfirmInvite />} />
+                
+                {/* Protected routes */}
+                <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
+                  <Route index element={<Home />} />
+                  <Route path="/projects" element={<Projects />} />
+                  <Route path="/projects/:projectId" element={<ProjectDetails />} />
+                  <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/notes" element={<Notes />} />
+                  <Route 
+                    path="/clients" 
+                    element={
+                      <ProtectedRoute 
+                        element={<Clients />} 
+                        allowedRoles={['admin', 'manager', 'developer']} 
+                      />
+                    } 
+                  />
+                  <Route path="/clients/:clientId" element={<ClientDetails />} />
+                  <Route 
+                    path="/team" 
+                    element={
+                      <ProtectedRoute 
+                        element={<Team />} 
+                        allowedRoles={['admin', 'manager']} 
+                      />
+                    } 
+                  />
+                  <Route path="/time" element={<TimeTracking />} />
+                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/dashboards" element={<Dashboards />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <ProtectedRoute 
+                        element={<Admin />} 
+                        allowedRoles={['admin']} 
+                      />
+                    } 
+                  />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
+              </Routes>
+              <Toaster />
+              <Sonner />
+            </AppProvider>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
