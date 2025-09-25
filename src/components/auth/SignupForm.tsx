@@ -71,6 +71,10 @@ export function SignupForm() {
       }
       
       // Create the user in Supabase auth - first user is always admin
+      const redirectUrl = `${window.location.origin}/email-confirmation`;
+      console.log("🔗 Current origin:", window.location.origin);
+      console.log("🔗 emailRedirectTo:", redirectUrl);
+      
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -79,9 +83,11 @@ export function SignupForm() {
             name: values.name,
             role: "admin", // First user is admin
           },
-          emailRedirectTo: `${window.location.origin}/email-confirmation`
+          emailRedirectTo: redirectUrl
         }
       });
+      
+      console.log("✅ Signup request sent with redirectTo:", redirectUrl);
       
       if (authError) throw authError;
 
