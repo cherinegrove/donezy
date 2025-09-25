@@ -133,7 +133,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (task.assignee_id && task.assignee_id !== task.auth_user_id) {
         const { data: assigneeUser } = await supabase
           .from('users')
-          .select('name, email')
+          .select('name, email, auth_user_id')
           .eq('auth_user_id', task.assignee_id)
           .single();
         
@@ -239,7 +239,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (task.assignee_id && task.assignee_id !== task.auth_user_id) {
         const { data: assigneeUser } = await supabase
           .from('users')
-          .select('name, email')
+          .select('name, email, auth_user_id')
           .eq('auth_user_id', task.assignee_id)
           .single();
         
@@ -345,7 +345,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (task.assignee_id && task.assignee_id !== task.auth_user_id) {
         const { data: assigneeUser } = await supabase
           .from('users')
-          .select('name, email')
+          .select('name, email, auth_user_id')
           .eq('auth_user_id', task.assignee_id)
           .single();
         
