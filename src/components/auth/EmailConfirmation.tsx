@@ -18,9 +18,9 @@ export function EmailConfirmation() {
 
   useEffect(() => {
     const confirmUser = async () => {
-      if (isUserConfirmed || isProcessing) {
-        return;
-      }
+      // if (isUserConfirmed || isProcessing) {
+      //   return;
+      // }
 
       setIsProcessing(true);
       console.trace('tracing...');
