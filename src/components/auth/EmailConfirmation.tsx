@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAppContext } from "@/contexts/AppContext";
 import { FileText, CheckCircle, XCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -11,34 +12,27 @@ export function EmailConfirmation() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { session, setSession } = useAppContext();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [isCodeProcessed, setIsCodeProcessed] = useState(false);
 
   useEffect(() => {
     const confirmUser = async () => {
-      console.log('isCodeProcessed: ', isCodeProcessed)
       try {
         // Get the code from URL parameters (new Supabase auth flow)
         const code = searchParams.get('code');
 
-        if (!code && isCodeProcessed) {
-          console.log('confirmUser called again and without code')
-          return;
-        }
-
         if (!code) {
-          console.log('No code!')
           throw new Error('Invalid confirmation link');
         }
-
-        setIsCodeProcessed(true);
-        console.log('processing code...')
 
         // Exchange the code for a session
         const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-        console.log('done exchangeCodeForSession: ', data)
+        if (session) {
+          navigate('/');
+        }
+
         if (error) {
           console.log('errored!')
           throw error;
