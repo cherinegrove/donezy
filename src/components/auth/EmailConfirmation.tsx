@@ -17,19 +17,23 @@ export function EmailConfirmation() {
 
   useEffect(() => {
     const confirmUser = async () => {
+      console.log('isCodeProcessed: ', isCodeProcessed)
       try {
         // Get the code from URL parameters (new Supabase auth flow)
         const code = searchParams.get('code');
 
         if (!code && isCodeProcessed) {
+          console.log('confirmUser called again and without code')
           return;
         }
 
         if (!code) {
+          console.log('No code!')
           throw new Error('Invalid confirmation link');
         }
 
         setIsCodeProcessed(true);
+        console.log('processing code...')
 
         // Exchange the code for a session
         const { data, error } = await supabase.auth.exchangeCodeForSession(code);
