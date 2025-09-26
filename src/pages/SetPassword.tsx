@@ -49,17 +49,19 @@ export default function SetPassword() {
       console.log("🔥 SetPassword: Search params:", window.location.search);
       console.log("🔥 SetPassword: Hash:", window.location.hash);
       
-      // Extract token, type, and email from URL parameters AND hash fragments
+      // Extract token, code, type, and email from URL parameters AND hash fragments
       const urlParams = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       
-      // Supabase can pass tokens in either query params or hash fragments
+      // Supabase can pass tokens/codes in either query params or hash fragments
       const token = urlParams.get("token") || hashParams.get("access_token") || hashParams.get("token");
+      const code = urlParams.get("code") || hashParams.get("code");
       const type = urlParams.get("type") || hashParams.get("type") || "recovery";
       const email = urlParams.get("email") || hashParams.get("email");
       
       console.log("SetPassword: Extracted params:", { 
-        token: token ? `${token.substring(0, 20)}...` : "missing", 
+        token: token ? `${token.substring(0, 20)}...` : "missing",
+        code: code ? `${code.substring(0, 20)}...` : "missing", 
         type, 
         email,
         hasHash: window.location.hash.length > 0,
@@ -68,8 +70,8 @@ export default function SetPassword() {
         fullQuery: window.location.search
       });
 
-      if (!token) {
-        console.error("SetPassword: No recovery token found in URL");
+      if (!token && !code) {
+        console.error("SetPassword: No recovery token or code found in URL");
         console.log("SetPassword: Full URL breakdown:", {
           href: window.location.href,
           search: window.location.search,
@@ -80,20 +82,32 @@ export default function SetPassword() {
         // TEMPORARY: Don't show error immediately, wait a bit longer
         console.log("SetPassword: Waiting 2 seconds for potential redirects...");
         setTimeout(() => {
-          console.log("SetPassword: Still no token after waiting, showing error");
-          setError("Missing recovery token. Please use the link from your reset email.");
+          console.log("SetPassword: Still no token/code after waiting, showing error");
+          setError("Missing recovery token or code. Please use the link from your reset email.");
           setIsCheckingAuth(false);
         }, 2000);
         return;
       }
 
-      console.log("SetPassword: Valid recovery token found, verifying OTP");
+      console.log("SetPassword: Valid recovery token/code found, verifying...");
       try {
-        const { error } = await supabase.auth.verifyOtp({
-          token,
-          type: type as any,
-          email: email || undefined,
-        });
+        let error;
+        
+        if (code) {
+          // Handle PKCE flow (newer Supabase auth with code parameter)
+          console.log("SetPassword: Using PKCE flow with code");
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          error = exchangeError;
+        } else if (token) {
+          // Handle OTP flow (older Supabase auth with token parameter)
+          console.log("SetPassword: Using OTP flow with token");
+          const { error: otpError } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: type as any,
+            email: email || undefined,
+          });
+          error = otpError;
+        }
 
         if (error) {
           console.error("SetPassword: Recovery verification failed:", error.message);
@@ -104,7 +118,7 @@ export default function SetPassword() {
           setIsCheckingAuth(false); // allow form to render
         }
       } catch (error) {
-        console.error("SetPassword: OTP verification error:", error);
+        console.error("SetPassword: Verification error:", error);
         setError("Error verifying reset link. Please try again.");
         setIsCheckingAuth(false);
       }
