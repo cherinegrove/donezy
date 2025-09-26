@@ -13,32 +13,28 @@ export function EmailConfirmation() {
   const { toast } = useToast();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [isUserConfirmed, setIsUserConfirmed] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isCodeProcessed, setIsCodeProcessed] = useState(false);
 
   useEffect(() => {
     const confirmUser = async () => {
-      // if (isUserConfirmed || isProcessing) {
-      //   return;
-      // }
-
-      setIsProcessing(true);
-      console.trace('tracing...');
-
       try {
         // Get the code from URL parameters (new Supabase auth flow)
         const code = searchParams.get('code');
-        
+
+        if (!code && isCodeProcessed) {
+          return;
+        }
+
         if (!code) {
-          setIsProcessing(false);
           throw new Error('Invalid confirmation link');
         }
+
+        setIsCodeProcessed(true);
 
         // Exchange the code for a session
         const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
         if (error) {
-          setIsProcessing(false);
           throw error;
         }
 
@@ -57,7 +53,6 @@ export function EmailConfirmation() {
             console.error('Error updating user role:', userError);
           }
 
-          setIsUserConfirmed(true);
           setStatus('success');
           
           toast({
@@ -71,7 +66,6 @@ export function EmailConfirmation() {
           }, 2000);
         }
       } catch (error) {
-        setIsProcessing(false);
         console.error('Email confirmation error:', error);
         setStatus('error');
         setErrorMessage(error instanceof Error ? error.message : 'Failed to confirm email');
@@ -85,7 +79,7 @@ export function EmailConfirmation() {
     };
 
     confirmUser();
-  }, [searchParams, navigate, toast]);
+  }, [searchParams]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-muted/30">
