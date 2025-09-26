@@ -23,6 +23,7 @@ export function EmailConfirmation() {
       }
 
       setIsProcessing(true);
+      console.trace('tracing...');
 
       try {
         // Get the code from URL parameters (new Supabase auth flow)
