@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAppContext } from "@/contexts/AppContext";
 import { FileText, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,14 +36,24 @@ export default function SetPassword() {
   
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { session } = useAppContext();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [error, setError] = useState<string>('');
 
+  useEffect(() => {
+    if (session) {
+      isCancelledRef.current = true;
+      return;
+    }
+  }, [session]);
+
   // Handle recovery token verification - always check token regardless of session
   useEffect(() => {
+    isCancelledRef.current = false;
+
     const handleRecovery = async () => {
       console.log("🔥 SetPassword: USEEFFECT STARTED - Starting recovery token verification");
       console.log("🔥 SetPassword: Current URL:", window.location.href);
@@ -109,7 +120,7 @@ export default function SetPassword() {
           error = otpError;
         }
 
-        if (error) {
+        if (error && !isCancelledRef.current) {
           console.error("SetPassword: Recovery verification failed:", error.message);
           setError("Invalid or expired reset link. Please request a new password reset.");
           setIsCheckingAuth(false);
