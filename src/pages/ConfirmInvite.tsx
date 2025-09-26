@@ -38,12 +38,23 @@ export default function ConfirmInvite() {
 
   // Step 1: Verify invite link
   useEffect(() => {
+    // First check query parameters (old format)
     const token = searchParams.get("token");
     const tokenHash = searchParams.get("token_hash");
     const type = searchParams.get("type");
     const email = searchParams.get("email");
 
-    if (!token && !tokenHash) {
+    // Then check hash parameters (new format)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get("access_token");
+    const refreshToken = hashParams.get("refresh_token");
+    const hashType = hashParams.get("type");
+    const expiresAt = hashParams.get("expires_at");
+
+    console.log("Query params:", { token, tokenHash, type, email });
+    console.log("Hash params:", { accessToken: accessToken?.substring(0, 20) + "...", refreshToken, hashType, expiresAt });
+
+    if (!token && !tokenHash && !accessToken) {
       setErrorMessage("Invalid or missing invite link");
       setStatus("error");
       return;
@@ -53,13 +64,29 @@ export default function ConfirmInvite() {
       let session = null;
       let error = null;
 
-      if (tokenHash) {
+      if (accessToken && refreshToken && hashType === "invite") {
+        // Handle hash parameters (new Supabase auth flow)
+        console.log("Processing hash-based invite flow");
+        try {
+          const { data, error: setSessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          session = data?.session;
+          error = setSessionError;
+        } catch (err) {
+          console.error("Error setting session:", err);
+          error = err;
+        }
+      } else if (tokenHash) {
         // Handle token_hash flow (newer Supabase format)
+        console.log("Processing token_hash flow");
         const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(tokenHash);
         session = data?.session;
         error = exchangeError;
       } else if (token && type === "invite") {
         // Handle token + type=invite flow (older format)
+        console.log("Processing legacy token flow");
         const { data, error: verifyError } = await supabase.auth.verifyOtp({
           token_hash: token,
           type: "invite",
@@ -68,6 +95,7 @@ export default function ConfirmInvite() {
         session = data?.session;
         error = verifyError;
       } else {
+        console.error("No valid parameters found for invite verification");
         setErrorMessage("Invalid invite link format");
         setStatus("error");
         return;
@@ -81,16 +109,18 @@ export default function ConfirmInvite() {
       }
 
       if (!session) {
+        console.error("No session established after verification");
         setErrorMessage("Failed to establish session. Please try again.");
         setStatus("error");
         return;
       }
 
+      console.log("Invite verification successful, session established:", session.user?.email);
       setStatus("password-setup");
     };
 
     verifyInvite();
-  }, [searchParams]);
+  }, [searchParams]); // Keep original dependency, hash parsing happens inside effect
 
   // Step 2: Handle password setup
   const onSubmit = async (values: z.infer<typeof passwordSchema>) => {
