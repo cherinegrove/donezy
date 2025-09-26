@@ -31,6 +31,7 @@ import Dashboards from "./pages/Dashboards";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 import ConfirmInvite from "./pages/ConfirmInvite";
+import { AuthVerify } from '@/components/auth/AuthVerify';
 
 // Simplified Protected route component
 const ProtectedRoute = ({ 
@@ -185,6 +186,7 @@ const App = () => {
                 <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
                 <Route path="/forgot-password" element={<PublicRoute element={<ForgotPassword />} />} />
                 <Route path="/reset-password" element={<PublicRoute element={<ResetPassword />} />} />
+                <Route path="/auth/v1/verify" element={<AuthVerify />} />
                 
                 {/* Protected routes */}
                 <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
