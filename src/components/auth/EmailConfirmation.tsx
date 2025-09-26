@@ -13,21 +13,33 @@ export function EmailConfirmation() {
   const { toast } = useToast();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [isUserConfirmed, setIsUserConfirmed] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const confirmUser = async () => {
+      if (isUserConfirmed || isProcessing) {
+        return;
+      }
+
+      setIsProcessing(true);
+
       try {
         // Get the code from URL parameters (new Supabase auth flow)
         const code = searchParams.get('code');
         
         if (!code) {
+          setIsProcessing(false);
           throw new Error('Invalid confirmation link');
         }
 
         // Exchange the code for a session
         const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-        if (error) throw error;
+        if (error) {
+          setIsProcessing(false);
+          throw error;
+        }
 
         if (data.user) {
           console.log('Email confirmed successfully for user:', data.user.email);
@@ -44,6 +56,7 @@ export function EmailConfirmation() {
             console.error('Error updating user role:', userError);
           }
 
+          setIsUserConfirmed(true);
           setStatus('success');
           
           toast({
@@ -57,6 +70,7 @@ export function EmailConfirmation() {
           }, 2000);
         }
       } catch (error) {
+        setIsProcessing(false);
         console.error('Email confirmation error:', error);
         setStatus('error');
         setErrorMessage(error instanceof Error ? error.message : 'Failed to confirm email');
