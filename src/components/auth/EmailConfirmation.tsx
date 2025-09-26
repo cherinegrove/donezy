@@ -12,18 +12,24 @@ export function EmailConfirmation() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { session, setSession } = useAppContext();
+  const { session } = useAppContext();
+  const isCancelledRef = useRef(false);
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   useEffect(() => {
     if (session) {
+      isCancelledRef.current = true;
       navigate('/');
       return;
     }
   }, [session]);
 
   useEffect(() => {
+    if (session) return;
+
+    isCancelledRef.current = false;
+
     const confirmUser = async () => {
       try {
         // Get the code from URL parameters (new Supabase auth flow)
@@ -35,6 +41,10 @@ export function EmailConfirmation() {
 
         // Exchange the code for a session
         const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (isCancelledRef.current) {
+          return;
+        }
 
         if (error) {
           throw error;
