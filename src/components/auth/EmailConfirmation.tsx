@@ -38,7 +38,9 @@ export function EmailConfirmation() {
         // Exchange the code for a session
         const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
+        console.log('done exchangeCodeForSession: ', data)
         if (error) {
+          console.log('errored!')
           throw error;
         }
 
