@@ -136,7 +136,7 @@ export default function ConfirmInvite() {
 
     setStatus("success");
     toast({ title: "Success", description: "Password set successfully!" });
-    navigate("/dashboard");
+    navigate("/");
   };
 
   if (status === "loading") {
