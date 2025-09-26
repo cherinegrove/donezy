@@ -71,7 +71,7 @@ export function SignupForm() {
       }
       
       // Create the user in Supabase auth - first user is always admin
-      const redirectUrl = `${window.location.origin}/email-confirmation`;
+      // const redirectUrl = `${window.location.origin}/email-confirmation`;
       console.log("🔗 Current origin:", window.location.origin);
       console.log("🔗 emailRedirectTo:", redirectUrl);
       
@@ -83,7 +83,8 @@ export function SignupForm() {
             name: values.name,
             role: "admin", // First user is admin
           },
-          emailRedirectTo: redirectUrl
+          // emailRedirectTo: redirectUrl
+          emailRedirectTo: '/email-confirmation'
         }
       });
       
