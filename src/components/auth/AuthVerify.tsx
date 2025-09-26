@@ -27,72 +27,13 @@ export function AuthVerify() {
         }
 
         // Your Supabase project URL
-        const supabaseProjectUrl = import.meta.env.VITE_SUPABASE_URL; // or however you store it
+        const supabaseProjectUrl = import.meta.env.VITE_SUPABASE_URL;
         const verifyUrl = `${supabaseProjectUrl}/auth/v1/verify?${urlParams.toString()}`;
         
-        console.log('Making verification request to:', verifyUrl);
+        console.log('Redirecting to Supabase verification URL:', verifyUrl);
 
-        // Make GET request to Supabase auth endpoint with redirect disabled
-        const response = await fetch(verifyUrl, {
-          method: 'GET',
-          redirect: 'manual', // This prevents automatic redirect following
-          headers: {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          },
-        });
-
-        console.log('Response status:', response.status);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-        // Check if response is a redirect (3xx status codes)
-        if (response.status >= 300 && response.status < 400) {
-          const redirectUrl = response.headers.get('Location');
-          
-          if (redirectUrl) {
-            console.log('Got redirect URL:', redirectUrl);
-            
-            // Parse the redirect URL to extract the path and query params
-            const url = new URL(redirectUrl);
-            const redirectPath = url.pathname;
-            const redirectParams = url.search;
-            
-            console.log('Redirect path:', redirectPath);
-            console.log('Redirect params:', redirectParams);
-            
-            setStatus('success');
-            toast({
-              title: "Verification successful!",
-              description: "Your account has been verified. Redirecting...",
-            });
-
-            // Navigate to the redirect path with query parameters
-            setTimeout(() => {
-              navigate(`${redirectPath}${redirectParams}`);
-            }, 1500);
-            
-            return;
-          } else {
-            throw new Error('Redirect response received but no Location header found');
-          }
-        }
-
-        // If not a redirect, check for other response types
-        if (response.ok) {
-          // Some success response without redirect
-          setStatus('success');
-          toast({
-            title: "Verification successful!",
-            description: "Your account has been verified.",
-          });
-          
-          setTimeout(() => {
-            navigate('/dashboard'); // Default redirect
-          }, 2000);
-        } else {
-          // Error response
-          const errorText = await response.text();
-          throw new Error(`Verification failed: ${response.status} ${response.statusText}. ${errorText}`);
-        }
+        // Simply redirect to the Supabase verification URL
+        window.location.href = verifyUrl;
 
       } catch (error) {
         console.error('Verification error:', error);
