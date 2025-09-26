@@ -17,6 +17,13 @@ export function EmailConfirmation() {
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   useEffect(() => {
+    if (session) {
+      navigate('/');
+      return;
+    }
+  }, [session]);
+
+  useEffect(() => {
     const confirmUser = async () => {
       try {
         // Get the code from URL parameters (new Supabase auth flow)
@@ -29,12 +36,7 @@ export function EmailConfirmation() {
         // Exchange the code for a session
         const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-        if (session) {
-          navigate('/');
-        }
-
         if (error) {
-          console.log('errored!')
           throw error;
         }
 
