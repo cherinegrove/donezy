@@ -1403,6 +1403,7 @@ export type Database = {
           organization_id: string | null
           priority: string
           project_id: string
+          related_task_ids: string[] | null
           reminder_date: string | null
           status: string
           title: string
@@ -1422,6 +1423,7 @@ export type Database = {
           organization_id?: string | null
           priority?: string
           project_id: string
+          related_task_ids?: string[] | null
           reminder_date?: string | null
           status?: string
           title: string
@@ -1441,6 +1443,7 @@ export type Database = {
           organization_id?: string | null
           priority?: string
           project_id?: string
+          related_task_ids?: string[] | null
           reminder_date?: string | null
           status?: string
           title?: string

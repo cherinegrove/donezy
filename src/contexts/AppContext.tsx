@@ -287,7 +287,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         createdAt: task.created_at,
         watcherIds: task.watcher_ids || [],
         comments: task.comments || [],
-        collaboratorIds: task.collaborator_ids || []
+        collaboratorIds: task.collaborator_ids || [],
+        relatedTaskIds: task.related_task_ids || []
       })) || [];
       
       setTasks(convertedTasks);
