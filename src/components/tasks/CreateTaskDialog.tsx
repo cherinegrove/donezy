@@ -33,20 +33,21 @@ import { StatusSelect } from "./StatusSelect";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNativeFieldConfigs } from "@/hooks/useNativeFieldConfigs";
 
 // Define schema for task form
-const createTaskSchema = (isSubtask: boolean) => {
+const createTaskSchema = (isSubtask: boolean, fieldRequirements: { [fieldName: string]: boolean }) => {
   const baseSchema = {
     title: z.string().min(1, { message: "Title is required" }),
-    description: z.string(),
+    description: fieldRequirements.description ? z.string().min(1, { message: "Description is required" }) : z.string(),
     clientId: z.string().min(1, { message: "Client is required" }),
     projectId: z.string().min(1, { message: "Project is required" }),
-    assigneeId: z.string().optional(),
+    assigneeId: fieldRequirements.assigneeId ? z.string().min(1, { message: "Assignee is required" }) : z.string().optional(),
     collaboratorIds: z.array(z.string()).optional(),
-    status: z.string().min(1, { message: "Status is required" }),
-    priority: z.string().min(1, { message: "Priority is required" }),
+    status: fieldRequirements.status ? z.string().min(1, { message: "Status is required" }) : z.string().min(1, { message: "Status is required" }),
+    priority: fieldRequirements.priority ? z.string().min(1, { message: "Priority is required" }) : z.string().min(1, { message: "Priority is required" }),
     startDate: z.string().optional(),
-    dueDate: z.string().optional(),
+    dueDate: fieldRequirements.dueDate ? z.string().min(1, { message: "Due date is required" }) : z.string().optional(),
     reminderDate: z.string().optional(),
     customFields: z.record(z.string(), z.any()),
   };
@@ -126,6 +127,9 @@ export function CreateTaskDialog({
   const [selectedTemplate, setSelectedTemplate] = useState<string>("default");
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   
+  // Fetch native field configurations
+  const { isFieldRequired, isFieldHidden } = useNativeFieldConfigs('tasks');
+  
   // Enhanced debugging for custom fields
   useEffect(() => {
     console.log('=== CUSTOM FIELDS DEBUG ===');
@@ -142,8 +146,17 @@ export function CreateTaskDialog({
     console.log('=== END DEBUG ===');
   }, [customFields, currentUser, open]);
   
+  // Create field requirements object based on native field configs
+  const fieldRequirements = {
+    description: isFieldRequired('description'),
+    assigneeId: isFieldRequired('assigneeId'),
+    status: isFieldRequired('status'),
+    priority: isFieldRequired('priority'),
+    dueDate: isFieldRequired('dueDate'),
+  };
+  
   // Use the appropriate schema based on whether we're creating a subtask
-  const schema = createTaskSchema(isSubtask);
+  const schema = createTaskSchema(isSubtask, fieldRequirements);
   
   const form = useForm<TaskFormData>({
     resolver: zodResolver(schema),
@@ -469,20 +482,25 @@ export function CreateTaskDialog({
                     )}
                   />
                   
-                  {/* Description */}
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="Task description" {...field} className="min-h-[80px]" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                   {/* Description */}
+                   {!isFieldHidden('description') && (
+                     <FormField
+                       control={form.control}
+                       name="description"
+                       render={({ field }) => (
+                         <FormItem>
+                           <FormLabel>
+                             Description
+                             {isFieldRequired('description') && <span className="text-red-500 ml-1">*</span>}
+                           </FormLabel>
+                           <FormControl>
+                             <Textarea placeholder="Task description" {...field} className="min-h-[80px]" />
+                           </FormControl>
+                           <FormMessage />
+                         </FormItem>
+                       )}
+                     />
+                   )}
                   
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {/* Client Selection */}
@@ -582,34 +600,39 @@ export function CreateTaskDialog({
                   />
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="assigneeId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Assignee</FormLabel>
-                          <FormControl>
-                            <Select
-                              value={field.value || ""}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select an assignee" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="">No assignee</SelectItem>
-                                {users.map((user) => (
-                                  <SelectItem key={user.auth_user_id} value={user.auth_user_id}>
-                                    {user.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                     {!isFieldHidden('assigneeId') && (
+                       <FormField
+                         control={form.control}
+                         name="assigneeId"
+                         render={({ field }) => (
+                           <FormItem>
+                             <FormLabel>
+                               Assignee
+                               {isFieldRequired('assigneeId') && <span className="text-red-500 ml-1">*</span>}
+                             </FormLabel>
+                             <FormControl>
+                               <Select
+                                 value={field.value || ""}
+                                 onValueChange={field.onChange}
+                               >
+                                 <SelectTrigger>
+                                   <SelectValue placeholder="Select an assignee" />
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                   {!isFieldRequired('assigneeId') && <SelectItem value="">No assignee</SelectItem>}
+                                   {users.map((user) => (
+                                     <SelectItem key={user.auth_user_id} value={user.auth_user_id}>
+                                       {user.name}
+                                     </SelectItem>
+                                   ))}
+                                 </SelectContent>
+                               </Select>
+                             </FormControl>
+                             <FormMessage />
+                           </FormItem>
+                         )}
+                       />
+                     )}
 
                     <FormField
                       control={form.control}
@@ -628,48 +651,58 @@ export function CreateTaskDialog({
                   
                   {/* Status and Priority Row */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="status"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Status</FormLabel>
-                          <FormControl>
-                            <StatusSelect 
-                              value={field.value} 
-                              onChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                     {!isFieldHidden('status') && (
+                       <FormField
+                         control={form.control}
+                         name="status"
+                         render={({ field }) => (
+                           <FormItem>
+                             <FormLabel>
+                               Status
+                               {isFieldRequired('status') && <span className="text-red-500 ml-1">*</span>}
+                             </FormLabel>
+                             <FormControl>
+                               <StatusSelect 
+                                 value={field.value} 
+                                 onChange={field.onChange}
+                               />
+                             </FormControl>
+                             <FormMessage />
+                           </FormItem>
+                         )}
+                       />
+                     )}
                     
-                    <FormField
-                      control={form.control}
-                      name="priority"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Priority</FormLabel>
-                          <FormControl>
-                            <Select 
-                              value={field.value} 
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select priority" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="low">Low</SelectItem>
-                                <SelectItem value="medium">Medium</SelectItem>
-                                <SelectItem value="high">High</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                     {!isFieldHidden('priority') && (
+                       <FormField
+                         control={form.control}
+                         name="priority"
+                         render={({ field }) => (
+                           <FormItem>
+                             <FormLabel>
+                               Priority
+                               {isFieldRequired('priority') && <span className="text-red-500 ml-1">*</span>}
+                             </FormLabel>
+                             <FormControl>
+                               <Select 
+                                 value={field.value} 
+                                 onValueChange={field.onChange}
+                               >
+                                 <SelectTrigger>
+                                   <SelectValue placeholder="Select priority" />
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                   <SelectItem value="low">Low</SelectItem>
+                                   <SelectItem value="medium">Medium</SelectItem>
+                                   <SelectItem value="high">High</SelectItem>
+                                 </SelectContent>
+                               </Select>
+                             </FormControl>
+                             <FormMessage />
+                           </FormItem>
+                         )}
+                       />
+                     )}
                   </div>
 
                   {/* Start Date and Due Date Row */}
@@ -688,19 +721,24 @@ export function CreateTaskDialog({
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="dueDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Due Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                     {!isFieldHidden('dueDate') && (
+                       <FormField
+                         control={form.control}
+                         name="dueDate"
+                         render={({ field }) => (
+                           <FormItem>
+                             <FormLabel>
+                               Due Date
+                               {isFieldRequired('dueDate') && <span className="text-red-500 ml-1">*</span>}
+                             </FormLabel>
+                             <FormControl>
+                               <Input type="date" {...field} />
+                             </FormControl>
+                             <FormMessage />
+                           </FormItem>
+                         )}
+                       />
+                     )}
                   </div>
 
                   {/* Reminder Date on its own line */}
