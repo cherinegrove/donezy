@@ -98,10 +98,11 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   // Task selection functionality
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   
-  // Global display options for all task cards
-  const [displayOptions, setDisplayOptions] = useState<DisplayOption[]>([
-    "project", "client", "assignee", "parentTask"
-  ]);
+  // Global display options for all task cards - load from localStorage
+  const [displayOptions, setDisplayOptions] = useState<DisplayOption[]>(() => {
+    const saved = localStorage.getItem('kanban-display-options');
+    return saved ? JSON.parse(saved) : ["project", "client", "assignee", "parentTask"];
+  });
   
   // If tasks were passed in as props, use those
   // Otherwise, if projectId was provided, filter all tasks for that project
@@ -210,11 +211,12 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
 
   // Toggle display option for all cards
   const toggleDisplayOption = (option: DisplayOption) => {
-    if (displayOptions.includes(option)) {
-      setDisplayOptions(displayOptions.filter(opt => opt !== option));
-    } else {
-      setDisplayOptions([...displayOptions, option]);
-    }
+    const newOptions = displayOptions.includes(option) 
+      ? displayOptions.filter(opt => opt !== option)
+      : [...displayOptions, option];
+    
+    setDisplayOptions(newOptions);
+    localStorage.setItem('kanban-display-options', JSON.stringify(newOptions));
   };
 
   // Render toolbar with selection controls and display options
