@@ -1224,6 +1224,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.watcherIds !== undefined) dbUpdates.watcher_ids = updates.watcherIds;
       if (updates.comments !== undefined) dbUpdates.comments = updates.comments;
       if (updates.collaboratorIds !== undefined) dbUpdates.collaborator_ids = updates.collaboratorIds;
+      if (updates.relatedTaskIds !== undefined) dbUpdates.related_task_ids = updates.relatedTaskIds;
 
       const { error } = await supabase
         .from('tasks')
@@ -1800,34 +1801,58 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('Unwatch task not yet implemented');
   };
 
-  const linkTasks = (taskId: string, relatedTaskId: string) => {
-    setTasks(prevTasks => prevTasks.map(task => {
-      if (task.id === taskId) {
-        const relatedTaskIds = task.relatedTaskIds || [];
-        if (!relatedTaskIds.includes(relatedTaskId)) {
-          return { ...task, relatedTaskIds: [...relatedTaskIds, relatedTaskId] };
-        }
-      } else if (task.id === relatedTaskId) {
-        const relatedTaskIds = task.relatedTaskIds || [];
-        if (!relatedTaskIds.includes(taskId)) {
-          return { ...task, relatedTaskIds: [...relatedTaskIds, taskId] };
-        }
+  const linkTasks = async (taskId: string, relatedTaskId: string) => {
+    try {
+      // Get current tasks to update their relatedTaskIds
+      const task1 = tasks.find(t => t.id === taskId);
+      const task2 = tasks.find(t => t.id === relatedTaskId);
+      
+      if (!task1 || !task2) return;
+      
+      // Update first task
+      const task1RelatedIds = task1.relatedTaskIds || [];
+      if (!task1RelatedIds.includes(relatedTaskId)) {
+        await updateTask(taskId, { 
+          relatedTaskIds: [...task1RelatedIds, relatedTaskId] 
+        });
       }
-      return task;
-    }));
+      
+      // Update second task
+      const task2RelatedIds = task2.relatedTaskIds || [];
+      if (!task2RelatedIds.includes(taskId)) {
+        await updateTask(relatedTaskId, { 
+          relatedTaskIds: [...task2RelatedIds, taskId] 
+        });
+      }
+    } catch (error) {
+      console.error('Error linking tasks:', error);
+      throw error;
+    }
   };
 
-  const unlinkTasks = (taskId: string, relatedTaskId: string) => {
-    setTasks(prevTasks => prevTasks.map(task => {
-      if (task.id === taskId) {
-        const relatedTaskIds = task.relatedTaskIds || [];
-        return { ...task, relatedTaskIds: relatedTaskIds.filter(id => id !== relatedTaskId) };
-      } else if (task.id === relatedTaskId) {
-        const relatedTaskIds = task.relatedTaskIds || [];
-        return { ...task, relatedTaskIds: relatedTaskIds.filter(id => id !== taskId) };
-      }
-      return task;
-    }));
+  const unlinkTasks = async (taskId: string, relatedTaskId: string) => {
+    try {
+      // Get current tasks to update their relatedTaskIds
+      const task1 = tasks.find(t => t.id === taskId);
+      const task2 = tasks.find(t => t.id === relatedTaskId);
+      
+      if (!task1 || !task2) return;
+      
+      // Update first task
+      const task1RelatedIds = task1.relatedTaskIds || [];
+      await updateTask(taskId, { 
+        relatedTaskIds: task1RelatedIds.filter(id => id !== relatedTaskId) 
+      });
+      
+      // Update second task  
+      const task2RelatedIds = task2.relatedTaskIds || [];
+      await updateTask(relatedTaskId, { 
+        relatedTaskIds: task2RelatedIds.filter(id => id !== taskId) 
+      });
+    } catch (error) {
+      console.error('Error unlinking tasks:', error);
+      throw error;
+    }
   };
 
   const uploadTaskFile = async (taskId: string, file: File): Promise<string> => {
