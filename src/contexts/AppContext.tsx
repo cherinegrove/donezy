@@ -1801,11 +1801,33 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const linkTasks = (taskId: string, relatedTaskId: string) => {
-    console.log('Link tasks not yet implemented');
+    setTasks(prevTasks => prevTasks.map(task => {
+      if (task.id === taskId) {
+        const relatedTaskIds = task.relatedTaskIds || [];
+        if (!relatedTaskIds.includes(relatedTaskId)) {
+          return { ...task, relatedTaskIds: [...relatedTaskIds, relatedTaskId] };
+        }
+      } else if (task.id === relatedTaskId) {
+        const relatedTaskIds = task.relatedTaskIds || [];
+        if (!relatedTaskIds.includes(taskId)) {
+          return { ...task, relatedTaskIds: [...relatedTaskIds, taskId] };
+        }
+      }
+      return task;
+    }));
   };
 
   const unlinkTasks = (taskId: string, relatedTaskId: string) => {
-    console.log('Unlink tasks not yet implemented');
+    setTasks(prevTasks => prevTasks.map(task => {
+      if (task.id === taskId) {
+        const relatedTaskIds = task.relatedTaskIds || [];
+        return { ...task, relatedTaskIds: relatedTaskIds.filter(id => id !== relatedTaskId) };
+      } else if (task.id === relatedTaskId) {
+        const relatedTaskIds = task.relatedTaskIds || [];
+        return { ...task, relatedTaskIds: relatedTaskIds.filter(id => id !== taskId) };
+      }
+      return task;
+    }));
   };
 
   const uploadTaskFile = async (taskId: string, file: File): Promise<string> => {
