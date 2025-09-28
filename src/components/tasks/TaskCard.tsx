@@ -100,8 +100,8 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
       )}
       <CardContent className={cn("p-5", showSelection && "pr-10")}>
         <div className="space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <h3 className="font-medium text-sm line-clamp-2 flex-1">
+          <div>
+            <h3 className="font-medium text-sm line-clamp-2">
               {task.title}
               {isCollaboratorTask && (
                 <Badge variant="outline" className="ml-2 text-xs">
@@ -109,14 +109,6 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
                 </Badge>
               )}
             </h3>
-            {displayOptions.includes("priority") && (
-              <Badge 
-                variant="secondary" 
-                className={cn("text-xs flex-shrink-0", getPriorityColor(task.priority))}
-              >
-                {task.priority}
-              </Badge>
-            )}
           </div>
           
           {task.description && (
@@ -126,6 +118,17 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
           )}
           
           <div className="space-y-2">
+            {displayOptions.includes("priority") && (
+              <div className="flex items-center">
+                <Badge 
+                  variant="secondary" 
+                  className={cn("text-xs", getPriorityColor(task.priority))}
+                >
+                  {task.priority}
+                </Badge>
+              </div>
+            )}
+            
             {displayOptions.includes("status") && (
               <div className="flex items-center">
                 <Badge variant="outline" className="text-xs">
