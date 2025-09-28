@@ -125,61 +125,67 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
             </p>
           )}
           
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <div className="flex items-center gap-2">
-              {displayOptions.includes("status") && (
+          <div className="space-y-2">
+            {displayOptions.includes("status") && (
+              <div className="flex items-center">
                 <Badge variant="outline" className="text-xs">
                   {task.status.replace('-', ' ')}
                 </Badge>
-              )}
-              {displayOptions.includes("project") && showProject && project && (
-                <span className="truncate max-w-[100px]">{project.name}</span>
-              )}
-              {displayOptions.includes("client") && client && (
-                <span className="truncate max-w-[100px] text-blue-600">{client.name}</span>
-              )}
-            </div>
+              </div>
+            )}
             
-            <div className="flex items-center gap-2">
-              {displayOptions.includes("assignee") && assignee && (
-                <div className="flex items-center gap-1">
-                  <Avatar className="h-4 w-4">
-                    <AvatarImage src={assignee.avatar} alt={assignee.name} />
-                    <AvatarFallback className="text-xs">
-                      {assignee.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs truncate max-w-[60px]">{assignee.name}</span>
+            {displayOptions.includes("project") && showProject && project && (
+              <div className="flex items-center text-xs text-muted-foreground">
+                <span className="truncate">{project.name}</span>
+              </div>
+            )}
+            
+            {displayOptions.includes("client") && client && (
+              <div className="flex items-center text-xs">
+                <span className="truncate text-blue-600">{client.name}</span>
+              </div>
+            )}
+            
+            {displayOptions.includes("assignee") && assignee && (
+              <div className="flex items-center gap-2 text-xs">
+                <Avatar className="h-4 w-4">
+                  <AvatarImage src={assignee.avatar} alt={assignee.name} />
+                  <AvatarFallback className="text-xs">
+                    {assignee.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="truncate text-muted-foreground">{assignee.name}</span>
+              </div>
+            )}
+            
+            {displayOptions.includes("collaborators") && collaborators.length > 0 && (
+              <div className="flex items-center gap-2 text-xs">
+                <div className="flex -space-x-1">
+                  {collaborators.slice(0, 3).map((collaborator, index) => (
+                    <Avatar key={collaborator.id} className="h-4 w-4 border-2 border-blue-200">
+                      <AvatarImage src={collaborator.avatar} alt={collaborator.name} />
+                      <AvatarFallback className="text-xs bg-blue-100">
+                        {collaborator.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
                 </div>
-              )}
-              
-              {displayOptions.includes("collaborators") && collaborators.length > 0 && (
-                <div className="flex items-center gap-1">
-                  <div className="flex -space-x-1">
-                    {collaborators.slice(0, 2).map((collaborator, index) => (
-                      <Avatar key={collaborator.id} className="h-4 w-4 border-2 border-blue-200">
-                        <AvatarImage src={collaborator.avatar} alt={collaborator.name} />
-                        <AvatarFallback className="text-xs bg-blue-100">
-                          {collaborator.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                    ))}
-                  </div>
-                  {collaborators.length > 2 && (
-                    <span className="text-xs text-blue-600">+{collaborators.length - 2}</span>
-                  )}
-                </div>
-              )}
-              
-              {displayOptions.includes("dueDate") && task.dueDate && (
+                {collaborators.length > 3 && (
+                  <span className="text-xs text-blue-600">+{collaborators.length - 3}</span>
+                )}
+                <span className="text-xs text-muted-foreground">Collaborators</span>
+              </div>
+            )}
+            
+            {displayOptions.includes("dueDate") && task.dueDate && (
+              <div className="flex items-center text-xs">
                 <span className={cn(
-                  "text-xs",
                   isOverdue(task.dueDate) ? "text-red-500" : "text-muted-foreground"
                 )}>
-                  {formatDueDate(task.dueDate)}
+                  Due: {formatDueDate(task.dueDate)}
                 </span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
