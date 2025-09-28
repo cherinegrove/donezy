@@ -175,7 +175,9 @@ export function ProjectFilesAdvanced({ projectId }: ProjectFilesAdvancedProps) {
           is_external_link: true,
           external_url: linkData.url,
           external_provider: linkData.provider,
-          mime_type: 'application/link'
+          mime_type: 'application/link',
+          file_path: null,
+          file_size: null
         });
 
       if (error) throw error;
