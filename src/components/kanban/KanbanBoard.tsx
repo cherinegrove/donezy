@@ -130,15 +130,19 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   // Drag and drop handlers
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   
-  const handleDragStart = (task: Task) => {
+  const handleDragStart = (e: React.DragEvent, task: Task) => {
     setDraggedTask(task);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', task.id);
   };
   
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
   };
   
-  const handleDrop = (status: TaskStatus) => {
+  const handleDrop = (e: React.DragEvent, status: TaskStatus) => {
+    e.preventDefault();
     if (draggedTask) {
       moveTask(draggedTask.id, status);
       setDraggedTask(null);
@@ -397,7 +401,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
               key={column.id}
               className="flex-1 min-w-[250px] max-w-[250px]"
               onDragOver={handleDragOver}
-              onDrop={() => handleDrop(column.id)}
+              onDrop={(e) => handleDrop(e, column.id)}
             >
               <div 
                 className="rounded-lg p-3 h-full"
@@ -416,7 +420,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                       key={task.id}
                       className="group"
                       draggable={selectedTaskIds.length === 0}
-                      onDragStart={() => selectedTaskIds.length === 0 && handleDragStart(task)}
+                      onDragStart={(e) => selectedTaskIds.length === 0 && handleDragStart(e, task)}
                     >
                       <TaskCard 
                         task={task} 
