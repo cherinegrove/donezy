@@ -26,9 +26,11 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
   const client = project ? clients.find(c => c.id === project.clientId) : null;
   
   // Handle both UUID and name-based assignee IDs for backward compatibility
-  const assignee = users.find(u => u.id === task.assigneeId) || 
-                   users.find(u => u.name === task.assigneeId) ||
-                   users.find(u => u.name.toLowerCase().includes(task.assigneeId?.toLowerCase() || ''));
+  const assignee = task.assigneeId ? (
+    users.find(u => u.id === task.assigneeId) || 
+    users.find(u => u.name === task.assigneeId) ||
+    users.find(u => u.name.toLowerCase().includes(task.assigneeId.toLowerCase()))
+  ) : null;
                    
   const collaborators = (task.collaboratorIds || []).map(id => users.find(u => u.id === id)).filter(Boolean);
   
@@ -149,15 +151,21 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
               </div>
             )}
             
-            {displayOptions.includes("assignee") && assignee && (
+            {displayOptions.includes("assignee") && (
               <div className="flex items-center gap-2 text-xs">
-                <Avatar className="h-4 w-4">
-                  <AvatarImage src={assignee.avatar} alt={assignee.name} />
-                  <AvatarFallback className="text-xs">
-                    {assignee.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="truncate text-muted-foreground">{assignee.name}</span>
+                {assignee ? (
+                  <>
+                    <Avatar className="h-4 w-4">
+                      <AvatarImage src={assignee.avatar} alt={assignee.name} />
+                      <AvatarFallback className="text-xs">
+                        {assignee.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="truncate text-muted-foreground">{assignee.name}</span>
+                  </>
+                ) : (
+                  <span className="truncate text-muted-foreground italic">Unassigned</span>
+                )}
               </div>
             )}
             
