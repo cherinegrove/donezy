@@ -272,6 +272,33 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         console.error('Error loading tasks:', error);
         return;
       }
+
+      // Load comments for all tasks
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('comments')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (commentsError) {
+        console.error('Error loading comments:', commentsError);
+      }
+
+      // Group comments by task_id
+      const commentsByTask: { [key: string]: any[] } = {};
+      if (commentsData) {
+        commentsData.forEach(comment => {
+          if (!commentsByTask[comment.task_id]) {
+            commentsByTask[comment.task_id] = [];
+          }
+          commentsByTask[comment.task_id].push({
+            id: comment.id,
+            userId: comment.user_id,
+            content: comment.content,
+            timestamp: comment.created_at,
+            mentionedUserIds: comment.mentioned_user_ids || []
+          });
+        });
+      }
       
       const convertedTasks = data?.map((task: any) => ({
         id: task.id,
@@ -286,7 +313,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         actualHours: task.actual_hours || undefined,
         createdAt: task.created_at,
         watcherIds: task.watcher_ids || [],
-        comments: task.comments || [],
+        comments: commentsByTask[task.id] || [],
         collaboratorIds: task.collaborator_ids || [],
         relatedTaskIds: task.related_task_ids || []
       })) || [];
@@ -2005,28 +2032,50 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   // Comment functions
-  const addComment = (taskId: string, userId: string, content: string, mentionedUserIds?: string[]): string => {
-    const commentId = `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const timestamp = new Date().toISOString();
-    
-    const newComment = {
-      id: commentId,
-      userId,
-      content,
-      timestamp,
-      mentionedUserIds: mentionedUserIds || []
-    };
+  const addComment = async (taskId: string, userId: string, content: string, mentionedUserIds?: string[]): Promise<string> => {
+    if (!currentUser) throw new Error('No authenticated user');
 
-    setTasks(prev => prev.map(task => 
-      task.id === taskId 
-        ? { 
-            ...task, 
-            comments: [...(task.comments || []), newComment]
-          }
-        : task
-    ));
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error('No authenticated session');
 
-    return commentId;
+      const { data, error } = await supabase
+        .from('comments')
+        .insert({
+          task_id: taskId,
+          auth_user_id: session.user.id,
+          user_id: userId,
+          content,
+          mentioned_user_ids: mentionedUserIds || []
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newComment = {
+        id: data.id,
+        userId: data.user_id,
+        content: data.content,
+        timestamp: data.created_at,
+        mentionedUserIds: data.mentioned_user_ids || []
+      };
+
+      // Update local state
+      setTasks(prev => prev.map(task => 
+        task.id === taskId 
+          ? { 
+              ...task, 
+              comments: [...(task.comments || []), newComment]
+            }
+          : task
+      ));
+
+      return data.id;
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      throw error;
+    }
   };
 
   // Message functions

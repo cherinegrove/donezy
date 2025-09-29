@@ -199,6 +199,39 @@ export type Database = {
           },
         ]
       }
+      comments: {
+        Row: {
+          auth_user_id: string
+          content: string
+          created_at: string
+          id: string
+          mentioned_user_ids: string[] | null
+          task_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auth_user_id?: string
+          content: string
+          created_at?: string
+          id?: string
+          mentioned_user_ids?: string[] | null
+          task_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auth_user_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          mentioned_user_ids?: string[] | null
+          task_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       custom_fields: {
         Row: {
           applicable_to: string[]

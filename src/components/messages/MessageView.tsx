@@ -82,7 +82,7 @@ export function MessageView({ message, onReply }: MessageViewProps) {
     setThreadReplyContent("");
   };
   
-  const handleSendReply = (content: string, closeReplyForm: () => void) => {
+  const handleSendReply = async (content: string, closeReplyForm: () => void) => {
     if (!content.trim()) {
       toast({
         title: "Error",
@@ -93,15 +93,23 @@ export function MessageView({ message, onReply }: MessageViewProps) {
     }
     
     if (task && currentUser) {
-      addComment(task.id, currentUser.auth_user_id, content);
-      
-      toast({
-        title: "Reply sent",
-        description: "Your reply has been added to the task",
-      });
-      
-      closeReplyForm();
-      onReply();
+      try {
+        await addComment(task.id, currentUser.auth_user_id, content);
+        
+        toast({
+          title: "Reply sent",
+          description: "Your reply has been added to the task",
+        });
+        
+        closeReplyForm();
+        onReply();
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to send reply. Please try again.",
+          variant: "destructive",
+        });
+      }
       
       // Refresh comments after adding a new one
       if (task.comments) {

@@ -32,7 +32,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   const task = tasks.find(t => t.id === taskId);
   if (!task) return null;
   
-  const handleSubmitComment = (e: React.FormEvent) => {
+  const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!comment.trim() || !currentUser) return;
     
@@ -53,11 +53,12 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       }
     });
     
-    // Add the comment to the task
-    const commentId = addComment(taskId, currentUser.auth_user_id, comment, mentionedUserIds);
-    
-    // Create notification messages for each mentioned user and task assignee/collaborators
-    if (task) {
+    try {
+      // Add the comment to the task
+      const commentId = await addComment(taskId, currentUser.auth_user_id, comment, mentionedUserIds);
+      
+      // Create notification messages for each mentioned user and task assignee/collaborators
+      if (task) {
       // For mentions
       mentionedUserIds.forEach(userId => {
         if (userId !== currentUser.auth_user_id) {
@@ -103,17 +104,25 @@ export function CommentSection({ taskId }: CommentSectionProps) {
           }
         });
       }
+      }
+      
+      toast({
+        title: "Comment Added",
+        description: mentionedUserIds.length > 0 
+          ? "Your comment was added and mentioned users were notified" 
+          : "Your comment was added",
+      });
+      
+      // Reset comment input
+      setComment("");
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add comment. Please try again.",
+        variant: "destructive",
+      });
     }
-    
-    toast({
-      title: "Comment Added",
-      description: mentionedUserIds.length > 0 
-        ? "Your comment was added and mentioned users were notified" 
-        : "Your comment was added",
-    });
-    
-    // Reset comment input
-    setComment("");
   };
   
   // Helper function to get first name
