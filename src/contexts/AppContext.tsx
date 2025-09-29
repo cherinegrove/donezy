@@ -437,11 +437,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // Set up real-time subscription for messages
+  // Set up real-time subscriptions for messages
   useEffect(() => {
     if (!session?.user) return;
 
-    const channel = supabase
+    const messagesChannel = supabase
       .channel('messages-changes')
       .on(
         'postgres_changes',
@@ -495,7 +495,83 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messagesChannel);
+    };
+  }, [session?.user?.id]);
+
+  // Set up real-time subscriptions for tasks
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const tasksChannel = supabase
+      .channel('tasks-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tasks'
+        },
+        (payload) => {
+          console.log('📋 Task updated via real-time:', payload);
+          
+          // Update the task in state
+          setTasks(prev => prev.map(task => 
+            task.id === payload.new.id 
+              ? {
+                  ...task,
+                  assigneeId: payload.new.assignee_id,
+                  collaboratorIds: payload.new.collaborator_ids || [],
+                  status: payload.new.status,
+                  title: payload.new.title,
+                  description: payload.new.description,
+                  priority: payload.new.priority,
+                  dueDate: payload.new.due_date,
+                  startDate: payload.new.start_date
+                }
+              : task
+          ));
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'tasks'
+        },
+        (payload) => {
+          console.log('📋 New task created via real-time:', payload);
+          
+          // Convert and add new task to state
+          const newTask: Task = {
+            id: payload.new.id,
+            title: payload.new.title,
+            description: payload.new.description,
+            status: payload.new.status,
+            priority: payload.new.priority,
+            assigneeId: payload.new.assignee_id,
+            collaboratorIds: payload.new.collaborator_ids || [],
+            projectId: payload.new.project_id,
+            dueDate: payload.new.due_date,
+            startDate: payload.new.start_date,
+            createdAt: payload.new.created_at,
+            estimatedHours: payload.new.estimated_hours || 0,
+            actualHours: payload.new.actual_hours || 0,
+            files: [],
+            comments: [],
+            customFields: safeParseJson(payload.new.custom_fields, {}),
+            subtasks: [],
+            watcherIds: payload.new.watcher_ids || []
+          };
+          
+          setTasks(prev => [newTask, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(tasksChannel);
     };
   }, [session?.user?.id]);
 
