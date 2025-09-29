@@ -1,39 +1,72 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { DashboardCard } from "../DashboardCard";
-import { Users } from "lucide-react";
+import { Users, Calendar } from "lucide-react";
+import { useState } from "react";
+import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
+import { Task } from "@/types";
+import { format } from "date-fns";
 
 export const CollaboratorTasksCard = ({ onRemove }: { onRemove?: () => void }) => {
   const { tasks, currentUser } = useAppContext();
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const collaboratorTasks = tasks.filter(task => 
-    task.collaboratorIds?.includes(currentUser?.id) && 
-    task.assigneeId !== currentUser?.id &&
+    task.collaboratorIds?.includes(currentUser?.auth_user_id) && 
+    task.assigneeId !== currentUser?.auth_user_id &&
     task.status !== "done"
   );
 
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setIsDialogOpen(true);
+  };
+
   return (
-    <DashboardCard
-      title="Tasks I'm Collaborating On"
-      icon={<Users className="h-4 w-4" />}
-      onRemove={onRemove}
-    >
-      {collaboratorTasks.length > 0 ? (
-        <div className="space-y-2">
-          {collaboratorTasks.slice(0, 5).map((task) => (
-            <div key={task.id} className="p-2 bg-muted rounded-md">
-              <p className="text-sm font-medium">{task.title}</p>
-              <p className="text-xs text-muted-foreground">{task.status}</p>
-            </div>
-          ))}
-          {collaboratorTasks.length > 5 && (
-            <p className="text-xs text-muted-foreground">
-              +{collaboratorTasks.length - 5} more
-            </p>
-          )}
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">No collaboration tasks</p>
+    <>
+      <DashboardCard
+        title="Tasks I'm Collaborating On"
+        icon={<Users className="h-4 w-4" />}
+        onRemove={onRemove}
+      >
+        {collaboratorTasks.length > 0 ? (
+          <div className="space-y-2">
+            {collaboratorTasks.slice(0, 5).map((task) => (
+              <div 
+                key={task.id} 
+                className="p-2 bg-muted rounded-md cursor-pointer hover:bg-muted/80 transition-colors"
+                onClick={() => handleTaskClick(task)}
+              >
+                <p className="text-sm font-medium">{task.title}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-xs text-muted-foreground">{task.status}</p>
+                  {task.dueDate && (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {format(new Date(task.dueDate), "MMM dd")}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {collaboratorTasks.length > 5 && (
+              <p className="text-xs text-muted-foreground">
+                +{collaboratorTasks.length - 5} more
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No collaboration tasks</p>
+        )}
+      </DashboardCard>
+      
+      {selectedTask && (
+        <EditTaskDialog
+          task={selectedTask}
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+        />
       )}
-    </DashboardCard>
+    </>
   );
 };
