@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
 import { Task, TaskStatus } from "@/types";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, Plus, Upload } from "lucide-react";
+import { CheckSquare, Plus, Upload, Users, User } from "lucide-react";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { EditTaskTemplateDialog } from "@/components/tasks/EditTaskTemplateDialog";
@@ -34,7 +34,7 @@ import {
 type ViewMode = "list" | "kanban";
 
 export default function Tasks() {
-  const { tasks, projects, users, clients } = useAppContext();
+  const { tasks, projects, users, clients, currentUser } = useAppContext();
   
   // Debug logging to help identify why tasks aren't showing
   React.useEffect(() => {
@@ -58,6 +58,7 @@ export default function Tasks() {
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(tasks);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
+  const [showMyTasksOnly, setShowMyTasksOnly] = useState(true); // Default to showing only user's tasks
 
   // Define filter options
   const filterOptions: FilterOption[] = [
@@ -90,6 +91,15 @@ export default function Tasks() {
   // Filter tasks based on all filters
   React.useEffect(() => {
     const filtered = tasks.filter(task => {
+      // Apply "My Tasks Only" filter first
+      if (showMyTasksOnly && currentUser) {
+        const isMyTask = task.assigneeId === currentUser.auth_user_id || 
+                        (task.collaboratorIds && task.collaboratorIds.includes(currentUser.auth_user_id));
+        if (!isMyTask) {
+          return false;
+        }
+      }
+      
       // Apply status filter
       if (statusFilter !== "all" && task.status !== statusFilter) {
         return false;
@@ -145,7 +155,7 @@ export default function Tasks() {
     });
     
     setFilteredTasks(filtered);
-  }, [tasks, activeFilters, startDate, dueDate, projects, statusFilter]);
+  }, [tasks, activeFilters, startDate, dueDate, projects, statusFilter, showMyTasksOnly, currentUser]);
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setActiveFilters(filters);
@@ -208,7 +218,20 @@ export default function Tasks() {
 
         <TabsContent value="tasks" className="space-y-6">
           <div className="flex justify-between items-center mb-4">
-            <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
+            <div className="flex items-center gap-4">
+              <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
+              
+              {/* My Tasks Only Toggle */}
+              <Button
+                variant={showMyTasksOnly ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowMyTasksOnly(!showMyTasksOnly)}
+                className="flex items-center gap-2"
+              >
+                {showMyTasksOnly ? <User className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+                {showMyTasksOnly ? "My Tasks" : "All Tasks"}
+              </Button>
+            </div>
             <ViewSelector currentView={viewMode} onViewChange={setViewMode} />
           </div>
 
