@@ -1884,12 +1884,72 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const uploadTaskFile = async (taskId: string, file: File): Promise<string> => {
-    console.log('Upload task file not yet implemented');
-    return '';
+    try {
+      // Create a unique file path
+      const fileName = `tasks/${taskId}/${Date.now()}-${file.name}`;
+      
+      // Upload file to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('project-files')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL for the file
+      const { data: publicUrlData } = supabase.storage
+        .from('project-files')
+        .getPublicUrl(uploadData.path);
+
+      // Create a task file record in the task's files array
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        const taskFile = {
+          id: Math.random().toString(36).substring(2, 15),
+          name: file.name,
+          url: publicUrlData.publicUrl,
+          size: file.size,
+          sizeKb: Math.round(file.size / 1024),
+          uploadedAt: new Date().toISOString()
+        };
+        
+        const updatedFiles = [...(task.files || []), taskFile];
+        await updateTask(taskId, { files: updatedFiles });
+      }
+
+      return uploadData.path;
+    } catch (error) {
+      console.error('Error uploading task file:', error);
+      throw error;
+    }
   };
 
-  const deleteTaskFile = (taskId: string, fileId: string) => {
-    console.log('Delete task file not yet implemented');
+  const deleteTaskFile = async (taskId: string, fileId: string) => {
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task || !task.files) return;
+
+      const fileToDelete = task.files.find(f => f.id === fileId);
+      if (!fileToDelete) return;
+
+      // For task files, we need to extract the file path from the URL
+      // since we stored the public URL in the task file record
+      const urlParts = fileToDelete.url.split('/');
+      const filePath = urlParts.slice(-3).join('/'); // Get the last 3 parts: tasks/taskId/filename
+
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('project-files')
+        .remove([filePath]);
+
+      if (storageError) console.error('Storage deletion error:', storageError);
+
+      // Remove from task's files array
+      const updatedFiles = task.files.filter(f => f.id !== fileId);
+      await updateTask(taskId, { files: updatedFiles });
+    } catch (error) {
+      console.error('Error deleting task file:', error);
+      throw error;
+    }
   };
 
   const addTaskStatus = (status: Omit<TaskStatusDefinition, 'id'>) => {
