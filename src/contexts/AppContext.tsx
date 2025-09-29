@@ -437,6 +437,68 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  // Set up real-time subscription for messages
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const channel = supabase
+      .channel('messages-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `to_user_id=eq.${session.user.id}`
+        },
+        (payload) => {
+          console.log('🔔 New message received via real-time:', payload);
+          
+          // Convert the new message and add to state
+          const newMessage: Message = {
+            id: payload.new.id,
+            senderId: payload.new.from_user_id,
+            recipientIds: [payload.new.to_user_id],
+            content: payload.new.content,
+            timestamp: payload.new.timestamp,
+            read: payload.new.read,
+            taskId: payload.new.task_id,
+            projectId: payload.new.project_id
+          };
+          
+          setMessages(prev => [newMessage, ...prev]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `to_user_id=eq.${session.user.id}`
+        },
+        (payload) => {
+          console.log('📝 Message updated via real-time:', payload);
+          
+          // Update the message in state
+          setMessages(prev => prev.map(msg => 
+            msg.id === payload.new.id 
+              ? {
+                  ...msg,
+                  read: payload.new.read,
+                  content: payload.new.content
+                }
+              : msg
+          ));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session?.user?.id]);
+
   const loadMessages = async () => {
     if (!session?.user) return;
     
