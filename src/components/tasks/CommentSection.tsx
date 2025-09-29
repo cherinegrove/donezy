@@ -60,9 +60,9 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       // Create notification messages for each mentioned user and task assignee/collaborators
       if (task) {
       // For mentions
-      mentionedUserIds.forEach(userId => {
+      for (const userId of mentionedUserIds) {
         if (userId !== currentUser.auth_user_id) {
-          createMessage({
+          await createMessage({
             senderId: currentUser.auth_user_id,
             recipientIds: [userId],
             content: `You were mentioned in a comment on task "${task.title}"`,
@@ -71,11 +71,11 @@ export function CommentSection({ taskId }: CommentSectionProps) {
             projectId: task.projectId
           });
         }
-      });
+      }
       
       // For task assignee
       if (task.assigneeId && task.assigneeId !== currentUser.auth_user_id && !mentionedUserIds.includes(task.assigneeId)) {
-        createMessage({
+        await createMessage({
           senderId: currentUser.auth_user_id,
           recipientIds: [task.assigneeId],
           content: `New comment on task "${task.title}" you're assigned to`,
@@ -87,13 +87,13 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       
       // For collaborators
       if (task.collaboratorIds && task.collaboratorIds.length > 0) {
-        task.collaboratorIds.forEach(collaboratorId => {
+        for (const collaboratorId of task.collaboratorIds) {
           if (
             collaboratorId !== currentUser.auth_user_id &&
             collaboratorId !== task.assigneeId && 
             !mentionedUserIds.includes(collaboratorId)
           ) {
-            createMessage({
+            await createMessage({
               senderId: currentUser.auth_user_id,
               recipientIds: [collaboratorId],
               content: `New comment on task "${task.title}" you're collaborating on`,
@@ -102,7 +102,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
               projectId: task.projectId
             });
           }
-        });
+        }
       }
       }
       

@@ -445,7 +445,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .or(`to_user_id.eq.${session.user.id},from_user_id.eq.${session.user.id}`)
+        .eq('to_user_id', session.user.id) // Only load messages TO the current user for notifications
         .order('timestamp', { ascending: false });
       
       if (error) {
@@ -459,7 +459,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const convertedMessages: Message[] = data?.map((dbMsg: any) => ({
         id: dbMsg.id,
         senderId: dbMsg.from_user_id,
-        recipientIds: [dbMsg.to_user_id], // Convert single to_user_id to array
+        recipientIds: [dbMsg.to_user_id], 
         content: dbMsg.content,
         timestamp: dbMsg.timestamp,
         read: dbMsg.read,
@@ -2139,13 +2139,54 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   // Message functions
-  const addMessage = (message: Omit<Message, 'id'>) => {
-    const newMessage: Message = {
-      ...message,
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    };
-    
-    setMessages(prev => [...prev, newMessage]);
+  const addMessage = async (message: Omit<Message, 'id'>) => {
+    try {
+      // For each recipient, create a separate database record
+      const insertPromises = message.recipientIds.map(async (recipientId) => {
+        const { data, error } = await supabase
+          .from('messages')
+          .insert({
+            from_user_id: message.senderId,
+            to_user_id: recipientId,
+            content: message.content,
+            subject: message.content.substring(0, 50), // Use first 50 chars as subject
+            timestamp: message.timestamp || new Date().toISOString(),
+            read: false,
+            auth_user_id: session?.user?.id || message.senderId
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      });
+
+      const insertedMessages = await Promise.all(insertPromises);
+      
+      // Convert back to Message format and add to local state
+      const convertedMessages: Message[] = insertedMessages.map((dbMsg: any) => ({
+        id: dbMsg.id,
+        senderId: dbMsg.from_user_id,
+        recipientIds: [dbMsg.to_user_id],
+        content: dbMsg.content,
+        timestamp: dbMsg.timestamp,
+        read: dbMsg.read,
+        taskId: dbMsg.task_id,
+        projectId: dbMsg.project_id
+      }));
+
+      setMessages(prev => [...prev, ...convertedMessages]);
+      return insertedMessages[0].id; // Return first message ID
+    } catch (error) {
+      console.error('Error adding message:', error);
+      // Fallback to local state only
+      const newMessage: Message = {
+        ...message,
+        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      };
+      setMessages(prev => [...prev, newMessage]);
+      return newMessage.id;
+    }
   };
 
   const updateMessage = (messageId: string, updates: Partial<Message>) => {
@@ -2158,24 +2199,38 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setMessages(prev => prev.filter(msg => msg.id !== messageId));
   };
 
-  const sendMessage = (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
-    addMessage({
+  const sendMessage = async (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
+    return await addMessage({
       ...message,
       timestamp: new Date().toISOString(),
       read: false
     });
   };
 
-  const createMessage = (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
-    addMessage({
+  const createMessage = async (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
+    return await addMessage({
       ...message,
       timestamp: new Date().toISOString(),
       read: false
     });
   };
 
-  const markMessageAsRead = (messageId: string) => {
-    updateMessage(messageId, { read: true });
+  const markMessageAsRead = async (messageId: string) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ read: true })
+        .eq('id', messageId);
+
+      if (error) throw error;
+      
+      // Update local state
+      updateMessage(messageId, { read: true });
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+      // Fallback to local state only
+      updateMessage(messageId, { read: true });
+    }
   };
 
   // Custom Role functions
