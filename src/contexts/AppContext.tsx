@@ -2290,7 +2290,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             subject: message.content.substring(0, 50), // Use first 50 chars as subject
             timestamp: message.timestamp || new Date().toISOString(),
             read: false,
-            auth_user_id: session?.user?.id || message.senderId
+            auth_user_id: session?.user?.id || message.senderId,
+            task_id: message.taskId,
+            project_id: message.projectId
           })
           .select()
           .single();
