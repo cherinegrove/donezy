@@ -99,11 +99,11 @@ export interface AppContextType {
   updateTimeEntryStatus: (timeEntryId: string, status: string, reason?: string) => void;
   
   // Message functions
-  addMessage: (message: Omit<Message, 'id'>) => void;
+  addMessage: (message: Omit<Message, 'id'>) => Promise<string>;
   updateMessage: (messageId: string, updates: Partial<Message>) => void;
   deleteMessage: (messageId: string) => void;
   sendMessage: (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => void;
-  createMessage: (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => void;
+  createMessage: (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => Promise<string>;
   markMessageAsRead: (messageId: string) => void;
   
   // Comment functions

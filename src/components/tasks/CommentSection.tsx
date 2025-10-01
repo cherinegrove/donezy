@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { MentionDropdown } from "../messages/MentionDropdown";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CommentSectionProps {
   taskId: string;
@@ -62,7 +63,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       // For mentions
       for (const userId of mentionedUserIds) {
         if (userId !== currentUser.auth_user_id) {
-          await createMessage({
+          const messageId = await createMessage({
             senderId: currentUser.auth_user_id,
             recipientIds: [userId],
             content: `You were mentioned in a comment on task "${task.title}"`,
@@ -70,6 +71,18 @@ export function CommentSection({ taskId }: CommentSectionProps) {
             taskId: taskId,
             projectId: task.projectId
           });
+          
+          // Call edge function to send notification
+          if (messageId) {
+            await supabase.functions.invoke('send-mention-notification', {
+              body: {
+                mentionedUserId: userId,
+                messageId: messageId,
+                mentionerName: currentUser.name,
+                messageContent: comment
+              }
+            });
+          }
         }
       }
       
