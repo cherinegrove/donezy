@@ -154,6 +154,12 @@ export interface TaskFile {
   uploadedAt: string;
 }
 
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -178,6 +184,7 @@ export interface Task {
   linkedTaskIds?: string[];
   estimatedHours?: number;
   actualHours?: number;
+  checklist?: ChecklistItem[];
 }
 
 export type TimeEntryStatus = 'pending' | 'approved' | 'rejected' | 'approved-billable' | 'approved-non-billable' | 'declined';

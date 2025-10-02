@@ -34,6 +34,7 @@ import { FileSection } from "./FileSection";
 import { TimerSection } from "./TimerSection";
 import { RelatedTasksSection } from "./RelatedTasksSection";
 import { TaskLogsSection } from "./TaskLogsSection";
+import { ChecklistSection } from "./ChecklistSection";
 
 interface EditTaskDialogProps {
   task: Task;
@@ -152,6 +153,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full mb-4">
               <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="checklist">Checklist</TabsTrigger>
               <TabsTrigger value="comments">Comments</TabsTrigger>
               <TabsTrigger value="files">Files</TabsTrigger>
               <TabsTrigger value="time">Time</TabsTrigger>
@@ -270,6 +272,10 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                   </p>
                 </div>
               </div>
+            </TabsContent>
+
+            <TabsContent value="checklist">
+              <ChecklistSection taskId={task.id} />
             </TabsContent>
 
             <TabsContent value="comments">
