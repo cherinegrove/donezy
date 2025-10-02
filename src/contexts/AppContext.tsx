@@ -1391,6 +1391,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.comments !== undefined) dbUpdates.comments = updates.comments;
       if (updates.collaboratorIds !== undefined) dbUpdates.collaborator_ids = updates.collaboratorIds;
       if (updates.relatedTaskIds !== undefined) dbUpdates.related_task_ids = updates.relatedTaskIds;
+      if (updates.checklist !== undefined) dbUpdates.checklist = updates.checklist;
 
       const { error } = await supabase
         .from('tasks')
