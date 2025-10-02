@@ -102,12 +102,18 @@ export function ProjectFilesAdvanced({ projectId }: ProjectFilesAdvancedProps) {
   const loadFiles = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('project_files')
         .select('*')
-        .eq('project_id', projectId)
-        .eq('folder_id', currentFolderId)
-        .order('uploaded_at', { ascending: false });
+        .eq('project_id', projectId);
+
+      if (currentFolderId) {
+        query = query.eq('folder_id', currentFolderId);
+      } else {
+        query = query.is('folder_id', null);
+      }
+
+      const { data, error } = await query.order('uploaded_at', { ascending: false });
 
       if (error) throw error;
       setFiles(data || []);
