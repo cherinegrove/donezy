@@ -63,25 +63,38 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       // For mentions
       for (const userId of mentionedUserIds) {
         if (userId !== currentUser.auth_user_id) {
-          const messageId = await createMessage({
-            senderId: currentUser.auth_user_id,
-            recipientIds: [userId],
-            content: `You were mentioned in a comment on task "${task.title}"`,
-            commentId: commentId,
-            taskId: taskId,
-            projectId: task.projectId
-          });
-          
-          // Call edge function to send notification
-          if (messageId) {
-            await supabase.functions.invoke('send-mention-notification', {
-              body: {
-                mentionedUserId: userId,
-                messageId: messageId,
-                mentionerName: currentUser.name,
-                messageContent: comment
-              }
+          try {
+            console.log('Creating mention notification for user:', userId);
+            const messageId = await createMessage({
+              senderId: currentUser.auth_user_id,
+              recipientIds: [userId],
+              content: `You were mentioned in a comment on task "${task.title}"`,
+              commentId: commentId,
+              taskId: taskId,
+              projectId: task.projectId
             });
+            
+            console.log('Message created with ID:', messageId);
+            
+            // Call edge function to send notification
+            if (messageId) {
+              const { data, error } = await supabase.functions.invoke('send-mention-notification', {
+                body: {
+                  mentionedUserId: userId,
+                  messageId: messageId,
+                  mentionerName: currentUser.name,
+                  messageContent: comment
+                }
+              });
+              
+              if (error) {
+                console.error('Error calling edge function:', error);
+              } else {
+                console.log('Edge function called successfully:', data);
+              }
+            }
+          } catch (error) {
+            console.error('Error creating mention notification:', error);
           }
         }
       }
