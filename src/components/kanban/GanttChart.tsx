@@ -32,7 +32,6 @@ interface TaskWithDetails {
   id: string;
   name: string;
   projectName: string;
-  parentTaskName: string;
   status: string;
   start: number;
   duration: number;
@@ -126,67 +125,8 @@ export function GanttChart({ tasks }: GanttChartProps) {
     const projectTasks = tasksByProject.get(project.id);
     if (!projectTasks || projectTasks.length === 0) return;
     
-    // Get parent tasks (those without a parent)
-    const parentTasks = projectTasks.filter(task => !task.parentTaskId);
-    
-    // Process each parent task
-    parentTasks.forEach(parentTask => {
-      // Check if task is in view range
-      if (parentTask.createdAt && parentTask.dueDate && 
-          (isInViewRange(parentTask.createdAt) || isInViewRange(parentTask.dueDate))) {
-        const taskStartDate = parseISO(parentTask.createdAt);
-        const taskEndDate = parseISO(parentTask.dueDate);
-        
-        const startDayOffset = differenceInDays(taskStartDate, viewRange.startDate);
-        const duration = differenceInDays(taskEndDate, taskStartDate) + 1;
-        
-        chartData.push({
-          id: parentTask.id,
-          name: parentTask.title,
-          projectName: project.name,
-          parentTaskName: "", // This is a parent task
-          status: parentTask.status,
-          start: startDayOffset,
-          duration: duration > 0 ? duration : 1,
-          level: 0, // Parent task
-          color: getColorForStatus(parentTask.status),
-          task: parentTask
-        });
-        
-        // Add child tasks
-        const childTasks = projectTasks.filter(task => task.parentTaskId === parentTask.id);
-        childTasks.forEach(childTask => {
-          if (childTask.createdAt && childTask.dueDate &&
-              (isInViewRange(childTask.createdAt) || isInViewRange(childTask.dueDate))) {
-            const childStartDate = parseISO(childTask.createdAt);
-            const childEndDate = parseISO(childTask.dueDate);
-            
-            const childStartDayOffset = differenceInDays(childStartDate, viewRange.startDate);
-            const childDuration = differenceInDays(childEndDate, childStartDate) + 1;
-            
-            chartData.push({
-              id: childTask.id,
-              name: childTask.title,
-              projectName: project.name,
-              parentTaskName: parentTask.title,
-              status: childTask.status,
-              start: childStartDayOffset,
-              duration: childDuration > 0 ? childDuration : 1,
-              level: 1, // Child task
-              color: getColorForStatus(childTask.status),
-              task: childTask
-            });
-          }
-        });
-      }
-    });
-    
-    // Process orphan tasks (those without parent-child relationship)
-    const orphanTasks = projectTasks.filter(task => 
-      !task.parentTaskId && !parentTasks.includes(task)
-    );
-    
-    orphanTasks.forEach(task => {
+    // Process all tasks
+    projectTasks.forEach(task => {
       if (task.createdAt && task.dueDate && 
           (isInViewRange(task.createdAt) || isInViewRange(task.dueDate))) {
         const taskStartDate = parseISO(task.createdAt);
@@ -199,11 +139,10 @@ export function GanttChart({ tasks }: GanttChartProps) {
           id: task.id,
           name: task.title,
           projectName: project.name,
-          parentTaskName: "", // No parent
           status: task.status,
           start: startDayOffset,
           duration: duration > 0 ? duration : 1,
-          level: 0, // Treat as parent
+          level: 0,
           color: getColorForStatus(task.status),
           task: task
         });
@@ -362,8 +301,7 @@ export function GanttChart({ tasks }: GanttChartProps) {
           <TableHeader className="sticky top-0 bg-background">
             <TableRow>
               <TableHead className="w-[200px]">Project</TableHead>
-              <TableHead className="w-[200px]">Parent Task</TableHead>
-              <TableHead className="w-[200px]">Task</TableHead>
+              <TableHead className="w-[250px]">Task</TableHead>
               <TableHead className="w-full relative h-16">
                 <div className="pb-2">
                   <span className="ml-2">Timeline</span>
@@ -395,9 +333,6 @@ export function GanttChart({ tasks }: GanttChartProps) {
                 onClick={() => handleTaskClick(task)}
               >
                 <TableCell>{task.projectName}</TableCell>
-                <TableCell>
-                  {task.level === 1 ? task.parentTaskName : ""}
-                </TableCell>
                 <TableCell>
                   <div className="flex items-center">
                     <div 

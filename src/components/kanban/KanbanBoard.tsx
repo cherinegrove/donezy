@@ -18,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 
 type ViewMode = "list" | "kanban";
-type DisplayOption = "project" | "client" | "assignee" | "parentTask" | "dueDate" | "priority" | "status" | "collaborators";
+type DisplayOption = "project" | "client" | "assignee" | "dueDate" | "priority" | "status" | "collaborators";
 
 interface KanbanBoardProps {
   tasks?: Task[];
@@ -101,7 +101,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   // Global display options for all task cards - load from localStorage
   const [displayOptions, setDisplayOptions] = useState<DisplayOption[]>(() => {
     const saved = localStorage.getItem('kanban-display-options');
-    return saved ? JSON.parse(saved) : ["project", "client", "assignee", "parentTask"];
+    return saved ? JSON.parse(saved) : ["project", "client", "assignee"];
   });
   
   // If tasks were passed in as props, use those
@@ -306,12 +306,6 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                     onCheckedChange={() => toggleDisplayOption("collaborators")}
                   >
                     Collaborators
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={displayOptions.includes("parentTask")}
-                    onCheckedChange={() => toggleDisplayOption("parentTask")}
-                  >
-                    Parent Task
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
                     checked={displayOptions.includes("dueDate")}
