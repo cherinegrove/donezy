@@ -396,7 +396,7 @@ const Home = () => {
               </CardHeader>
               <CardContent>
                 {activeTasks.length > 0 ? (
-                  <TaskList tasks={activeTasks} />
+                  <TaskList tasks={activeTasks} onTaskClick={handleTaskClick} />
                 ) : (
                   <p className="text-center py-6 text-muted-foreground">
                     No active tasks found

@@ -10,9 +10,10 @@ import type { Task } from "@/types";
 
 interface TaskListProps {
   tasks: Task[];
+  onTaskClick?: (task: Task) => void;
 }
 
-export function TaskList({ tasks }: TaskListProps) {
+export function TaskList({ tasks, onTaskClick }: TaskListProps) {
   const { users } = useAppContext();
 
   const getStatusColor = (status: string) => {
@@ -57,7 +58,11 @@ export function TaskList({ tasks }: TaskListProps) {
         const assignee = task.assigneeId ? users.find(u => u.id === task.assigneeId) : null;
         
         return (
-          <Card key={task.id} className={`border-l-4 ${getPriorityColor(task.priority)}`}>
+          <Card 
+            key={task.id} 
+            className={`border-l-4 ${getPriorityColor(task.priority)} ${onTaskClick ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''}`}
+            onClick={() => onTaskClick?.(task)}
+          >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <CardTitle className="text-lg">{task.title}</CardTitle>

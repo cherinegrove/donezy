@@ -1,10 +1,11 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { DashboardCard } from "../DashboardCard";
-import { Activity, Calendar } from "lucide-react";
-import { startOfWeek, isAfter, parseISO, format } from "date-fns";
+import { Activity } from "lucide-react";
+import { startOfWeek, isAfter, parseISO } from "date-fns";
 import { useState } from "react";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
 import { Task } from "@/types";
+import { TaskCard } from "@/components/tasks/TaskCard";
 
 export const RecentTasksCard = ({ onRemove }: { onRemove?: () => void }) => {
   const { tasks, currentUser } = useAppContext();
@@ -36,25 +37,15 @@ export const RecentTasksCard = ({ onRemove }: { onRemove?: () => void }) => {
         {recentlyUpdatedTasks.length > 0 ? (
           <div className="space-y-2">
             {recentlyUpdatedTasks.slice(0, 5).map((task) => (
-              <div 
-                key={task.id} 
-                className="p-2 bg-muted rounded-md cursor-pointer hover:bg-muted/80 transition-colors"
+              <TaskCard
+                key={task.id}
+                task={task}
                 onClick={() => handleTaskClick(task)}
-              >
-                <p className="text-sm font-medium">{task.title}</p>
-                <div className="flex items-center justify-between mt-1">
-                  <p className="text-xs text-muted-foreground">{task.status}</p>
-                  {task.dueDate && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      {format(new Date(task.dueDate), "MMM dd")}
-                    </div>
-                  )}
-                </div>
-              </div>
+                displayOptions={["priority", "status", "assignee", "dueDate"]}
+              />
             ))}
             {recentlyUpdatedTasks.length > 5 && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mt-2">
                 +{recentlyUpdatedTasks.length - 5} more
               </p>
             )}
