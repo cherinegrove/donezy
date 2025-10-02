@@ -166,7 +166,25 @@ export function ProjectFilesAdvanced({ projectId }: ProjectFilesAdvancedProps) {
     }
 
     try {
-      const { error } = await supabase
+      console.log('Attempting to add external link:', {
+        projectId,
+        linkData,
+        currentFolderId
+      });
+
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      console.log('Current session:', sessionData?.session?.user?.id);
+      
+      if (!sessionData?.session) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to add files",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
         .from('project_files')
         .insert({
           project_id: projectId,
@@ -178,9 +196,15 @@ export function ProjectFilesAdvanced({ projectId }: ProjectFilesAdvancedProps) {
           mime_type: 'application/link',
           file_path: null,
           file_size: null
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+
+      console.log('Link added successfully:', data);
 
       toast({
         title: "Success",
@@ -190,11 +214,11 @@ export function ProjectFilesAdvanced({ projectId }: ProjectFilesAdvancedProps) {
       setLinkData({ name: '', url: '', provider: 'other' });
       setShowAddLink(false);
       loadFiles();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding external link:', error);
       toast({
         title: "Error",
-        description: "Failed to add external link",
+        description: error.message || "Failed to add external link",
         variant: "destructive"
       });
     }
