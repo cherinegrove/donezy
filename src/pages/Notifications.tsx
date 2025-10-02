@@ -140,11 +140,9 @@ export default function Notifications() {
         />
         
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-            <TabsTrigger value="unread" className="text-xs">Unread</TabsTrigger>
-            <TabsTrigger value="mentions" className="text-xs">Mentions</TabsTrigger>
-            <TabsTrigger value="tasks" className="text-xs">Tasks</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="all">ALL</TabsTrigger>
+            <TabsTrigger value="unread">Unread</TabsTrigger>
           </TabsList>
           
           <div className="mt-4 max-h-[calc(100vh-200px)] overflow-y-auto">
@@ -154,14 +152,6 @@ export default function Notifications() {
             
             <TabsContent value="unread" className="mt-0">
               <NotificationsList notifications={unreadNotifications} />
-            </TabsContent>
-            
-            <TabsContent value="mentions" className="mt-0">
-              <NotificationsList notifications={mentionNotifications} />
-            </TabsContent>
-            
-            <TabsContent value="tasks" className="mt-0">
-              <NotificationsList notifications={taskNotifications} />
             </TabsContent>
           </div>
         </Tabs>
