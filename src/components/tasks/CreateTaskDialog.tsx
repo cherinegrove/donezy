@@ -318,7 +318,7 @@ export function CreateTaskDialog({
         subtasks: [],
       });
       
-      addTask({
+      const taskId = await addTask({
         title: data.title,
         description: data.description,
         projectId: data.projectId,
@@ -332,17 +332,35 @@ export function CreateTaskDialog({
         customFields: data.customFields || {},
         subtasks: [],
       });
-      
+
+      if (taskId) {
+        const { data, error } = await supabase.functions.invoke('send-task-assignment-notification', {
+          body: {
+            assignedUserId: data.assigneeId,
+            taskId,
+            mentionerName: currentUser.name
+          }
+        });
+
+        if (error) {
+          console.error('Error calling edge function:', error);
+        } else {
+          console.log('Edge function called successfully:', data);
+        }
+      } else {
+        console.warn('Skipping edge function call - invalid task ID:', taskId);
+      }
+
       console.log('addTask completed successfully');
-      
+
       // Update template usage count
       await updateTemplateUsage(selectedTemplate);
-      
+
       toast.success("Task created successfully");
       form.reset();
       setSelectedTemplate("default");
       onOpenChange(false);
-      
+
       console.log('Task creation process completed');
     } catch (error) {
       console.error('Error during task creation:', error);
