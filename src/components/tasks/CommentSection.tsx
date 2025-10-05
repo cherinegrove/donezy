@@ -76,8 +76,8 @@ export function CommentSection({ taskId }: CommentSectionProps) {
             
             console.log('Message created with ID:', messageId);
             
-            // Call edge function to send notification
-            if (messageId) {
+            // Only call edge function if we have a valid UUID (not a fallback temp ID)
+            if (messageId && !messageId.startsWith('msg-')) {
               const { data, error } = await supabase.functions.invoke('send-mention-notification', {
                 body: {
                   mentionedUserId: userId,
@@ -92,6 +92,8 @@ export function CommentSection({ taskId }: CommentSectionProps) {
               } else {
                 console.log('Edge function called successfully:', data);
               }
+            } else {
+              console.warn('Skipping edge function call - invalid message ID:', messageId);
             }
           } catch (error) {
             console.error('Error creating mention notification:', error);
