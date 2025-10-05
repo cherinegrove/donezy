@@ -187,16 +187,18 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
       
       console.log('Inserting message with data:', messageData);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('messages')
-        .insert(messageData);
+        .insert(messageData)
+        .select('id')
+        .single();
 
       if (error) {
         console.error('Error sending message:', error);
         throw error;
       }
 
-      console.log('Message sent successfully');
+      console.log('Message sent successfully with ID:', data?.id);
 
       // Force a refetch of messages after sending
       setTimeout(() => {
@@ -204,25 +206,17 @@ export function ChannelChat({ channelId }: ChannelChatProps) {
       }, 100);
 
       // Create mention records if there are mentioned users
-      if (mentionedUsers.length > 0) {
-        const { data: messageData } = await supabase
-          .from('messages')
-          .select('id')
-          .eq('channel_id', channelId)
-          .eq('from_user_id', currentUser.auth_user_id)
-          .order('timestamp', { ascending: false })
-          .limit(1)
-          .single();
+      if (mentionedUsers.length > 0 && data?.id) {
+        const mentions = mentionedUsers.map(userId => ({
+          message_id: data.id,
+          mentioned_user_id: userId,
+        }));
 
-        if (messageData) {
-          const mentions = mentionedUsers.map(userId => ({
-            message_id: messageData.id,
-            mentioned_user_id: userId,
-          }));
-
-          await supabase.from('mentions').insert(mentions);
-        }
+        await supabase.from('mentions').insert(mentions);
       }
+
+      // Return the message ID for mention notifications
+      return data?.id;
     } catch (error) {
       console.error('Error sending message:', error);
     }
