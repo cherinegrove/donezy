@@ -35,6 +35,7 @@ import { TimerSection } from "./TimerSection";
 import { RelatedTasksSection } from "./RelatedTasksSection";
 import { TaskLogsSection } from "./TaskLogsSection";
 import { ChecklistSection } from "./ChecklistSection";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EditTaskDialogProps {
   task: Task;
