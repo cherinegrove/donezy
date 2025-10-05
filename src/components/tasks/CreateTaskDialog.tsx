@@ -333,7 +333,7 @@ export function CreateTaskDialog({
         subtasks: [],
       });
 
-      if (taskId && data.assigneeId) {
+      if (taskId && data.assigneeId && currentUser) {
         const { data: notifData, error } = await supabase.functions.invoke('send-task-assignment-notification', {
           body: {
             assignedUserId: data.assigneeId,
