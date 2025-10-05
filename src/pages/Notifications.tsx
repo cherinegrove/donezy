@@ -48,6 +48,10 @@ export default function Notifications() {
       const task = tasks.find(t => t.id === message.taskId);
       return task ? `Task: ${task.title}` : 'Unknown Task';
     }
+
+    if (message.subject.toLowerCase().includes('you were mentioned by')) {
+      return 'Mention'
+    }
     
     return 'Direct Message';
   };
