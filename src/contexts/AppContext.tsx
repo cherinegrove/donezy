@@ -1298,7 +1298,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   // Task functions
-  const addTask = async (task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>) => {
+  const addTask = async (task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>): Promise<string | undefined> => {
     console.log('🟢 addTask called with:', task);
     
     if (!session?.user) {
@@ -1366,6 +1366,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           return newTasks;
         });
         console.log('🟢 Task successfully added to local state');
+        return data.id;
       }
     } catch (error) {
       console.error('❌ Error adding task:', error);
