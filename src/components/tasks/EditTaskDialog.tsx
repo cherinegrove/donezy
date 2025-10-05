@@ -90,7 +90,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     setReminderDate(task.reminderDate ? new Date(task.reminderDate) : undefined);
   }, [task]);
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     const taskId = await updateTask(task.id, {
       title,
       description,
