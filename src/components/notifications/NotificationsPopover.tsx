@@ -23,9 +23,9 @@ export function NotificationsPopover({ children }: { children?: React.ReactNode 
       )
     : [];
     
-  const handleMarkAsRead = (messageId: string, e: React.MouseEvent) => {
+  const handleMarkAsRead = async (messageId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent popover from closing
-    markMessageAsRead(messageId);
+    await markMessageAsRead(messageId);
   };
   
   return (
