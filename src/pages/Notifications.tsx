@@ -49,7 +49,7 @@ export default function Notifications() {
       return task ? `Task: ${task.title}` : 'Unknown Task';
     }
 
-    if (message.content.includes(`@${currentUser?.name}`)) {
+    if (message.content.toLowerCase().includes('you were mentioned')) {
       return 'Mention';
     }
     
