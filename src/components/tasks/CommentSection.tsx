@@ -64,24 +64,24 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       for (const userId of mentionedUserIds) {
         if (userId !== currentUser.auth_user_id) {
           try {
-            console.log('Creating mention notification for user:', userId);
-            const messageId = await createMessage({
-              senderId: currentUser.auth_user_id,
-              recipientIds: [userId],
-              content: `You were mentioned in a comment on task "${task.title}"`,
-              commentId: commentId,
-              taskId: taskId,
-              projectId: task.projectId
-            });
+            // console.log('Creating mention notification for user:', userId);
+            // const messageId = await createMessage({
+            //   senderId: currentUser.auth_user_id,
+            //   recipientIds: [userId],
+            //   content: `You were mentioned in a comment on task "${task.title}"`,
+            //   commentId: commentId,
+            //   taskId: taskId,
+            //   projectId: task.projectId
+            // });
             
-            console.log('Message created with ID:', messageId);
+            // console.log('Message created with ID:', messageId);
             
             // Only call edge function if we have a valid UUID (not a fallback temp ID)
-            if (messageId && !messageId.startsWith('msg-')) {
+            if (commentId) {
               const { data, error } = await supabase.functions.invoke('send-mention-notification', {
                 body: {
                   mentionedUserId: userId,
-                  messageId: messageId,
+                  messageId: commentId,
                   mentionerName: currentUser.name,
                   messageContent: comment
                 }
@@ -93,7 +93,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
                 console.log('Edge function called successfully:', data);
               }
             } else {
-              console.warn('Skipping edge function call - invalid message ID:', messageId);
+              console.warn('Skipping edge function call - invalid comment ID:', commentId);
             }
           } catch (error) {
             console.error('Error creating mention notification:', error);
