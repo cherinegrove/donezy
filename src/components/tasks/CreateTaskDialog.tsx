@@ -333,8 +333,8 @@ export function CreateTaskDialog({
         subtasks: [],
       });
 
-      if (taskId) {
-        const { data, error } = await supabase.functions.invoke('send-task-assignment-notification', {
+      if (taskId && data.assigneeId) {
+        const { data: notifData, error } = await supabase.functions.invoke('send-task-assignment-notification', {
           body: {
             assignedUserId: data.assigneeId,
             taskId,
@@ -345,10 +345,8 @@ export function CreateTaskDialog({
         if (error) {
           console.error('Error calling edge function:', error);
         } else {
-          console.log('Edge function called successfully:', data);
+          console.log('Edge function called successfully:', notifData);
         }
-      } else {
-        console.warn('Skipping edge function call - invalid task ID:', taskId);
       }
 
       console.log('addTask completed successfully');

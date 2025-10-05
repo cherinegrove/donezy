@@ -1303,7 +1303,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     if (!session?.user) {
       console.log('❌ No session or user found');
-      return;
+      return undefined;
     }
     
     console.log('🟢 Session user ID:', session.user.id);
@@ -1368,6 +1368,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         console.log('🟢 Task successfully added to local state');
         return data.id;
       }
+      
+      return undefined;
     } catch (error) {
       console.error('❌ Error adding task:', error);
       throw error;
@@ -1375,7 +1377,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const updateTask = async (taskId: string, updates: Partial<Task>): Promise<string | undefined> => {
-    if (!session?.user) return;
+    if (!session?.user) return undefined;
     
     try {
       const dbUpdates: any = {};
@@ -1395,21 +1397,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.relatedTaskIds !== undefined) dbUpdates.related_task_ids = updates.relatedTaskIds;
       if (updates.checklist !== undefined) dbUpdates.checklist = updates.checklist;
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('tasks')
         .update(dbUpdates)
         .eq('id', taskId);
 
       if (error) {
         console.error('Error updating task:', error);
-        return;
+        return undefined;
       }
 
       setTasks(prev => prev.map(task => 
         task.id === taskId ? { ...task, ...updates } : task
       ));
 
-      return data.id
+      return taskId;
     } catch (error) {
       console.error('Error updating task:', error);
     }

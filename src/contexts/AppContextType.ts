@@ -63,8 +63,8 @@ export interface AppContextType {
   createProjectFromTemplate: (templateId: string, projectData: any) => void;
   
   // Task functions
-  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>) => void;
-  updateTask: (taskId: string, updates: Partial<Task>) => void;
+  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>) => Promise<string | undefined>;
+  updateTask: (taskId: string, updates: Partial<Task>) => Promise<string | undefined>;
   deleteTask: (taskId: string) => void;
   getTaskById: (taskId: string) => Task | undefined;
   moveTask: (taskId: string, newStatus: string) => void;

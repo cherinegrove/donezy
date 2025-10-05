@@ -46,7 +46,7 @@ interface EditTaskDialogProps {
 }
 
 export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: EditTaskDialogProps) {
-  const { updateTask, deleteTask, users } = useAppContext();
+  const { updateTask, deleteTask, users, currentUser } = useAppContext();
   const { toast } = useToast();
 
   // Use either isOpen or open, with open taking precedence
@@ -104,10 +104,10 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       reminderDate: reminderDate ? reminderDate.toISOString() : undefined,
     });
 
-    if (taskId) {
-      const { data, error } = await supabase.functions.invoke('send-task-assignment-notification', {
+    if (taskId && assigneeId && currentUser) {
+      const { data: notifData, error } = await supabase.functions.invoke('send-task-assignment-notification', {
         body: {
-          assignedUserId: data.assigneeId,
+          assignedUserId: assigneeId,
           taskId,
           mentionerName: currentUser.name
         }
@@ -116,10 +116,8 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       if (error) {
         console.error('Error calling edge function:', error);
       } else {
-        console.log('Edge function called successfully:', data);
+        console.log('Edge function called successfully:', notifData);
       }
-    } else {
-      console.warn('Skipping edge function call - invalid task ID:', taskId);
     }
 
     toast({
