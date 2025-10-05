@@ -91,7 +91,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   }, [task]);
 
   const handleSaveChanges = () => {
-    updateTask(task.id, {
+    const taskId = await updateTask(task.id, {
       title,
       description,
       status,
@@ -102,6 +102,24 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       dueDate: dueDate ? dueDate.toISOString() : undefined,
       reminderDate: reminderDate ? reminderDate.toISOString() : undefined,
     });
+
+    if (taskId) {
+      const { data, error } = await supabase.functions.invoke('send-task-assignment-notification', {
+        body: {
+          assignedUserId: data.assigneeId,
+          taskId,
+          mentionerName: currentUser.name
+        }
+      });
+
+      if (error) {
+        console.error('Error calling edge function:', error);
+      } else {
+        console.log('Edge function called successfully:', data);
+      }
+    } else {
+      console.warn('Skipping edge function call - invalid task ID:', taskId);
+    }
 
     toast({
       title: "Task Updated",

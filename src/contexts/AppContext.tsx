@@ -1374,7 +1374,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  const updateTask = async (taskId: string, updates: Partial<Task>) => {
+  const updateTask = async (taskId: string, updates: Partial<Task>): Promise<string | undefined> => {
     if (!session?.user) return;
     
     try {
@@ -1395,7 +1395,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.relatedTaskIds !== undefined) dbUpdates.related_task_ids = updates.relatedTaskIds;
       if (updates.checklist !== undefined) dbUpdates.checklist = updates.checklist;
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('tasks')
         .update(dbUpdates)
         .eq('id', taskId);
@@ -1408,6 +1408,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setTasks(prev => prev.map(task => 
         task.id === taskId ? { ...task, ...updates } : task
       ));
+
+      return data.id
     } catch (error) {
       console.error('Error updating task:', error);
     }
