@@ -65,23 +65,23 @@ export function CommentSection({ taskId }: CommentSectionProps) {
         if (userId !== currentUser.auth_user_id) {
           try {
             console.log('Creating mention notification for user:', userId);
-            // const messageId = await createMessage({
-            //   senderId: currentUser.auth_user_id,
-            //   recipientIds: [userId],
-            //   content: `You were mentioned in a comment on task "${task.title}"`,
-            //   commentId: commentId,
-            //   taskId: taskId,
-            //   projectId: task.projectId
-            // });
+            const messageId = await createMessage({
+              senderId: currentUser.auth_user_id,
+              recipientIds: [userId],
+              content: `You were mentioned in a comment on task "${task.title}"`,
+              commentId: commentId,
+              taskId: taskId,
+              projectId: task.projectId
+            });
             
-            // console.log('Message created with ID:', messageId);
+            console.log('Message created with ID:', messageId);
             
             // Only call edge function if we have a valid UUID (not a fallback temp ID)
-            if (commentId) {
+            if (messageId && !messageId.startsWith('msg-')) {
               const { data, error } = await supabase.functions.invoke('send-mention-notification', {
                 body: {
                   mentionedUserId: userId,
-                  messageId: commentId,
+                  messageId: messageId,
                   mentionerName: currentUser.name,
                   messageContent: comment
                 }
@@ -275,7 +275,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       <h3 className="text-lg font-medium">Comments</h3>
       
       {/* Comments List */}
-      <ScrollArea className="max-h-[400px] pr-4">
+      <ScrollArea className="overflow-auto max-h-[400px] pr-4">
         <div className="space-y-4">
           {task.comments && task.comments.length > 0 ? (
             task.comments.map(comment => {
