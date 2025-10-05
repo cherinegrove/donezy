@@ -20,6 +20,7 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Tasks from "./pages/Tasks";
+import TaskDetails from "./pages/TaskDetails";
 import Notes from "./pages/Notes";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -194,6 +195,7 @@ const App = () => {
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/projects/:projectId" element={<ProjectDetails />} />
                   <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/tasks/:taskId" element={<TaskDetails />} />
                   <Route path="/notes" element={<Notes />} />
                   <Route 
                     path="/clients" 

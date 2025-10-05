@@ -9,9 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell, MessageSquare, CheckCircle, Clock, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 export default function Notifications() {
   const { messages, users, projects, tasks, currentUser, markMessageAsRead } = useAppContext();
+  const navigate = useNavigate();
   const [selectedNotification, setSelectedNotification] = useState<Message | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -74,6 +76,18 @@ export default function Notifications() {
       markMessageAsRead(notification.id);
     }
     setSelectedNotification(notification);
+    
+    // Navigate to the source
+    if (notification.taskId) {
+      // If it's a comment mention, navigate to comments tab
+      if (notification.content.includes('mentioned you in a comment')) {
+        navigate(`/tasks/${notification.taskId}#comments`);
+      } else {
+        navigate(`/tasks/${notification.taskId}`);
+      }
+    } else if (notification.projectId) {
+      navigate(`/projects/${notification.projectId}`);
+    }
   };
 
   const NotificationsList = ({ notifications }: { notifications: Message[] }) => {
