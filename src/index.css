@@ -56,6 +56,13 @@
     --button-text-color: #100b47;
     --sidebar-background-color: #1A1F2C;
     --sidebar-text-color: #FFFFFF;
+    
+    /* Kanban gradient colors based on #663399 */
+    --kanban-backlog: linear-gradient(135deg, #a78bcd 0%, #c4b5db 100%);
+    --kanban-todo: linear-gradient(135deg, #8e6bb8 0%, #a78bcd 100%);
+    --kanban-in-progress: linear-gradient(135deg, #663399 0%, #8e6bb8 100%);
+    --kanban-review: linear-gradient(135deg, #4d2673 0%, #663399 100%);
+    --kanban-done: linear-gradient(135deg, #331a4d 0%, #4d2673 100%);
   }
 
   .dark {

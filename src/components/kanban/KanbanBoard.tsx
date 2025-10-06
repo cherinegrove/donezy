@@ -34,11 +34,11 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   const [nestedSelectedTask, setNestedSelectedTask] = useState<Task | null>(null);
   const [isNestedDialogOpen, setIsNestedDialogOpen] = useState(false);
   const [columnColors, setColumnColors] = useState<Record<TaskStatus, string>>({
-    backlog: "#F3F4F6",
-    todo: "#DBEAFE",
-    "in-progress": "#FEF3C7",
-    review: "#FCE7F3",
-    done: "#DCFCE7"
+    backlog: "var(--kanban-backlog)",
+    todo: "var(--kanban-todo)",
+    "in-progress": "var(--kanban-in-progress)",
+    review: "var(--kanban-review)",
+    done: "var(--kanban-done)"
   });
 
   // Load saved kanban colors on mount and listen for changes
@@ -49,11 +49,11 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
         try {
           const parsedColors = JSON.parse(savedColors);
           const colorMap: Record<TaskStatus, string> = {
-            backlog: "#F3F4F6",
-            todo: "#DBEAFE",
-            "in-progress": "#FEF3C7",
-            review: "#FCE7F3",
-            done: "#DCFCE7"
+            backlog: "var(--kanban-backlog)",
+            todo: "var(--kanban-todo)",
+            "in-progress": "var(--kanban-in-progress)",
+            review: "var(--kanban-review)",
+            done: "var(--kanban-done)"
           };
           
           // Update colorMap with saved colors
@@ -399,7 +399,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
             >
               <div 
                 className="rounded-lg p-3 h-full"
-                style={{ backgroundColor: columnColors[column.id] }}
+                style={{ backgroundImage: columnColors[column.id] }}
               >
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="font-medium text-sm">{column.title}</h3>
