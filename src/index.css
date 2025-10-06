@@ -58,11 +58,11 @@
     --sidebar-text-color: #FFFFFF;
     
     /* Kanban gradient colors based on #663399 */
-    --kanban-backlog: linear-gradient(135deg, #a78bcd 0%, #c4b5db 100%);
-    --kanban-todo: linear-gradient(135deg, #8e6bb8 0%, #a78bcd 100%);
-    --kanban-in-progress: linear-gradient(135deg, #663399 0%, #8e6bb8 100%);
-    --kanban-review: linear-gradient(135deg, #4d2673 0%, #663399 100%);
-    --kanban-done: linear-gradient(135deg, #331a4d 0%, #4d2673 100%);
+    --kanban-backlog: linear-gradient(135deg, #e6ddf2 0%, #f0ebf7 100%);
+    --kanban-todo: linear-gradient(135deg, #d4c4e8 0%, #e6ddf2 100%);
+    --kanban-in-progress: linear-gradient(135deg, #b89dd6 0%, #d4c4e8 100%);
+    --kanban-review: linear-gradient(135deg, #9975c4 0%, #b89dd6 100%);
+    --kanban-done: linear-gradient(135deg, #8861b3 0%, #9975c4 100%);
   }
 
   .dark {
