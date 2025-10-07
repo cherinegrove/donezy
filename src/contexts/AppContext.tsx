@@ -1962,8 +1962,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('Create project from template not yet implemented');
   };
 
-  const moveTask = (taskId: string, newStatus: string) => {
-    updateTask(taskId, { status: newStatus as any });
+  const moveTask = async (taskId: string, newStatus: string) => {
+    await updateTask(taskId, { status: newStatus as any });
   };
 
   const watchTask = (taskId: string, userId: string) => {

@@ -141,10 +141,10 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     e.dataTransfer.dropEffect = 'move';
   };
   
-  const handleDrop = (e: React.DragEvent, status: TaskStatus) => {
+  const handleDrop = async (e: React.DragEvent, status: TaskStatus) => {
     e.preventDefault();
     if (draggedTask) {
-      moveTask(draggedTask.id, status);
+      await moveTask(draggedTask.id, status);
       setDraggedTask(null);
     }
   };
