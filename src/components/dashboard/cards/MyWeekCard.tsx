@@ -56,7 +56,7 @@ export const MyWeekCard = ({ onRemove }: { onRemove?: () => void }) => {
                 key={task.id}
                 task={task}
                 onClick={() => handleTaskClick(task)}
-                displayOptions={["priority", "status", "dueDate"]}
+                displayOptions={["priority", "project", "client", "assignee", "dueDate"]}
               />
             ))}
           </div>

@@ -36,7 +36,7 @@ export const CollaboratorTasksCard = ({ onRemove }: { onRemove?: () => void }) =
                 key={task.id}
                 task={task}
                 onClick={() => handleTaskClick(task)}
-                displayOptions={["priority", "status", "assignee", "dueDate"]}
+                displayOptions={["priority", "project", "client", "assignee", "dueDate"]}
               />
             ))}
             {collaboratorTasks.length > 5 && (
