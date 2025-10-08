@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
 import { Task, TaskStatus } from "@/types";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, Plus, Upload, Users, User } from "lucide-react";
+import { CheckSquare, Plus, Upload, Users, User, Calendar } from "lucide-react";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { EditTaskTemplateDialog } from "@/components/tasks/EditTaskTemplateDialog";
@@ -255,7 +255,45 @@ export default function Tasks() {
               </Select>
             )}
             
-            {/* Date filters and clear all button remain the same */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "justify-start text-left font-normal",
+                    !dueDate && "text-muted-foreground"
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {dueDate ? format(dueDate, "PPP") : "Due Date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={dueDate}
+                  onSelect={setDueDate}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+
+            {(startDate || dueDate || statusFilter !== "all" || Object.keys(activeFilters).length > 0) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setStartDate(undefined);
+                  setDueDate(undefined);
+                  setStatusFilter("all");
+                  setActiveFilters({});
+                }}
+              >
+                Clear All Filters
+              </Button>
+            )}
           </div>
 
           <div className="mt-6 w-full">
