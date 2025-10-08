@@ -8,6 +8,7 @@ import { AlertTriangle, Calendar, Clock, User, GripVertical } from "lucide-react
 import { TaskList } from "@/components/tasks/TaskList";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
 import { Task, Project } from "@/types";
+import { TaskCard } from "@/components/tasks/TaskCard";
 import { CardSelector, CardType } from "@/components/dashboard/CardSelector";
 import { CollaboratorTasksCard } from "@/components/dashboard/cards/CollaboratorTasksCard";
 import { TimeLogsCard } from "@/components/dashboard/cards/TimeLogsCard";
@@ -323,23 +324,14 @@ const Home = () => {
               </CardHeader>
               <CardContent>
                 {tasksDueToday.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {tasksDueToday.map((task) => (
-                      <div 
+                      <TaskCard
                         key={task.id}
-                        className="p-3 bg-white rounded-md border border-orange-200 cursor-pointer hover:bg-orange-25"
+                        task={task}
                         onClick={() => handleTaskClick(task)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium">{task.title}</h4>
-                            <p className="text-sm text-muted-foreground">{task.description}</p>
-                          </div>
-                          <Badge variant="outline" className="border-orange-300 text-orange-700">
-                            {task.priority}
-                          </Badge>
-                        </div>
-                      </div>
+                        displayOptions={["priority", "project", "client", "assignee", "dueDate"]}
+                      />
                     ))}
                   </div>
                 ) : (
@@ -363,25 +355,14 @@ const Home = () => {
               </CardHeader>
               <CardContent>
                 {overdueHighRiskTasks.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {overdueHighRiskTasks.map((task) => (
-                      <div 
+                      <TaskCard
                         key={task.id}
-                        className="p-3 bg-white rounded-md border border-red-200 cursor-pointer hover:bg-red-25"
+                        task={task}
                         onClick={() => handleTaskClick(task)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium">{task.title}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              Due: {task.dueDate && format(parseISO(task.dueDate), "MMM dd, yyyy")}
-                            </p>
-                          </div>
-                          <Badge variant="destructive">
-                            Overdue
-                          </Badge>
-                        </div>
-                      </div>
+                        displayOptions={["priority", "project", "client", "assignee", "dueDate"]}
+                      />
                     ))}
                   </div>
                 ) : (
