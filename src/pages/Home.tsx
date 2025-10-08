@@ -15,6 +15,7 @@ import { TimeLogsCard } from "@/components/dashboard/cards/TimeLogsCard";
 import { RecentTasksCard } from "@/components/dashboard/cards/RecentTasksCard";
 import { NotificationsCard } from "@/components/dashboard/cards/NotificationsCard";
 import { TaskRemindersCard } from "@/components/dashboard/cards/TaskRemindersCard";
+import { MyWeekCard } from "@/components/dashboard/cards/MyWeekCard";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 
 const Home = () => {
@@ -231,6 +232,20 @@ const Home = () => {
             </CardContent>
           </Card>
         );
+      case "my-week":
+        return (
+          <Card key={cardType}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                My Week
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MyWeekCard onRemove={onRemove} />
+            </CardContent>
+          </Card>
+        );
       default:
         return null;
     }
@@ -383,6 +398,7 @@ const Home = () => {
         case "recent-tasks":
         case "notifications":
         case "task-reminders":
+        case "my-week":
           return renderCard(sectionId as CardType);
 
         case "tasks":
