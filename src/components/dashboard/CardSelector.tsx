@@ -67,22 +67,23 @@ export const CardSelector = ({ selectedCards, onCardToggle }: CardSelectorProps)
           Add Card
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="pointer-events-auto z-50">
         <DialogHeader>
           <DialogTitle>Add Dashboard Cards</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           {availableCards.map((card) => (
-            <div key={card.id} className="flex items-start space-x-3">
+            <div key={card.id} className="flex items-start space-x-3 pointer-events-auto">
               <Checkbox
                 id={card.id}
                 checked={selectedCards.includes(card.id)}
                 onCheckedChange={() => onCardToggle(card.id)}
+                className="pointer-events-auto"
               />
-              <div className="grid gap-1.5 leading-none">
+              <div className="grid gap-1.5 leading-none flex-1">
                 <label
                   htmlFor={card.id}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer pointer-events-auto"
                 >
                   {card.name}
                 </label>
