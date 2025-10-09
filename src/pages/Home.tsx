@@ -393,7 +393,16 @@ const Home = () => {
               </CardHeader>
               <CardContent>
                 {activeTasks.length > 0 ? (
-                  <TaskList tasks={activeTasks} onTaskClick={handleTaskClick} />
+                  <div className="space-y-2">
+                    {activeTasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        onClick={() => handleTaskClick(task)}
+                        displayOptions={["priority", "project", "client", "assignee", "dueDate"]}
+                      />
+                    ))}
+                  </div>
                 ) : (
                   <p className="text-center py-6 text-muted-foreground">
                     No active tasks found
