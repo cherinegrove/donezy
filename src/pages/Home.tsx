@@ -517,7 +517,7 @@ const Home = () => {
             <div
               {...provided.droppableProps}
               ref={provided.innerRef}
-              className={`space-y-6 transition-colors duration-200 rounded-lg p-2 ${
+              className={`grid grid-cols-1 lg:grid-cols-2 gap-6 transition-colors duration-200 rounded-lg p-2 ${
                 snapshot.isDraggingOver ? 'bg-muted/50' : ''
               }`}
             >
