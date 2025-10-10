@@ -4,15 +4,13 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Calendar, Clock, User, GripVertical } from "lucide-react";
-import { TaskList } from "@/components/tasks/TaskList";
+import { AlertTriangle, Calendar, Clock, GripVertical } from "lucide-react";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
-import { Task, Project } from "@/types";
+import { Task } from "@/types";
 import { TaskCard } from "@/components/tasks/TaskCard";
 import { CardSelector, CardType } from "@/components/dashboard/CardSelector";
 import { CollaboratorTasksCard } from "@/components/dashboard/cards/CollaboratorTasksCard";
 import { TimeLogsCard } from "@/components/dashboard/cards/TimeLogsCard";
-
 import { RecentTasksCard } from "@/components/dashboard/cards/RecentTasksCard";
 import { NotificationsCard } from "@/components/dashboard/cards/NotificationsCard";
 import { TaskRemindersCard } from "@/components/dashboard/cards/TaskRemindersCard";
@@ -24,9 +22,8 @@ const Home = () => {
   const [selectedUserId, setSelectedUserId] = useState<string>("me");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedCards, setSelectedCards] = useState<CardType[]>(["time-logs"]);
   
-  // Dashboard section ordering
+  // Grid-based layout system
   type DashboardSection = 
     | "user-filter"
     | "tasks-due-today" 
@@ -34,32 +31,42 @@ const Home = () => {
     | "tasks"
     | "projects"
     | CardType;
-     
-  const [sectionOrder, setSectionOrder] = useState<DashboardSection[]>([
-    "user-filter",
-    "tasks-due-today",
-    "overdue-tasks", 
-    "time-logs",
-    "tasks",
-    "projects"
-  ]);
 
-  // Load saved order from localStorage on mount
+  interface GridPosition {
+    row: number;
+    col: number;
+    section: DashboardSection | null;
+  }
+
+  const defaultGrid: GridPosition[] = [
+    { row: 0, col: 0, section: "user-filter" },
+    { row: 0, col: 1, section: null },
+    { row: 1, col: 0, section: "tasks-due-today" },
+    { row: 1, col: 1, section: "overdue-tasks" },
+    { row: 2, col: 0, section: "time-logs" },
+    { row: 2, col: 1, section: null },
+    { row: 3, col: 0, section: "tasks" },
+    { row: 3, col: 1, section: "projects" },
+  ];
+
+  const [gridLayout, setGridLayout] = useState<GridPosition[]>(defaultGrid);
+
+  // Load saved layout from localStorage on mount
   useEffect(() => {
-    const savedOrder = localStorage.getItem('dashboard-section-order');
-    if (savedOrder) {
+    const savedLayout = localStorage.getItem('dashboard-grid-layout');
+    if (savedLayout) {
       try {
-        setSectionOrder(JSON.parse(savedOrder));
+        setGridLayout(JSON.parse(savedLayout));
       } catch (error) {
-        console.error('Failed to parse saved section order:', error);
+        console.error('Failed to parse saved grid layout:', error);
       }
     }
   }, []);
 
-  // Save order to localStorage when it changes
+  // Save layout to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem('dashboard-section-order', JSON.stringify(sectionOrder));
-  }, [sectionOrder]);
+    localStorage.setItem('dashboard-grid-layout', JSON.stringify(gridLayout));
+  }, [gridLayout]);
 
   const today = startOfToday();
   const isAdminOrManager = currentUser && customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin';
@@ -112,10 +119,6 @@ const Home = () => {
     task.dueDate && isToday(parseISO(task.dueDate)) && task.status !== "done"
   );
 
-  console.log("Tasks due today:", tasksDueToday);
-  console.log("All filtered tasks:", filteredTasks);
-  console.log("Tasks with due dates:", filteredTasks.filter(t => t.dueDate));
-
   // Overdue high priority tasks
   const overdueHighRiskTasks = filteredTasks.filter(task => 
     task.dueDate && 
@@ -123,9 +126,6 @@ const Home = () => {
     task.status !== "done" &&
     task.priority === "high"
   );
-
-  console.log("Overdue high risk tasks:", overdueHighRiskTasks);
-  console.log("Today:", today);
 
   // All user tasks (excluding done)
   const activeTasks = filteredTasks.filter(task => task.status !== "done");
@@ -144,16 +144,29 @@ const Home = () => {
   };
 
   const handleCardToggle = (cardId: CardType) => {
-    setSectionOrder(prev => {
-      if (prev.includes(cardId)) {
-        // Remove the card
-        return prev.filter(id => id !== cardId);
+    setGridLayout(prev => {
+      const cardExists = prev.some(cell => cell.section === cardId);
+      
+      if (cardExists) {
+        // Remove the card from grid
+        return prev.map(cell => 
+          cell.section === cardId ? { ...cell, section: null } : cell
+        );
       } else {
-        // Add the card before tasks section
-        const tasksIndex = prev.indexOf("tasks");
-        const newOrder = [...prev];
-        newOrder.splice(tasksIndex, 0, cardId);
-        return newOrder;
+        // Add card to first empty cell
+        const firstEmpty = prev.findIndex(cell => cell.section === null);
+        if (firstEmpty !== -1) {
+          const newLayout = [...prev];
+          newLayout[firstEmpty] = { ...newLayout[firstEmpty], section: cardId };
+          return newLayout;
+        }
+        // If no empty cells, add a new row
+        const maxRow = Math.max(...prev.map(cell => cell.row));
+        return [
+          ...prev,
+          { row: maxRow + 1, col: 0, section: cardId },
+          { row: maxRow + 1, col: 1, section: null }
+        ];
       }
     });
   };
@@ -267,23 +280,72 @@ const Home = () => {
     }
   };
 
-  // Handle drag and drop reordering
+  // Handle drag and drop for grid layout
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
-    const items = Array.from(sectionOrder);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+    const sourceId = result.draggableId;
+    const destIndex = parseInt(result.destination.droppableId.split('-')[1]);
+    const sourceIndex = gridLayout.findIndex(cell => cell.section === sourceId);
 
-    setSectionOrder(items);
+    if (sourceIndex === -1) return;
+
+    setGridLayout(prev => {
+      const newLayout = [...prev];
+      // Clear source position
+      newLayout[sourceIndex] = { ...newLayout[sourceIndex], section: null };
+      // Set destination position
+      const temp = newLayout[destIndex].section;
+      newLayout[destIndex] = { ...newLayout[destIndex], section: sourceId as DashboardSection };
+      
+      // If destination had a card, swap it to source
+      if (temp) {
+        newLayout[sourceIndex] = { ...newLayout[sourceIndex], section: temp };
+      }
+      
+      return newLayout;
+    });
   };
 
   const selectedUserName = selectedUserId === "me" 
     ? "My" 
     : users.find(u => u.id === selectedUserId)?.name || "User";
 
+  const getActiveSections = () => {
+    return gridLayout
+      .map(cell => cell.section)
+      .filter((s): s is CardType => 
+        s !== null && 
+        s !== "user-filter" && 
+        s !== "tasks-due-today" && 
+        s !== "overdue-tasks" && 
+        s !== "tasks" && 
+        s !== "projects"
+      );
+  };
+
   // Render individual sections
-  const renderSection = (sectionId: DashboardSection, index: number) => {
+  const renderSection = (sectionId: DashboardSection | null, cellIndex: number) => {
+    if (!sectionId) {
+      // Empty cell - droppable zone
+      return (
+        <Droppable droppableId={`cell-${cellIndex}`} key={`cell-${cellIndex}`}>
+          {(provided, snapshot) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className={`min-h-[200px] border-2 border-dashed rounded-lg flex items-center justify-center transition-colors ${
+                snapshot.isDraggingOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/20'
+              }`}
+            >
+              <p className="text-sm text-muted-foreground">Drop card here</p>
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      );
+    }
+
     const content = (() => {
       switch (sectionId) {
         case "user-filter":
@@ -291,6 +353,7 @@ const Home = () => {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
+                  <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                   View Data For
                 </CardTitle>
               </CardHeader>
@@ -464,68 +527,72 @@ const Home = () => {
       }
     })();
 
-    if (!content) return null;
-
-    // Make user-filter section non-draggable
-    if (sectionId === "user-filter") {
+    if (!content) {
       return (
-        <div key={sectionId}>
-          {content}
-        </div>
-      );
-    }
-
-    return (
-      <Draggable key={sectionId} draggableId={sectionId} index={index}>
-        {(provided, snapshot) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.draggableProps}
-            {...provided.dragHandleProps}
-            className={`transition-all duration-200 ${
-              snapshot.isDragging ? 'opacity-50 rotate-2 scale-105' : 'opacity-100'
-            }`}
-          >
-            {content}
-          </div>
-        )}
-      </Draggable>
-    );
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Home</h1>
-          <p className="text-muted-foreground mt-1">
-            Welcome back, {currentUser?.name}! Drag the grip icons to reorder sections.
-          </p>
-        </div>
-        <CardSelector 
-          selectedCards={sectionOrder.filter(section => 
-            ["collaborator-tasks", "time-logs", "recent-tasks", "notifications", "task-reminders"].includes(section)
-          ) as CardType[]}
-          onCardToggle={handleCardToggle} 
-        />
-      </div>
-
-      {/* Drag and Drop Dashboard */}
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="dashboard-sections">
+        <Droppable droppableId={`cell-${cellIndex}`} key={`cell-${cellIndex}`}>
           {(provided, snapshot) => (
             <div
-              {...provided.droppableProps}
               ref={provided.innerRef}
-              className={`grid grid-cols-1 lg:grid-cols-2 gap-6 transition-colors duration-200 rounded-lg p-2 ${
-                snapshot.isDraggingOver ? 'bg-muted/50' : ''
+              {...provided.droppableProps}
+              className={`min-h-[200px] border-2 border-dashed rounded-lg flex items-center justify-center transition-colors ${
+                snapshot.isDraggingOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/20'
               }`}
             >
-              {sectionOrder.map((sectionId, index) => renderSection(sectionId, index))}
+              <p className="text-sm text-muted-foreground">Drop card here</p>
               {provided.placeholder}
             </div>
           )}
         </Droppable>
+      );
+    }
+
+    return (
+      <Droppable droppableId={`cell-${cellIndex}`} key={`cell-${cellIndex}`}>
+        {(provided) => (
+          <div ref={provided.innerRef} {...provided.droppableProps}>
+            <Draggable draggableId={sectionId} index={cellIndex}>
+              {(provided, snapshot) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.draggableProps}
+                  {...provided.dragHandleProps}
+                  className={snapshot.isDragging ? 'opacity-50' : ''}
+                >
+                  {content}
+                </div>
+              )}
+            </Draggable>
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+    );
+  };
+
+  return (
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Home</h1>
+          <p className="text-muted-foreground mt-1">
+            Welcome back, {currentUser?.name}! Drag cards to reposition them on the grid.
+          </p>
+        </div>
+        <CardSelector 
+          selectedCards={getActiveSections()}
+          onCardToggle={handleCardToggle} 
+        />
+      </div>
+
+      {/* Grid-based Dashboard */}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {gridLayout.map((cell, index) => (
+            <div key={`${cell.row}-${cell.col}`}>
+              {renderSection(cell.section, index)}
+            </div>
+          ))}
+        </div>
       </DragDropContext>
 
       {selectedTask && (
