@@ -81,7 +81,7 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
   return (
     <Card 
       className={cn(
-        "cursor-pointer hover:shadow-md transition-all group relative",
+        "cursor-pointer hover:shadow-md transition-all group relative border-none shadow-sm",
         isCollaboratorTask && "border-l-4 border-l-blue-500",
         isSelected && "ring-2 ring-primary bg-primary/5"
       )}
