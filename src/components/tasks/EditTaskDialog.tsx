@@ -104,7 +104,8 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       reminderDate: reminderDate ? reminderDate.toISOString() : undefined,
     });
 
-    if (taskId && assigneeId && currentUser) {
+    // Only send notification if assignee has been changed
+    if (taskId && assigneeId && currentUser && assigneeId !== task.assigneeId) {
       const { data: notifData, error } = await supabase.functions.invoke('send-task-assignment-notification', {
         body: {
           assignedUserId: assigneeId,
