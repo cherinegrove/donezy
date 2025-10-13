@@ -28,7 +28,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", onBulkEdit }: KanbanBoardProps) {
-  const { moveTask, tasks: allTasks, deleteTask, taskStatuses } = useAppContext();
+  const { moveTask, tasks: allTasks, deleteTask } = useAppContext();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [nestedSelectedTask, setNestedSelectedTask] = useState<Task | null>(null);
@@ -113,14 +113,13 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     ? allTasks.filter(task => task.projectId === projectId)
     : allTasks;
   
-  
-  // Use dynamic task statuses from AppContext
-  const columns = taskStatuses
-    .sort((a, b) => a.order - b.order)
-    .map(status => ({
-      id: status.value as TaskStatus,
-      title: status.label,
-    }));
+  const columns: { id: TaskStatus; title: string }[] = [
+    { id: "backlog", title: "Backlog" },
+    { id: "todo", title: "To Do" },
+    { id: "in-progress", title: "In Progress" },
+    { id: "review", title: "Review" },
+    { id: "done", title: "Done" },
+  ];
   
   // Prepare tasks by status
   const tasksByStatus = columns.reduce((acc, column) => {

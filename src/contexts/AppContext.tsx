@@ -643,87 +643,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  const loadTaskStatuses = async () => {
-    try {
-      console.log('🔍 Loading task statuses...');
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        console.log('🔍 No session for task statuses');
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('task_status_definitions')
-        .select('*')
-        .eq('auth_user_id', session.user.id)
-        .order('order_index');
-
-      if (error) {
-        console.error('Error loading task statuses:', error);
-        return;
-      }
-
-      console.log('🔍 Task statuses loaded:', data?.length || 0);
-
-      // If no custom statuses exist, create defaults
-      if (!data || data.length === 0) {
-        console.log('🔧 Creating default task statuses in database...');
-        const defaultStatuses = [
-          { name: 'Backlog', color: '#6b7280', order_index: 0 },
-          { name: 'To Do', color: '#3b82f6', order_index: 1 },
-          { name: 'In Progress', color: '#eab308', order_index: 2 },
-          { name: 'Review', color: '#f97316', order_index: 3 },
-          { name: 'Done', color: '#22c55e', order_index: 4 },
-        ];
-
-        const { data: createdStatuses, error: createError } = await supabase
-          .from('task_status_definitions')
-          .insert(
-            defaultStatuses.map(status => ({
-              auth_user_id: session.user.id,
-              name: status.name,
-              color: status.color,
-              order_index: status.order_index,
-              is_final: status.name === 'Done',
-            }))
-          )
-          .select();
-
-        if (createError) {
-          console.error('Error creating default statuses:', createError);
-          return;
-        }
-
-        console.log('✅ Default statuses created:', createdStatuses?.length);
-        
-        if (createdStatuses) {
-          const convertedStatuses: TaskStatusDefinition[] = createdStatuses.map(status => ({
-            id: status.id,
-            label: status.name,
-            value: status.name.toLowerCase().replace(/\s+/g, '-'),
-            color: status.color,
-            order: status.order_index,
-          }));
-          setTaskStatuses(convertedStatuses);
-        }
-      } else {
-        // Use existing custom statuses
-        const convertedStatuses: TaskStatusDefinition[] = data.map(status => ({
-          id: status.id,
-          label: status.name,
-          value: status.name.toLowerCase().replace(/\s+/g, '-'),
-          color: status.color,
-          order: status.order_index,
-        }));
-
-        setTaskStatuses(convertedStatuses);
-      }
-    } catch (error) {
-      console.error('Error loading task statuses:', error);
-    }
-  };
-
   const loadProjectStatuses = async () => {
     try {
       console.log('🔍 Loading project statuses...');
@@ -893,7 +812,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         loadTeams();
         loadMessages();
         loadNotes();
-        loadTaskStatuses();
         loadProjectStatuses();
         loadCustomRoles();
         loadTaskTemplates();
@@ -2180,21 +2098,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const addTaskStatus = async (status: Omit<TaskStatusDefinition, 'id'>) => {
-    console.log('🔧 addTaskStatus called with:', status);
-    
-    if (!currentUser) {
-      console.error('❌ No currentUser available');
-      return;
-    }
+    if (!currentUser) return;
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        console.error('❌ No session available');
-        return;
-      }
+      if (!session?.user) return;
 
-      console.log('✅ Inserting task status to database...');
       const { data, error } = await supabase
         .from('task_status_definitions')
         .insert({
@@ -2207,12 +2116,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .select()
         .single();
 
-      if (error) {
-        console.error('❌ Database insert error:', error);
-        throw error;
-      }
-
-      console.log('✅ Task status inserted successfully:', data);
+      if (error) throw error;
 
       const newStatus: TaskStatusDefinition = {
         id: data.id,
@@ -2223,9 +2127,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       };
 
       setTaskStatuses(prev => [...prev, newStatus]);
-      console.log('✅ Task status added to state');
     } catch (error) {
-      console.error('❌ Error adding task status:', error);
+      console.error('Error adding task status:', error);
       throw error;
     }
   };
