@@ -668,7 +668,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       // If no custom statuses exist, create defaults
       if (!data || data.length === 0) {
-        console.log('🔧 Creating default task statuses...');
+        console.log('🔧 Creating default task statuses in database...');
         const defaultStatuses = [
           { name: 'Backlog', color: '#6b7280', order_index: 0 },
           { name: 'To Do', color: '#3b82f6', order_index: 1 },
