@@ -666,8 +666,49 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       console.log('🔍 Task statuses loaded:', data?.length || 0);
 
-      // Only update if we have custom statuses
-      if (data && data.length > 0) {
+      // If no custom statuses exist, create defaults
+      if (!data || data.length === 0) {
+        console.log('🔧 Creating default task statuses...');
+        const defaultStatuses = [
+          { name: 'Backlog', color: '#6b7280', order_index: 0 },
+          { name: 'To Do', color: '#3b82f6', order_index: 1 },
+          { name: 'In Progress', color: '#eab308', order_index: 2 },
+          { name: 'Review', color: '#f97316', order_index: 3 },
+          { name: 'Done', color: '#22c55e', order_index: 4 },
+        ];
+
+        const { data: createdStatuses, error: createError } = await supabase
+          .from('task_status_definitions')
+          .insert(
+            defaultStatuses.map(status => ({
+              auth_user_id: session.user.id,
+              name: status.name,
+              color: status.color,
+              order_index: status.order_index,
+              is_final: status.name === 'Done',
+            }))
+          )
+          .select();
+
+        if (createError) {
+          console.error('Error creating default statuses:', createError);
+          return;
+        }
+
+        console.log('✅ Default statuses created:', createdStatuses?.length);
+        
+        if (createdStatuses) {
+          const convertedStatuses: TaskStatusDefinition[] = createdStatuses.map(status => ({
+            id: status.id,
+            label: status.name,
+            value: status.name.toLowerCase().replace(/\s+/g, '-'),
+            color: status.color,
+            order: status.order_index,
+          }));
+          setTaskStatuses(convertedStatuses);
+        }
+      } else {
+        // Use existing custom statuses
         const convertedStatuses: TaskStatusDefinition[] = data.map(status => ({
           id: status.id,
           label: status.name,
