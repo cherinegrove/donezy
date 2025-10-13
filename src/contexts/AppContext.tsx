@@ -666,16 +666,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       console.log('🔍 Task statuses loaded:', data?.length || 0);
 
-      const convertedStatuses: TaskStatusDefinition[] = (data || []).map(status => ({
-        id: status.id,
-        label: status.name,
-        value: status.name.toLowerCase().replace(/\s+/g, '-'),
-        color: status.color,
-        order: status.order_index,
-      }));
+      // Only update if we have custom statuses
+      if (data && data.length > 0) {
+        const convertedStatuses: TaskStatusDefinition[] = data.map(status => ({
+          id: status.id,
+          label: status.name,
+          value: status.name.toLowerCase().replace(/\s+/g, '-'),
+          color: status.color,
+          order: status.order_index,
+        }));
 
-      // Only update if we have custom statuses, otherwise keep defaults
-      if (convertedStatuses.length > 0) {
         setTaskStatuses(convertedStatuses);
       }
     } catch (error) {
