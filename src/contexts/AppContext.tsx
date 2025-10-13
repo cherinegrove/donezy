@@ -2097,28 +2097,117 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  const addTaskStatus = (status: Omit<TaskStatusDefinition, 'id'>) => {
-    const newStatus = {
-      ...status,
-      id: Math.random().toString(36).substring(2, 15),
-    };
-    setTaskStatuses(prev => [...prev, newStatus]);
+  const addTaskStatus = async (status: Omit<TaskStatusDefinition, 'id'>) => {
+    if (!currentUser) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const { data, error } = await supabase
+        .from('task_status_definitions')
+        .insert({
+          auth_user_id: session.user.id,
+          name: status.label,
+          color: status.color,
+          order_index: status.order,
+          is_final: false,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newStatus: TaskStatusDefinition = {
+        id: data.id,
+        label: data.name,
+        value: status.value,
+        color: data.color,
+        order: data.order_index,
+      };
+
+      setTaskStatuses(prev => [...prev, newStatus]);
+    } catch (error) {
+      console.error('Error adding task status:', error);
+      throw error;
+    }
   };
 
-  const updateTaskStatus = (statusId: string, updates: Partial<TaskStatusDefinition>) => {
-    setTaskStatuses(prev => 
-      prev.map(status => 
-        status.id === statusId ? { ...status, ...updates } : status
-      )
-    );
+  const updateTaskStatus = async (statusId: string, updates: Partial<TaskStatusDefinition>) => {
+    if (!currentUser) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const updateData: any = {};
+      if (updates.label) updateData.name = updates.label;
+      if (updates.color) updateData.color = updates.color;
+      if (updates.order !== undefined) updateData.order_index = updates.order;
+
+      const { error } = await supabase
+        .from('task_status_definitions')
+        .update(updateData)
+        .eq('id', statusId)
+        .eq('auth_user_id', session.user.id);
+
+      if (error) throw error;
+
+      setTaskStatuses(prev => 
+        prev.map(status => 
+          status.id === statusId ? { ...status, ...updates } : status
+        )
+      );
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      throw error;
+    }
   };
 
-  const deleteTaskStatus = (statusId: string) => {
-    setTaskStatuses(prev => prev.filter(status => status.id !== statusId));
+  const deleteTaskStatus = async (statusId: string) => {
+    if (!currentUser) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const { error } = await supabase
+        .from('task_status_definitions')
+        .delete()
+        .eq('id', statusId)
+        .eq('auth_user_id', session.user.id);
+
+      if (error) throw error;
+
+      setTaskStatuses(prev => prev.filter(status => status.id !== statusId));
+    } catch (error) {
+      console.error('Error deleting task status:', error);
+      throw error;
+    }
   };
 
-  const reorderTaskStatuses = (statuses: TaskStatusDefinition[]) => {
-    setTaskStatuses(statuses);
+  const reorderTaskStatuses = async (statuses: TaskStatusDefinition[]) => {
+    if (!currentUser) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      // Update all statuses with new order
+      const updates = statuses.map((status, index) => 
+        supabase
+          .from('task_status_definitions')
+          .update({ order_index: index })
+          .eq('id', status.id)
+          .eq('auth_user_id', session.user.id)
+      );
+
+      await Promise.all(updates);
+      setTaskStatuses(statuses);
+    } catch (error) {
+      console.error('Error reordering task statuses:', error);
+      throw error;
+    }
   };
 
   const addProjectStatus = async (status: Omit<ProjectStatusDefinition, 'id'>) => {
