@@ -2139,12 +2139,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const addTaskStatus = async (status: Omit<TaskStatusDefinition, 'id'>) => {
-    if (!currentUser) return;
+    console.log('🔧 addTaskStatus called with:', status);
+    
+    if (!currentUser) {
+      console.error('❌ No currentUser available');
+      return;
+    }
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
+      if (!session?.user) {
+        console.error('❌ No session available');
+        return;
+      }
 
+      console.log('✅ Inserting task status to database...');
       const { data, error } = await supabase
         .from('task_status_definitions')
         .insert({
@@ -2157,7 +2166,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database insert error:', error);
+        throw error;
+      }
+
+      console.log('✅ Task status inserted successfully:', data);
 
       const newStatus: TaskStatusDefinition = {
         id: data.id,
@@ -2168,8 +2182,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       };
 
       setTaskStatuses(prev => [...prev, newStatus]);
+      console.log('✅ Task status added to state');
     } catch (error) {
-      console.error('Error adding task status:', error);
+      console.error('❌ Error adding task status:', error);
       throw error;
     }
   };
