@@ -47,7 +47,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     { id: '1', label: 'Backlog', value: 'backlog', color: 'bg-gray-500', order: 0 },
     { id: '2', label: 'To Do', value: 'todo', color: 'bg-blue-500', order: 1 },
     { id: '3', label: 'In Progress', value: 'in-progress', color: 'bg-yellow-500', order: 2 },
-    { id: '4', label: 'Review', value: 'review', color: 'bg-orange-500', order: 3 },
+    { id: '4', label: 'Review/Awaiting Feedback', value: 'review', color: 'bg-orange-500', order: 3 },
     { id: '5', label: 'Done', value: 'done', color: 'bg-green-500', order: 4 },
   ]);
   const [projectStatuses, setProjectStatuses] = useState<ProjectStatusDefinition[]>([]);
