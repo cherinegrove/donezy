@@ -643,6 +643,46 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  const loadTaskStatuses = async () => {
+    try {
+      console.log('🔍 Loading task statuses...');
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        console.log('🔍 No session for task statuses');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('task_status_definitions')
+        .select('*')
+        .eq('auth_user_id', session.user.id)
+        .order('order_index');
+
+      if (error) {
+        console.error('Error loading task statuses:', error);
+        return;
+      }
+
+      console.log('🔍 Task statuses loaded:', data?.length || 0);
+
+      // Only update if we have custom statuses
+      if (data && data.length > 0) {
+        const convertedStatuses: TaskStatusDefinition[] = data.map(status => ({
+          id: status.id,
+          label: status.name,
+          value: status.name.toLowerCase().replace(/\s+/g, '-'),
+          color: status.color,
+          order: status.order_index,
+        }));
+
+        setTaskStatuses(convertedStatuses);
+      }
+    } catch (error) {
+      console.error('Error loading task statuses:', error);
+    }
+  };
+
   const loadProjectStatuses = async () => {
     try {
       console.log('🔍 Loading project statuses...');
@@ -812,6 +852,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         loadTeams();
         loadMessages();
         loadNotes();
+        loadTaskStatuses();
         loadProjectStatuses();
         loadCustomRoles();
         loadTaskTemplates();
