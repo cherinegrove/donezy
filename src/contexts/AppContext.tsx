@@ -666,49 +666,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       console.log('🔍 Task statuses loaded:', data?.length || 0);
 
-      // If no custom statuses exist, create defaults in the database
-      if (!data || data.length === 0) {
-        console.log('🔍 No task statuses found, creating defaults...');
-        const defaultStatuses = [
-          { label: 'Backlog', value: 'backlog', color: 'bg-gray-500', order: 0 },
-          { label: 'To Do', value: 'todo', color: 'bg-blue-500', order: 1 },
-          { label: 'In Progress', value: 'in-progress', color: 'bg-yellow-500', order: 2 },
-          { label: 'Review/Awaiting Feedback', value: 'review', color: 'bg-orange-500', order: 3 },
-          { label: 'Done', value: 'done', color: 'bg-green-500', order: 4 },
-        ];
-
-        const { data: insertedData, error: insertError } = await supabase
-          .from('task_status_definitions')
-          .insert(
-            defaultStatuses.map(status => ({
-              auth_user_id: session.user.id,
-              name: status.label,
-              value: status.value,
-              color: status.color,
-              order_index: status.order,
-              is_final: false,
-            }))
-          )
-          .select();
-
-        if (insertError) {
-          console.error('Error creating default task statuses:', insertError);
-          return;
-        }
-
-        console.log('✅ Default task statuses created');
-
-        const convertedStatuses: TaskStatusDefinition[] = insertedData.map(status => ({
-          id: status.id,
-          label: status.name,
-          value: status.value,
-          color: status.color,
-          order: status.order_index,
-        }));
-
-        setTaskStatuses(convertedStatuses);
-      } else {
-        // Load existing statuses
+      // Load existing statuses (defaults are created by migration if none exist)
+      if (data && data.length > 0) {
         const convertedStatuses: TaskStatusDefinition[] = data.map(status => ({
           id: status.id,
           label: status.name,
