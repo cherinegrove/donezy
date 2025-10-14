@@ -17,35 +17,12 @@ import {
   Trash2, 
   GripVertical, 
   Save, 
-  X,
-  Palette
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskStatusDefinition } from "@/types";
 
-const colorOptions = [
-  "bg-red-500",
-  "bg-orange-500", 
-  "bg-amber-500",
-  "bg-yellow-500",
-  "bg-lime-500",
-  "bg-green-500",
-  "bg-emerald-500",
-  "bg-teal-500",
-  "bg-cyan-500",
-  "bg-sky-500",
-  "bg-blue-500",
-  "bg-indigo-500",
-  "bg-violet-500",
-  "bg-purple-500",
-  "bg-pink-500"
-];
 
 export function TaskStatusManager() {
   const { 
@@ -151,14 +128,6 @@ export function TaskStatusManager() {
     });
   };
 
-  const handleColorChange = (statusId: string, newColor: string) => {
-    updateTaskStatus(statusId, { color: newColor });
-    toast({
-      title: "Success",
-      description: "Status color updated",
-    });
-  };
-
   // Sort statuses by order
   const sortedStatuses = [...taskStatuses].sort((a, b) => a.order - b.order);
 
@@ -207,35 +176,9 @@ export function TaskStatusManager() {
                           <GripVertical className="h-4 w-4" />
                         </div>
                         
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-12 h-8 p-0 hover:scale-105 transition-transform"
-                            >
-                              <div className={`w-6 h-6 rounded ${status.color}`} />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-64 p-3" align="start">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Choose Color</Label>
-                              <div className="grid grid-cols-5 gap-2">
-                                {colorOptions.map((color) => (
-                                  <Button
-                                    key={color}
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-10 h-10 p-0 hover:scale-110 transition-transform"
-                                    onClick={() => handleColorChange(status.id, color)}
-                                  >
-                                    <div className={`w-6 h-6 rounded ${color}`} />
-                                  </Button>
-                                ))}
-                              </div>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
+                        <div className="w-12 h-8 flex items-center justify-center">
+                          <div className={`w-6 h-6 rounded ${status.color}`} />
+                        </div>
                         
                         {editingId === status.id ? (
                           <div className="flex-1 flex items-center gap-2">
