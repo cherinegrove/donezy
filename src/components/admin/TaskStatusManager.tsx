@@ -104,7 +104,7 @@ export function TaskStatusManager() {
     setEditValue("");
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     // Prevent deletion of core statuses
     const status = taskStatuses.find(s => s.id === id);
     if (status && ['backlog', 'todo', 'in-progress', 'review', 'done'].includes(status.value)) {
@@ -116,11 +116,20 @@ export function TaskStatusManager() {
       return;
     }
 
-    deleteTaskStatus(id);
-    toast({
-      title: "Success",
-      description: "Status deleted successfully",
-    });
+    try {
+      await deleteTaskStatus(id);
+      toast({
+        title: "Success",
+        description: "Status deleted successfully",
+      });
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete status",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleAdd = () => {
