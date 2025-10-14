@@ -671,7 +671,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const convertedStatuses: TaskStatusDefinition[] = data.map(status => ({
           id: status.id,
           label: status.name,
-          value: status.name.toLowerCase().replace(/\s+/g, '-'),
+          value: status.value || status.name.toLowerCase().replace(/\s+/g, '-'),
           color: status.color,
           order: status.order_index,
         }));
@@ -2150,6 +2150,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .insert({
           auth_user_id: session.user.id,
           name: status.label,
+          value: status.value,
           color: status.color,
           order_index: status.order,
           is_final: false,
@@ -2183,6 +2184,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       const updateData: any = {};
       if (updates.label) updateData.name = updates.label;
+      if (updates.value) updateData.value = updates.value;
       if (updates.color) updateData.color = updates.color;
       if (updates.order !== undefined) updateData.order_index = updates.order;
 

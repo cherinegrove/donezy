@@ -437,8 +437,10 @@ export type Database = {
           mentioned_users: string[] | null
           parent_message_id: string | null
           priority: string | null
+          project_id: string | null
           read: boolean | null
           subject: string
+          task_id: string | null
           timestamp: string
           to_user_id: string
           updated_at: string
@@ -453,8 +455,10 @@ export type Database = {
           mentioned_users?: string[] | null
           parent_message_id?: string | null
           priority?: string | null
+          project_id?: string | null
           read?: boolean | null
           subject: string
+          task_id?: string | null
           timestamp?: string
           to_user_id: string
           updated_at?: string
@@ -469,8 +473,10 @@ export type Database = {
           mentioned_users?: string[] | null
           parent_message_id?: string | null
           priority?: string | null
+          project_id?: string | null
           read?: boolean | null
           subject?: string
+          task_id?: string | null
           timestamp?: string
           to_user_id?: string
           updated_at?: string
@@ -488,6 +494,20 @@ export type Database = {
             columns: ["parent_message_id"]
             isOneToOne: false
             referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -1354,6 +1374,7 @@ export type Database = {
           name: string
           order_index: number
           updated_at: string
+          value: string | null
         }
         Insert: {
           auth_user_id: string
@@ -1364,6 +1385,7 @@ export type Database = {
           name: string
           order_index?: number
           updated_at?: string
+          value?: string | null
         }
         Update: {
           auth_user_id?: string
@@ -1374,6 +1396,7 @@ export type Database = {
           name?: string
           order_index?: number
           updated_at?: string
+          value?: string | null
         }
         Relationships: []
       }
@@ -1964,6 +1987,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["system_role_type"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_channel_member: {
+        Args: { cid: string }
         Returns: boolean
       }
       log_support_action: {
