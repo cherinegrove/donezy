@@ -1,9 +1,15 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { format, parseISO, isBefore } from "date-fns";
 import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
@@ -20,7 +26,8 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onClick, showProject = true, displayOptions = [], isSelected = false, onSelectionChange, showSelection = false }: TaskCardProps) {
-  const { projects, users, currentUser, clients } = useAppContext();
+  const { projects, users, currentUser, clients, taskStatuses, moveTask } = useAppContext();
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
   
   const project = projects.find(p => p.id === task.projectId);
   const client = project ? clients.find(c => c.id === project.clientId) : null;
@@ -70,13 +77,21 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't trigger card click if checkbox area was clicked
     const target = e.target as HTMLElement;
-    if (target.closest('[data-checkbox]')) {
+    if (target.closest('[data-checkbox]') || target.closest('[data-status-dropdown]')) {
       return;
     }
     if (onClick) {
       onClick(e);
     }
   };
+
+  const handleStatusChange = async (newStatus: string) => {
+    await moveTask(task.id, newStatus as Task['status']);
+    setIsStatusOpen(false);
+  };
+
+  const currentStatus = taskStatuses.find(s => s.value === task.status);
+  const statusLabel = currentStatus?.label || task.status.replace('-', ' ');
 
   return (
     <Card 
@@ -102,15 +117,50 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
       )}
       <CardContent className={cn("p-5", showSelection && "pr-10")}>
         <div className="space-y-3">
-          <div>
-            <h3 className="font-medium text-sm line-clamp-2">
-              {task.title}
-              {isCollaboratorTask && (
-                <Badge variant="outline" className="ml-2 text-xs">
-                  Collaborator
-                </Badge>
-              )}
-            </h3>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium text-sm line-clamp-2">
+                {task.title}
+                {isCollaboratorTask && (
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    Collaborator
+                  </Badge>
+                )}
+              </h3>
+            </div>
+            <div data-status-dropdown>
+              <DropdownMenu open={isStatusOpen} onOpenChange={setIsStatusOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Badge 
+                    variant="outline" 
+                    className="text-xs cursor-pointer hover:bg-accent transition-colors"
+                    style={{ 
+                      borderColor: currentStatus?.color,
+                      color: currentStatus?.color 
+                    }}
+                  >
+                    {statusLabel}
+                  </Badge>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 bg-background z-50">
+                  {taskStatuses.map((status) => (
+                    <DropdownMenuItem
+                      key={status.value}
+                      onClick={() => handleStatusChange(status.value)}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <div 
+                          className="w-2 h-2 rounded-full" 
+                          style={{ backgroundColor: status.color }}
+                        />
+                        <span>{status.label}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
           
           {task.description && (
