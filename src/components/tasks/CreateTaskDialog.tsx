@@ -144,6 +144,8 @@ export function CreateTaskDialog({
   // Use the appropriate schema based on whether we're creating a subtask
   const schema = createTaskSchema(fieldRequirements);
   
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const form = useForm<TaskFormData>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -303,6 +305,8 @@ export function CreateTaskDialog({
     console.log('Form validation state:', form.formState);
     console.log('Form errors:', form.formState.errors);
     
+    setIsSubmitting(true);
+    
     try {
       console.log('Calling addTask with data:', {
         title: data.title,
@@ -363,6 +367,8 @@ export function CreateTaskDialog({
     } catch (error) {
       console.error('Error during task creation:', error);
       toast.error("Failed to create task. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -884,11 +890,11 @@ export function CreateTaskDialog({
         </div>
         
         <DialogFooter className="flex-shrink-0 px-6 pb-6 pt-2 border-t bg-background">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" onClick={form.handleSubmit(onSubmit)}>
-            Create Task
+          <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
+            {isSubmitting ? "Creating..." : "Create Task"}
           </Button>
         </DialogFooter>
       </DialogContent>
