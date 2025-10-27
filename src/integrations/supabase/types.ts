@@ -1245,7 +1245,7 @@ export type Database = {
           created_at: string
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           support_user_id: string
           target_user_id: string | null
         }
@@ -1254,7 +1254,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           support_user_id: string
           target_user_id?: string | null
         }
@@ -1263,7 +1263,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           support_user_id?: string
           target_user_id?: string | null
         }
@@ -1955,18 +1955,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      can_assign_system_roles: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      can_assign_system_roles: { Args: { _user_id: string }; Returns: boolean }
       can_user_perform_action: {
         Args: { action_type: string; user_uuid?: string }
         Returns: boolean
       }
-      cleanup_expired_videos: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      cleanup_expired_videos: { Args: never; Returns: undefined }
       get_account_limits: {
         Args: { account_user_id: string }
         Returns: {
@@ -1978,10 +1972,7 @@ export type Database = {
           max_users: number
         }[]
       }
-      get_current_user_organization: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_current_user_organization: { Args: never; Returns: string }
       has_system_role: {
         Args: {
           _role: Database["public"]["Enums"]["system_role_type"]
@@ -1989,10 +1980,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_channel_member: {
-        Args: { cid: string }
-        Returns: boolean
-      }
+      is_channel_member: { Args: { cid: string }; Returns: boolean }
       log_support_action: {
         Args: {
           _action: string
