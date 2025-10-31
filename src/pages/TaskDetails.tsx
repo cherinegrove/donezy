@@ -8,6 +8,10 @@ import { TaskDetailTabs } from "@/components/tasks/TaskDetailTabs";
 import { format } from "date-fns";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
 import { useState, useEffect } from "react";
+import { ChecklistSection } from "@/components/tasks/ChecklistSection";
+import { CommentSection } from "@/components/tasks/CommentSection";
+import { RelatedTasksSection } from "@/components/tasks/RelatedTasksSection";
+import { Separator } from "@/components/ui/separator";
 
 export default function TaskDetails() {
   const { taskId } = useParams<{ taskId: string }>();
@@ -126,6 +130,32 @@ export default function TaskDetails() {
             )}
           </div>
 
+          <Separator className="my-6" />
+
+          {/* Checklist Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Checklist</h3>
+            <ChecklistSection taskId={task.id} />
+          </div>
+
+          <Separator className="my-6" />
+
+          {/* Comments Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Comments</h3>
+            <CommentSection taskId={task.id} />
+          </div>
+
+          <Separator className="my-6" />
+
+          {/* Related Tasks Section */}
+          <div className="space-y-4">
+            <RelatedTasksSection taskId={task.id} />
+          </div>
+
+          <Separator className="my-6" />
+
+          {/* Other Tabs (Files, Timers, Logs) */}
           <TaskDetailTabs taskId={task.id} />
         </CardContent>
       </Card>
