@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Link, X } from "lucide-react";
@@ -27,6 +28,7 @@ interface RelatedTasksSectionProps {
 }
 
 export function RelatedTasksSection({ taskId }: RelatedTasksSectionProps) {
+  const navigate = useNavigate();
   const { tasks, projects, linkTasks, unlinkTasks } = useAppContext();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string>("");
@@ -152,12 +154,16 @@ export function RelatedTasksSection({ taskId }: RelatedTasksSectionProps) {
               <TaskCard 
                 task={task} 
                 displayOptions={["project", "assignee", "status"]}
+                onClick={() => navigate(`/tasks/${task.id}`)}
               />
               <Button 
                 variant="ghost" 
                 size="icon" 
                 className="absolute top-2 right-2 h-6 w-6"
-                onClick={() => handleUnlinkTask(task.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleUnlinkTask(task.id);
+                }}
               >
                 <X className="h-3 w-3" />
               </Button>
