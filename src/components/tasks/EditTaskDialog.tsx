@@ -28,13 +28,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CommentSection } from "./CommentSection";
 import { TaskDetailTabs } from "./TaskDetailTabs";
 import { FileSection } from "./FileSection";
 import { TimerSection } from "./TimerSection";
-import { RelatedTasksSection } from "./RelatedTasksSection";
 import { TaskLogsSection } from "./TaskLogsSection";
-import { ChecklistSection } from "./ChecklistSection";
 import { supabase } from "@/integrations/supabase/client";
 
 interface EditTaskDialogProps {
@@ -169,13 +166,10 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full mb-4">
+            <TabsList className="w-full mb-4 grid grid-cols-4">
               <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="checklist">Checklist</TabsTrigger>
-              <TabsTrigger value="comments">Comments</TabsTrigger>
               <TabsTrigger value="files">Files</TabsTrigger>
               <TabsTrigger value="time">Time</TabsTrigger>
-              <TabsTrigger value="related">Related Tasks</TabsTrigger>
               <TabsTrigger value="logs">Activity Log</TabsTrigger>
             </TabsList>
 
@@ -291,14 +285,6 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                 </div>
               </div>
             </TabsContent>
-
-            <TabsContent value="checklist">
-              <ChecklistSection taskId={task.id} />
-            </TabsContent>
-
-            <TabsContent value="comments">
-              <CommentSection taskId={task.id} />
-            </TabsContent>
             
             <TabsContent value="files">
               <FileSection taskId={task.id} />
@@ -306,10 +292,6 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
             
             <TabsContent value="time">
               <TimerSection taskId={task.id} />
-            </TabsContent>
-            
-            <TabsContent value="related">
-              <RelatedTasksSection taskId={task.id} />
             </TabsContent>
             
             <TabsContent value="logs">
