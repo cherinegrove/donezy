@@ -1,10 +1,10 @@
 
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Link, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { EditTaskDialog } from "./EditTaskDialog";
 import {
   Dialog,
   DialogContent,
@@ -28,10 +28,11 @@ interface RelatedTasksSectionProps {
 }
 
 export function RelatedTasksSection({ taskId }: RelatedTasksSectionProps) {
-  const navigate = useNavigate();
   const { tasks, projects, linkTasks, unlinkTasks } = useAppContext();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string>("");
+  const [editingTask, setEditingTask] = useState<typeof tasks[0] | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
   
   // Add null check for tasks
@@ -154,7 +155,10 @@ export function RelatedTasksSection({ taskId }: RelatedTasksSectionProps) {
               <TaskCard 
                 task={task} 
                 displayOptions={["project", "assignee", "status"]}
-                onClick={() => navigate(`/tasks/${task.id}`)}
+                onClick={() => {
+                  setEditingTask(task);
+                  setIsEditDialogOpen(true);
+                }}
               />
               <Button 
                 variant="ghost" 
@@ -174,6 +178,14 @@ export function RelatedTasksSection({ taskId }: RelatedTasksSectionProps) {
         <div className="text-center py-4 text-muted-foreground">
           No related tasks
         </div>
+      )}
+      
+      {editingTask && (
+        <EditTaskDialog
+          task={editingTask}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+        />
       )}
     </div>
   );
