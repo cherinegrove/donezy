@@ -152,6 +152,8 @@ export interface TaskFile {
   size: number;
   sizeKb: number;
   uploadedAt: string;
+  isExternalLink?: boolean;
+  externalUrl?: string;
 }
 
 export interface ChecklistItem {

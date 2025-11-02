@@ -73,6 +73,7 @@ export interface AppContextType {
   linkTasks: (taskId: string, relatedTaskId: string) => void;
   unlinkTasks: (taskId: string, relatedTaskId: string) => void;
   uploadTaskFile: (taskId: string, file: File) => Promise<string>;
+  addTaskExternalLink: (taskId: string, linkName: string, linkUrl: string) => Promise<void>;
   deleteTaskFile: (taskId: string, fileId: string) => void;
   
   // Task Status functions

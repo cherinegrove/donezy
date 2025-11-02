@@ -2248,6 +2248,30 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  const addTaskExternalLink = async (taskId: string, linkName: string, linkUrl: string) => {
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const taskLink = {
+        id: Math.random().toString(36).substring(2, 15),
+        name: linkName,
+        url: linkUrl,
+        externalUrl: linkUrl,
+        isExternalLink: true,
+        size: 0,
+        sizeKb: 0,
+        uploadedAt: new Date().toISOString()
+      };
+
+      const updatedFiles = [...(task.files || []), taskLink];
+      await updateTask(taskId, { files: updatedFiles });
+    } catch (error) {
+      console.error('Error adding external link:', error);
+      throw error;
+    }
+  };
+
   const deleteTaskFile = async (taskId: string, fileId: string) => {
     try {
       const task = tasks.find(t => t.id === taskId);
@@ -2256,17 +2280,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const fileToDelete = task.files.find(f => f.id === fileId);
       if (!fileToDelete) return;
 
-      // For task files, we need to extract the file path from the URL
-      // since we stored the public URL in the task file record
-      const urlParts = fileToDelete.url.split('/');
-      const filePath = urlParts.slice(-3).join('/'); // Get the last 3 parts: tasks/taskId/filename
+      // Only delete from storage if it's not an external link
+      if (!fileToDelete.isExternalLink) {
+        // For task files, we need to extract the file path from the URL
+        // since we stored the public URL in the task file record
+        const urlParts = fileToDelete.url.split('/');
+        const filePath = urlParts.slice(-3).join('/'); // Get the last 3 parts: tasks/taskId/filename
 
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('project-files')
-        .remove([filePath]);
+        // Delete from storage
+        const { error: storageError } = await supabase.storage
+          .from('project-files')
+          .remove([filePath]);
 
-      if (storageError) console.error('Storage deletion error:', storageError);
+        if (storageError) console.error('Storage deletion error:', storageError);
+      }
 
       // Remove from task's files array
       const updatedFiles = task.files.filter(f => f.id !== fileId);
@@ -3084,6 +3111,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     linkTasks,
     unlinkTasks,
     uploadTaskFile,
+    addTaskExternalLink,
     deleteTaskFile,
     
     // Task Status functions
