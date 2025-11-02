@@ -316,7 +316,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         comments: commentsByTask[task.id] || [],
         collaboratorIds: task.collaborator_ids || [],
         relatedTaskIds: task.related_task_ids || [],
-        checklist: task.checklist || []
+        checklist: task.checklist || [],
+        files: task.files || []
       })) || [];
       
       setTasks(convertedTasks);
