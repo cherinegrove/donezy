@@ -1558,6 +1558,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           changes.push('updated checklist');
         }
       }
+      if (updates.files !== undefined) {
+        dbUpdates.files = updates.files;
+        const oldFilesLength = (currentTask.files as any[])?.length || 0;
+        const newFilesLength = (updates.files as any[])?.length || 0;
+        if (newFilesLength > oldFilesLength) {
+          const newFile = updates.files[updates.files.length - 1];
+          if (newFile?.isExternalLink) {
+            changes.push(`added external link "${newFile.name}"`);
+          } else {
+            changes.push('added file');
+          }
+        } else if (newFilesLength < oldFilesLength) {
+          changes.push('removed file');
+        }
+      }
 
       if (Object.keys(dbUpdates).length === 0) {
         return taskId;
