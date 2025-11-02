@@ -32,6 +32,9 @@ import { TaskDetailTabs } from "./TaskDetailTabs";
 import { FileSection } from "./FileSection";
 import { TimerSection } from "./TimerSection";
 import { TaskLogsSection } from "./TaskLogsSection";
+import { ChecklistSection } from "./ChecklistSection";
+import { CommentSection } from "./CommentSection";
+import { RelatedTasksSection } from "./RelatedTasksSection";
 import { supabase } from "@/integrations/supabase/client";
 
 interface EditTaskDialogProps {
@@ -283,6 +286,12 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                     Get an email reminder on this date
                   </p>
                 </div>
+              </div>
+
+              <div className="space-y-6 mt-6">
+                <ChecklistSection taskId={task.id} />
+                <CommentSection taskId={task.id} />
+                <RelatedTasksSection taskId={task.id} />
               </div>
             </TabsContent>
             
