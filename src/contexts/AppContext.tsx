@@ -2267,9 +2267,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const addTaskExternalLink = async (taskId: string, linkName: string, linkUrl: string) => {
+    console.log('📎 addTaskExternalLink called:', { taskId, linkName, linkUrl });
+    
     try {
       const task = tasks.find(t => t.id === taskId);
-      if (!task) return;
+      console.log('📎 Task found:', !!task);
+      console.log('📎 Current task files:', task?.files);
+      
+      if (!task) {
+        console.error('❌ Task not found');
+        return;
+      }
 
       const taskLink = {
         id: Math.random().toString(36).substring(2, 15),
@@ -2282,10 +2290,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         uploadedAt: new Date().toISOString()
       };
 
+      console.log('📎 Created taskLink:', taskLink);
+
       const updatedFiles = [...(task.files || []), taskLink];
+      console.log('📎 Updated files array:', updatedFiles);
+      
       await updateTask(taskId, { files: updatedFiles });
+      console.log('✅ updateTask completed');
     } catch (error) {
-      console.error('Error adding external link:', error);
+      console.error('❌ Error adding external link:', error);
       throw error;
     }
   };

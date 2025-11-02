@@ -29,6 +29,11 @@ export function FileSection({ taskId }: FileSectionProps) {
 
   const task = tasks.find(t => t.id === taskId);
   const files = task?.files || [];
+  
+  console.log('🔍 FileSection - taskId:', taskId);
+  console.log('🔍 FileSection - task found:', !!task);
+  console.log('🔍 FileSection - files:', files);
+  console.log('🔍 FileSection - files length:', files.length);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -62,8 +67,11 @@ export function FileSection({ taskId }: FileSectionProps) {
       return;
     }
 
+    console.log('🔗 Adding link:', { taskId, linkName, linkUrl });
+
     try {
       await addTaskExternalLink(taskId, linkName, linkUrl);
+      console.log('✅ Link added successfully');
       toast({
         title: "Link added",
         description: `${linkName} has been added successfully.`,
@@ -72,6 +80,7 @@ export function FileSection({ taskId }: FileSectionProps) {
       setLinkUrl("");
       setIsLinkDialogOpen(false);
     } catch (error) {
+      console.error('❌ Error adding link:', error);
       toast({
         title: "Failed to add link",
         description: "There was an error adding the link.",
