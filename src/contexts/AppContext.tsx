@@ -576,6 +576,41 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     };
   }, [session?.user?.id]);
 
+  // Set up real-time subscriptions for task logs
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const taskLogsChannel = supabase
+      .channel('task-logs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'task_logs'
+        },
+        (payload) => {
+          console.log('📝 New task log created via real-time:', payload);
+          
+          const newLog: TaskLog = {
+            id: payload.new.id,
+            taskId: payload.new.task_id,
+            userId: payload.new.user_id,
+            action: payload.new.action,
+            timestamp: payload.new.timestamp,
+            details: payload.new.details ? (typeof payload.new.details === 'string' ? payload.new.details : JSON.stringify(payload.new.details)) : undefined
+          };
+          
+          setTaskLogs(prev => [newLog, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(taskLogsChannel);
+    };
+  }, [session?.user?.id]);
+
   const loadMessages = async () => {
     if (!session?.user) return;
     
@@ -640,6 +675,35 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setNotes(convertedNotes);
     } catch (error) {
       console.error('Error loading notes:', error);
+    }
+  };
+
+  const loadTaskLogs = async () => {
+    if (!session?.user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('task_logs')
+        .select('*')
+        .order('timestamp', { ascending: false });
+      
+      if (error) {
+        console.error('Error loading task logs:', error);
+        return;
+      }
+
+      const convertedLogs: TaskLog[] = data?.map(log => ({
+        id: log.id,
+        taskId: log.task_id,
+        userId: log.user_id,
+        action: log.action,
+        timestamp: log.timestamp,
+        details: log.details ? (typeof log.details === 'string' ? log.details : JSON.stringify(log.details)) : undefined
+      })) || [];
+      
+      setTaskLogs(convertedLogs);
+    } catch (error) {
+      console.error('Error loading task logs:', error);
     }
   };
 
@@ -852,6 +916,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         loadTeams();
         loadMessages();
         loadNotes();
+        loadTaskLogs();
         loadTaskStatuses();
         loadProjectStatuses();
         loadCustomRoles();
@@ -1421,22 +1486,82 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return undefined;
     
     try {
+      // Get current task for comparison
+      const currentTask = tasks.find(t => t.id === taskId);
+      if (!currentTask) return undefined;
+
       const dbUpdates: any = {};
+      const changes: string[] = [];
       
-      if (updates.title !== undefined) dbUpdates.title = updates.title;
-      if (updates.description !== undefined) dbUpdates.description = updates.description;
-      if (updates.projectId !== undefined) dbUpdates.project_id = updates.projectId;
-      if (updates.assigneeId !== undefined) dbUpdates.assignee_id = updates.assigneeId;
-      if (updates.status !== undefined) dbUpdates.status = updates.status;
-      if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
-      if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate;
-      if (updates.estimatedHours !== undefined) dbUpdates.estimated_hours = updates.estimatedHours;
-      if (updates.actualHours !== undefined) dbUpdates.actual_hours = updates.actualHours;
-      if (updates.watcherIds !== undefined) dbUpdates.watcher_ids = updates.watcherIds;
-      if (updates.comments !== undefined) dbUpdates.comments = updates.comments;
-      if (updates.collaboratorIds !== undefined) dbUpdates.collaborator_ids = updates.collaboratorIds;
-      if (updates.relatedTaskIds !== undefined) dbUpdates.related_task_ids = updates.relatedTaskIds;
-      if (updates.checklist !== undefined) dbUpdates.checklist = updates.checklist;
+      if (updates.title !== undefined && updates.title !== currentTask.title) {
+        dbUpdates.title = updates.title;
+        changes.push(`updated title to "${updates.title}"`);
+      }
+      if (updates.description !== undefined && updates.description !== currentTask.description) {
+        dbUpdates.description = updates.description;
+        changes.push('updated description');
+      }
+      if (updates.projectId !== undefined && updates.projectId !== currentTask.projectId) {
+        dbUpdates.project_id = updates.projectId;
+        changes.push('changed project');
+      }
+      if (updates.assigneeId !== undefined && updates.assigneeId !== currentTask.assigneeId) {
+        dbUpdates.assignee_id = updates.assigneeId;
+        const assignee = users.find(u => u.id === updates.assigneeId);
+        changes.push(`assigned to ${assignee?.name || 'someone'}`);
+      }
+      if (updates.status !== undefined && updates.status !== currentTask.status) {
+        dbUpdates.status = updates.status;
+        changes.push(`changed status from "${currentTask.status}" to "${updates.status}"`);
+      }
+      if (updates.priority !== undefined && updates.priority !== currentTask.priority) {
+        dbUpdates.priority = updates.priority;
+        changes.push(`changed priority from "${currentTask.priority}" to "${updates.priority}"`);
+      }
+      if (updates.dueDate !== undefined && updates.dueDate !== currentTask.dueDate) {
+        dbUpdates.due_date = updates.dueDate;
+        changes.push('updated due date');
+      }
+      if (updates.estimatedHours !== undefined && updates.estimatedHours !== currentTask.estimatedHours) {
+        dbUpdates.estimated_hours = updates.estimatedHours;
+        changes.push(`updated estimated hours to ${updates.estimatedHours}`);
+      }
+      if (updates.actualHours !== undefined && updates.actualHours !== currentTask.actualHours) {
+        dbUpdates.actual_hours = updates.actualHours;
+        changes.push(`updated actual hours to ${updates.actualHours}`);
+      }
+      if (updates.watcherIds !== undefined) {
+        dbUpdates.watcher_ids = updates.watcherIds;
+        changes.push('updated watchers');
+      }
+      if (updates.comments !== undefined) {
+        dbUpdates.comments = updates.comments;
+        changes.push('added a comment');
+      }
+      if (updates.collaboratorIds !== undefined) {
+        dbUpdates.collaborator_ids = updates.collaboratorIds;
+        changes.push('updated collaborators');
+      }
+      if (updates.relatedTaskIds !== undefined) {
+        dbUpdates.related_task_ids = updates.relatedTaskIds;
+        changes.push('updated related tasks');
+      }
+      if (updates.checklist !== undefined) {
+        dbUpdates.checklist = updates.checklist;
+        const oldChecklistLength = (currentTask.checklist as any[])?.length || 0;
+        const newChecklistLength = (updates.checklist as any[])?.length || 0;
+        if (newChecklistLength > oldChecklistLength) {
+          changes.push('added checklist item');
+        } else if (newChecklistLength < oldChecklistLength) {
+          changes.push('removed checklist item');
+        } else {
+          changes.push('updated checklist');
+        }
+      }
+
+      if (Object.keys(dbUpdates).length === 0) {
+        return taskId;
+      }
 
       const { error } = await supabase
         .from('tasks')
@@ -1446,6 +1571,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (error) {
         console.error('Error updating task:', error);
         return undefined;
+      }
+
+      // Create task log entry
+      if (changes.length > 0 && currentUser) {
+        const logAction = changes.join(', ');
+        await supabase
+          .from('task_logs')
+          .insert({
+            task_id: taskId,
+            user_id: currentUser.id,
+            auth_user_id: session.user.id,
+            action: logAction,
+            timestamp: new Date().toISOString()
+          });
       }
 
       setTasks(prev => prev.map(task => 
