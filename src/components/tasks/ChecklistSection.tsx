@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Trash2, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, Pencil, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ChecklistItem {
@@ -21,6 +21,8 @@ export function ChecklistSection({ taskId }: ChecklistSectionProps) {
   const { tasks, updateTask } = useAppContext();
   const { toast } = useToast();
   const [newItemText, setNewItemText] = useState("");
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
 
   const task = tasks.find(t => t.id === taskId);
   const checklist = (task?.checklist || []) as ChecklistItem[];
@@ -70,6 +72,35 @@ export function ChecklistSection({ taskId }: ChecklistSectionProps) {
       title: "Item removed",
       description: "Checklist item has been removed",
     });
+  };
+
+  const handleStartEdit = (item: ChecklistItem) => {
+    setEditingItemId(item.id);
+    setEditingText(item.text);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingText.trim() || !editingItemId) return;
+
+    const updatedChecklist = checklist.map(item =>
+      item.id === editingItemId ? { ...item, text: editingText.trim() } : item
+    );
+
+    updateTask(taskId, {
+      checklist: updatedChecklist,
+    });
+
+    setEditingItemId(null);
+    setEditingText("");
+    toast({
+      title: "Item updated",
+      description: "Checklist item has been updated",
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItemId(null);
+    setEditingText("");
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -124,24 +155,66 @@ export function ChecklistSection({ taskId }: ChecklistSectionProps) {
                 checked={item.completed}
                 onCheckedChange={() => handleToggleItem(item.id)}
                 className="mt-0.5"
+                disabled={editingItemId === item.id}
               />
-              <span
-                className={`flex-1 ${
-                  item.completed
-                    ? "line-through text-muted-foreground"
-                    : "text-foreground"
-                }`}
-              >
-                {item.text}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => handleDeleteItem(item.id)}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+              {editingItemId === item.id ? (
+                <>
+                  <Input
+                    value={editingText}
+                    onChange={(e) => setEditingText(e.target.value)}
+                    className="flex-1"
+                    autoFocus
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") handleSaveEdit();
+                      if (e.key === "Escape") handleCancelEdit();
+                    }}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handleSaveEdit}
+                  >
+                    <Check className="h-4 w-4 text-primary" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handleCancelEdit}
+                  >
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span
+                    className={`flex-1 ${
+                      item.completed
+                        ? "line-through text-muted-foreground"
+                        : "text-foreground"
+                    }`}
+                  >
+                    {item.text}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleStartEdit(item)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleDeleteItem(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </>
+              )}
             </div>
           ))
         )}
