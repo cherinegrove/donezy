@@ -1430,7 +1430,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         estimated_hours: task.estimatedHours,
         actual_hours: task.actualHours,
         watcher_ids: task.watcherIds || [],
-        collaborator_ids: task.collaboratorIds || []
+        collaborator_ids: task.collaboratorIds || [],
+        related_task_ids: task.relatedTaskIds || []
       };
       
       console.log('🟢 Insert data:', insertData);
@@ -1463,7 +1464,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           createdAt: data.created_at,
           watcherIds: data.watcher_ids || [],
           comments: [],
-          collaboratorIds: data.collaborator_ids || []
+          collaboratorIds: data.collaborator_ids || [],
+          relatedTaskIds: data.related_task_ids || []
         };
         
         console.log('🟢 Adding task to local state:', newTask);

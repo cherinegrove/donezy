@@ -44,6 +44,7 @@ const createTaskSchema = (fieldRequirements: { [fieldName: string]: boolean }) =
     projectId: z.string().min(1, { message: "Project is required" }),
     assigneeId: fieldRequirements.assigneeId ? z.string().min(1, { message: "Assignee is required" }) : z.string().optional(),
     collaboratorIds: z.array(z.string()).optional(),
+    relatedTaskIds: z.array(z.string()).optional(),
     status: fieldRequirements.status ? z.string().min(1, { message: "Status is required" }) : z.string().min(1, { message: "Status is required" }),
     priority: fieldRequirements.priority ? z.string().min(1, { message: "Priority is required" }) : z.string().min(1, { message: "Priority is required" }),
     startDate: z.string().optional(),
@@ -155,6 +156,7 @@ export function CreateTaskDialog({
       projectId: defaultProjectId || "",
       assigneeId: "",
       collaboratorIds: [],
+      relatedTaskIds: [],
       status: "todo",
       priority: "medium",
       startDate: "",
@@ -328,6 +330,7 @@ export function CreateTaskDialog({
         projectId: data.projectId,
         assigneeId: data.assigneeId,
         collaboratorIds: data.collaboratorIds,
+        relatedTaskIds: data.relatedTaskIds,
         status: data.status as TaskStatus,
         priority: data.priority as "low" | "medium" | "high",
         startDate: data.startDate,
@@ -617,6 +620,69 @@ export function CreateTaskDialog({
                       )}
                     />
                   </div>
+                  
+                  {/* Related Tasks */}
+                  <FormField
+                    control={form.control}
+                    name="relatedTaskIds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Related Tasks</FormLabel>
+                        <FormControl>
+                          <Select
+                            value=""
+                            onValueChange={(taskId) => {
+                              if (taskId && !field.value?.includes(taskId)) {
+                                field.onChange([...(field.value || []), taskId]);
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Link related tasks" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {tasks
+                                .filter(t => !field.value?.includes(t.id))
+                                .map((task) => {
+                                  const project = projects.find(p => p.id === task.projectId);
+                                  return (
+                                    <SelectItem key={task.id} value={task.id}>
+                                      {task.title} {project && `(${project.name})`}
+                                    </SelectItem>
+                                  );
+                                })}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        {field.value && field.value.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {field.value.map((taskId) => {
+                              const task = tasks.find(t => t.id === taskId);
+                              if (!task) return null;
+                              return (
+                                <div
+                                  key={taskId}
+                                  className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm"
+                                >
+                                  <span>{task.title}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      field.onChange(field.value?.filter(id => id !== taskId));
+                                    }}
+                                    className="hover:text-destructive"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   
                   {/* Status and Priority Row */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
