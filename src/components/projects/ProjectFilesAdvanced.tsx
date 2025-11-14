@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { 
-  Upload, 
   File, 
   Download, 
   Trash2, 
@@ -68,7 +67,6 @@ export function ProjectFilesAdvanced({ projectId }: ProjectFilesAdvancedProps) {
   const [folders, setFolders] = useState<ProjectFolder[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [showAddLink, setShowAddLink] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -77,7 +75,6 @@ export function ProjectFilesAdvanced({ projectId }: ProjectFilesAdvancedProps) {
     url: '',
     provider: 'other'
   });
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadFolders();
@@ -225,59 +222,6 @@ export function ProjectFilesAdvanced({ projectId }: ProjectFilesAdvancedProps) {
       toast({
         title: "Error",
         description: error.message || "Failed to add external link",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      setUploading(true);
-      for (const file of Array.from(files)) {
-        await uploadFile(file);
-      }
-      setUploading(false);
-    }
-  };
-
-  const uploadFile = async (file: File) => {
-    try {
-      // Create a unique file path
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${projectId}/${currentFolderId || 'root'}/${Date.now()}-${file.name}`;
-      
-      // Upload file to Supabase storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('project-files')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      // Save file metadata to database
-      const { error: dbError } = await supabase
-        .from('project_files')
-        .insert({
-          project_id: projectId,
-          name: file.name,
-          file_path: uploadData.path,
-          file_size: file.size,
-          mime_type: file.type || 'application/octet-stream',
-          folder_id: currentFolderId,
-          is_external_link: false
-        });
-
-      if (dbError) throw dbError;
-
-      toast({
-        title: "Success",
-        description: `${file.name} uploaded successfully`
-      });
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      toast({
-        title: "Error",
-        description: `Failed to upload ${file.name}`,
         variant: "destructive"
       });
     }
@@ -467,14 +411,6 @@ export function ProjectFilesAdvanced({ projectId }: ProjectFilesAdvancedProps) {
                 </div>
               </DialogContent>
             </Dialog>
-
-            <Button 
-              onClick={() => fileInputRef.current?.click()} 
-              disabled={uploading}
-            >
-              <Upload className="h-4 w-4 mr-1" />
-              {uploading ? 'Uploading...' : 'Upload Files'}
-            </Button>
           </div>
         </div>
 
@@ -505,14 +441,6 @@ export function ProjectFilesAdvanced({ projectId }: ProjectFilesAdvancedProps) {
       </CardHeader>
 
       <CardContent>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={handleFileSelect}
-        />
-        
         <ScrollArea className="h-[500px]">
           <div className="space-y-3">
             {/* Back Navigation */}
@@ -638,9 +566,9 @@ export function ProjectFilesAdvanced({ projectId }: ProjectFilesAdvancedProps) {
             
             {files.length === 0 && getCurrentFolderChildren().length === 0 && !loading && (
               <div className="text-center text-muted-foreground py-8">
-                <Upload className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <LinkIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
                 <p>No files or folders in this location</p>
-                <p className="text-sm">Upload files, create folders, or add external links to get started</p>
+                <p className="text-sm">Create folders or add external links to get started</p>
               </div>
             )}
           </div>
