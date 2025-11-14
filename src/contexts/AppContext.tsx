@@ -1380,8 +1380,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  const deleteProject = async (projectId: string) => {
-    if (!session?.user) return;
+  const deleteProject = async (projectId: string): Promise<{ success: boolean; error?: string }> => {
+    if (!session?.user) {
+      return { success: false, error: 'You must be logged in to delete projects' };
+    }
     
     try {
       const { error } = await supabase
@@ -1391,12 +1393,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       if (error) {
         console.error('Error deleting project:', error);
-        return;
+        
+        // Provide user-friendly error messages
+        if (error.code === 'PGRST301' || error.message.includes('row-level security')) {
+          return { success: false, error: 'You do not have permission to delete this project. Only the project owner can delete it.' };
+        }
+        
+        return { success: false, error: error.message || 'Failed to delete project' };
       }
 
       setProjects(prev => prev.filter(project => project.id !== projectId));
+      return { success: true };
     } catch (error) {
       console.error('Error deleting project:', error);
+      return { success: false, error: 'An unexpected error occurred while deleting the project' };
     }
   };
 

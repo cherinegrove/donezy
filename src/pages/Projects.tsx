@@ -171,15 +171,24 @@ const Projects = () => {
     navigate(`/projects/${projectId}`);
   };
 
-  const handleDeleteProject = (projectId: string) => {
+  const handleDeleteProject = async (projectId: string) => {
     console.log("Projects component: Delete project", projectId);
     const projectToDelete = projects.find(p => p.id === projectId);
     if (projectToDelete) {
-      deleteProject(projectId);
-      toast({
-        title: "Project deleted",
-        description: `Project "${projectToDelete.name}" has been successfully deleted.`,
-      });
+      const result = await deleteProject(projectId);
+      
+      if (result.success) {
+        toast({
+          title: "Project deleted",
+          description: `Project "${projectToDelete.name}" has been successfully deleted.`,
+        });
+      } else {
+        toast({
+          title: "Failed to delete project",
+          description: result.error || "An error occurred while deleting the project.",
+          variant: "destructive",
+        });
+      }
     } else {
       console.error("Projects component: Project not found for deletion", projectId);
       toast({
