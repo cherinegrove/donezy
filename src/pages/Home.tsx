@@ -490,26 +490,32 @@ const Home = () => {
                 {filteredProjects.length > 0 ? (
                   <div className="space-y-3">
                     {filteredProjects.map((project) => (
-                      <div key={project.id} className="p-3 border rounded-md cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/projects/${project.id}`)}>
+                      <div 
+                        key={project.id} 
+                        className="p-4 border rounded-lg cursor-pointer hover:shadow-md hover:bg-muted/30 transition-all"
+                        onClick={() => navigate(`/projects/${project.id}`)}
+                      >
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium">{project.name}</h4>
+                          <h4 className="font-semibold text-base">{project.name}</h4>
                           <Badge className={getProjectStatusColor(project.status)}>
                             {project.status}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {project.description}
-                        </p>
+                        {project.description && (
+                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                            {project.description}
+                          </p>
+                        )}
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           {project.dueDate && (
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 mr-1" />
-                              Due: {format(parseISO(project.dueDate), "MMM dd, yyyy")}
+                              {format(parseISO(project.dueDate), "MMM dd, yyyy")}
                             </div>
                           )}
                           <div className="flex items-center">
                             <Clock className="h-4 w-4 mr-1" />
-                            {project.usedHours}/{project.allocatedHours || 0}h
+                            {project.usedHours || 0}/{project.allocatedHours || 0}h
                           </div>
                         </div>
                       </div>
