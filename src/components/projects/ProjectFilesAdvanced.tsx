@@ -558,7 +558,19 @@ export function ProjectFilesAdvanced({ projectId }: ProjectFilesAdvancedProps) {
               return (
                 <div
                   key={file.id}
-                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50"
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer"
+                  onClick={() => {
+                    if (file.is_external_link && file.external_url) {
+                      openExternalLink(file.external_url);
+                    } else if (file.file_path) {
+                      const link = document.createElement('a');
+                      link.href = `${supabase.storage.from('project_files').getPublicUrl(file.file_path).data.publicUrl}`;
+                      link.download = file.name;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }
+                  }}
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative">
@@ -591,7 +603,11 @@ export function ProjectFilesAdvanced({ projectId }: ProjectFilesAdvancedProps) {
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
