@@ -41,9 +41,9 @@ export default function Reports() {
   
   const { toast } = useToast();
   
-  // Initialize with last 30 days
-  const [startDate, setStartDate] = useState<Date | undefined>(() => subDays(new Date(), 30));
-  const [endDate, setEndDate] = useState<Date | undefined>(() => new Date());
+  // Initialize with no date filters to show all data
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [selectedClient, setSelectedClient] = useState<string>("all");
   const [selectedProject, setSelectedProject] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<ReportTab>("projects");
