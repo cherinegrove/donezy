@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Upload, File, Trash2, Link as LinkIcon, ExternalLink, Download } from "lucide-react";
+import { File, Trash2, Link as LinkIcon, ExternalLink, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TaskFile } from "@/types";
 import {
@@ -20,9 +20,8 @@ interface FileSectionProps {
 }
 
 export function FileSection({ taskId }: FileSectionProps) {
-  const { tasks, uploadTaskFile, addTaskExternalLink, deleteTaskFile } = useAppContext();
+  const { tasks, addTaskExternalLink, deleteTaskFile } = useAppContext();
   const { toast } = useToast();
-  const [uploading, setUploading] = useState(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [linkName, setLinkName] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
@@ -34,28 +33,6 @@ export function FileSection({ taskId }: FileSectionProps) {
   console.log('🔍 FileSection - task found:', !!task);
   console.log('🔍 FileSection - files:', files);
   console.log('🔍 FileSection - files length:', files.length);
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      await uploadTaskFile(taskId, file);
-      toast({
-        title: "File uploaded",
-        description: `${file.name} has been uploaded successfully.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Upload failed",
-        description: "There was an error uploading the file.",
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleAddLink = async () => {
     if (!linkName.trim() || !linkUrl.trim()) {
@@ -118,17 +95,6 @@ export function FileSection({ taskId }: FileSectionProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-2">
-          <Input
-            type="file"
-            onChange={handleFileUpload}
-            disabled={uploading}
-            className="flex-1"
-          />
-          <Button disabled={uploading}>
-            <Upload className="h-4 w-4 mr-2" />
-            {uploading ? "Uploading..." : "Upload"}
-          </Button>
-          
           <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">
@@ -176,7 +142,17 @@ export function FileSection({ taskId }: FileSectionProps) {
         {files.length > 0 ? (
           <div className="space-y-2">
             {files.map((file: TaskFile) => (
-              <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div 
+                key={file.id} 
+                className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                onClick={() => {
+                  if (file.isExternalLink && file.externalUrl) {
+                    handleOpenLink(file.externalUrl);
+                  } else if (file.url) {
+                    handleOpenLink(file.url);
+                  }
+                }}
+              >
                 <div className="flex items-center gap-3 flex-1">
                   {getFileIcon(file)}
                   <div className="flex-1 min-w-0">
@@ -189,7 +165,11 @@ export function FileSection({ taskId }: FileSectionProps) {
                 <div className="flex items-center gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         •••
                       </Button>
                     </DropdownMenuTrigger>
@@ -220,7 +200,7 @@ export function FileSection({ taskId }: FileSectionProps) {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground text-center py-4">
-            No files or links attached to this task
+            No links attached to this task
           </p>
         )}
       </CardContent>
