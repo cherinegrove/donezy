@@ -46,12 +46,22 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
     return statusDef || { label: status, color: 'bg-gray-500' };
   };
 
-  const handleDelete = () => {
-    deleteProject(project.id);
-    toast({
-      title: "Project deleted",
-      description: "The project and all associated data have been successfully deleted.",
-    });
+  const handleDelete = async () => {
+    const result = await deleteProject(project.id);
+    
+    if (result.success) {
+      toast({
+        title: "Project deleted",
+        description: "The project and all associated data have been successfully deleted.",
+      });
+    } else {
+      toast({
+        title: "Failed to delete project",
+        description: result.error || "An error occurred while deleting the project.",
+        variant: "destructive",
+      });
+    }
+    
     setShowDeleteDialog(false);
   };
 

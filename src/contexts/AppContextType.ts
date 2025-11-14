@@ -55,7 +55,7 @@ export interface AppContextType {
   // Project functions
   addProject: (project: Omit<Project, 'id'>) => void;
   updateProject: (projectId: string, updates: Partial<Project>) => void;
-  deleteProject: (projectId: string) => void;
+  deleteProject: (projectId: string) => Promise<{ success: boolean; error?: string }>;
   getProjectById: (projectId: string) => Project | undefined;
   convertProjectToTemplate: (projectId: string, templateData: { name: string; description: string }) => void;
   watchProject: (projectId: string, userId: string) => void;
