@@ -5,9 +5,10 @@ import { Task } from "@/types";
 
 interface TasksReportsProps {
   tasks: Task[];
+  onMetricClick?: (type: string, data: Task[]) => void;
 }
 
-export function TasksReports({ tasks }: TasksReportsProps) {
+export function TasksReports({ tasks, onMetricClick }: TasksReportsProps) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -16,27 +17,30 @@ export function TasksReports({ tasks }: TasksReportsProps) {
   nextWeek.setHours(23, 59, 59, 999);
 
   // 1. Total number of overdue tasks
-  const overdueTasks = tasks.filter(task => {
+  const overdueTasksList = tasks.filter(task => {
     if (!task.dueDate) return false;
     const dueDate = new Date(task.dueDate);
     dueDate.setHours(0, 0, 0, 0);
     return dueDate.getTime() < today.getTime() && task.status !== "done";
-  }).length;
+  });
+  const overdueTasks = overdueTasksList.length;
 
   // 2. Total number of tasks due today
-  const tasksDueToday = tasks.filter(task => {
+  const tasksDueTodayList = tasks.filter(task => {
     if (!task.dueDate) return false;
     const dueDate = new Date(task.dueDate);
     dueDate.setHours(0, 0, 0, 0);
     return dueDate.getTime() === today.getTime();
-  }).length;
+  });
+  const tasksDueToday = tasksDueTodayList.length;
 
   // 3. Total number of tasks due this week
-  const tasksDueThisWeek = tasks.filter(task => {
+  const tasksDueThisWeekList = tasks.filter(task => {
     if (!task.dueDate) return false;
     const dueDate = new Date(task.dueDate);
     return dueDate >= today && dueDate <= nextWeek;
-  }).length;
+  });
+  const tasksDueThisWeek = tasksDueThisWeekList.length;
 
   // 4. Total tasks by status
   const taskStatusData = [
@@ -92,22 +96,34 @@ export function TasksReports({ tasks }: TasksReportsProps) {
 
       <ReportTile title="Task Metrics Summary" className="lg:col-span-2">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4">
-          <div className="text-center">
+          <button
+            className="text-center hover:bg-accent rounded-lg p-2 transition-colors"
+            onClick={() => onMetricClick?.("overdue", overdueTasksList)}
+          >
             <div className="text-3xl font-bold text-red-600">{overdueTasks}</div>
             <div className="text-sm text-muted-foreground">Overdue Tasks</div>
-          </div>
-          <div className="text-center">
+          </button>
+          <button
+            className="text-center hover:bg-accent rounded-lg p-2 transition-colors"
+            onClick={() => onMetricClick?.("dueToday", tasksDueTodayList)}
+          >
             <div className="text-3xl font-bold text-orange-600">{tasksDueToday}</div>
             <div className="text-sm text-muted-foreground">Tasks Due Today</div>
-          </div>
-          <div className="text-center">
+          </button>
+          <button
+            className="text-center hover:bg-accent rounded-lg p-2 transition-colors"
+            onClick={() => onMetricClick?.("dueThisWeek", tasksDueThisWeekList)}
+          >
             <div className="text-3xl font-bold text-yellow-600">{tasksDueThisWeek}</div>
             <div className="text-sm text-muted-foreground">Tasks Due This Week</div>
-          </div>
-          <div className="text-center">
+          </button>
+          <button
+            className="text-center hover:bg-accent rounded-lg p-2 transition-colors"
+            onClick={() => onMetricClick?.("all", tasks)}
+          >
             <div className="text-3xl font-bold text-blue-600">{tasks.length}</div>
             <div className="text-sm text-muted-foreground">Total Tasks</div>
-          </div>
+          </button>
         </div>
       </ReportTile>
     </div>

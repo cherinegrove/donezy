@@ -21,6 +21,8 @@ import { TasksReports } from "@/components/reports/TasksReports";
 import { TimeReports } from "@/components/reports/TimeReports";
 import { BillingReports } from "@/components/reports/BillingReports";
 import { CustomReportVisualization } from "@/components/reports/CustomReportVisualization";
+import { RecordsDialog } from "@/components/reports/RecordsDialog";
+import { Task, Project, TimeEntry } from "@/types";
 
 type ReportTab = 'projects' | 'tasks' | 'time' | 'billing';
 
@@ -47,6 +49,12 @@ export default function Reports() {
   const [selectedClient, setSelectedClient] = useState<string>("all");
   const [selectedProject, setSelectedProject] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<ReportTab>("projects");
+
+  // Dialog state for detailed records
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState("");
+  const [dialogRecords, setDialogRecords] = useState<Task[] | Project[] | TimeEntry[]>([]);
+  const [dialogType, setDialogType] = useState<"tasks" | "projects" | "timeEntries">("tasks");
 
   // Filter data based on selected filters
   const filteredProjects = selectedClient === "all" 
@@ -112,6 +120,20 @@ export default function Reports() {
     return savedReports.filter(report => 
       validDataSources.includes(report.reportConfig.dataSource)
     );
+  };
+
+  // Handle metric clicks to show detailed records
+  const handleTaskMetricClick = (type: string, data: Task[]) => {
+    const titles: Record<string, string> = {
+      overdue: "Overdue Tasks",
+      dueToday: "Tasks Due Today",
+      dueThisWeek: "Tasks Due This Week",
+      all: "All Tasks",
+    };
+    setDialogTitle(titles[type] || "Tasks");
+    setDialogRecords(data);
+    setDialogType("tasks");
+    setDialogOpen(true);
   };
 
   const handleDeleteReport = (reportId: string, reportName: string) => {
@@ -303,7 +325,10 @@ export default function Reports() {
         </TabsContent>
 
         <TabsContent value="tasks" className="space-y-6">
-          <TasksReports tasks={filteredTasks} />
+          <TasksReports 
+            tasks={filteredTasks} 
+            onMetricClick={handleTaskMetricClick}
+          />
           
           {/* Saved Reports Section */}
           {getTabReports('tasks').length > 0 && (
@@ -450,6 +475,15 @@ export default function Reports() {
         </TabsContent>
 
       </Tabs>
+
+      {/* Records Detail Dialog */}
+      <RecordsDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title={dialogTitle}
+        records={dialogRecords}
+        type={dialogType}
+      />
     </div>
   );
 }
