@@ -1,6 +1,4 @@
-
 import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -79,9 +77,9 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
   };
 
   return (
-    <Card 
+    <div 
       className={cn(
-        "cursor-pointer hover:shadow-md transition-all group relative border-none shadow-sm",
+        "p-4 border rounded-lg cursor-pointer hover:shadow-md hover:bg-muted/30 transition-all relative group",
         isCollaboratorTask && "border-l-4 border-l-blue-500",
         isSelected && "ring-2 ring-primary bg-primary/5"
       )}
@@ -100,106 +98,62 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
           />
         </div>
       )}
-      <CardContent className={cn("p-5", showSelection && "pr-10")}>
-        <div className="space-y-3">
-          <div>
-            <h3 className="font-medium text-sm line-clamp-2">
-              {task.title}
-              {isCollaboratorTask && (
-                <Badge variant="outline" className="ml-2 text-xs">
-                  Collaborator
-                </Badge>
-              )}
-            </h3>
-          </div>
-          
-          {task.description && (
-            <p className="text-xs text-muted-foreground line-clamp-1">
-              {task.description}
-            </p>
+      <div className={cn(showSelection && "pr-8")}>
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="font-semibold text-base line-clamp-1 flex-1">
+            {task.title}
+          </h4>
+          {displayOptions.includes("status") && (
+            <Badge variant="outline" className="ml-2">
+              {task.status}
+            </Badge>
+          )}
+        </div>
+        
+        {task.description && (
+          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+            {task.description}
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+          {displayOptions.includes("priority") && (
+            <Badge variant="outline" className={cn("text-xs", getPriorityColor(task.priority))}>
+              {task.priority}
+            </Badge>
           )}
           
-          <div className="space-y-2">
-            {displayOptions.includes("priority") && (
-              <div className="flex items-center">
-                <Badge 
-                  variant="secondary" 
-                  className={cn("text-xs", getPriorityColor(task.priority))}
-                >
-                  {task.priority}
-                </Badge>
-              </div>
-            )}
-            
-            {displayOptions.includes("status") && (
-              <div className="flex items-center">
-                <Badge variant="outline" className="text-xs">
-                  {task.status.replace('-', ' ')}
-                </Badge>
-              </div>
-            )}
-            
-            {displayOptions.includes("project") && showProject && project && (
-              <div className="flex items-center text-xs text-muted-foreground">
-                <span className="truncate">{project.name}</span>
-              </div>
-            )}
-            
-            {displayOptions.includes("client") && client && (
-              <div className="flex items-center text-xs">
-                <span className="truncate text-blue-600">{client.name}</span>
-              </div>
-            )}
-            
-            {displayOptions.includes("assignee") && (
-              <div className="flex items-center gap-2 text-xs">
-                {assignee ? (
-                  <>
-                    <Avatar className="h-4 w-4">
-                      <AvatarImage src={assignee.avatar} alt={assignee.name} />
-                      <AvatarFallback className="text-xs">
-                        {assignee.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="truncate text-muted-foreground">{assignee.name}</span>
-                  </>
-                ) : (
-                  <span className="truncate text-muted-foreground italic">Unassigned</span>
-                )}
-              </div>
-            )}
-            
-            {displayOptions.includes("collaborators") && collaborators.length > 0 && (
-              <div className="flex items-center gap-2 text-xs">
-                <div className="flex -space-x-1">
-                  {collaborators.slice(0, 3).map((collaborator, index) => (
-                    <Avatar key={collaborator.id} className="h-4 w-4 border-2 border-blue-200">
-                      <AvatarImage src={collaborator.avatar} alt={collaborator.name} />
-                      <AvatarFallback className="text-xs bg-blue-100">
-                        {collaborator.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                  ))}
-                </div>
-                {collaborators.length > 3 && (
-                  <span className="text-xs text-blue-600">+{collaborators.length - 3}</span>
-                )}
-                <span className="text-xs text-muted-foreground">Collaborators</span>
-              </div>
-            )}
-            
-            {displayOptions.includes("dueDate") && task.dueDate && (
-              <div className="flex items-center text-xs">
-                <span className={cn(
-                  isOverdue(task.dueDate) ? "text-red-500" : "text-muted-foreground"
-                )}>
-                  Due: {formatDueDate(task.dueDate)}
-                </span>
-              </div>
-            )}
-          </div>
+          {displayOptions.includes("project") && project && (
+            <span className="text-xs">{project.name}</span>
+          )}
+          
+          {displayOptions.includes("client") && client && (
+            <span className="text-xs text-blue-600">{client.name}</span>
+          )}
+          
+          {displayOptions.includes("assignee") && assignee && (
+            <div className="flex items-center gap-1">
+              <Avatar className="h-5 w-5">
+                <AvatarImage src={assignee.avatar} />
+                <AvatarFallback className="text-xs">{assignee.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+              </Avatar>
+              <span className="text-xs">{assignee.name}</span>
+            </div>
+          )}
+          
+          {displayOptions.includes("dueDate") && task.dueDate && (
+            <span className={cn("text-xs", isOverdue(task.dueDate) && "text-red-500 font-medium")}>
+              Due: {formatDueDate(task.dueDate)}
+            </span>
+          )}
+          
+          {isCollaboratorTask && (
+            <Badge variant="outline" className="text-xs">
+              Collaborator
+            </Badge>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
