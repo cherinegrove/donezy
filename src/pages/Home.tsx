@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { format, isBefore, isToday, parseISO, startOfToday } from "date-fns";
 import { useAppContext } from "@/contexts/AppContext";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea
 
 const Home = () => {
   const { tasks, projects, users, currentUser, customRoles } = useAppContext();
+  const navigate = useNavigate();
   const [selectedUserId, setSelectedUserId] = useState<string>("me");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -488,7 +490,7 @@ const Home = () => {
                 {filteredProjects.length > 0 ? (
                   <div className="space-y-3">
                     {filteredProjects.map((project) => (
-                      <div key={project.id} className="p-3 border rounded-md cursor-pointer hover:bg-muted/50" onClick={() => window.location.href = `/project/${project.id}`}>
+                      <div key={project.id} className="p-3 border rounded-md cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/projects/${project.id}`)}>
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="font-medium">{project.name}</h4>
                           <Badge className={getProjectStatusColor(project.status)}>
