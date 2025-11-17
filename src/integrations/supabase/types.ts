@@ -1159,6 +1159,90 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_tasks: {
+        Row: {
+          assignee_id: string | null
+          auth_user_id: string
+          collaborator_ids: string[] | null
+          created_at: string
+          day_of_month: number | null
+          days_of_week: number[] | null
+          description: string | null
+          end_date: string | null
+          estimated_hours: number | null
+          id: string
+          is_active: boolean
+          last_generated_date: string | null
+          next_generation_date: string
+          priority: string
+          project_id: string
+          recurrence_interval: number
+          recurrence_pattern: string
+          start_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          auth_user_id: string
+          collaborator_ids?: string[] | null
+          created_at?: string
+          day_of_month?: number | null
+          days_of_week?: number[] | null
+          description?: string | null
+          end_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          is_active?: boolean
+          last_generated_date?: string | null
+          next_generation_date: string
+          priority?: string
+          project_id: string
+          recurrence_interval?: number
+          recurrence_pattern: string
+          start_date?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          auth_user_id?: string
+          collaborator_ids?: string[] | null
+          created_at?: string
+          day_of_month?: number | null
+          days_of_week?: number[] | null
+          description?: string | null
+          end_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          is_active?: boolean
+          last_generated_date?: string | null
+          next_generation_date?: string
+          priority?: string
+          project_id?: string
+          recurrence_interval?: number
+          recurrence_pattern?: string
+          start_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_tasks_project_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shared_videos: {
         Row: {
           created_at: string
