@@ -11,6 +11,7 @@ import { EditTaskTemplateDialog } from "@/components/tasks/EditTaskTemplateDialo
 import { BulkImportTasksDialog } from "@/components/tasks/BulkImportTasksDialog";
 import { BulkEditTasksDialog } from "@/components/tasks/BulkEditTasksDialog";
 import { TaskTemplatesList } from "@/components/tasks/TaskTemplatesList";
+import { RecurringTasksList } from "@/components/tasks/RecurringTasksList";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { 
   Popover,
@@ -194,6 +195,7 @@ export default function Tasks() {
           <div className="flex items-center gap-2">
             <TabsList>
               <TabsTrigger value="tasks">Tasks</TabsTrigger>
+              <TabsTrigger value="recurring">Recurring</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
             </TabsList>
             {activeTab === "tasks" ? (
@@ -325,6 +327,10 @@ export default function Tasks() {
               />
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="recurring" className="mt-6">
+          <RecurringTasksList />
         </TabsContent>
 
         <TabsContent value="templates" className="mt-6">
