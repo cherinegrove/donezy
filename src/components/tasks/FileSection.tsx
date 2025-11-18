@@ -75,7 +75,9 @@ export function FileSection({ taskId }: FileSectionProps) {
   };
 
   const handleOpenLink = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    // Ensure URL has a protocol
+    const formattedUrl = url.match(/^https?:\/\//) ? url : `https://${url}`;
+    window.open(formattedUrl, '_blank', 'noopener,noreferrer');
   };
 
   const getFileIcon = (file: TaskFile) => {
