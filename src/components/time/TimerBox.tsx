@@ -30,7 +30,7 @@ interface TimerBoxProps {
 }
 
 export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
-  const { activeTimeEntry, tasks, projects, clients, stopTimeTracking, startTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, getElapsedTime } = useAppContext();
+  const { activeTimeEntry, tasks, projects, clients, stopTimeTracking, startTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, getElapsedTime, addTimeEntry, currentUser } = useAppContext();
   const [timers, setTimers] = useState<TimerItem[]>([]);
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [selectedTimer, setSelectedTimer] = useState<TimerItem | null>(null);
@@ -232,29 +232,33 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   };
 
   const confirmStopTimer = async () => {
-    if (!selectedTimer) return;
+    if (!selectedTimer || !currentUser) return;
 
     try {
       // Calculate final duration in minutes
-      const finalElapsed = selectedTimer.elapsed + (selectedTimer.pausedAt ? selectedTimer.pausedAt.getTime() - selectedTimer.startTime.getTime() : 0);
-      const durationMinutes = Math.floor(finalElapsed / (1000 * 60));
+      const durationMinutes = Math.floor(selectedTimer.elapsed / (1000 * 60));
+      const endTime = new Date();
+      const startTime = selectedTimer.startTime;
 
       if (selectedTimer.isLocalOnly) {
-        // For local-only timers, create a new time entry in the backend
-        console.log('Creating new time entry for local timer');
-        await startTimeTracking(selectedTimer.taskId);
+        // For local-only timers, create a completed time entry directly in the database
+        console.log('💾 Saving local timer as completed time entry');
         
-        // Track that we just created a timer - we'll identify it by checking activeTimeEntry shortly
-        const checkForNewTimer = () => {
-          if (activeTimeEntry && !newlyCreatedTimerId) {
-            setNewlyCreatedTimerId(activeTimeEntry.id);
-          }
-        };
-        setTimeout(checkForNewTimer, 50);
+        const task = tasks.find(t => t.id === selectedTimer.taskId);
+        const project = projects.find(p => p.id === task?.projectId);
         
-        // Wait a moment for the activeTimeEntry to be set
-        await new Promise(resolve => setTimeout(resolve, 100));
-        await stopTimeTracking(notes);
+        await addTimeEntry({
+          userId: currentUser.id,
+          taskId: selectedTimer.taskId,
+          projectId: project?.id || null,
+          clientId: project?.clientId || null,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          duration: durationMinutes,
+          description: notes || null,
+          billable: true,
+          status: 'pending',
+        });
       } else {
         // For backend timers, just stop the existing one
         await stopTimeTracking(notes);
