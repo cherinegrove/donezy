@@ -2,7 +2,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
-import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus, Pause, Save, Edit } from "lucide-react";
+import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus, Pause, Save, Edit, Download, FileText } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
@@ -49,6 +49,7 @@ import { EditTimeEntryDialog } from "@/components/time/EditTimeEntryDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { generateClientMonthlyReportCSV, generateClientDetailedReportCSV, downloadCSV } from "@/utils/exportUtils";
 
 const TimeTracking = () => {
   const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser, updateTimeEntryStatus, stopTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, getElapsedTime, customRoles } = useAppContext();
@@ -377,23 +378,71 @@ const TimeTracking = () => {
   const handleApproveTimeEntry = (entry: TimeEntry, billable: boolean = true) => {
     if (!currentUser) return;
     
-    const status = billable ? "approved-billable" : "approved-non-billable";
-    updateTimeEntryStatus(entry.id, status, currentUser.auth_user_id);
-    
+    const status = billable ? 'approved-billable' : 'approved-non-billable';
+    updateTimeEntryStatus(entry.id, status);
     toast({
-      title: "Time Entry Approved",
-      description: `The time entry has been marked as ${billable ? 'billable' : 'non-billable'}.`,
+      title: "Time entry approved",
+      description: `Marked as ${billable ? 'billable' : 'non-billable'}`,
     });
   };
   
   const handleDeclineTimeEntry = (entry: TimeEntry) => {
-    if (!currentUser) return;
+    updateTimeEntryStatus(entry.id, 'declined');
+    toast({
+      title: "Time entry declined",
+      variant: "destructive",
+    });
+  };
+
+  // Export handlers
+  const handleExportSummary = () => {
+    const monthlyData = getMonthlyDataByClient();
+    const dataByClient = monthlyData.reduce((acc, item) => {
+      acc[item.client.id] = item;
+      return acc;
+    }, {} as Record<string, typeof monthlyData[0]>);
     
-    updateTimeEntryStatus(entry.id, "declined", currentUser.auth_user_id);
+    const csv = generateClientMonthlyReportCSV(dataByClient, selectedMonth, users);
+    const filename = `time-report-summary-${selectedMonth}.csv`;
+    downloadCSV(csv, filename);
     
     toast({
-      title: "Time Entry Declined",
-      description: "The time entry has been declined.",
+      title: "Report exported",
+      description: `Summary report for ${format(new Date(`${selectedMonth}-01`), 'MMMM yyyy')} downloaded`,
+    });
+  };
+
+  const handleExportDetailed = () => {
+    const monthlyData = getMonthlyDataByClient();
+    const dataByClient = monthlyData.reduce((acc, item) => {
+      acc[item.client.id] = item;
+      return acc;
+    }, {} as Record<string, typeof monthlyData[0]>);
+    
+    const csv = generateClientDetailedReportCSV(dataByClient, selectedMonth);
+    const filename = `time-report-detailed-${selectedMonth}.csv`;
+    downloadCSV(csv, filename);
+    
+    toast({
+      title: "Report exported",
+      description: `Detailed report for ${format(new Date(`${selectedMonth}-01`), 'MMMM yyyy')} downloaded`,
+    });
+  };
+
+  const handleExportByClient = (clientId: string, clientName: string) => {
+    const monthlyData = getMonthlyDataByClient();
+    const dataByClient = monthlyData.reduce((acc, item) => {
+      acc[item.client.id] = item;
+      return acc;
+    }, {} as Record<string, typeof monthlyData[0]>);
+    
+    const csv = generateClientDetailedReportCSV(dataByClient, selectedMonth, clientId);
+    const filename = `time-report-${clientName.replace(/\s+/g, '-')}-${selectedMonth}.csv`;
+    downloadCSV(csv, filename);
+    
+    toast({
+      title: "Client report exported",
+      description: `Report for ${clientName} downloaded`,
     });
   };
 
@@ -834,26 +883,47 @@ const TimeTracking = () => {
         
         <TabsContent value="reports" className="space-y-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <div>
                 <CardTitle>Monthly Summary - Approved Time Only</CardTitle>
                 <p className="text-sm text-muted-foreground">Shows only approved billable and non-billable time entries</p>
               </div>
-              <Select
-                value={selectedMonth}
-                onValueChange={setSelectedMonth}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableMonths.map(month => (
-                    <SelectItem key={month} value={month}>
-                      {format(new Date(`${month}-01`), "MMMM yyyy")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={selectedMonth}
+                  onValueChange={setSelectedMonth}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableMonths.map(month => (
+                      <SelectItem key={month} value={month}>
+                        {format(new Date(`${month}-01`), "MMMM yyyy")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Download className="h-4 w-4 mr-2" />
+                      Export Report
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleExportSummary}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Summary Report (CSV)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportDetailed}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Detailed Report (CSV)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </CardHeader>
             <CardContent>
               {monthlyDataByClient.length > 0 ? (
@@ -874,7 +944,21 @@ const TimeTracking = () => {
                               </div>
                               <div className="font-medium">{clientData.client.name}</div>
                             </div>
-                            <div className="font-mono font-medium">{formatDuration(clientData.totalMinutes)}</div>
+                            <div className="flex items-center gap-3">
+                              <div className="font-mono font-medium">{formatDuration(clientData.totalMinutes)}</div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleExportByClient(clientData.client.id, clientData.client.name);
+                                }}
+                                className="h-7 text-xs"
+                              >
+                                <Download className="h-3 w-3 mr-1" />
+                                Export
+                              </Button>
+                            </div>
                           </div>
                         </AccordionTrigger>
                         <AccordionContent>
