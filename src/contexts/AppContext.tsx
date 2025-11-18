@@ -5,6 +5,7 @@ import { CustomDashboard, SavedReport } from "@/types/dashboard";
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { mockUsers, mockTeams, mockClients, mockProjects, mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockProjectTemplates, mockTaskTemplates, mockCustomRoles, mockCustomFields, mockDashboards } from "@/data/mockData";
+import { useToast } from '@/hooks/use-toast';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -21,6 +22,7 @@ interface AppProviderProps {
 }
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
+  const { toast } = useToast();
   // State management
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -1650,12 +1652,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       if (error) {
         console.error('Error deleting task:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete task. You may not have permission to delete this task.",
+          variant: "destructive",
+        });
         return;
       }
 
       setTasks(prev => prev.filter(task => task.id !== taskId));
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      });
     } catch (error) {
       console.error('Error deleting task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task",
+        variant: "destructive",
+      });
     }
   };
 
