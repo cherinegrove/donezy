@@ -349,7 +349,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                          <div className="flex gap-1">
                            {timer.isActive && !timer.isPaused && !(!timer.isLocalOnly && isTimerPaused) && (
                              <Badge variant="default" className="text-xs">
-                               {timer.isLocalOnly ? "Local" : "Active"}
+                               Live
                              </Badge>
                            )}
                            {(timer.isPaused || (!timer.isLocalOnly && isTimerPaused)) && (

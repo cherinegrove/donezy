@@ -507,7 +507,7 @@ const TimeTracking = () => {
                         </p>
                         <p className="text-xs text-green-500 dark:text-green-500">
                           Started: {format(new Date(activeTimer.timeEntry.startTime), "HH:mm")}
-                          {isTimerPaused && " • PAUSED"}
+                          {isTimerPaused ? " • Paused" : " • Live"}
                         </p>
                       </div>
                     </div>
@@ -593,8 +593,7 @@ const TimeTracking = () => {
                           </p>
                           <p className="text-xs text-blue-500 dark:text-blue-500">
                             Started: {format(timer.startTime, "HH:mm")}
-                            {timer.isPaused && " • PAUSED"}
-                            {timer.isLocalOnly && " • Local"}
+                            {timer.isPaused ? " • Paused" : " • Live"}
                           </p>
                         </div>
                       </div>
