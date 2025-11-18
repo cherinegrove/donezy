@@ -158,7 +158,16 @@ export function FileSection({ taskId }: FileSectionProps) {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{file.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {file.isExternalLink ? new URL(file.externalUrl || '').hostname : `${file.sizeKb.toFixed(1)} KB`}
+                      {file.isExternalLink && file.externalUrl 
+                        ? (() => {
+                            try {
+                              return new URL(file.externalUrl).hostname;
+                            } catch {
+                              return file.externalUrl;
+                            }
+                          })()
+                        : `${(file.sizeKb || 0).toFixed(1)} KB`
+                      }
                     </p>
                   </div>
                 </div>
