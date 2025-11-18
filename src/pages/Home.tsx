@@ -246,12 +246,11 @@ const Home = () => {
             )}
           </CardContent>
         </Card>
+      </div>
 
-        {/* Row 5: My Time Tracking */}
+      {/* Row 5: My Time Tracking - Full Width */}
+      <div className="mt-6">
         <MyTimeTrackingCard />
-
-        {/* Empty cell */}
-        <div></div>
       </div>
 
       {selectedTask && (
