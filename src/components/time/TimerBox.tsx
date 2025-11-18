@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Play, Pause, Square, Timer, Trash2 } from "lucide-react";
+import { Clock, Play, Pause, Save, Timer, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -385,9 +385,9 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleStopTimer(timer)}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                        className="h-8 w-8 p-0 text-primary hover:text-primary/80"
                       >
-                        <Square className="h-4 w-4" />
+                        <Save className="h-4 w-4" />
                       </Button>
                       
                       <Button
