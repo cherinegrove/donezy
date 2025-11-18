@@ -24,6 +24,7 @@ interface RecurringTaskDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
   editTask?: RecurringTask;
+  initialTask?: Partial<RecurringTask>;
 }
 
 const DAYS_OF_WEEK = [
@@ -36,17 +37,19 @@ const DAYS_OF_WEEK = [
   { value: 6, label: "Saturday" },
 ];
 
-export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask }: RecurringTaskDialogProps) {
+export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, initialTask }: RecurringTaskDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   
-  const [title, setTitle] = useState(editTask?.title || "");
-  const [description, setDescription] = useState(editTask?.description || "");
-  const [projectId, setProjectId] = useState(editTask?.project_id || "");
-  const [assigneeId, setAssigneeId] = useState(editTask?.assignee_id || "");
-  const [priority, setPriority] = useState(editTask?.priority || "medium");
-  const [collaboratorIds, setCollaboratorIds] = useState<string[]>(editTask?.collaborator_ids || []);
-  const [estimatedHours, setEstimatedHours] = useState<number | undefined>(editTask?.estimated_hours);
+  const taskData = editTask || initialTask;
+  
+  const [title, setTitle] = useState(taskData?.title || "");
+  const [description, setDescription] = useState(taskData?.description || "");
+  const [projectId, setProjectId] = useState(taskData?.project_id || "");
+  const [assigneeId, setAssigneeId] = useState(taskData?.assignee_id || "");
+  const [priority, setPriority] = useState(taskData?.priority || "medium");
+  const [collaboratorIds, setCollaboratorIds] = useState<string[]>(taskData?.collaborator_ids || []);
+  const [estimatedHours, setEstimatedHours] = useState<number | undefined>(taskData?.estimated_hours);
   
   const [recurrencePattern, setRecurrencePattern] = useState<string>(editTask?.recurrence_pattern || "daily");
   const [recurrenceInterval, setRecurrenceInterval] = useState(editTask?.recurrence_interval || 1);

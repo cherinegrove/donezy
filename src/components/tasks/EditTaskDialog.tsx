@@ -36,6 +36,8 @@ import { ChecklistSection } from "./ChecklistSection";
 import { CommentSection } from "./CommentSection";
 import { RelatedTasksSection } from "./RelatedTasksSection";
 import { supabase } from "@/integrations/supabase/client";
+import { RecurringTaskDialog } from "./RecurringTaskDialog";
+import { Repeat } from "lucide-react";
 
 interface EditTaskDialogProps {
   task: Task;
@@ -77,6 +79,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   );
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
+  const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
 
   // Reset form state when task changes
   useEffect(() => {
@@ -137,6 +140,19 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       description: "Task has been deleted successfully",
       variant: "destructive",
     });
+  };
+
+  const handleConvertToRecurring = () => {
+    setRecurringDialogOpen(true);
+  };
+
+  const handleRecurringSuccess = async () => {
+    setRecurringDialogOpen(false);
+    toast({
+      title: "Success",
+      description: "Recurring task created successfully. You may want to delete this original task.",
+    });
+    handleOpenChange(false);
   };
 
   // Handlers for the select components with proper typing
@@ -309,13 +325,22 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
           </Tabs>
 
           <DialogFooter className="mt-6 flex justify-between">
-            <Button
-              variant="destructive"
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              <Trash className="h-4 w-4 mr-2" />
-              Delete Task
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash className="h-4 w-4 mr-2" />
+                Delete Task
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleConvertToRecurring}
+              >
+                <Repeat className="h-4 w-4 mr-2" />
+                Convert to Recurring
+              </Button>
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancel
@@ -344,6 +369,21 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <RecurringTaskDialog
+        open={recurringDialogOpen}
+        onOpenChange={setRecurringDialogOpen}
+        onSuccess={handleRecurringSuccess}
+        initialTask={{
+          title: task.title,
+          description: task.description || undefined,
+          project_id: task.projectId,
+          assignee_id: task.assigneeId || undefined,
+          priority: task.priority,
+          collaborator_ids: task.collaboratorIds || [],
+          estimated_hours: task.estimatedHours || undefined,
+        }}
+      />
     </>
   );
 }
