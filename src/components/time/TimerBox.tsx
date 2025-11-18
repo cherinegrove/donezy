@@ -37,12 +37,40 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   const [notes, setNotes] = useState("");
   const [newlyCreatedTimerId, setNewlyCreatedTimerId] = useState<string | null>(null);
 
-  // Load timers from localStorage on mount and clean duplicates
+  // Load timers from localStorage on mount
   useEffect(() => {
-    console.log('🧹 TimerBox: Clearing old localStorage timers on mount');
-    // Clear old localStorage timers completely to start fresh
-    localStorage.removeItem('activeTimers');
-    setTimers([]);
+    const savedTimers = localStorage.getItem('activeTimers');
+    if (savedTimers) {
+      try {
+        const parsed = JSON.parse(savedTimers);
+        setTimers(parsed.map((t: any) => ({
+          ...t,
+          startTime: new Date(t.startTime),
+          pausedAt: t.pausedAt ? new Date(t.pausedAt) : undefined
+        })));
+      } catch (error) {
+        console.error('Error loading timers:', error);
+        localStorage.removeItem('activeTimers');
+      }
+    }
+  }, []);
+
+  // Listen for pause events from AppContext
+  useEffect(() => {
+    const handlePauseActive = (event: CustomEvent) => {
+      const { timerId } = event.detail;
+      console.log('📢 Received pauseActiveTimer event for:', timerId);
+      
+      // Convert the active backend timer to a local-only paused timer
+      setTimers(prev => prev.map(t => 
+        t.id === timerId 
+          ? { ...t, isActive: false, isPaused: true, pausedAt: new Date(), isLocalOnly: true }
+          : t
+      ));
+    };
+
+    window.addEventListener('pauseActiveTimer', handlePauseActive as EventListener);
+    return () => window.removeEventListener('pauseActiveTimer', handlePauseActive as EventListener);
   }, []);
 
   // Save timers to localStorage whenever timers change - ensure no duplicates
@@ -72,85 +100,44 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     window.dispatchEvent(new CustomEvent('timersUpdated'));
   }, [timers]);
 
-  // Handle activeTimeEntry from backend (only for truly new timers started elsewhere)
+  // Handle activeTimeEntry from backend - create timer UI representation
   useEffect(() => {
-    console.log('🔄 TimerBox activeTimeEntry effect:', { 
-      activeTimeEntry: activeTimeEntry ? {
-        id: activeTimeEntry.id,
-        clientId: activeTimeEntry.clientId,
-        taskId: activeTimeEntry.taskId,
-        startTime: activeTimeEntry.startTime
-      } : null, 
-      currentTimersCount: timers.length,
-      clientsLoaded: clients.length
-    });
     if (activeTimeEntry) {
       const task = tasks.find(t => t.id === activeTimeEntry.taskId);
       const project = projects.find(p => p.id === task?.projectId);
       const client = clients.find(c => c.id === activeTimeEntry.clientId);
       
-        console.log('TimerBox - Timer creation debug:', {
-          activeTimeEntryClientId: activeTimeEntry.clientId,
-          clientsLength: clients.length,
-          foundClient: client,
-          clientName: client?.name
-        });
+      // Check if we already have this timer
+      const existingTimer = timers.find(t => t.id === activeTimeEntry.id);
+      
+      if (!existingTimer) {
+        console.log('➕ Adding new backend timer to UI');
+        const newTimer: TimerItem = {
+          id: activeTimeEntry.id,
+          taskId: activeTimeEntry.taskId || '',
+          taskTitle: task?.title || 'Unknown Task',
+          projectName: project?.name,
+          clientName: client?.name,
+          startTime: new Date(activeTimeEntry.startTime),
+          elapsed: 0,
+          isPaused: isTimerPaused,
+          pausedAt: isTimerPaused ? new Date() : undefined,
+          totalPausedTime: 0,
+          isActive: !isTimerPaused,
+          isLocalOnly: false
+        };
         
-        // Check if we already have this timer locally
-        const existingTimer = timers.find(t => t.id === activeTimeEntry.id);
-        
-        if (!existingTimer) {
-          // Check if this is a timer we just created
-          const isNewTimer = newlyCreatedTimerId === activeTimeEntry.id;
-          const now = new Date();
-          const dbStartTime = new Date(activeTimeEntry.startTime);
-          
-          const timerItem: TimerItem = {
-            id: activeTimeEntry.id,
-            taskId: activeTimeEntry.taskId,
-            taskTitle: task?.title || `Task (${activeTimeEntry.taskId.slice(0, 8)}...)`,
-            projectName: project?.name,
-            clientName: client?.name,
-            startTime: now,
-            elapsed: isNewTimer ? 0 : Math.max(0, now.getTime() - dbStartTime.getTime()),
-            isPaused: false,
-            totalPausedTime: 0,
-            isActive: true,
-            isLocalOnly: false // This came from the backend
-          };
-          
-          // Clear the newly created timer ID since we've processed it
-          if (isNewTimer) {
-            setNewlyCreatedTimerId(null);
-          }
-          
-          console.log('TimerBox - creating new timer from backend:', timerItem);
-          console.log('TimerBox - current timers before adding:', timers.map(t => ({ id: t.id, taskTitle: t.taskTitle, clientName: t.clientName })));
-        
-        // Convert existing backend timers to local paused timers, but keep existing local timers as-is
-        setTimers(prev => {
-          const updatedTimers = prev.map(existingTimer => {
-            // If this is a backend timer (not local-only), convert it to local paused
-            if (!existingTimer.isLocalOnly) {
-              console.log('Converting backend timer to local paused:', existingTimer.id);
-              return {
-                ...existingTimer,
-                isActive: false,
-                isPaused: true,
-                pausedAt: new Date(),
-                isLocalOnly: true // Convert to local-only when paused
-              };
-            }
-            // Keep local timers as-is (they might already be paused)
-            return existingTimer;
-          });
-          
-          return [...updatedTimers, timerItem];
-        });
+        setTimers(prev => [...prev, newTimer]);
+      } else {
+        // Update existing timer's pause state
+        setTimers(prev => prev.map(t => 
+          t.id === activeTimeEntry.id 
+            ? { ...t, isPaused: isTimerPaused, isActive: !isTimerPaused, isLocalOnly: false }
+            : t
+        ));
       }
     }
-    // Don't clear timers when activeTimeEntry becomes null - let timers persist until explicitly stopped
-  }, [activeTimeEntry, tasks, projects, clients]);
+  }, [activeTimeEntry, isTimerPaused, tasks, projects, clients]);
 
   // Update elapsed time for active timers (both local and backend)
   useEffect(() => {
@@ -189,99 +176,46 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     const timer = timers.find(t => t.id === timerId);
     if (!timer) return;
 
-    console.log('🎯 TimerBox handlePauseTimer - timer:', timer);
-    console.log('🎯 Current active timers:', timers.filter(t => t.isActive && !t.isPaused).map(t => ({ id: t.id, isLocalOnly: t.isLocalOnly })));
-    console.log('🎯 Backend activeTimeEntry:', activeTimeEntry?.id);
-    console.log('🎯 Backend isTimerPaused:', isTimerPaused);
-
-    // If trying to resume a paused timer, first pause ALL other active timers
-    if (timer.isPaused || (!timer.isLocalOnly && isTimerPaused)) {
-      console.log('🔄 Attempting to resume timer, first pausing all other active timers');
+    // RULE: Resuming a timer pauses all other timers
+    if (timer.isPaused) {
+      console.log('▶️ Resuming timer:', timerId);
       
-      // Pause any active backend timer
+      // First, pause/stop the currently active backend timer if exists
       if (activeTimeEntry && !isTimerPaused) {
-        console.log('⏸️ Pausing backend timer before resuming selected timer');
-        pauseTimeTracking();
+        console.log('⏸️ Pausing current backend timer');
+        await stopTimeTracking('Auto-paused when resuming another timer');
         
-        // Also update the local state of the backend timer to reflect it's now paused
-        setTimers(prev => prev.map(t => {
-          if (!t.isLocalOnly && t.id === activeTimeEntry.id) {
-            console.log('⏸️ Updating local state of paused backend timer:', t.id);
-            return {
-              ...t,
-              isPaused: true,
-              pausedAt: new Date(),
-              isActive: false,
-              isLocalOnly: true // Convert to local since it's no longer the active backend timer
-            };
-          }
-          return t;
-        }));
+        // Convert it to a local paused timer
+        setTimers(prev => prev.map(t => 
+          t.id === activeTimeEntry.id 
+            ? { ...t, isActive: false, isPaused: true, pausedAt: new Date(), isLocalOnly: true }
+            : t
+        ));
       }
       
-      // Pause any active local timers
+      // Pause all other active local timers
       setTimers(prev => prev.map(t => {
         if (t.id !== timerId && t.isActive && !t.isPaused) {
-          console.log('⏸️ Pausing local timer:', t.id);
-          return {
-            ...t,
-            isPaused: true,
-            pausedAt: new Date(),
-            isActive: false
-          };
+          return { ...t, isPaused: true, pausedAt: new Date(), isActive: false };
         }
         return t;
       }));
       
-      // Now handle the specific timer
-      console.log('🔄 Determining how to resume timer:', {
-        timerId: timer.id,
-        isLocalOnly: timer.isLocalOnly,
-        isPaused: timer.isPaused,
-        activeTimeEntryId: activeTimeEntry?.id,
-        isBackendTimer: !timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id,
-        isLocalTimer: timer.isLocalOnly && timer.isPaused,
-        isOrphanedBackendTimer: !timer.isLocalOnly && timer.isPaused && (!activeTimeEntry || timer.id !== activeTimeEntry.id)
-      });
-
-      if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
-        console.log('🔄 Resuming backend timer via AppContext');
-        await resumeTimeTracking();
-      } else if (timer.isLocalOnly && timer.isPaused) {
-        console.log('▶️ Resuming local timer');
-        const pauseDuration = timer.pausedAt ? Date.now() - timer.pausedAt.getTime() : 0;
-        
-        setTimers(prev => prev.map(t => t.id === timerId ? {
-          ...t,
-          isPaused: false,
-          pausedAt: undefined,
-          isActive: true,
-          totalPausedTime: (t.totalPausedTime || 0) + pauseDuration
-        } : t));
-      } else if (!timer.isLocalOnly && timer.isPaused) {
-        // This timer claims to be a backend timer but it's not the current activeTimeEntry
-        // Convert it to a local timer and start it
-        console.log('🔄 Converting orphaned backend timer to local and starting');
-        const pauseDuration = timer.pausedAt ? Date.now() - timer.pausedAt.getTime() : 0;
-        
-        setTimers(prev => prev.map(t => t.id === timerId ? {
-          ...t,
-          isPaused: false,
-          pausedAt: undefined,
-          isActive: true,
-          isLocalOnly: true, // Convert to local
-          totalPausedTime: (t.totalPausedTime || 0) + pauseDuration
-        } : t));
-      } else {
-        console.error('❌ Unhandled timer resume scenario:', timer);
-      }
+      // Start this timer as a new backend timer
+      await startTimeTracking(timer.taskId);
+      
+      // Remove the old local timer entry (it will be recreated by the activeTimeEntry effect)
+      setTimers(prev => prev.filter(t => t.id !== timerId));
+      
     } else if (timer.isActive && !timer.isPaused) {
-      // Pausing an active timer
+      // RULE: Pausing a timer
+      console.log('⏸️ Pausing timer:', timerId);
+      
       if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
-        console.log('🔄 Pausing backend timer via AppContext');
+        // Pause backend timer
         pauseTimeTracking();
       } else {
-        console.log('⏸️ Pausing local timer');
+        // Pause local timer
         setTimers(prev => prev.map(t => t.id === timerId ? {
           ...t,
           isPaused: true,
@@ -341,9 +275,10 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     const timer = timers.find(t => t.id === timerId);
     if (!timer) return;
     
-    // If this is a backend timer (activeTimeEntry), we need to stop it
+    console.log('🗑️ Deleting timer:', timerId);
+    
+    // If this is the active backend timer, stop it properly
     if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
-      console.log('🗑️ Deleting backend timer - stopping activeTimeEntry');
       await stopTimeTracking('Timer deleted');
     }
     
