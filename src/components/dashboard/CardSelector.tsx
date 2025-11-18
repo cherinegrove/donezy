@@ -10,7 +10,8 @@ export type CardType =
   | "recent-tasks"
   | "notifications"
   | "task-reminders"
-  | "my-week";
+  | "my-week"
+  | "my-time-tracking";
 
 interface CardOption {
   id: CardType;
@@ -48,6 +49,11 @@ const availableCards: CardOption[] = [
     id: "my-week",
     name: "My Week",
     description: "All tasks due this week"
+  },
+  {
+    id: "my-time-tracking",
+    name: "My Time Tracking",
+    description: "Time tracking for today, this week, this month, and past periods"
   }
 ];
 
