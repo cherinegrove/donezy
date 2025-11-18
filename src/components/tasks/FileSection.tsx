@@ -184,18 +184,27 @@ export function FileSection({ taskId }: FileSectionProps) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       {file.isExternalLink ? (
-                        <DropdownMenuItem onClick={() => handleOpenLink(file.externalUrl || '')}>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenLink(file.externalUrl || '');
+                        }}>
                           <ExternalLink className="h-4 w-4 mr-2" />
                           Open Link
                         </DropdownMenuItem>
                       ) : (
-                        <DropdownMenuItem onClick={() => handleOpenLink(file.url)}>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenLink(file.url);
+                        }}>
                           <Download className="h-4 w-4 mr-2" />
                           Download
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem 
-                        onClick={() => handleDeleteFile(file.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteFile(file.id);
+                        }}
                         className="text-destructive"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
