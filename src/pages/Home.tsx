@@ -11,6 +11,7 @@ import { TaskCard } from "@/components/tasks/TaskCard";
 import { RecentTasksCard } from "@/components/dashboard/cards/RecentTasksCard";
 import { NotificationsCard } from "@/components/dashboard/cards/NotificationsCard";
 import { TaskRemindersCard } from "@/components/dashboard/cards/TaskRemindersCard";
+import { MyTimeTrackingCard } from "@/components/dashboard/cards/MyTimeTrackingCard";
 
 const Home = () => {
   const { tasks, projects, currentUser } = useAppContext();
@@ -245,6 +246,12 @@ const Home = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Row 5: My Time Tracking */}
+        <MyTimeTrackingCard />
+
+        {/* Empty cell */}
+        <div></div>
       </div>
 
       {selectedTask && (
