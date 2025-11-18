@@ -1380,6 +1380,56 @@ export type Database = {
         }
         Relationships: []
       }
+      task_files: {
+        Row: {
+          auth_user_id: string
+          external_provider: string | null
+          external_url: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          is_external_link: boolean | null
+          mime_type: string | null
+          name: string
+          task_id: string
+          uploaded_at: string | null
+        }
+        Insert: {
+          auth_user_id?: string
+          external_provider?: string | null
+          external_url?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          is_external_link?: boolean | null
+          mime_type?: string | null
+          name: string
+          task_id: string
+          uploaded_at?: string | null
+        }
+        Update: {
+          auth_user_id?: string
+          external_provider?: string | null
+          external_url?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          is_external_link?: boolean | null
+          mime_type?: string | null
+          name?: string
+          task_id?: string
+          uploaded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_files_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_logs: {
         Row: {
           action: string
