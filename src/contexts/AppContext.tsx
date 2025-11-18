@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AppContextType } from './AppContextType';
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, TaskStatusDefinition, ProjectStatusDefinition, CustomField, TaskStatus, TimeEntryStatus } from "@/types";
+import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, TaskStatusDefinition, ProjectStatusDefinition, CustomField, TaskStatus, TimeEntryStatus, TaskFile } from "@/types";
 import { CustomDashboard, SavedReport } from "@/types/dashboard";
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
@@ -283,6 +283,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         console.error('Error loading comments:', commentsError);
       }
 
+      // Load task files for all tasks
+      const { data: filesData, error: filesError } = await supabase
+        .from('task_files')
+        .select('*');
+
+      if (filesError) {
+        console.error('Error loading task files:', filesError);
+      }
+
       // Group comments by task_id
       const commentsByTask: { [key: string]: any[] } = {};
       if (commentsData) {
@@ -296,6 +305,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             content: comment.content,
             timestamp: comment.created_at,
             mentionedUserIds: comment.mentioned_user_ids || []
+          });
+        });
+      }
+
+      // Group files by task_id
+      const filesByTask: { [key: string]: TaskFile[] } = {};
+      if (filesData) {
+        filesData.forEach(file => {
+          if (!filesByTask[file.task_id]) {
+            filesByTask[file.task_id] = [];
+          }
+          filesByTask[file.task_id].push({
+            id: file.id,
+            name: file.name,
+            url: file.external_url || file.file_path || '',
+            externalUrl: file.external_url,
+            isExternalLink: file.is_external_link || false,
+            size: file.file_size || 0,
+            sizeKb: Math.round((file.file_size || 0) / 1024),
+            uploadedAt: file.uploaded_at
           });
         });
       }
@@ -317,7 +346,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         collaboratorIds: task.collaborator_ids || [],
         relatedTaskIds: task.related_task_ids || [],
         checklist: task.checklist || [],
-        files: task.files || []
+        files: filesByTask[task.id] || []
       })) || [];
       
       setTasks(convertedTasks);
@@ -1571,21 +1600,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           changes.push('updated checklist');
         }
       }
-      if (updates.files !== undefined) {
-        dbUpdates.files = updates.files;
-        const oldFilesLength = (currentTask.files as any[])?.length || 0;
-        const newFilesLength = (updates.files as any[])?.length || 0;
-        if (newFilesLength > oldFilesLength) {
-          const newFile = updates.files[updates.files.length - 1];
-          if (newFile?.isExternalLink) {
-            changes.push(`added external link "${newFile.name}"`);
-          } else {
-            changes.push('added file');
-          }
-        } else if (newFilesLength < oldFilesLength) {
-          changes.push('removed file');
-        }
-      }
 
       if (Object.keys(dbUpdates).length === 0) {
         return taskId;
@@ -2237,6 +2251,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const uploadTaskFile = async (taskId: string, file: File): Promise<string> => {
+    if (!session?.user) return '';
+    
     try {
       // Create a unique file path
       const fileName = `tasks/${taskId}/${Date.now()}-${file.name}`;
@@ -2253,20 +2269,40 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .from('project-files')
         .getPublicUrl(uploadData.path);
 
-      // Create a task file record in the task's files array
-      const task = tasks.find(t => t.id === taskId);
-      if (task) {
-        const taskFile = {
-          id: Math.random().toString(36).substring(2, 15),
+      // Create a task file record in task_files table
+      const { data: fileData, error: fileError } = await supabase
+        .from('task_files')
+        .insert({
+          task_id: taskId,
+          auth_user_id: session.user.id,
           name: file.name,
+          file_path: uploadData.path,
+          file_size: file.size,
+          mime_type: file.type,
+          is_external_link: false
+        })
+        .select()
+        .single();
+
+      if (fileError) throw fileError;
+
+      // Update local state
+      if (fileData) {
+        const newFile: TaskFile = {
+          id: fileData.id,
+          name: fileData.name,
           url: publicUrlData.publicUrl,
           size: file.size,
           sizeKb: Math.round(file.size / 1024),
-          uploadedAt: new Date().toISOString()
+          uploadedAt: fileData.uploaded_at,
+          isExternalLink: false
         };
-        
-        const updatedFiles = [...(task.files || []), taskFile];
-        await updateTask(taskId, { files: updatedFiles });
+
+        setTasks(prev => prev.map(task => 
+          task.id === taskId 
+            ? { ...task, files: [...(task.files || []), newFile] }
+            : task
+        ));
       }
 
       return uploadData.path;
@@ -2277,71 +2313,72 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const addTaskExternalLink = async (taskId: string, linkName: string, linkUrl: string) => {
-    console.log('📎 addTaskExternalLink called:', { taskId, linkName, linkUrl });
+    if (!session?.user) return;
     
     try {
-      const task = tasks.find(t => t.id === taskId);
-      console.log('📎 Task found:', !!task);
-      console.log('📎 Current task files:', task?.files);
-      
-      if (!task) {
-        console.error('❌ Task not found');
-        return;
+      const { data, error } = await supabase
+        .from('task_files')
+        .insert({
+          task_id: taskId,
+          auth_user_id: session.user.id,
+          name: linkName,
+          external_url: linkUrl,
+          is_external_link: true,
+          mime_type: 'application/link'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding external link:', error);
+        throw error;
       }
 
-      const taskLink = {
-        id: Math.random().toString(36).substring(2, 15),
-        name: linkName,
-        url: linkUrl,
-        externalUrl: linkUrl,
-        isExternalLink: true,
-        size: 0,
-        sizeKb: 0,
-        uploadedAt: new Date().toISOString()
-      };
+      if (data) {
+        const newFile: TaskFile = {
+          id: data.id,
+          name: data.name,
+          url: data.external_url || '',
+          externalUrl: data.external_url || '',
+          isExternalLink: true,
+          size: 0,
+          sizeKb: 0,
+          uploadedAt: data.uploaded_at
+        };
 
-      console.log('📎 Created taskLink:', taskLink);
-
-      const updatedFiles = [...(task.files || []), taskLink];
-      console.log('📎 Updated files array:', updatedFiles);
-      
-      await updateTask(taskId, { files: updatedFiles });
-      console.log('✅ updateTask completed');
+        setTasks(prev => prev.map(task => 
+          task.id === taskId 
+            ? { ...task, files: [...(task.files || []), newFile] }
+            : task
+        ));
+      }
     } catch (error) {
-      console.error('❌ Error adding external link:', error);
+      console.error('Error adding external link:', error);
       throw error;
     }
   };
 
   const deleteTaskFile = async (taskId: string, fileId: string) => {
+    if (!session?.user) return;
+    
     try {
-      const task = tasks.find(t => t.id === taskId);
-      if (!task || !task.files) return;
+      const { error } = await supabase
+        .from('task_files')
+        .delete()
+        .eq('id', fileId);
 
-      const fileToDelete = task.files.find(f => f.id === fileId);
-      if (!fileToDelete) return;
-
-      // Only delete from storage if it's not an external link
-      if (!fileToDelete.isExternalLink) {
-        // For task files, we need to extract the file path from the URL
-        // since we stored the public URL in the task file record
-        const urlParts = fileToDelete.url.split('/');
-        const filePath = urlParts.slice(-3).join('/'); // Get the last 3 parts: tasks/taskId/filename
-
-        // Delete from storage
-        const { error: storageError } = await supabase.storage
-          .from('project-files')
-          .remove([filePath]);
-
-        if (storageError) console.error('Storage deletion error:', storageError);
+      if (error) {
+        console.error('Error deleting task file:', error);
+        return;
       }
 
-      // Remove from task's files array
-      const updatedFiles = task.files.filter(f => f.id !== fileId);
-      await updateTask(taskId, { files: updatedFiles });
+      setTasks(prev => prev.map(task => 
+        task.id === taskId 
+          ? { ...task, files: (task.files || []).filter(f => f.id !== fileId) }
+          : task
+      ));
     } catch (error) {
       console.error('Error deleting task file:', error);
-      throw error;
     }
   };
 
