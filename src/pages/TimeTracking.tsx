@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { TimeEntry, TimeEntryStatus } from "@/types";
+import { UserTimeTrackingReport } from "@/components/dashboard/cards/UserTimeTrackingReport";
 import { 
   Table,
   TableHeader,
@@ -62,6 +63,16 @@ const TimeTracking = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [stopNotes, setStopNotes] = useState("");
+  
+  // User report state
+  const [selectedReportUserId, setSelectedReportUserId] = useState<string>(currentUser?.auth_user_id || "");
+
+  // Update selected user when current user loads
+  useEffect(() => {
+    if (currentUser && !selectedReportUserId) {
+      setSelectedReportUserId(currentUser.auth_user_id);
+    }
+  }, [currentUser, selectedReportUserId]);
   
   // Filter state
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
@@ -703,6 +714,7 @@ const TimeTracking = () => {
           <TabsTrigger value="active">Active Timers</TabsTrigger>
           <TabsTrigger value="timesheet">Time Logs</TabsTrigger>
           <TabsTrigger value="reports">Monthly Summary</TabsTrigger>
+          {isAdmin() && <TabsTrigger value="user-reports">User Reports</TabsTrigger>}
         </TabsList>
         
         <TabsContent value="active" className="space-y-6">
@@ -1310,6 +1322,52 @@ const TimeTracking = () => {
             </Card>
           )}
         </TabsContent>
+        
+        {/* User Reports Tab - Admin only */}
+        {isAdmin() && (
+          <TabsContent value="user-reports" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Time Report</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  View detailed time tracking report for any user
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-6">
+                  <label className="text-sm font-medium mb-2 block">Select User</label>
+                  <Select
+                    value={selectedReportUserId}
+                    onValueChange={setSelectedReportUserId}
+                  >
+                    <SelectTrigger className="w-full max-w-xs">
+                      <SelectValue placeholder="Select a user" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((user) => (
+                        <SelectItem key={user.auth_user_id} value={user.auth_user_id}>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-5 w-5">
+                              <AvatarImage src={user.avatar} alt={user.name} />
+                              <AvatarFallback className="text-xs">
+                                {user.name.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{user.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {selectedReportUserId && (
+              <UserTimeTrackingReport userId={selectedReportUserId} />
+            )}
+          </TabsContent>
+        )}
       </Tabs>
       
       {/* Add Time Entry Dialog */}
