@@ -249,7 +249,11 @@ const TimeTracking = () => {
       const entryDate = new Date(entry.startTime);
       const isInMonth = entryDate >= startDate && entryDate <= endDate;
       const isApproved = entry.status === 'approved-billable' || entry.status === 'approved-non-billable';
-      return isInMonth && isApproved;
+      
+      // For non-admins, filter to only their own entries
+      const isOwnEntry = !isAdmin() || entry.userId === currentUser?.auth_user_id;
+      
+      return isInMonth && isApproved && (isAdmin() || isOwnEntry);
     });
     
     // Group entries by client first
@@ -321,8 +325,86 @@ const TimeTracking = () => {
     
     return Object.values(entriesByClient).sort((a, b) => b.totalMinutes - a.totalMinutes);
   };
+
+  // Generate monthly report data grouped by user (admin only)
+  const getMonthlyDataByUser = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const startDate = startOfMonth(new Date(year, month - 1));
+    const endDate = endOfMonth(new Date(year, month - 1));
+    
+    // Get entries for the selected month - only approved timers
+    const monthEntries = timeEntries.filter(entry => {
+      const entryDate = new Date(entry.startTime);
+      const isInMonth = entryDate >= startDate && entryDate <= endDate;
+      const isApproved = entry.status === 'approved-billable' || entry.status === 'approved-non-billable';
+      return isInMonth && isApproved;
+    });
+    
+    // Group entries by user first
+    const entriesByUser: Record<string, {
+      user: typeof users[0] | { id: string, name: string },
+      totalMinutes: number,
+      clientDetails: Record<string, {
+        client: typeof clients[0] | { id: string, name: string },
+        totalMinutes: number,
+        projectDetails: Record<string, {
+          project: typeof projects[0] | { id: string, name: string },
+          totalMinutes: number
+        }>
+      }>
+    }> = {};
+    
+    // Process all entries
+    monthEntries.forEach(entry => {
+      const user = users.find(u => u.auth_user_id === entry.userId);
+      const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
+      const project = task ? projects.find(p => p.id === task.projectId) : 
+                     (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
+      const client = project ? clients.find(c => c.id === project.clientId) : 
+                    (entry.clientId ? clients.find(c => c.id === entry.clientId) : null);
+      
+      const finalUser = user || { id: entry.userId, name: 'Unknown User' };
+      const finalProject = project || { id: 'no-project-' + entry.id, name: 'No Project' };
+      const finalClient = client || { id: 'no-client-' + entry.id, name: 'No Client' };
+      
+      // Initialize user entry if needed
+      if (!entriesByUser[finalUser.id]) {
+        entriesByUser[finalUser.id] = {
+          user: finalUser,
+          totalMinutes: 0,
+          clientDetails: {}
+        };
+      }
+      
+      entriesByUser[finalUser.id].totalMinutes += entry.duration;
+      
+      // Initialize client entry if needed
+      if (!entriesByUser[finalUser.id].clientDetails[finalClient.id]) {
+        entriesByUser[finalUser.id].clientDetails[finalClient.id] = {
+          client: finalClient,
+          totalMinutes: 0,
+          projectDetails: {}
+        };
+      }
+      
+      entriesByUser[finalUser.id].clientDetails[finalClient.id].totalMinutes += entry.duration;
+      
+      // Initialize project entry if needed
+      if (!entriesByUser[finalUser.id].clientDetails[finalClient.id].projectDetails[finalProject.id]) {
+        entriesByUser[finalUser.id].clientDetails[finalClient.id].projectDetails[finalProject.id] = {
+          project: finalProject,
+          totalMinutes: 0
+        };
+      }
+      
+      entriesByUser[finalUser.id].clientDetails[finalClient.id].projectDetails[finalProject.id].totalMinutes += entry.duration;
+    });
+    
+    return Object.values(entriesByUser).sort((a, b) => b.totalMinutes - a.totalMinutes);
+  };
   
   const monthlyDataByClient = getMonthlyDataByClient();
+  const monthlyDataByUser = getMonthlyDataByUser();
   
   // Get available months for the selector
   const getAvailableMonths = () => {
@@ -340,6 +422,16 @@ const TimeTracking = () => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}h ${mins}m`;
+  };
+
+  // Check if current user is admin
+  const isAdmin = () => {
+    if (!currentUser) return false;
+    // Check for direct admin role
+    if (currentUser.roleId === 'admin') return true;
+    // Check for custom role with Admin name
+    const userRole = customRoles.find(r => r.id === currentUser.roleId);
+    return userRole?.name === 'Admin';
   };
 
   // Checks if current user can edit a time entry
@@ -882,6 +974,73 @@ const TimeTracking = () => {
         </TabsContent>
         
         <TabsContent value="reports" className="space-y-6">
+          {isAdmin() && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Hours by User</CardTitle>
+                <p className="text-sm text-muted-foreground">Breakdown of approved time by team member</p>
+              </CardHeader>
+              <CardContent>
+                {monthlyDataByUser.length > 0 ? (
+                  <div className="space-y-4">
+                    {monthlyDataByUser.map(userData => (
+                      <Accordion 
+                        type="single" 
+                        collapsible 
+                        className="border rounded-lg p-2 bg-muted/10"
+                        key={userData.user.id}
+                      >
+                        <AccordionItem value={userData.user.id} className="border-none">
+                          <AccordionTrigger className="py-3 px-2 hover:no-underline">
+                            <div className="flex items-center justify-between w-full pr-4">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={(userData.user as any).avatar} />
+                                  <AvatarFallback>{userData.user.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div className="font-medium">{userData.user.name}</div>
+                              </div>
+                              <div className="font-mono font-medium">{formatDuration(userData.totalMinutes)}</div>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="space-y-2 pl-10">
+                              {Object.values(userData.clientDetails).map(clientData => (
+                                <Collapsible key={clientData.client.id} className="border-l-2 pl-4 py-1">
+                                  <div className="flex items-center justify-between">
+                                    <CollapsibleTrigger className="flex items-center gap-1 hover:underline">
+                                      <ChevronRight className="h-4 w-4" />
+                                      <span>{clientData.client.name}</span>
+                                    </CollapsibleTrigger>
+                                    <span className="font-mono text-sm">{formatDuration(clientData.totalMinutes)}</span>
+                                  </div>
+                                  <CollapsibleContent>
+                                    <div className="mt-2 pl-6 space-y-1">
+                                      {Object.values(clientData.projectDetails).map(projectData => (
+                                        <div key={projectData.project.id} className="flex items-center justify-between text-sm">
+                                          <span className="text-muted-foreground">{projectData.project.name}</span>
+                                          <span className="font-mono">{formatDuration(projectData.totalMinutes)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </CollapsibleContent>
+                                </Collapsible>
+                              ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-muted-foreground">
+                    No time entries for this month
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <div>
