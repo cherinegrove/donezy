@@ -2180,6 +2180,74 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     await updateTask(taskId, { status: newStatus as any });
   };
 
+  const reorderTasks = async (taskId: string, newIndex: number, newStatus?: string) => {
+    if (!session?.user) return;
+    
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      // Determine the target status (use new status if provided, otherwise keep current)
+      const targetStatus = newStatus || task.status;
+      
+      // Get all tasks in the target status
+      const tasksInStatus = tasks
+        .filter(t => t.status === targetStatus)
+        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+
+      // Remove the task being moved if it's in this status already
+      const filteredTasks = tasksInStatus.filter(t => t.id !== taskId);
+      
+      // Insert the task at the new position
+      filteredTasks.splice(newIndex, 0, task);
+
+      // Update order_index for all affected tasks
+      const updates = filteredTasks.map((t, index) => ({
+        id: t.id,
+        order_index: index,
+        ...(t.id === taskId && newStatus ? { status: newStatus } : {})
+      }));
+
+      // Batch update in database
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('tasks')
+          .update({ 
+            order_index: update.order_index,
+            ...(update.status ? { status: update.status } : {})
+          })
+          .eq('id', update.id);
+
+        if (error) throw error;
+      }
+
+      // Update local state
+      setTasks(prev => prev.map(t => {
+        const update = updates.find(u => u.id === t.id);
+        if (update) {
+          return {
+            ...t,
+            orderIndex: update.order_index,
+            ...(update.status ? { status: update.status as TaskStatus } : {})
+          };
+        }
+        return t;
+      }));
+
+      toast({
+        title: "Task reordered",
+        description: "Task position has been updated"
+      });
+    } catch (error) {
+      console.error('Error reordering tasks:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reorder task",
+        variant: "destructive"
+      });
+    }
+  };
+
   const watchTask = (taskId: string, userId: string) => {
     console.log('Watch task not yet implemented');
   };
@@ -3264,6 +3332,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     saveReport,
     updateSavedReport,
     deleteSavedReport,
+    
+    // Task reordering
+    reorderTasks,
   };
 
   return (

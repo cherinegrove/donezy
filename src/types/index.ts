@@ -186,6 +186,7 @@ export interface Task {
   estimatedHours?: number;
   actualHours?: number;
   checklist?: ChecklistItem[];
+  orderIndex?: number;
 }
 
 export type TimeEntryStatus = 'pending' | 'approved' | 'rejected' | 'approved-billable' | 'approved-non-billable' | 'declined';

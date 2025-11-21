@@ -3,7 +3,8 @@ import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
 import { useState, useEffect } from "react";
 import { EditTaskDialog } from "../tasks/EditTaskDialog";
-import { Settings, Edit2, CheckSquare, Trash2 } from "lucide-react";
+import { Settings, Edit2, CheckSquare, Trash2, GripVertical } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +29,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", onBulkEdit }: KanbanBoardProps) {
-  const { moveTask, tasks: allTasks, deleteTask, taskStatuses } = useAppContext();
+  const { moveTask, reorderTasks, tasks: allTasks, deleteTask, taskStatuses } = useAppContext();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [nestedSelectedTask, setNestedSelectedTask] = useState<Task | null>(null);
@@ -120,31 +121,39 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
       title: status.label
     }));
   
-  // Prepare tasks by status
+  // Prepare tasks by status and sort by order_index
   const tasksByStatus = columns.reduce((acc, column) => {
-    acc[column.id] = tasks.filter(task => task.status === column.id);
+    acc[column.id] = tasks
+      .filter(task => task.status === column.id)
+      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
     return acc;
   }, {} as Record<TaskStatus, Task[]>);
   
-  // Drag and drop handlers
-  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
-  
-  const handleDragStart = (e: React.DragEvent, task: Task) => {
-    setDraggedTask(task);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', task.id);
-  };
-  
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-  
-  const handleDrop = async (e: React.DragEvent, status: TaskStatus) => {
-    e.preventDefault();
-    if (draggedTask) {
-      await moveTask(draggedTask.id, status);
-      setDraggedTask(null);
+  // Drag and drop handler using @hello-pangea/dnd
+  const handleDragEnd = async (result: DropResult) => {
+    const { source, destination, draggableId } = result;
+    
+    // Dropped outside any droppable area
+    if (!destination) return;
+    
+    // Same position, no change
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) {
+      return;
+    }
+    
+    const sourceStatus = source.droppableId as TaskStatus;
+    const destinationStatus = destination.droppableId as TaskStatus;
+    
+    // Reorder task
+    if (reorderTasks) {
+      await reorderTasks(
+        draggableId,
+        destination.index,
+        sourceStatus !== destinationStatus ? destinationStatus : undefined
+      );
     }
   };
   
@@ -336,107 +345,164 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     );
   };
   
-  // Render list view
+  // Render list view with drag-and-drop
   if (viewMode === "list") {
+    // Sort tasks by order_index
+    const sortedTasks = [...tasks].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+    
     return (
       <div className="w-full">
         {renderToolbar()}
         
-        <div className="space-y-2">
-          {tasks.map(task => (
-            <div key={task.id} className="group">
-              <TaskCard 
-                task={task} 
-                onClick={(e) => handleTaskClick(task, e)}
-                displayOptions={displayOptions}
-                isSelected={selectedTaskIds.includes(task.id)}
-                onSelectionChange={handleTaskSelection}
-                showSelection={true}
-              />
-            </div>
-          ))}
-          
-          {tasks.length === 0 && (
-            <div className="border-2 border-dashed border-muted rounded-md p-8 flex items-center justify-center bg-background/40">
-              <p className="text-sm text-muted-foreground">No tasks found</p>
-            </div>
-          )}
-          
-          {selectedTask && (
-            <EditTaskDialog
-              task={selectedTask}
-              open={isEditDialogOpen}
-              onOpenChange={setIsEditDialogOpen}
-            />
-          )}
-          
-          {nestedSelectedTask && (
-            <EditTaskDialog
-              task={nestedSelectedTask}
-              open={isNestedDialogOpen}
-              onOpenChange={setIsNestedDialogOpen}
-            />
-          )}
-        </div>
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="list-view">
+            {(provided) => (
+              <div 
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="space-y-2"
+              >
+                {sortedTasks.map((task, index) => (
+                  <Draggable 
+                    key={task.id} 
+                    draggableId={task.id} 
+                    index={index}
+                    isDragDisabled={selectedTaskIds.length > 0}
+                  >
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`group ${snapshot.isDragging ? 'opacity-50' : ''}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div 
+                            {...provided.dragHandleProps}
+                            className="cursor-move p-1 hover:bg-muted rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <GripVertical className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1">
+                            <TaskCard 
+                              task={task} 
+                              onClick={(e) => handleTaskClick(task, e)}
+                              displayOptions={displayOptions}
+                              isSelected={selectedTaskIds.includes(task.id)}
+                              onSelectionChange={handleTaskSelection}
+                              showSelection={true}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+                
+                {sortedTasks.length === 0 && (
+                  <div className="border-2 border-dashed border-muted rounded-md p-8 flex items-center justify-center bg-background/40">
+                    <p className="text-sm text-muted-foreground">No tasks found</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+        
+        {selectedTask && (
+          <EditTaskDialog
+            task={selectedTask}
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+          />
+        )}
+        
+        {nestedSelectedTask && (
+          <EditTaskDialog
+            task={nestedSelectedTask}
+            open={isNestedDialogOpen}
+            onOpenChange={setIsNestedDialogOpen}
+          />
+        )}
       </div>
     );
   }
   
-  // Default: Render Kanban view
+  // Default: Render Kanban view with drag-and-drop
   return (
     <div className="w-full">
       {renderToolbar()}
       
-      <div className="overflow-x-auto">
-        <div className="flex gap-3 min-w-max pb-4">
-          {columns.map((column) => (
-            <div
-              key={column.id}
-              className="flex-1 min-w-[250px] max-w-[250px]"
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, column.id)}
-            >
-              <div 
-                className="rounded-lg p-3 h-full"
-                style={{ backgroundImage: columnColors[column.id] }}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="overflow-x-auto">
+          <div className="flex gap-3 min-w-max pb-4">
+            {columns.map((column) => (
+              <div
+                key={column.id}
+                className="flex-1 min-w-[250px] max-w-[250px]"
               >
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-medium text-sm">{column.title}</h3>
-                  <span className="text-xs bg-background/40 px-2 py-1 rounded-full">
-                    {tasksByStatus[column.id].length}
-                  </span>
-                </div>
-                
-                <div className="space-y-2 min-h-[400px]">
-                  {tasksByStatus[column.id].map(task => (
-                    <div
-                      key={task.id}
-                      className="group"
-                      draggable={selectedTaskIds.length === 0}
-                      onDragStart={(e) => selectedTaskIds.length === 0 && handleDragStart(e, task)}
-                    >
-                      <TaskCard 
-                        task={task} 
-                        onClick={(e) => handleTaskClick(task, e)}
-                        displayOptions={displayOptions}
-                        isSelected={selectedTaskIds.includes(task.id)}
-                        onSelectionChange={handleTaskSelection}
-                        showSelection={true}
-                      />
-                    </div>
-                  ))}
+                <div 
+                  className="rounded-lg p-3 h-full"
+                  style={{ backgroundImage: columnColors[column.id] }}
+                >
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-medium text-sm">{column.title}</h3>
+                    <span className="text-xs bg-background/40 px-2 py-1 rounded-full">
+                      {tasksByStatus[column.id].length}
+                    </span>
+                  </div>
                   
-                  {tasksByStatus[column.id].length === 0 && (
-                    <div className="border-2 border-dashed border-muted rounded-md h-20 flex items-center justify-center bg-background/40">
-                      <p className="text-sm text-muted-foreground">Drop tasks here</p>
-                    </div>
-                  )}
+                  <Droppable droppableId={column.id}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={`space-y-2 min-h-[400px] transition-colors ${
+                          snapshot.isDraggingOver ? 'bg-background/10 rounded-md' : ''
+                        }`}
+                      >
+                        {tasksByStatus[column.id].map((task, index) => (
+                          <Draggable 
+                            key={task.id} 
+                            draggableId={task.id} 
+                            index={index}
+                            isDragDisabled={selectedTaskIds.length > 0}
+                          >
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className={`group ${snapshot.isDragging ? 'opacity-50' : ''}`}
+                              >
+                                <TaskCard 
+                                  task={task} 
+                                  onClick={(e) => handleTaskClick(task, e)}
+                                  displayOptions={displayOptions}
+                                  isSelected={selectedTaskIds.includes(task.id)}
+                                  onSelectionChange={handleTaskSelection}
+                                  showSelection={true}
+                                />
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                        
+                        {tasksByStatus[column.id].length === 0 && (
+                          <div className="border-2 border-dashed border-muted rounded-md h-20 flex items-center justify-center bg-background/40">
+                            <p className="text-sm text-muted-foreground">Drop tasks here</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Droppable>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      </DragDropContext>
       
       {selectedTask && (
         <EditTaskDialog
