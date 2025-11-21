@@ -1032,6 +1032,7 @@ export type Database = {
           created_at: string
           description: string
           due_date: string | null
+          google_chat_settings: Json | null
           id: string
           name: string
           organization_id: string | null
@@ -1053,6 +1054,7 @@ export type Database = {
           created_at?: string
           description: string
           due_date?: string | null
+          google_chat_settings?: Json | null
           id?: string
           name: string
           organization_id?: string | null
@@ -1074,6 +1076,7 @@ export type Database = {
           created_at?: string
           description?: string
           due_date?: string | null
+          google_chat_settings?: Json | null
           id?: string
           name?: string
           organization_id?: string | null
