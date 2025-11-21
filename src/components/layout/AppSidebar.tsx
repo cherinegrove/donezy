@@ -160,9 +160,9 @@ export function AppSidebar() {
               {!collapsed && <span>Notifications</span>}
             </NavLink>
             
-            {/* Reports */}
+            {/* Analytics */}
             <NavLink
-              to="/reports"
+              to="/analytics"
               onClick={handleNavClick}
               className={({ isActive }) =>
                 cn(
@@ -174,7 +174,7 @@ export function AppSidebar() {
               }
             >
               <BarChart className="h-4 w-4" />
-              {!collapsed && <span>Reports</span>}
+              {!collapsed && <span>Analytics</span>}
             </NavLink>
             
             {/* Admin Dashboard - only shown to admin users */}
