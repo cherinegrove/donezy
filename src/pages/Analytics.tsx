@@ -324,19 +324,23 @@ export default function Analytics() {
               >
                 {widgets
                   .sort((a, b) => a.position - b.position)
-                  .map((widget, index) => (
-                    <Draggable key={widget.id} draggableId={widget.id} index={index}>
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                        >
-                          {renderWidget(widget)}
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
+                  .map((widget, index) => {
+                    const isFullWidth = widget.type === 'metrics' || widget.type === 'risk-success';
+                    return (
+                      <Draggable key={widget.id} draggableId={widget.id} index={index}>
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className={isFullWidth ? 'lg:col-span-2' : ''}
+                          >
+                            {renderWidget(widget)}
+                          </div>
+                        )}
+                      </Draggable>
+                    );
+                  })}
                 {provided.placeholder}
               </div>
             )}
