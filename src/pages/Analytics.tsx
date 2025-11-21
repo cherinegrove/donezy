@@ -14,9 +14,15 @@ import {
   AlertCircle,
   CheckCircle,
   Target,
-  Loader2
+  Loader2,
+  BarChart3,
+  FileText,
+  Zap
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { PrebuiltReportTemplates } from "@/components/reports/PrebuiltReportTemplates";
+import { AnalyticsCard } from "@/components/reports/AnalyticsCard";
+import { Progress } from "@/components/ui/progress";
 
 export default function Analytics() {
   const { projects, tasks, users, timeEntries } = useAppContext();
@@ -172,96 +178,169 @@ export default function Analytics() {
     }
   };
 
-  return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Brain className="h-8 w-8 text-primary" />
-            Smart Analytics
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            AI-powered insights for your projects, tasks, and team
-          </p>
-        </div>
-      </div>
+  const handleTemplateSelect = (templateId: string) => {
+    toast.info(`Report template "${templateId}" selected. Implementation in progress.`);
+  };
 
-        <Tabs defaultValue="project" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="project">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Project Health
+  const quickStats = [
+    { 
+      title: "Active Projects", 
+      value: projects.length, 
+      icon: Target,
+      trend: { value: 12, isPositive: true },
+      color: "hsl(var(--primary))"
+    },
+    { 
+      title: "Pending Tasks", 
+      value: tasks.filter(t => t.status !== 'done').length,
+      icon: CheckCircle,
+      trend: { value: 8, isPositive: false },
+      color: "hsl(217 91% 60%)"
+    },
+    { 
+      title: "Team Members", 
+      value: users.length,
+      icon: Users,
+      color: "hsl(280 50% 55%)"
+    },
+    { 
+      title: "Hours Logged", 
+      value: timeEntries.reduce((sum, e) => sum + (e.duration || 0), 0).toFixed(1),
+      icon: Clock,
+      trend: { value: 15, isPositive: true },
+      color: "hsl(142 71% 45%)"
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="p-6 space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold flex items-center gap-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              <Brain className="h-10 w-10 text-primary" />
+              Smart Analytics
+            </h1>
+            <p className="text-muted-foreground mt-2 text-lg">
+              AI-powered insights and pre-built reports for comprehensive project analysis
+            </p>
+          </div>
+        </div>
+
+        {/* Quick Stats Dashboard */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {quickStats.map((stat, index) => (
+            <AnalyticsCard
+              key={index}
+              title={stat.title}
+              icon={stat.icon}
+              value={stat.value}
+              trend={stat.trend}
+              iconColor={stat.color}
+            />
+          ))}
+        </div>
+
+        <Tabs defaultValue="templates" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 h-12 bg-muted/50">
+            <TabsTrigger value="templates" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Pre-built Reports
             </TabsTrigger>
-            <TabsTrigger value="tasks">
-              <Target className="h-4 w-4 mr-2" />
-              Task Insights
+            <TabsTrigger value="ai" className="gap-2">
+              <Zap className="h-4 w-4" />
+              AI Insights
             </TabsTrigger>
-            <TabsTrigger value="team">
-              <Users className="h-4 w-4 mr-2" />
-              Team Performance
-            </TabsTrigger>
-            <TabsTrigger value="time">
-              <Clock className="h-4 w-4 mr-2" />
-              Time Tracking
-            </TabsTrigger>
-            <TabsTrigger value="recommendations">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Recommendations
+            <TabsTrigger value="custom" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Custom Reports
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="project" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Project Health Analysis</CardTitle>
-                <CardDescription>
-                  AI analysis of project status, completion rates, and risk factors
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button 
-                  onClick={analyzeProjectHealth} 
-                  disabled={loading === "project_health"}
-                  className="w-full"
-                >
-                  {loading === "project_health" ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    <>
-                      <Brain className="mr-2 h-4 w-4" />
-                      Analyze Project Health
-                    </>
-                  )}
-                </Button>
+          <TabsContent value="templates" className="space-y-6 mt-6">
+            <PrebuiltReportTemplates onSelectTemplate={handleTemplateSelect} />
+          </TabsContent>
 
-                {projectHealth && (
-                  <div className="space-y-4 mt-6">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Overall Status</span>
-                      <Badge variant={
-                        projectHealth.status === 'healthy' ? 'default' : 
-                        projectHealth.status === 'at-risk' ? 'secondary' : 
-                        'destructive'
-                      }>
-                        {projectHealth.status}
-                      </Badge>
-                    </div>
+          <TabsContent value="ai" className="space-y-6 mt-6">
+            <Tabs defaultValue="project" className="w-full">
+              <TabsList className="grid w-full grid-cols-5 bg-background/50">
+                <TabsTrigger value="project" className="gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Project Health
+                </TabsTrigger>
+                <TabsTrigger value="tasks" className="gap-2">
+                  <Target className="h-4 w-4" />
+                  Task Insights
+                </TabsTrigger>
+                <TabsTrigger value="team" className="gap-2">
+                  <Users className="h-4 w-4" />
+                  Team Performance
+                </TabsTrigger>
+                <TabsTrigger value="time" className="gap-2">
+                  <Clock className="h-4 w-4" />
+                  Time Tracking
+                </TabsTrigger>
+                <TabsTrigger value="recommendations" className="gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Recommendations
+                </TabsTrigger>
+              </TabsList>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span>Completion Probability</span>
-                        <span className="font-semibold">{projectHealth.completionProbability}%</span>
-                      </div>
-                      <div className="w-full bg-secondary rounded-full h-2">
-                        <div 
-                          className="bg-primary h-2 rounded-full transition-all" 
-                          style={{ width: `${projectHealth.completionProbability}%` }}
-                        />
-                      </div>
-                    </div>
+              <TabsContent value="project" className="space-y-4 mt-6">
+                <Card className="border-primary/20 shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                      Project Health Analysis
+                    </CardTitle>
+                    <CardDescription>
+                      AI-powered analysis of project status, completion rates, and risk factors
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-6">
+                    <Button 
+                      onClick={analyzeProjectHealth} 
+                      disabled={loading === "project_health"}
+                      className="w-full h-12 text-base font-medium"
+                      size="lg"
+                    >
+                      {loading === "project_health" ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Analyzing Projects...
+                        </>
+                      ) : (
+                        <>
+                          <Brain className="mr-2 h-5 w-5" />
+                          Run Project Health Analysis
+                        </>
+                      )}
+                    </Button>
+
+                    {projectHealth && (
+                      <div className="space-y-6 mt-6 p-6 bg-gradient-to-br from-muted/30 to-transparent rounded-lg border border-border">
+                        <div className="flex items-center justify-between p-4 bg-background rounded-lg">
+                          <span className="text-sm font-medium">Overall Health Status</span>
+                          <Badge 
+                            variant={
+                              projectHealth.status === 'healthy' ? 'default' : 
+                              projectHealth.status === 'at-risk' ? 'secondary' : 
+                              'destructive'
+                            }
+                            className="text-base px-4 py-1"
+                          >
+                            {projectHealth.status}
+                          </Badge>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium">Completion Probability</span>
+                            <span className="font-bold text-lg text-primary">{projectHealth.completionProbability}%</span>
+                          </div>
+                          <Progress value={projectHealth.completionProbability} className="h-3" />
+                        </div>
 
                     {projectHealth.risks && projectHealth.risks.length > 0 && (
                       <div className="space-y-2">
@@ -304,29 +383,33 @@ export default function Analytics() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="tasks" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Task Insights</CardTitle>
+          <TabsContent value="tasks" className="space-y-4 mt-6">
+            <Card className="border-primary/20 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  Task Insights
+                </CardTitle>
                 <CardDescription>
                   Optimal assignments, completion estimates, and priority recommendations
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pt-6">
                 <Button 
                   onClick={analyzeTaskInsights} 
                   disabled={loading === "task_insights"}
-                  className="w-full"
+                  className="w-full h-12 text-base font-medium"
+                  size="lg"
                 >
                   {loading === "task_insights" ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analyzing...
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Analyzing Tasks...
                     </>
                   ) : (
                     <>
-                      <Brain className="mr-2 h-4 w-4" />
-                      Analyze Tasks
+                      <Brain className="mr-2 h-5 w-5" />
+                      Run Task Analysis
                     </>
                   )}
                 </Button>
@@ -376,29 +459,33 @@ export default function Analytics() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="team" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Team Performance</CardTitle>
+          <TabsContent value="team" className="space-y-4 mt-6">
+            <Card className="border-primary/20 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Team Performance
+                </CardTitle>
                 <CardDescription>
                   Productivity patterns, top performers, and improvement areas
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pt-6">
                 <Button 
                   onClick={analyzeTeamPerformance} 
                   disabled={loading === "team_performance"}
-                  className="w-full"
+                  className="w-full h-12 text-base font-medium"
+                  size="lg"
                 >
                   {loading === "team_performance" ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analyzing...
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Analyzing Team...
                     </>
                   ) : (
                     <>
-                      <Brain className="mr-2 h-4 w-4" />
-                      Analyze Team
+                      <Brain className="mr-2 h-5 w-5" />
+                      Run Team Analysis
                     </>
                   )}
                 </Button>
@@ -454,29 +541,33 @@ export default function Analytics() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="time" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Time Tracking Intelligence</CardTitle>
+          <TabsContent value="time" className="space-y-4 mt-6">
+            <Card className="border-primary/20 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-primary" />
+                  Time Tracking Intelligence
+                </CardTitle>
                 <CardDescription>
                   Time efficiency, estimation accuracy, and optimization suggestions
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pt-6">
                 <Button 
                   onClick={analyzeTimeTracking} 
                   disabled={loading === "time_tracking"}
-                  className="w-full"
+                  className="w-full h-12 text-base font-medium"
+                  size="lg"
                 >
                   {loading === "time_tracking" ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analyzing...
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Analyzing Time Data...
                     </>
                   ) : (
                     <>
-                      <Brain className="mr-2 h-4 w-4" />
-                      Analyze Time Tracking
+                      <Brain className="mr-2 h-5 w-5" />
+                      Run Time Analysis
                     </>
                   )}
                 </Button>
@@ -532,29 +623,33 @@ export default function Analytics() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="recommendations" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Smart Recommendations</CardTitle>
+          <TabsContent value="recommendations" className="space-y-4 mt-6">
+            <Card className="border-primary/20 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  Smart Recommendations
+                </CardTitle>
                 <CardDescription>
                   AI-powered actionable recommendations for your projects
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pt-6">
                 <Button 
                   onClick={getSmartRecommendations} 
                   disabled={loading === "smart_recommendations"}
-                  className="w-full"
+                  className="w-full h-12 text-base font-medium"
+                  size="lg"
                 >
                   {loading === "smart_recommendations" ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Generating Recommendations...
                     </>
                   ) : (
                     <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Get Recommendations
+                      <Sparkles className="mr-2 h-5 w-5" />
+                      Get Smart Recommendations
                     </>
                   )}
                 </Button>
@@ -615,6 +710,17 @@ export default function Analytics() {
             </Card>
           </TabsContent>
         </Tabs>
+      </TabsContent>
+
+      <TabsContent value="custom" className="space-y-6 mt-6">
+        <Card>
+          <CardContent className="p-12 text-center">
+            <p className="text-muted-foreground">Custom report builder coming soon</p>
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
+      </div>
     </div>
   );
 }
