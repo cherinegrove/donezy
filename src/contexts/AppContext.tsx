@@ -1459,7 +1459,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       console.log('🟢 Attempting to insert task into database...');
       
-      const insertData = {
+      const insertData: any = {
         auth_user_id: session.user.id,
         title: task.title,
         description: task.description,
@@ -1472,7 +1472,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         actual_hours: task.actualHours,
         watcher_ids: task.watcherIds || [],
         collaborator_ids: task.collaboratorIds || [],
-        related_task_ids: task.relatedTaskIds || []
+        related_task_ids: task.relatedTaskIds || [],
+        checklist: task.checklist || null,
+        reminder_date: task.reminderDate || null
       };
       
       console.log('🟢 Insert data:', insertData);
@@ -1506,7 +1508,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           watcherIds: data.watcher_ids || [],
           comments: [],
           collaboratorIds: data.collaborator_ids || [],
-          relatedTaskIds: data.related_task_ids || []
+          relatedTaskIds: data.related_task_ids || [],
+          checklist: (data.checklist || []) as any,
+          reminderDate: data.reminder_date || undefined
         };
         
         console.log('🟢 Adding task to local state:', newTask);
