@@ -29,6 +29,7 @@ import SetPassword from "./pages/SetPassword";
 import ForgotPassword from "./pages/ForgotPassword";
 import Admin from "./pages/Admin";
 import Dashboards from "./pages/Dashboards";
+import Analytics from "./pages/Analytics";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 import ConfirmInvite from "./pages/ConfirmInvite";
