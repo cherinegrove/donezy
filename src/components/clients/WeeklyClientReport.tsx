@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Mail } from "lucide-react";
+import { Copy, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO } from "date-fns";
 
@@ -41,98 +41,108 @@ export const WeeklyClientReport = ({ clientId }: WeeklyClientReportProps) => {
   const completedTasks = weeklyTasks.filter(t => t.status === 'done');
   const totalHours = weeklyTimeEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0);
 
-  const generateCSVReport = () => {
+  const generateEmailReport = () => {
     setIsGenerating(true);
     
     try {
       const weekRange = format(weekStart, 'MMM d') + ' - ' + format(weekEnd, 'MMM d, yyyy');
       
-      let csv = 'Weekly Report for ' + client?.name + '\n';
-      csv += 'Week: ' + weekRange + '\n';
-      csv += 'Generated: ' + format(now, 'PPpp') + '\n\n';
+      // Get all tasks for this client
+      const allClientTasks = tasks.filter(task => 
+        clientProjects.some(p => p.id === task.projectId)
+      );
+
+      // Filter by status
+      const statusGroups = {
+        'backlog': allClientTasks.filter(t => t.status === 'backlog'),
+        'todo': allClientTasks.filter(t => t.status === 'todo'),
+        'in-progress': allClientTasks.filter(t => t.status === 'in-progress'),
+        'review': allClientTasks.filter(t => t.status === 'review'),
+      };
+
+      const statusLabels = {
+        'backlog': 'Backlog',
+        'todo': 'Up Next',
+        'in-progress': 'In Progress',
+        'review': 'Awaiting Feedback',
+      };
+      
+      let email = 'Subject: Weekly Update - ' + client?.name + ' (' + weekRange + ')\n\n';
+      email += 'Hi Team,\n\n';
+      email += 'Here is your weekly update for ' + weekRange + '.\n\n';
       
       // Summary
-      csv += 'SUMMARY\n';
-      csv += 'Total Hours,' + (totalHours / 60).toFixed(2) + '\n';
-      csv += 'Tasks Completed,' + completedTasks.length + '\n';
-      csv += 'Tasks In Progress,' + weeklyTasks.filter(t => t.status === 'in-progress').length + '\n\n';
+      email += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+      email += 'SUMMARY\n';
+      email += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+      email += '• Total Hours This Week: ' + (totalHours / 60).toFixed(1) + ' hours\n';
+      email += '• Tasks Completed: ' + completedTasks.length + '\n';
+      email += '• Active Projects: ' + clientProjects.filter(p => p.status !== 'completed').length + '\n\n';
       
-      // Time entries by project
-      csv += 'TIME BREAKDOWN BY PROJECT\n';
-      csv += 'Project,Hours\n';
-      
-      const projectHours: Record<string, number> = {};
-      weeklyTimeEntries.forEach(entry => {
-        const project = projects.find(p => p.id === entry.projectId);
-        if (project) {
-          projectHours[project.name] = (projectHours[project.name] || 0) + (entry.duration || 0);
+      // Tasks by status
+      (Object.keys(statusGroups) as Array<keyof typeof statusGroups>).forEach(status => {
+        const statusTasks = statusGroups[status];
+        if (statusTasks.length > 0) {
+          email += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+          email += statusLabels[status].toUpperCase() + ' (' + statusTasks.length + ')\n';
+          email += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+          
+          statusTasks.forEach((task, index) => {
+            const project = projects.find(p => p.id === task.projectId);
+            const assignee = users.find(u => u.id === task.assigneeId);
+            const taskHours = timeEntries
+              .filter(e => e.taskId === task.id && e.startTime && 
+                isWithinInterval(parseISO(e.startTime), { start: weekStart, end: weekEnd }))
+              .reduce((sum, e) => sum + (e.duration || 0), 0);
+            
+            email += (index + 1) + '. ' + task.title + '\n';
+            email += '   Project: ' + (project?.name || 'N/A') + '\n';
+            email += '   Assigned: ' + (assignee?.name || 'Unassigned') + '\n';
+            email += '   Priority: ' + task.priority.toUpperCase() + '\n';
+            if (task.dueDate) {
+              email += '   Due: ' + format(parseISO(task.dueDate), 'MMM d, yyyy') + '\n';
+            }
+            if (taskHours > 0) {
+              email += '   Hours This Week: ' + (taskHours / 60).toFixed(1) + 'h\n';
+            }
+            if (task.description) {
+              email += '   Notes: ' + task.description.substring(0, 100) + (task.description.length > 100 ? '...' : '') + '\n';
+            }
+            email += '\n';
+          });
         }
       });
       
-      Object.entries(projectHours).forEach(([projectName, hours]) => {
-        csv += projectName + ',' + (hours / 60).toFixed(2) + '\n';
-      });
-      csv += '\n';
+      email += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+      email += 'Best regards,\n';
+      email += 'Your Team\n';
       
-      // Completed tasks
-      csv += 'COMPLETED TASKS\n';
-      csv += 'Task,Project,Completed By,Hours\n';
-      
-      completedTasks.forEach(task => {
-        const project = projects.find(p => p.id === task.projectId);
-        const assignee = users.find(u => u.id === task.assigneeId);
-        const taskHours = timeEntries
-          .filter(e => e.taskId === task.id && e.clientId === clientId)
-          .reduce((sum, e) => sum + (e.duration || 0), 0);
+      // Copy to clipboard
+      navigator.clipboard.writeText(email).then(() => {
+        toast({
+          title: "Email Copied",
+          description: "The email report has been copied to your clipboard.",
+        });
+      }).catch(() => {
+        // Fallback - show in a textarea
+        const textarea = document.createElement('textarea');
+        textarea.value = email;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
         
-        const taskTitle = task.title.replace(/"/g, '""');
-        const projectName = project?.name || 'N/A';
-        const assigneeName = assignee?.name || 'Unassigned';
-        csv += '"' + taskTitle + '","' + projectName + '","' + assigneeName + '",' + (taskHours / 60).toFixed(2) + '\n';
-      });
-      csv += '\n';
-      
-      // Detailed time entries
-      csv += 'DETAILED TIME ENTRIES\n';
-      csv += 'Date,Project,Task,User,Hours,Notes\n';
-      
-      weeklyTimeEntries.forEach(entry => {
-        const project = projects.find(p => p.id === entry.projectId);
-        const task = tasks.find(t => t.id === entry.taskId);
-        const user = users.find(u => u.id === entry.userId);
-        const entryDate = format(parseISO(entry.startTime), 'yyyy-MM-dd');
-        const notes = (entry.notes || '').replace(/"/g, '""');
-        const projectName = project?.name || 'N/A';
-        const taskTitle = task?.title || 'N/A';
-        const userName = user?.name || 'N/A';
-        
-        csv += entryDate + ',"' + projectName + '","' + taskTitle + '","' + userName + '",' + ((entry.duration || 0) / 60).toFixed(2) + ',"' + notes + '"\n';
-      });
-      
-      // Download
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      
-      const filename = client?.name + '-weekly-report-' + format(weekStart, 'yyyy-MM-dd') + '.csv';
-      link.setAttribute('href', url);
-      link.setAttribute('download', filename);
-      link.style.visibility = 'hidden';
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      URL.revokeObjectURL(url);
-      
-      toast({
-        title: "Report Generated",
-        description: "Weekly report has been downloaded.",
+        toast({
+          title: "Email Copied",
+          description: "The email report has been copied to your clipboard.",
+        });
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to generate report.",
+        description: "Failed to generate email report.",
         variant: "destructive",
       });
     } finally {
@@ -168,25 +178,25 @@ export const WeeklyClientReport = ({ clientId }: WeeklyClientReportProps) => {
           
           <div className="flex gap-2">
             <Button 
-              onClick={generateCSVReport} 
+              onClick={generateEmailReport} 
               disabled={isGenerating}
               className="flex-1"
             >
-              <Download className="h-4 w-4 mr-2" />
-              Download Report
+              <Copy className="h-4 w-4 mr-2" />
+              Copy Email Report
             </Button>
             <Button 
               variant="outline"
               onClick={() => {
                 toast({
                   title: "Coming Soon",
-                  description: "Email functionality will be available soon.",
+                  description: "Send directly via email coming soon.",
                 });
               }}
               className="flex-1"
             >
               <Mail className="h-4 w-4 mr-2" />
-              Email Report
+              Send Email
             </Button>
           </div>
           
