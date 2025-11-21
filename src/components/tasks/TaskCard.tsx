@@ -79,7 +79,7 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
   return (
     <div 
       className={cn(
-        "p-4 border rounded-lg cursor-pointer hover:shadow-md transition-all relative group bg-task-card hover:bg-task-card/80",
+        "p-4 border rounded-lg cursor-pointer task-card-transition hover:shadow-md hover-lift relative group bg-task-card hover:bg-task-card/80",
         isCollaboratorTask && "border-l-4 border-l-blue-500",
         isSelected && "ring-2 ring-primary bg-primary/5"
       )}

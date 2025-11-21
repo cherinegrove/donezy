@@ -1,8 +1,9 @@
 import { Task, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
-import { useState, useEffect } from "react";
-import { EditTaskDialog } from "../tasks/EditTaskDialog";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import { TaskCardSkeleton } from "./TaskCardSkeleton";
+import { useToast } from "@/hooks/use-toast";
 import { Settings, Edit2, CheckSquare, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
@@ -20,6 +21,9 @@ import { Badge } from "@/components/ui/badge";
 type ViewMode = "list" | "kanban";
 type DisplayOption = "project" | "client" | "assignee" | "dueDate" | "priority" | "status" | "collaborators";
 
+// Lazy load the edit dialog for better performance
+const EditTaskDialog = lazy(() => import("../tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
+
 interface KanbanBoardProps {
   tasks?: Task[];
   projectId?: string;
@@ -29,10 +33,12 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", onBulkEdit }: KanbanBoardProps) {
   const { moveTask, tasks: allTasks, deleteTask, taskStatuses } = useAppContext();
+  const { toast } = useToast();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [nestedSelectedTask, setNestedSelectedTask] = useState<Task | null>(null);
   const [isNestedDialogOpen, setIsNestedDialogOpen] = useState(false);
+  const [optimisticTasks, setOptimisticTasks] = useState<Task[]>([]);
   const [columnColors, setColumnColors] = useState<Record<TaskStatus, string>>({
     backlog: "var(--kanban-backlog)",
     todo: "var(--kanban-todo)",
@@ -104,27 +110,38 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     return saved ? JSON.parse(saved) : ["project", "client", "assignee"];
   });
   
-  // If tasks were passed in as props, use those
-  // Otherwise, if projectId was provided, filter all tasks for that project
-  // If neither, use all tasks
-  const tasks = propTasks 
-    ? propTasks 
-    : projectId
-    ? allTasks.filter(task => task.projectId === projectId)
-    : allTasks;
+  // Sync optimistic tasks with real tasks
+  useEffect(() => {
+    const baseTasks = propTasks 
+      ? propTasks 
+      : projectId
+      ? allTasks.filter(task => task.projectId === projectId)
+      : allTasks;
+    setOptimisticTasks(baseTasks);
+  }, [propTasks, allTasks, projectId]);
+
+  // Use optimistic tasks for display
+  const tasks = optimisticTasks;
   
-  const columns: { id: TaskStatus; title: string }[] = taskStatuses
-    .sort((a, b) => a.order - b.order)
-    .map(status => ({
-      id: status.value as TaskStatus,
-      title: status.label
-    }));
+  // Memoize columns to prevent unnecessary recalculations
+  const columns = useMemo(() => 
+    taskStatuses
+      .sort((a, b) => a.order - b.order)
+      .map(status => ({
+        id: status.value as TaskStatus,
+        title: status.label
+      })),
+    [taskStatuses]
+  );
   
-  // Prepare tasks by status
-  const tasksByStatus = columns.reduce((acc, column) => {
-    acc[column.id] = tasks.filter(task => task.status === column.id);
-    return acc;
-  }, {} as Record<TaskStatus, Task[]>);
+  // Memoize tasks by status for performance
+  const tasksByStatus = useMemo(() => 
+    columns.reduce((acc, column) => {
+      acc[column.id] = tasks.filter(task => task.status === column.id);
+      return acc;
+    }, {} as Record<TaskStatus, Task[]>),
+    [tasks, columns]
+  );
   
   // Drag and drop handlers
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
@@ -142,9 +159,31 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   
   const handleDrop = async (e: React.DragEvent, status: TaskStatus) => {
     e.preventDefault();
-    if (draggedTask) {
-      await moveTask(draggedTask.id, status);
-      setDraggedTask(null);
+    if (!draggedTask) return;
+    
+    const taskId = draggedTask.id;
+    const oldStatus = draggedTask.status;
+    
+    // Optimistic update - immediately update UI
+    setOptimisticTasks(prev => 
+      prev.map(t => t.id === taskId ? { ...t, status } : t)
+    );
+    setDraggedTask(null);
+    
+    // Perform actual update in background
+    try {
+      await moveTask(taskId, status);
+    } catch (error) {
+      // Revert on error
+      console.error('Failed to move task:', error);
+      setOptimisticTasks(prev => 
+        prev.map(t => t.id === taskId ? { ...t, status: oldStatus } : t)
+      );
+      toast({
+        title: "Failed to move task",
+        description: "Please try again",
+        variant: "destructive"
+      });
     }
   };
   
@@ -343,8 +382,8 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
         {renderToolbar()}
         
         <div className="space-y-2">
-          {tasks.map(task => (
-            <div key={task.id} className="group">
+          {tasks.map((task, index) => (
+            <div key={task.id} className="group animate-fade-in" style={{ animationDelay: `${index * 0.02}s` }}>
               <TaskCard 
                 task={task} 
                 onClick={(e) => handleTaskClick(task, e)}
@@ -362,21 +401,25 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
             </div>
           )}
           
-          {selectedTask && (
-            <EditTaskDialog
-              task={selectedTask}
-              open={isEditDialogOpen}
-              onOpenChange={setIsEditDialogOpen}
-            />
-          )}
-          
-          {nestedSelectedTask && (
-            <EditTaskDialog
-              task={nestedSelectedTask}
-              open={isNestedDialogOpen}
-              onOpenChange={setIsNestedDialogOpen}
-            />
-          )}
+      {selectedTask && (
+        <Suspense fallback={<div className="fixed inset-0 bg-background/80 backdrop-blur-sm" />}>
+          <EditTaskDialog
+            task={selectedTask}
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+          />
+        </Suspense>
+      )}
+      
+      {nestedSelectedTask && (
+        <Suspense fallback={<div className="fixed inset-0 bg-background/80 backdrop-blur-sm" />}>
+          <EditTaskDialog
+            task={nestedSelectedTask}
+            open={isNestedDialogOpen}
+            onOpenChange={setIsNestedDialogOpen}
+          />
+        </Suspense>
+      )}
         </div>
       </div>
     );
@@ -408,10 +451,11 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                 </div>
                 
                 <div className="space-y-2 min-h-[400px]">
-                  {tasksByStatus[column.id].map(task => (
+                  {tasksByStatus[column.id].map((task, index) => (
                     <div
                       key={task.id}
-                      className="group"
+                      className="group animate-fade-in drag-transition"
+                      style={{ animationDelay: `${index * 0.03}s` }}
                       draggable={selectedTaskIds.length === 0}
                       onDragStart={(e) => selectedTaskIds.length === 0 && handleDragStart(e, task)}
                     >
