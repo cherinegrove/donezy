@@ -32,11 +32,8 @@ export default function TaskDetails() {
   const safeProjects = Array.isArray(projects) ? projects : [];
 
   const task = safeTasks.find(t => t && t.id === taskId);
-  const assignee = safeUsers.find(u => u && u.auth_user_id === task?.assigneeId);
-  const project = safeProjects.find(p => p && p.id === task?.projectId);
-  const collaborators = safeUsers.filter(u => u && task?.collaboratorIds?.includes(u.auth_user_id));
-
-  if (!task) {
+  
+  if (!task || !taskId) {
     return (
       <div className="container mx-auto py-8">
         <div className="text-center">
@@ -49,6 +46,10 @@ export default function TaskDetails() {
       </div>
     );
   }
+
+  const assignee = safeUsers.find(u => u && u.auth_user_id === task.assigneeId);
+  const project = safeProjects.find(p => p && p.id === task.projectId);
+  const collaborators = safeUsers.filter(u => u && task.collaboratorIds?.includes(u.auth_user_id));
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -132,41 +133,47 @@ export default function TaskDetails() {
             </div>
 
             <div className="space-y-6 pt-4 border-t">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Checklist</h3>
-                <ChecklistSection taskId={task.id} />
-              </div>
+              {task && task.id && (
+                <>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Checklist</h3>
+                    <ChecklistSection taskId={task.id} />
+                  </div>
 
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Comments</h3>
-                <CommentSection taskId={task.id} />
-              </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Comments</h3>
+                    <CommentSection taskId={task.id} />
+                  </div>
 
-              <div>
-                <RelatedTasksSection taskId={task.id} />
-              </div>
+                  <div>
+                    <RelatedTasksSection taskId={task.id} />
+                  </div>
+                </>
+              )}
             </div>
           </TabsContent>
           
           <TabsContent value="files">
-            <FileSection taskId={task.id} />
+            {task && task.id && <FileSection taskId={task.id} />}
           </TabsContent>
           
           <TabsContent value="time">
-            <TimerSection taskId={task.id} />
+            {task && task.id && <TimerSection taskId={task.id} />}
           </TabsContent>
           
           <TabsContent value="logs">
-            <TaskLogsSection taskId={task.id} />
+            {task && task.id && <TaskLogsSection taskId={task.id} />}
           </TabsContent>
         </Tabs>
       </Card>
 
-      <EditTaskDialog
-        task={task}
-        open={isEditOpen}
-        onOpenChange={setIsEditOpen}
-      />
+      {task && (
+        <EditTaskDialog
+          task={task}
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+        />
+      )}
     </div>
   );
 }
