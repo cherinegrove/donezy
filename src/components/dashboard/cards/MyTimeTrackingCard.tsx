@@ -22,7 +22,28 @@ export const MyTimeTrackingCard = () => {
       return entryDate >= startDate && entryDate <= endDate;
     });
 
+    // Separate approved and declined entries
+    const approvedEntries = entries.filter(entry => 
+      entry.status === 'approved-billable' || entry.status === 'approved-non-billable'
+    );
+    const declinedEntries = entries.filter(entry => entry.status === 'declined');
+    const pendingEntries = entries.filter(entry => 
+      !entry.status || entry.status === 'pending'
+    );
+
     const totalHours = entries.reduce((sum, entry) => {
+      return sum + (entry.duration || 0);
+    }, 0);
+
+    const approvedHours = approvedEntries.reduce((sum, entry) => {
+      return sum + (entry.duration || 0);
+    }, 0);
+
+    const declinedHours = declinedEntries.reduce((sum, entry) => {
+      return sum + (entry.duration || 0);
+    }, 0);
+
+    const pendingHours = pendingEntries.reduce((sum, entry) => {
       return sum + (entry.duration || 0);
     }, 0);
 
@@ -74,7 +95,13 @@ export const MyTimeTrackingCard = () => {
 
     return {
       totalHours: (totalHours / 60).toFixed(2),
+      approvedHours: (approvedHours / 60).toFixed(2),
+      declinedHours: (declinedHours / 60).toFixed(2),
+      pendingHours: (pendingHours / 60).toFixed(2),
       entries: entries.length,
+      approvedCount: approvedEntries.length,
+      declinedCount: declinedEntries.length,
+      pendingCount: pendingEntries.length,
       byClient
     };
   };
@@ -109,11 +136,10 @@ export const MyTimeTrackingCard = () => {
                 <Icon className="h-4 w-4 text-primary" />
                 <h4 className="font-semibold text-sm">{title}</h4>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="font-mono">
                   {data.totalHours}h
                 </Badge>
-                <Badge variant="outline">{data.entries} entries</Badge>
                 {expandedPeriod === periodKey ? (
                   <ChevronDown className="h-4 w-4" />
                 ) : (
@@ -122,6 +148,26 @@ export const MyTimeTrackingCard = () => {
               </div>
             </div>
           </CollapsibleTrigger>
+
+          <CollapsibleContent className="px-3 pb-2">
+            <div className="flex items-center gap-2 mb-3 text-xs">
+              {data.approvedCount > 0 && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                  ✓ {data.approvedHours}h approved ({data.approvedCount})
+                </Badge>
+              )}
+              {data.pendingCount > 0 && (
+                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
+                  ⏱ {data.pendingHours}h pending ({data.pendingCount})
+                </Badge>
+              )}
+              {data.declinedCount > 0 && (
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
+                  ✗ {data.declinedHours}h declined ({data.declinedCount})
+                </Badge>
+              )}
+            </div>
+          </CollapsibleContent>
 
           <CollapsibleContent className="pl-6 pt-3 space-y-3">
             {Object.entries(data.byClient).map(([clientId, clientData]: [string, any]) => (

@@ -1,6 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus, Pause, Save, Edit, Download, FileText } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -1124,9 +1125,19 @@ const TimeTracking = () => {
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <div>
-                <CardTitle>Monthly Summary - Approved Time Only</CardTitle>
-                <p className="text-sm text-muted-foreground">Shows only approved billable and non-billable time entries</p>
+              <div className="space-y-2">
+                <CardTitle>Monthly Summary</CardTitle>
+                <p className="text-sm text-muted-foreground">Breakdown of approved and declined time entries</p>
+                <div className="flex items-center gap-3 pt-2">
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                    Approved: {formatDuration(monthlyDataByClient.reduce((sum, c) => sum + c.totalMinutes, 0))}
+                  </Badge>
+                  {monthlyDeclinedDataByClient.length > 0 && (
+                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
+                      Declined: {formatDuration(monthlyDeclinedDataByClient.reduce((sum, c) => sum + c.totalMinutes, 0))}
+                    </Badge>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Select
