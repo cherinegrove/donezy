@@ -25,6 +25,7 @@ interface GoogleChatConfig {
   enabled: boolean;
   notifications: {
     task_created: NotificationSetting;
+    task_assigned: NotificationSetting;
     task_completed: NotificationSetting;
     task_overdue: NotificationSetting;
     task_updated: NotificationSetting;
@@ -38,6 +39,10 @@ const defaultConfig: GoogleChatConfig = {
     task_created: {
       enabled: true,
       message_template: "🆕 New task created: {{task_title}} in project {{project_name}}"
+    },
+    task_assigned: {
+      enabled: true,
+      message_template: "👤 Task assigned: {{task_title}} to {{assignee}} in project {{project_name}}"
     },
     task_completed: {
       enabled: true,
@@ -56,6 +61,7 @@ const defaultConfig: GoogleChatConfig = {
 
 const notificationTypes = [
   { key: 'task_created', label: 'Task Created', description: 'When a new task is created' },
+  { key: 'task_assigned', label: 'Task Assigned', description: 'When a task is assigned to someone' },
   { key: 'task_completed', label: 'Task Completed', description: 'When a task is marked as complete' },
   { key: 'task_overdue', label: 'Task Overdue', description: 'When a task becomes overdue' },
   { key: 'task_updated', label: 'Task Updated', description: 'When a task is modified' }
