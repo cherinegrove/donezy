@@ -47,6 +47,18 @@ verify_jwt = false
 [functions.smart-analytics]
 verify_jwt = true
 
+[functions.google-chat-send]
+verify_jwt = true
+
+[functions.google-chat-webhook]
+verify_jwt = false
+
+[functions.hubspot-sync-contacts]
+verify_jwt = true
+
+[functions.hubspot-sync-deals]
+verify_jwt = true
+
 [storage]
 enabled = true
 image = "supabase/storage-api:v1.0.6"
