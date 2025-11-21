@@ -307,33 +307,33 @@ export function CreateTaskDialog({
           <DialogTitle>Create New Task</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full mb-4 grid grid-cols-2">
-            <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced</TabsTrigger>
-          </TabsList>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Template Selection - Always at top */}
+            <div className="space-y-2">
+              <Label>Task Template</Label>
+              <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Default Template</SelectItem>
+                  {taskTemplates?.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <TabsContent value="details" className="space-y-4">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                {/* Template Selection */}
-                <div className="space-y-2">
-                  <Label>Task Template</Label>
-                  <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default">Default Template</SelectItem>
-                      {taskTemplates?.map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="w-full mb-4 grid grid-cols-2">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="files">Files</TabsTrigger>
+              </TabsList>
 
+              <TabsContent value="details" className="space-y-4">
                 <FormField
                   control={form.control}
                   name="title"
@@ -384,6 +384,22 @@ export function CreateTaskDialog({
                     />
                   )}
 
+                  {!isFieldHidden('assigneeId') && (
+                    <FormField
+                      control={form.control}
+                      name="assigneeId"
+                      render={({ field }) => (
+                        <div className="space-y-2">
+                          <Label>Assignee {isFieldRequired('assigneeId') && '*'}</Label>
+                          <AssigneeSelect field={field} />
+                          <FormMessage />
+                        </div>
+                      )}
+                    />
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {!isFieldHidden('projectId') && (
                     <FormField
                       control={form.control}
@@ -403,22 +419,6 @@ export function CreateTaskDialog({
                               ))}
                             </SelectContent>
                           </Select>
-                          <FormMessage />
-                        </div>
-                      )}
-                    />
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {!isFieldHidden('assigneeId') && (
-                    <FormField
-                      control={form.control}
-                      name="assigneeId"
-                      render={({ field }) => (
-                        <div className="space-y-2">
-                          <Label>Assignee {isFieldRequired('assigneeId') && '*'}</Label>
-                          <AssigneeSelect field={field} />
                           <FormMessage />
                         </div>
                       )}
@@ -538,26 +538,6 @@ export function CreateTaskDialog({
                     />
                   )}
                 </div>
-              </form>
-            </Form>
-          </TabsContent>
-
-          <TabsContent value="advanced" className="space-y-4">
-            <Form {...form}>
-              <form className="space-y-4">
-                {!isFieldHidden('startDate') && (
-                  <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <div className="space-y-2">
-                        <Label>Start Date</Label>
-                        <Input type="date" {...field} />
-                        <FormMessage />
-                      </div>
-                    )}
-                  />
-                )}
 
                 {!isFieldHidden('relatedTaskIds') && (
                   <FormField
@@ -640,28 +620,34 @@ export function CreateTaskDialog({
                     })}
                   </div>
                 )}
-              </form>
-            </Form>
-          </TabsContent>
-        </Tabs>
 
-        <DialogFooter className="mt-6">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              form.reset();
-              setSelectedTemplate("default");
-              onOpenChange(false);
-            }}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Create Task"}
-          </Button>
-        </DialogFooter>
+                <DialogFooter className="mt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      form.reset();
+                      setSelectedTemplate("default");
+                      onOpenChange(false);
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Creating..." : "Create Task"}
+                  </Button>
+                </DialogFooter>
+              </TabsContent>
+
+              <TabsContent value="files" className="space-y-4">
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Files can be added after the task is created</p>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
