@@ -62,6 +62,9 @@ verify_jwt = true
 [functions.hubspot-ticket-webhook]
 verify_jwt = false
 
+[functions.send-task-notification]
+verify_jwt = false
+
 [storage]
 enabled = true
 image = "supabase/storage-api:v1.0.6"
