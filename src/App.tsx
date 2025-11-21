@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 import { AppLayout } from "./components/layout/AppLayout";
@@ -195,7 +195,15 @@ const App = () => {
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/projects/:projectId" element={<ProjectDetails />} />
                   <Route path="/tasks" element={<Tasks />} />
-                  <Route path="/tasks/:taskId" element={<TaskDetails />} />
+                  <Route path="/tasks/:taskId" element={
+                    <Suspense fallback={
+                      <div className="flex items-center justify-center min-h-screen">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                      </div>
+                    }>
+                      <TaskDetails />
+                    </Suspense>
+                  } />
                   <Route path="/notes" element={<Notes />} />
                   <Route 
                     path="/clients" 
