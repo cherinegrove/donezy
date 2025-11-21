@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +75,12 @@ export function GoogleChatSettings({ project }: GoogleChatSettingsProps) {
   
   const [config, setConfig] = useState<GoogleChatConfig>(currentConfig);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Sync state with project prop changes
+  useEffect(() => {
+    const updatedConfig = (project as any).google_chat_settings || defaultConfig;
+    setConfig(updatedConfig);
+  }, [project.id, (project as any).google_chat_settings]);
 
   const handleSave = async () => {
     setIsSaving(true);
