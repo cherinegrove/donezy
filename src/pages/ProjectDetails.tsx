@@ -5,7 +5,7 @@ import { Project } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Edit, Clock, AlertTriangle, User, Users } from "lucide-react";
+import { Calendar, Edit, Clock, AlertTriangle, User, Users, CheckSquare, FileText, Files, Bell } from "lucide-react";
 import { format, differenceInDays, parseISO, isValid } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -317,15 +317,45 @@ export default function ProjectDetails() {
         </Card>
       </div>
 
-      <Tabs defaultValue="tasks" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="files">Files</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+      <Tabs defaultValue="tasks" className="space-y-6">
+        <TabsList className="inline-flex h-12 items-center justify-start rounded-xl bg-muted/50 p-1.5 backdrop-blur-sm border border-border/50 shadow-sm w-full">
+          <TabsTrigger 
+            value="tasks" 
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md hover:bg-background/60 gap-2 group"
+          >
+            <CheckSquare className="h-4 w-4 transition-transform group-data-[state=active]:scale-110" />
+            <span>Tasks</span>
+            <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 h-5 min-w-[20px] text-xs transition-all group-data-[state=active]:bg-primary group-data-[state=active]:text-primary-foreground">
+              {projectTasks.length}
+            </Badge>
+          </TabsTrigger>
+          
+          <TabsTrigger 
+            value="notes"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md hover:bg-background/60 gap-2 group"
+          >
+            <FileText className="h-4 w-4 transition-transform group-data-[state=active]:scale-110" />
+            <span>Notes</span>
+          </TabsTrigger>
+          
+          <TabsTrigger 
+            value="files"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md hover:bg-background/60 gap-2 group"
+          >
+            <Files className="h-4 w-4 transition-transform group-data-[state=active]:scale-110" />
+            <span>Files</span>
+          </TabsTrigger>
+          
+          <TabsTrigger 
+            value="notifications"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md hover:bg-background/60 gap-2 group"
+          >
+            <Bell className="h-4 w-4 transition-transform group-data-[state=active]:scale-110" />
+            <span>Notifications</span>
+          </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="tasks">
+        <TabsContent value="tasks" className="mt-6 animate-fade-in">
           <KanbanBoard 
             tasks={projectTasks} 
             projectId={projectId} 
@@ -334,15 +364,15 @@ export default function ProjectDetails() {
           />
         </TabsContent>
         
-        <TabsContent value="notes">
+        <TabsContent value="notes" className="mt-6 animate-fade-in">
           <ProjectNotesSimple projectId={projectId!} />
         </TabsContent>
         
-        <TabsContent value="files">
+        <TabsContent value="files" className="mt-6 animate-fade-in">
           <ProjectFilesAdvanced projectId={projectId!} />
         </TabsContent>
         
-        <TabsContent value="notifications">
+        <TabsContent value="notifications" className="mt-6 animate-fade-in">
           <GoogleChatSettings project={project} />
         </TabsContent>
       </Tabs>
