@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ViewSelector } from "@/components/kanban/ViewSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Filter } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -31,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ModernToolbar, ModernToolbarSection } from "@/components/common/ModernToolbar";
 
 type ViewMode = "list" | "kanban";
 
@@ -193,10 +196,31 @@ export default function Tasks() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <TabsList>
-              <TabsTrigger value="tasks">Tasks</TabsTrigger>
-              <TabsTrigger value="recurring">Recurring</TabsTrigger>
-              <TabsTrigger value="templates">Templates</TabsTrigger>
+            <TabsList className="bg-muted/50 backdrop-blur-sm border border-border/50 shadow-sm">
+              <TabsTrigger 
+                value="tasks"
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+              >
+                <CheckSquare className="mr-2 h-4 w-4" />
+                Tasks
+                {filteredTasks.length > 0 && (
+                  <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-xs">
+                    {filteredTasks.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="recurring"
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+              >
+                Recurring
+              </TabsTrigger>
+              <TabsTrigger 
+                value="templates"
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+              >
+                Templates
+              </TabsTrigger>
             </TabsList>
             {activeTab === "tasks" ? (
               <div className="flex items-center gap-2">
@@ -218,16 +242,16 @@ export default function Tasks() {
           </div>
         </div>
 
-        <TabsContent value="tasks" className="space-y-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-4">
+        <TabsContent value="tasks" className="space-y-6 animate-fade-in">
+          <ModernToolbar>
+            <ModernToolbarSection>
+              <Filter className="h-4 w-4 text-muted-foreground" />
               <EnhancedFilterBar 
                 filters={filterOptions} 
                 onFilterChange={handleFilterChange}
                 presetKey="tasks"
               />
               
-              {/* My Tasks Only Toggle */}
               <Button
                 variant={showMyTasksOnly ? "default" : "outline"}
                 size="sm"
@@ -237,70 +261,71 @@ export default function Tasks() {
                 {showMyTasksOnly ? <User className="h-4 w-4" /> : <Users className="h-4 w-4" />}
                 {showMyTasksOnly ? "My Tasks" : "All Tasks"}
               </Button>
-            </div>
-            <ViewSelector currentView={viewMode} onViewChange={setViewMode} />
-          </div>
 
-          <div className="flex flex-wrap gap-2">
-            {viewMode !== "kanban" && (
-              <Select
-                value={statusFilter}
-                onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}
-              >
-                <SelectTrigger className="w-[180px] h-9">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="backlog">Backlog</SelectItem>
-                  <SelectItem value="todo">To Do</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
-                  <SelectItem value="review">Review</SelectItem>
-                  <SelectItem value="done">Done</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-            
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "justify-start text-left font-normal",
-                    !dueDate && "text-muted-foreground"
-                  )}
+              {viewMode !== "kanban" && (
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}
                 >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {dueDate ? format(dueDate, "PPP") : "Due Date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={dueDate}
-                  onSelect={setDueDate}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+                  <SelectTrigger className="w-[180px] h-9">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="backlog">Backlog</SelectItem>
+                    <SelectItem value="todo">To Do</SelectItem>
+                    <SelectItem value="in-progress">In Progress</SelectItem>
+                    <SelectItem value="review">Review</SelectItem>
+                    <SelectItem value="done">Done</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "justify-start text-left font-normal",
+                      !dueDate && "text-muted-foreground"
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {dueDate ? format(dueDate, "PPP") : "Due Date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={setDueDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
 
-            {(startDate || dueDate || statusFilter !== "all" || Object.keys(activeFilters).length > 0) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setStartDate(undefined);
-                  setDueDate(undefined);
-                  setStatusFilter("all");
-                  setActiveFilters({});
-                }}
-              >
-                Clear All Filters
-              </Button>
-            )}
-          </div>
+              {(startDate || dueDate || statusFilter !== "all" || Object.keys(activeFilters).length > 0) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setStartDate(undefined);
+                    setDueDate(undefined);
+                    setStatusFilter("all");
+                    setActiveFilters({});
+                  }}
+                >
+                  Clear All Filters
+                </Button>
+              )}
+            </ModernToolbarSection>
+            
+            <ModernToolbarSection>
+              <ViewSelector currentView={viewMode} onViewChange={setViewMode} />
+            </ModernToolbarSection>
+          </ModernToolbar>
 
           <div className="mt-6 w-full">
             {filteredTasks.length === 0 ? (
