@@ -25,10 +25,15 @@ export default function TaskDetails() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
 
-  const task = tasks.find(t => t.id === taskId);
-  const assignee = users.find(u => u.id === task?.assigneeId);
-  const project = projects.find(p => p.id === task?.projectId);
-  const collaborators = users.filter(u => task?.collaboratorIds?.includes(u.id));
+  // Add safety checks for arrays
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const safeUsers = Array.isArray(users) ? users : [];
+  const safeProjects = Array.isArray(projects) ? projects : [];
+
+  const task = safeTasks.find(t => t && t.id === taskId);
+  const assignee = safeUsers.find(u => u && u.id === task?.assigneeId);
+  const project = safeProjects.find(p => p && p.id === task?.projectId);
+  const collaborators = safeUsers.filter(u => u && task?.collaboratorIds?.includes(u.id));
 
   if (!task) {
     return (
