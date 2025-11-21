@@ -435,11 +435,11 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
       
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="overflow-x-auto">
-          <div className="flex gap-3 min-w-max pb-4">
+          <div className="flex gap-3 pb-4">
             {columns.map((column) => (
               <div
                 key={column.id}
-                className="flex-1 min-w-[250px] max-w-[250px]"
+                className="flex-1 min-w-[280px]"
               >
                 <div 
                   className="rounded-lg p-3 h-full"
@@ -473,7 +473,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                className={`group ${snapshot.isDragging ? 'opacity-50' : ''}`}
+                                className={`${snapshot.isDragging ? 'opacity-50' : ''}`}
                               >
                                 <TaskCard 
                                   task={task} 

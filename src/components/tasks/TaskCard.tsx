@@ -79,7 +79,7 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
   return (
     <div 
       className={cn(
-        "p-3 border rounded-lg cursor-pointer hover:shadow-md transition-all relative group bg-task-card hover:bg-task-card/80 overflow-hidden",
+        "p-3 border rounded-lg cursor-pointer hover:shadow-md transition-all relative bg-task-card hover:bg-task-card/80 w-full",
         isCollaboratorTask && "border-l-4 border-l-blue-500",
         isSelected && "ring-2 ring-primary bg-primary/5"
       )}
@@ -99,36 +99,40 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
         </div>
       )}
       <div className={cn(showSelection && "pr-8")}>
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="font-semibold text-sm line-clamp-1 flex-1 break-words">
+        <div className="flex items-center gap-2 mb-2">
+          <h4 className="font-semibold text-sm line-clamp-2 flex-1 break-words min-w-0">
             {task.title}
           </h4>
           {displayOptions.includes("status") && (
-            <Badge variant="outline" className="ml-2 text-xs shrink-0">
+            <Badge variant="outline" className="text-xs shrink-0 whitespace-nowrap">
               {task.status}
             </Badge>
           )}
         </div>
         
         {task.description && (
-          <p className="text-xs text-muted-foreground mb-3 line-clamp-2 break-words">
+          <p className="text-xs text-muted-foreground mb-2 line-clamp-2 break-words">
             {task.description}
           </p>
         )}
 
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
           {displayOptions.includes("priority") && (
-            <Badge variant="outline" className={cn("text-xs", getPriorityColor(task.priority))}>
+            <Badge variant="outline" className={cn("text-xs w-fit", getPriorityColor(task.priority))}>
               {task.priority}
             </Badge>
           )}
           
           {displayOptions.includes("project") && project && (
-            <span className="text-xs truncate max-w-[120px]">{project.name}</span>
+            <div className="truncate" title={project.name}>
+              <span className="text-xs">{project.name}</span>
+            </div>
           )}
           
           {displayOptions.includes("client") && client && (
-            <span className="text-xs text-blue-600 truncate max-w-[120px]">{client.name}</span>
+            <div className="truncate" title={client.name}>
+              <span className="text-xs text-blue-600">{client.name}</span>
+            </div>
           )}
           
           {displayOptions.includes("assignee") && assignee && (
@@ -137,7 +141,7 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
                 <AvatarImage src={assignee.avatar} />
                 <AvatarFallback className="text-xs">{assignee.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
               </Avatar>
-              <span className="text-xs truncate">{assignee.name}</span>
+              <span className="text-xs truncate" title={assignee.name}>{assignee.name}</span>
             </div>
           )}
           
@@ -148,7 +152,7 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
           )}
           
           {isCollaboratorTask && (
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs w-fit">
               Collaborator
             </Badge>
           )}
