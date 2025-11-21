@@ -10,11 +10,11 @@ interface GoogleChatConfig {
   enabled: boolean;
   webhook_url: string;
   notifications: {
-    task_completed: {
+    task_created: {
       enabled: boolean;
       message_template: string;
     };
-    task_overdue: {
+    task_completed: {
       enabled: boolean;
       message_template: string;
     };
@@ -156,8 +156,8 @@ serve(async (req) => {
 
 function getDefaultTemplate(eventType: string): string {
   const templates: Record<string, string> = {
+    task_created: '🆕 *New Task Created*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Assigned to:* {assignee}\n*Priority:* {priority}',
     task_completed: '✅ *Task Completed*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Completed by:* {assignee}',
-    task_overdue: '⚠️ *Task Overdue*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Assigned to:* {assignee}\n*Due:* {due_date}',
     task_updated: '✏️ *Task Updated*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Status:* {status}\n*Priority:* {priority}',
   };
   

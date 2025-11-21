@@ -1520,7 +1520,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         });
         console.log('🟢 Task successfully added to local state');
         
-        // Removed task_created notification per user request
+        // Send Google Chat notification asynchronously
+        if (data.project_id) {
+          console.log('🔔 Sending task_created notification for task:', data.id);
+          supabase.functions.invoke('send-task-notification', {
+            body: {
+              taskId: data.id,
+              projectId: data.project_id,
+              eventType: 'task_created'
+            }
+          }).then(({ error }) => {
+            if (error) {
+              console.error('❌ Error sending task created notification:', error);
+            } else {
+              console.log('✅ Task created notification sent successfully');
+            }
+          });
+        }
         
         return data.id;
       }
