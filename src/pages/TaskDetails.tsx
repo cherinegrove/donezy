@@ -31,9 +31,9 @@ export default function TaskDetails() {
   const safeProjects = Array.isArray(projects) ? projects : [];
 
   const task = safeTasks.find(t => t && t.id === taskId);
-  const assignee = safeUsers.find(u => u && u.id === task?.assigneeId);
+  const assignee = safeUsers.find(u => u && u.auth_user_id === task?.assigneeId);
   const project = safeProjects.find(p => p && p.id === task?.projectId);
-  const collaborators = safeUsers.filter(u => u && task?.collaboratorIds?.includes(u.id));
+  const collaborators = safeUsers.filter(u => u && task?.collaboratorIds?.includes(u.auth_user_id));
 
   if (!task) {
     return (
