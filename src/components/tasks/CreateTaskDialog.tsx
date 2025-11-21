@@ -320,10 +320,10 @@ export function CreateTaskDialog({
                 <div className="space-y-2">
                   <Label>Task Template</Label>
                   <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                    <SelectTrigger className="bg-background">
+                    <SelectTrigger>
                       <SelectValue placeholder="Select a template" />
                     </SelectTrigger>
-                    <SelectContent className="bg-background z-50">
+                    <SelectContent>
                       <SelectItem value="default">Default Template</SelectItem>
                       {taskTemplates?.map((template) => (
                         <SelectItem key={template.id} value={template.id}>
@@ -338,13 +338,11 @@ export function CreateTaskDialog({
                   control={form.control}
                   name="title"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Title *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter task title" {...field} />
-                      </FormControl>
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Title *</Label>
+                      <Input id="title" placeholder="Enter task title" {...field} />
                       <FormMessage />
-                    </FormItem>
+                    </div>
                   )}
                 />
 
@@ -352,13 +350,11 @@ export function CreateTaskDialog({
                   control={form.control}
                   name="description"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description {isFieldRequired('description') && '*'}</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Enter task description" {...field} rows={5} />
-                      </FormControl>
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Description {isFieldRequired('description') && '*'}</Label>
+                      <Textarea id="description" placeholder="Enter task description" {...field} rows={5} />
                       <FormMessage />
-                    </FormItem>
+                    </div>
                   )}
                 />
 
@@ -368,15 +364,13 @@ export function CreateTaskDialog({
                       control={form.control}
                       name="clientId"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Client *</FormLabel>
+                        <div className="space-y-2">
+                          <Label>Client *</Label>
                           <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="bg-background">
-                                <SelectValue placeholder="Select a client" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="bg-background z-50">
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a client" />
+                            </SelectTrigger>
+                            <SelectContent>
                               {clients.map((client) => (
                                 <SelectItem key={client.id} value={client.id}>
                                   {client.name}
@@ -385,7 +379,7 @@ export function CreateTaskDialog({
                             </SelectContent>
                           </Select>
                           <FormMessage />
-                        </FormItem>
+                        </div>
                       )}
                     />
                   )}
@@ -395,15 +389,13 @@ export function CreateTaskDialog({
                       control={form.control}
                       name="projectId"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Project *</FormLabel>
+                        <div className="space-y-2">
+                          <Label>Project *</Label>
                           <Select onValueChange={field.onChange} value={field.value} disabled={!form.watch("clientId")}>
-                            <FormControl>
-                              <SelectTrigger className="bg-background">
-                                <SelectValue placeholder={form.watch("clientId") ? "Select a project" : "Select a client first"} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="bg-background z-50">
+                            <SelectTrigger>
+                              <SelectValue placeholder={form.watch("clientId") ? "Select a project" : "Select a client first"} />
+                            </SelectTrigger>
+                            <SelectContent>
                               {clientProjects.map((project) => (
                                 <SelectItem key={project.id} value={project.id}>
                                   {project.name}
@@ -412,7 +404,7 @@ export function CreateTaskDialog({
                             </SelectContent>
                           </Select>
                           <FormMessage />
-                        </FormItem>
+                        </div>
                       )}
                     />
                   )}
@@ -424,11 +416,11 @@ export function CreateTaskDialog({
                       control={form.control}
                       name="assigneeId"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Assignee {isFieldRequired('assigneeId') && '*'}</FormLabel>
+                        <div className="space-y-2">
+                          <Label>Assignee {isFieldRequired('assigneeId') && '*'}</Label>
                           <AssigneeSelect field={field} />
                           <FormMessage />
-                        </FormItem>
+                        </div>
                       )}
                     />
                   )}
@@ -438,11 +430,11 @@ export function CreateTaskDialog({
                       control={form.control}
                       name="collaboratorIds"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Collaborators</FormLabel>
+                        <div className="space-y-2">
+                          <Label>Collaborators</Label>
                           <CollaboratorSelect field={field} />
                           <FormMessage />
-                        </FormItem>
+                        </div>
                       )}
                     />
                   )}
@@ -454,11 +446,11 @@ export function CreateTaskDialog({
                       control={form.control}
                       name="priority"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Priority {isFieldRequired('priority') && '*'}</FormLabel>
+                        <div className="space-y-2">
+                          <Label>Priority {isFieldRequired('priority') && '*'}</Label>
                           <PrioritySelect field={field} />
                           <FormMessage />
-                        </FormItem>
+                        </div>
                       )}
                     />
                   )}
@@ -468,11 +460,11 @@ export function CreateTaskDialog({
                       control={form.control}
                       name="status"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Status {isFieldRequired('status') && '*'}</FormLabel>
+                        <div className="space-y-2">
+                          <Label>Status {isFieldRequired('status') && '*'}</Label>
                           <StatusSelect field={field} />
                           <FormMessage />
-                        </FormItem>
+                        </div>
                       )}
                     />
                   )}
@@ -484,21 +476,19 @@ export function CreateTaskDialog({
                       control={form.control}
                       name="dueDate"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Due Date {isFieldRequired('dueDate') && '*'}</FormLabel>
+                        <div className="space-y-2">
+                          <Label>Due Date {isFieldRequired('dueDate') && '*'}</Label>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  className="w-full justify-start text-left font-normal bg-background"
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {field.value ? format(new Date(field.value), "PPP") : "No due date"}
-                                </Button>
-                              </FormControl>
+                              <Button
+                                variant="outline"
+                                className="w-full justify-start text-left font-normal"
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {field.value ? format(new Date(field.value), "PPP") : "No due date"}
+                              </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 bg-background z-50">
+                            <PopoverContent className="w-auto p-0">
                               <Calendar
                                 mode="single"
                                 selected={field.value ? new Date(field.value) : undefined}
@@ -508,7 +498,7 @@ export function CreateTaskDialog({
                             </PopoverContent>
                           </Popover>
                           <FormMessage />
-                        </FormItem>
+                        </div>
                       )}
                     />
                   )}
@@ -518,21 +508,19 @@ export function CreateTaskDialog({
                       control={form.control}
                       name="reminderDate"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Reminder Date</FormLabel>
+                        <div className="space-y-2">
+                          <Label>Reminder Date</Label>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  className="w-full justify-start text-left font-normal bg-background"
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {field.value ? format(new Date(field.value), "PPP") : "No reminder set"}
-                                </Button>
-                              </FormControl>
+                              <Button
+                                variant="outline"
+                                className="w-full justify-start text-left font-normal"
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {field.value ? format(new Date(field.value), "PPP") : "No reminder set"}
+                              </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 bg-background z-50">
+                            <PopoverContent className="w-auto p-0">
                               <Calendar
                                 mode="single"
                                 selected={field.value ? new Date(field.value) : undefined}
@@ -545,7 +533,7 @@ export function CreateTaskDialog({
                             Get an email reminder on this date
                           </p>
                           <FormMessage />
-                        </FormItem>
+                        </div>
                       )}
                     />
                   )}
@@ -562,13 +550,11 @@ export function CreateTaskDialog({
                     control={form.control}
                     name="startDate"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
+                      <div className="space-y-2">
+                        <Label>Start Date</Label>
+                        <Input type="date" {...field} />
                         <FormMessage />
-                      </FormItem>
+                      </div>
                     )}
                   />
                 )}
@@ -578,8 +564,8 @@ export function CreateTaskDialog({
                     control={form.control}
                     name="relatedTaskIds"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Related Tasks</FormLabel>
+                      <div className="space-y-2">
+                        <Label>Related Tasks</Label>
                         <Select
                           onValueChange={(value) => {
                             const current = field.value || [];
@@ -588,12 +574,10 @@ export function CreateTaskDialog({
                             }
                           }}
                         >
-                          <FormControl>
-                            <SelectTrigger className="bg-background">
-                              <SelectValue placeholder="Select related tasks" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-background z-50">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select related tasks" />
+                          </SelectTrigger>
+                          <SelectContent>
                             {projectTasks.map((task) => (
                               <SelectItem key={task.id} value={task.id}>
                                 {task.title}
@@ -602,7 +586,7 @@ export function CreateTaskDialog({
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                      </FormItem>
+                      </div>
                     )}
                   />
                 )}
@@ -624,34 +608,32 @@ export function CreateTaskDialog({
                           control={form.control}
                           name={`customFields.${field.id}`}
                           render={({ field: formField }) => (
-                            <FormItem>
-                              <FormLabel>{field.name} {field.required && '*'}</FormLabel>
-                              <FormControl>
-                                {field.type === 'text' ? (
-                                  <Input {...formField} placeholder={`Enter ${field.name}`} />
-                                ) : field.type === 'number' ? (
-                                  <Input type="number" {...formField} placeholder={`Enter ${field.name}`} />
-                                ) : field.type === 'date' ? (
-                                  <Input type="date" {...formField} />
-                                ) : field.type === 'dropdown' || field.type === 'select' ? (
-                                  <Select onValueChange={formField.onChange} value={formField.value}>
-                                    <SelectTrigger className="bg-background">
-                                      <SelectValue placeholder={`Select ${field.name}`} />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-background z-50">
-                                      {fieldOptions.map((option) => (
-                                        <SelectItem key={option.value} value={option.value}>
-                                          {option.label}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                ) : (
-                                  <Input {...formField} placeholder={`Enter ${field.name}`} />
-                                )}
-                              </FormControl>
+                            <div className="space-y-2">
+                              <Label>{field.name} {field.required && '*'}</Label>
+                              {field.type === 'text' ? (
+                                <Input {...formField} placeholder={`Enter ${field.name}`} />
+                              ) : field.type === 'number' ? (
+                                <Input type="number" {...formField} placeholder={`Enter ${field.name}`} />
+                              ) : field.type === 'date' ? (
+                                <Input type="date" {...formField} />
+                              ) : field.type === 'dropdown' || field.type === 'select' ? (
+                                <Select onValueChange={formField.onChange} value={formField.value}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder={`Select ${field.name}`} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {fieldOptions.map((option) => (
+                                      <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Input {...formField} placeholder={`Enter ${field.name}`} />
+                              )}
                               <FormMessage />
-                            </FormItem>
+                            </div>
                           )}
                         />
                       );
