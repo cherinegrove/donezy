@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Copy, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FieldMapping {
   hubspotField: string;
@@ -30,6 +31,7 @@ const TASK_FIELDS = [
 export function HubSpotTicketMapping() {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [mappings, setMappings] = useState<FieldMapping[]>([
     { hubspotField: 'subject', taskField: 'title' },
     { hubspotField: 'content', taskField: 'description' },
@@ -39,11 +41,31 @@ export function HubSpotTicketMapping() {
   const webhookUrl = `https://puwxkygdlclcbyxrtppd.supabase.co/functions/v1/hubspot-ticket-webhook`;
 
   useEffect(() => {
-    const saved = localStorage.getItem('hubspotTicketMapping');
-    if (saved) {
-      setMappings(JSON.parse(saved));
-    }
+    loadMappings();
   }, []);
+
+  const loadMappings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('integration_settings')
+        .select('settings')
+        .eq('auth_user_id', user.id)
+        .eq('integration_name', 'hubspot_ticket_mapping')
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data?.settings && typeof data.settings === 'object' && 'mappings' in data.settings) {
+        const settingsData = data.settings as unknown as { mappings: FieldMapping[] };
+        setMappings(settingsData.mappings);
+      }
+    } catch (error: any) {
+      console.error("Error loading mappings:", error);
+    }
+  };
 
   const handleCopyWebhook = async () => {
     await navigator.clipboard.writeText(webhookUrl);
@@ -55,12 +77,37 @@ export function HubSpotTicketMapping() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSaveMappings = () => {
-    localStorage.setItem('hubspotTicketMapping', JSON.stringify(mappings));
-    toast({
-      title: "Mapping saved",
-      description: "Your HubSpot ticket-to-task field mappings have been saved.",
-    });
+  const handleSaveMappings = async () => {
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from('integration_settings')
+        .upsert({
+          auth_user_id: user.id,
+          integration_name: 'hubspot_ticket_mapping',
+          settings: { mappings } as any
+        }, {
+          onConflict: 'auth_user_id,integration_name'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Mappings saved",
+        description: "HubSpot ticket field mappings have been saved successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error saving mappings",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const updateMapping = (index: number, field: 'hubspotField' | 'taskField', value: string) => {
@@ -165,8 +212,8 @@ export function HubSpotTicketMapping() {
           </div>
         </div>
 
-        <Button onClick={handleSaveMappings}>
-          Save Mappings
+        <Button onClick={handleSaveMappings} disabled={isSaving}>
+          {isSaving ? "Saving..." : "Save Mappings"}
         </Button>
 
         <div className="pt-4 border-t">

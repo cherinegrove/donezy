@@ -40,13 +40,31 @@ serve(async (req) => {
         }
 
         const ticketId = event.objectId;
-        const hubspotApiKey = Deno.env.get('HUBSPOT_API_KEY');
 
-        if (!hubspotApiKey) {
-          console.error("HUBSPOT_API_KEY not configured in Supabase secrets");
+        // Get the first user's HubSpot API key from integration_settings
+        const { data: settings, error: settingsError } = await supabase
+          .from('integration_settings')
+          .select('settings, auth_user_id')
+          .eq('integration_name', 'hubspot')
+          .limit(1)
+          .single();
+
+        if (settingsError || !settings?.settings) {
+          console.error('HubSpot API key not configured:', settingsError);
           errorCount++;
           continue;
         }
+
+        const settingsData = settings.settings as { apiKey?: string };
+        const hubspotApiKey = settingsData.apiKey;
+        
+        if (!hubspotApiKey) {
+          console.error('HubSpot API key not found in settings');
+          errorCount++;
+          continue;
+        }
+
+        const userId = settings.auth_user_id;
 
         // Fetch ticket details from HubSpot
         console.log(`Fetching ticket ${ticketId} from HubSpot...`);
@@ -72,26 +90,26 @@ serve(async (req) => {
 
         console.log("Ticket properties:", JSON.stringify(props, null, 2));
 
-        // Get the mapping configuration from database
-        // For now, we'll use a default user - in production, you'd need to determine which user this belongs to
-        const { data: users } = await supabase
-          .from('users')
-          .select('auth_user_id')
-          .limit(1);
+        // Get field mappings from database
+        const { data: mappingSettings } = await supabase
+          .from('integration_settings')
+          .select('settings')
+          .eq('auth_user_id', userId)
+          .eq('integration_name', 'hubspot_ticket_mapping')
+          .single();
 
-        if (!users || users.length === 0) {
-          console.error("No users found in database");
-          errorCount++;
-          continue;
-        }
-
-        const authUserId = users[0].auth_user_id;
+        const mappingsData = mappingSettings?.settings as { mappings?: Array<{hubspotField: string, taskField: string}> };
+        const mappings = mappingsData?.mappings || [
+          { hubspotField: 'subject', taskField: 'title' },
+          { hubspotField: 'content', taskField: 'description' },
+          { hubspotField: 'hs_ticket_priority', taskField: 'priority' },
+        ];
 
         // Get the first project for this user
         const { data: projects } = await supabase
           .from('projects')
           .select('id')
-          .eq('auth_user_id', authUserId)
+          .eq('auth_user_id', userId)
           .limit(1);
 
         if (!projects || projects.length === 0) {
@@ -102,25 +120,36 @@ serve(async (req) => {
 
         const projectId = projects[0].id;
 
-        // Map ticket priority to task priority
-        const priorityMap: Record<string, string> = {
-          'HIGH': 'high',
-          'MEDIUM': 'medium',
-          'LOW': 'low',
-        };
-
-        const priority = priorityMap[props.hs_ticket_priority] || 'medium';
-
-        // Create task from ticket
-        const taskData = {
-          auth_user_id: authUserId,
+        // Map ticket properties to task fields
+        const taskData: any = {
+          auth_user_id: userId,
           project_id: projectId,
-          title: props.subject || `HubSpot Ticket #${ticketId}`,
-          description: props.content || '',
-          priority: priority,
           status: 'backlog',
-          due_date: null,
         };
+
+        // Apply field mappings
+        for (const mapping of mappings) {
+          if (props[mapping.hubspotField]) {
+            let value = props[mapping.hubspotField];
+            
+            // Handle priority mapping
+            if (mapping.taskField === 'priority') {
+              const priorityMap: Record<string, string> = {
+                'HIGH': 'high',
+                'MEDIUM': 'medium',
+                'LOW': 'low',
+              };
+              value = priorityMap[value] || 'medium';
+            }
+            
+            taskData[mapping.taskField] = value;
+          }
+        }
+
+        // Ensure required fields have defaults
+        if (!taskData.title) {
+          taskData.title = `HubSpot Ticket #${ticketId}`;
+        }
 
         console.log("Creating task:", JSON.stringify(taskData, null, 2));
 
