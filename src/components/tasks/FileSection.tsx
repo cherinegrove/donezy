@@ -26,7 +26,20 @@ export function FileSection({ taskId }: FileSectionProps) {
   const [linkName, setLinkName] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
 
-  const task = tasks.find(t => t.id === taskId);
+  // Add safety check
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const task = safeTasks.find(t => t && t.id === taskId);
+  
+  if (!task) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-muted-foreground">
+          Task not found
+        </CardContent>
+      </Card>
+    );
+  }
+  
   const files = task?.files || [];
   
   console.log('🔍 FileSection - taskId:', taskId);
