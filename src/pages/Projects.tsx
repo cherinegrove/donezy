@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
 import { useNavigate } from "react-router-dom";
-import { FilterBar, FilterOption } from "@/components/common/FilterBar";
+import { EnhancedFilterBar, FilterOption } from "@/components/common/EnhancedFilterBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreateTemplateDialog } from "@/components/projects/CreateTemplateDialog";
 import { UseTemplateDialog } from "@/components/projects/UseTemplateDialog";
@@ -239,7 +239,11 @@ const Projects = () => {
 
           <TabsContent value="projects" className="mt-6">
             <div className="flex justify-between items-center mb-4">
-              <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
+              <EnhancedFilterBar 
+                filters={filterOptions} 
+                onFilterChange={handleFilterChange}
+                presetKey="projects"
+              />
               <div className="flex items-center gap-4">
                 <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline">
                   <Plus className="mr-2 h-4 w-4" />

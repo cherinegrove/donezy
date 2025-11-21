@@ -12,7 +12,7 @@ import { BulkImportTasksDialog } from "@/components/tasks/BulkImportTasksDialog"
 import { BulkEditTasksDialog } from "@/components/tasks/BulkEditTasksDialog";
 import { TaskTemplatesList } from "@/components/tasks/TaskTemplatesList";
 import { RecurringTasksList } from "@/components/tasks/RecurringTasksList";
-import { FilterBar, FilterOption } from "@/components/common/FilterBar";
+import { EnhancedFilterBar, FilterOption } from "@/components/common/EnhancedFilterBar";
 import { 
   Popover,
   PopoverContent,
@@ -221,7 +221,11 @@ export default function Tasks() {
         <TabsContent value="tasks" className="space-y-6">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-4">
-              <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
+              <EnhancedFilterBar 
+                filters={filterOptions} 
+                onFilterChange={handleFilterChange}
+                presetKey="tasks"
+              />
               
               {/* My Tasks Only Toggle */}
               <Button
