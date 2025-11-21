@@ -117,6 +117,7 @@ export interface Project {
   customFields?: Record<string, any>;
   ownerId?: string;
   collaboratorIds?: string[];
+  google_chat_settings?: any;
 }
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';

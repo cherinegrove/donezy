@@ -253,7 +253,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         teamIds: project.team_ids || [],
         watcherIds: project.watcher_ids || [],
         ownerId: project.owner_id || undefined,
-        collaboratorIds: project.collaborator_ids || []
+        collaboratorIds: project.collaborator_ids || [],
+        google_chat_settings: project.google_chat_settings || undefined
       })) || [];
       
       setProjects(convertedProjects);
@@ -1364,7 +1365,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           teamIds: data.team_ids || [],
           watcherIds: data.watcher_ids || [],
           ownerId: data.owner_id || undefined,
-          collaboratorIds: data.collaborator_ids || []
+          collaboratorIds: data.collaborator_ids || [],
+          google_chat_settings: data.google_chat_settings || undefined
         };
         setProjects(prev => [...prev, newProject]);
       }
