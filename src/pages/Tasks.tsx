@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
 import { Task, TaskStatus } from "@/types";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { CheckSquare, Plus, Upload, Users, User, Calendar } from "lucide-react";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { useDebouncedCallback } from 'use-debounce';
@@ -63,7 +64,13 @@ export default function Tasks() {
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(tasks);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
-  const [showMyTasksOnly, setShowMyTasksOnly] = useState(true); // Default to showing only user's tasks
+  const [showMyTasksOnly, setShowMyTasksOnly] = useState(true);
+  const [quickFilters, setQuickFilters] = useState<Record<string, boolean>>({
+    assignedToMe: false,
+    highPriority: false,
+    dueThisWeek: false,
+    overdue: false,
+  });
 
   // Define filter options
   const filterOptions: FilterOption[] = [
@@ -95,7 +102,34 @@ export default function Tasks() {
 
   // Debounced filter function for better performance
   const applyFilters = useDebouncedCallback(() => {
-    const filtered = tasks.filter(task => {
+    let filtered = [...tasks];
+
+    // Apply quick filters first
+    if (quickFilters.assignedToMe && currentUser) {
+      filtered = filtered.filter(t => t.assigneeId === currentUser.auth_user_id);
+    }
+    if (quickFilters.highPriority) {
+      filtered = filtered.filter(t => t.priority === 'high');
+    }
+    if (quickFilters.dueThisWeek) {
+      const today = new Date();
+      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      filtered = filtered.filter(t => {
+        if (!t.dueDate) return false;
+        const dueDate = new Date(t.dueDate);
+        return dueDate >= today && dueDate <= nextWeek;
+      });
+    }
+    if (quickFilters.overdue) {
+      const today = new Date();
+      filtered = filtered.filter(t => {
+        if (!t.dueDate) return false;
+        return new Date(t.dueDate) < today && t.status !== 'done';
+      });
+    }
+
+    // Then apply the rest of the filters
+    filtered = filtered.filter(task => {
       // Apply "My Tasks Only" filter first
       if (showMyTasksOnly && currentUser) {
         const isMyTask = task.assigneeId === currentUser.auth_user_id || 
@@ -165,7 +199,7 @@ export default function Tasks() {
   // Apply filters whenever dependencies change
   React.useEffect(() => {
     applyFilters();
-  }, [tasks, activeFilters, startDate, dueDate, projects, statusFilter, showMyTasksOnly, currentUser, applyFilters]);
+  }, [tasks, activeFilters, startDate, dueDate, projects, statusFilter, showMyTasksOnly, currentUser, quickFilters, applyFilters]);
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setActiveFilters(filters);
@@ -228,6 +262,39 @@ export default function Tasks() {
         </div>
 
         <TabsContent value="tasks" className="space-y-6">
+          {/* Quick Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">Quick Filters:</span>
+            <Badge
+              variant={quickFilters.assignedToMe ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => setQuickFilters(prev => ({ ...prev, assignedToMe: !prev.assignedToMe }))}
+            >
+              Assigned to Me
+            </Badge>
+            <Badge
+              variant={quickFilters.highPriority ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => setQuickFilters(prev => ({ ...prev, highPriority: !prev.highPriority }))}
+            >
+              High Priority
+            </Badge>
+            <Badge
+              variant={quickFilters.dueThisWeek ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => setQuickFilters(prev => ({ ...prev, dueThisWeek: !prev.dueThisWeek }))}
+            >
+              Due This Week
+            </Badge>
+            <Badge
+              variant={quickFilters.overdue ? "destructive" : "outline"}
+              className="cursor-pointer"
+              onClick={() => setQuickFilters(prev => ({ ...prev, overdue: !prev.overdue }))}
+            >
+              Overdue
+            </Badge>
+          </div>
+
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-4">
               <FilterBar filters={filterOptions} onFilterChange={handleFilterChange} />
