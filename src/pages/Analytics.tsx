@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, Download, Sparkles } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 import { WidgetContainer } from "@/components/analytics/WidgetContainer";
 import { RiskSuccessWidget } from "@/components/analytics/RiskSuccessWidget";
 import { MetricsWidget } from "@/components/analytics/MetricsWidget";
 import { ChartWidget } from "@/components/analytics/ChartWidget";
 import { AddWidgetDialog, WidgetType } from "@/components/analytics/AddWidgetDialog";
+import { TimeFrameSelector, TimeFramePreset } from "@/components/analytics/TimeFrameSelector";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, startOfToday, startOfWeek, startOfMonth, startOfQuarter, startOfYear, endOfToday, endOfWeek, endOfMonth, endOfQuarter, endOfYear } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 interface Widget {
   id: string;
@@ -24,12 +26,47 @@ export default function Analytics() {
     { id: 'risk-1', type: 'risk-success', position: 1 },
   ]);
   const [addWidgetOpen, setAddWidgetOpen] = useState(false);
+  const [timeFrame, setTimeFrame] = useState<TimeFramePreset>('month');
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
 
-  // Calculate metrics
-  const activeProjects = projects.filter(p => p.status !== 'done').length;
-  const pendingTasks = tasks.filter(t => t.status !== 'done').length;
+  // Calculate date range based on preset
+  const getDateRange = (): { from: Date; to: Date } => {
+    if (timeFrame === 'custom' && customDateRange?.from && customDateRange?.to) {
+      return { from: customDateRange.from, to: customDateRange.to };
+    }
+
+    switch (timeFrame) {
+      case 'today':
+        return { from: startOfToday(), to: endOfToday() };
+      case 'week':
+        return { from: startOfWeek(new Date()), to: endOfWeek(new Date()) };
+      case 'month':
+        return { from: startOfMonth(new Date()), to: endOfMonth(new Date()) };
+      case 'quarter':
+        return { from: startOfQuarter(new Date()), to: endOfQuarter(new Date()) };
+      case 'year':
+        return { from: startOfYear(new Date()), to: endOfYear(new Date()) };
+      default:
+        return { from: startOfMonth(new Date()), to: endOfMonth(new Date()) };
+    }
+  };
+
+  const dateRange = getDateRange();
+
+  // For now, show all projects and tasks (no createdAt field in types)
+  // Only filter time entries by date range
+  const filteredProjects = projects;
+  const filteredTasks = tasks;
+  const filteredTimeEntries = timeEntries.filter(entry => {
+    const entryDate = new Date(entry.startTime);
+    return entryDate >= dateRange.from && entryDate <= dateRange.to;
+  });
+
+  // Calculate metrics (using filtered data)
+  const activeProjects = filteredProjects.filter(p => p.status !== 'done').length;
+  const pendingTasks = filteredTasks.filter(t => t.status !== 'done').length;
   const teamMembers = users.length;
-  const totalHours = timeEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60;
+  const totalHours = filteredTimeEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60;
 
   const metricsData = [
     { label: 'Active Projects', value: activeProjects, change: 12, progress: 65 },
@@ -38,37 +75,72 @@ export default function Analytics() {
     { label: 'Hours Logged', value: Math.round(totalHours), suffix: 'hrs', change: 15 }
   ];
 
-  // Project status data
+  // Project status data (using filtered data)
   const projectStatusData = [
-    { name: 'Active', value: projects.filter(p => p.status === 'active').length },
-    { name: 'Planning', value: projects.filter(p => p.status === 'planning').length },
-    { name: 'On Hold', value: projects.filter(p => p.status === 'on-hold').length },
-    { name: 'Done', value: projects.filter(p => p.status === 'done').length },
+    { 
+      name: 'Active', 
+      value: filteredProjects.filter(p => p.status === 'active').length,
+      items: filteredProjects.filter(p => p.status === 'active')
+    },
+    { 
+      name: 'Planning', 
+      value: filteredProjects.filter(p => p.status === 'planning').length,
+      items: filteredProjects.filter(p => p.status === 'planning')
+    },
+    { 
+      name: 'On Hold', 
+      value: filteredProjects.filter(p => p.status === 'on-hold').length,
+      items: filteredProjects.filter(p => p.status === 'on-hold')
+    },
+    { 
+      name: 'Done', 
+      value: filteredProjects.filter(p => p.status === 'done').length,
+      items: filteredProjects.filter(p => p.status === 'done')
+    },
   ];
 
-  // Task distribution data
+  // Task distribution data (using filtered data)
   const taskDistributionData = [
-    { name: 'To Do', value: tasks.filter(t => t.status === 'todo').length },
-    { name: 'In Progress', value: tasks.filter(t => t.status === 'in-progress').length },
-    { name: 'Review', value: tasks.filter(t => t.status === 'review').length },
-    { name: 'Done', value: tasks.filter(t => t.status === 'done').length },
+    { 
+      name: 'To Do', 
+      value: filteredTasks.filter(t => t.status === 'todo').length,
+      items: filteredTasks.filter(t => t.status === 'todo')
+    },
+    { 
+      name: 'In Progress', 
+      value: filteredTasks.filter(t => t.status === 'in-progress').length,
+      items: filteredTasks.filter(t => t.status === 'in-progress')
+    },
+    { 
+      name: 'Review', 
+      value: filteredTasks.filter(t => t.status === 'review').length,
+      items: filteredTasks.filter(t => t.status === 'review')
+    },
+    { 
+      name: 'Done', 
+      value: filteredTasks.filter(t => t.status === 'done').length,
+      items: filteredTasks.filter(t => t.status === 'done')
+    },
   ];
 
-  // Time tracking by user
+  // Time tracking by user (using filtered data)
   const timeByUser = users.map(user => ({
     name: user.name,
     hours: Math.round(
-      timeEntries
+      filteredTimeEntries
         .filter(e => e.userId === user.id)
         .reduce((sum, e) => sum + (e.duration || 0), 0) / 60
-    )
+    ),
+    userId: user.id,
+    items: filteredTimeEntries.filter(e => e.userId === user.id)
   })).filter(u => u.hours > 0).slice(0, 5);
 
-  // Budget overview
-  const budgetData = projects.map(p => ({
+  // Budget overview (using filtered data)
+  const budgetData = filteredProjects.map(p => ({
     name: p.name,
     allocated: p.allocatedHours || 0,
-    used: p.usedHours || 0
+    used: p.usedHours || 0,
+    projectId: p.id
   })).slice(0, 5);
 
   const handleDragEnd = (result: DropResult) => {
@@ -103,7 +175,7 @@ export default function Analytics() {
   };
 
   const renderWidget = (widget: Widget) => {
-    const data = { projects, tasks, timeEntries, users, clients };
+    const data = { projects: filteredProjects, tasks: filteredTasks, timeEntries: filteredTimeEntries, users, clients };
 
     switch (widget.type) {
       case 'metrics':
@@ -139,6 +211,7 @@ export default function Analytics() {
               data={projectStatusData}
               dataKey="value"
               nameKey="name"
+              onDataClick={(data) => data.items}
             />
           </WidgetContainer>
         );
@@ -154,6 +227,7 @@ export default function Analytics() {
               data={taskDistributionData}
               dataKey="value"
               nameKey="name"
+              onDataClick={(data) => data.items}
             />
           </WidgetContainer>
         );
@@ -169,6 +243,7 @@ export default function Analytics() {
               data={timeByUser}
               dataKey="hours"
               nameKey="name"
+              onDataClick={(data) => data.items}
             />
           </WidgetContainer>
         );
@@ -184,6 +259,7 @@ export default function Analytics() {
               data={budgetData}
               dataKey="used"
               nameKey="name"
+              onDataClick={(data) => [data]}
             />
           </WidgetContainer>
         );
@@ -193,29 +269,6 @@ export default function Analytics() {
     }
   };
 
-  const exportDashboard = () => {
-    const data = {
-      exportDate: format(new Date(), 'PPpp'),
-      metrics: metricsData,
-      widgets: widgets.map(w => w.type),
-      summary: {
-        projects: projects.length,
-        tasks: tasks.length,
-        hours: totalHours
-      }
-    };
-
-    const dataStr = JSON.stringify(data, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = `analytics-${format(new Date(), 'yyyy-MM-dd')}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-    
-    toast.success("Dashboard exported successfully");
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -232,14 +285,12 @@ export default function Analytics() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={exportDashboard}>
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-              <Button variant="outline">
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
+              <TimeFrameSelector
+                preset={timeFrame}
+                onPresetChange={setTimeFrame}
+                dateRange={customDateRange}
+                onDateRangeChange={setCustomDateRange}
+              />
               <Button onClick={() => setAddWidgetOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Widget
