@@ -1392,6 +1392,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.watcherIds !== undefined) dbUpdates.watcher_ids = updates.watcherIds;
       if (updates.ownerId !== undefined) dbUpdates.owner_id = updates.ownerId;
       if (updates.collaboratorIds !== undefined) dbUpdates.collaborator_ids = updates.collaboratorIds;
+      if ((updates as any).google_chat_settings !== undefined) dbUpdates.google_chat_settings = (updates as any).google_chat_settings;
 
       const { error } = await supabase
         .from('projects')
