@@ -1,9 +1,8 @@
 import { Task, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
-import { useState, useEffect, useMemo, lazy, Suspense } from "react";
-import { TaskCardSkeleton } from "./TaskCardSkeleton";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
+import { EditTaskDialog } from "../tasks/EditTaskDialog";
 import { Settings, Edit2, CheckSquare, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
@@ -21,9 +20,6 @@ import { Badge } from "@/components/ui/badge";
 type ViewMode = "list" | "kanban";
 type DisplayOption = "project" | "client" | "assignee" | "dueDate" | "priority" | "status" | "collaborators";
 
-// Lazy load the edit dialog for better performance
-const EditTaskDialog = lazy(() => import("../tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
-
 interface KanbanBoardProps {
   tasks?: Task[];
   projectId?: string;
@@ -33,12 +29,10 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", onBulkEdit }: KanbanBoardProps) {
   const { moveTask, tasks: allTasks, deleteTask, taskStatuses } = useAppContext();
-  const { toast } = useToast();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [nestedSelectedTask, setNestedSelectedTask] = useState<Task | null>(null);
   const [isNestedDialogOpen, setIsNestedDialogOpen] = useState(false);
-  const [optimisticTasks, setOptimisticTasks] = useState<Task[]>([]);
   const [columnColors, setColumnColors] = useState<Record<TaskStatus, string>>({
     backlog: "var(--kanban-backlog)",
     todo: "var(--kanban-todo)",
@@ -110,78 +104,30 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     return saved ? JSON.parse(saved) : ["project", "client", "assignee"];
   });
   
-  // Sync optimistic tasks with real tasks
-  useEffect(() => {
-    const baseTasks = propTasks 
-      ? propTasks 
-      : projectId
-      ? allTasks.filter(task => task.projectId === projectId)
-      : allTasks;
-    setOptimisticTasks(baseTasks);
-  }, [propTasks, allTasks, projectId]);
-
-  // Use optimistic tasks for display
-  const tasks = optimisticTasks;
+  // If tasks were passed in as props, use those
+  // Otherwise, if projectId was provided, filter all tasks for that project
+  // If neither, use all tasks
+  const tasks = propTasks 
+    ? propTasks 
+    : projectId
+    ? allTasks.filter(task => task.projectId === projectId)
+    : allTasks;
   
-  // Memoize columns to prevent unnecessary recalculations
-  const columns = useMemo(() => 
-    taskStatuses
-      .sort((a, b) => a.order - b.order)
-      .map(status => ({
-        id: status.value as TaskStatus,
-        title: status.label
-      })),
-    [taskStatuses]
-  );
+  const columns: { id: TaskStatus; title: string }[] = taskStatuses
+    .sort((a, b) => a.order - b.order)
+    .map(status => ({
+      id: status.value as TaskStatus,
+      title: status.label
+    }));
   
-  // Memoize tasks by status for performance
-  const tasksByStatus = useMemo(() => 
-    columns.reduce((acc, column) => {
-      acc[column.id] = tasks.filter(task => task.status === column.id);
-      return acc;
-    }, {} as Record<TaskStatus, Task[]>),
-    [tasks, columns]
-  );
+  // Prepare tasks by status
+  const tasksByStatus = columns.reduce((acc, column) => {
+    acc[column.id] = tasks.filter(task => task.status === column.id);
+    return acc;
+  }, {} as Record<TaskStatus, Task[]>);
   
-  // Drag and drop handlers with position tracking
+  // Drag and drop handlers
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
-  const [draggedOverTask, setDraggedOverTask] = useState<string | null>(null);
-  
-  // Load task order from localStorage
-  const [taskOrder, setTaskOrder] = useState<Record<TaskStatus, string[]>>(() => {
-    const saved = localStorage.getItem('kanban-task-order');
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  // Save task order to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('kanban-task-order', JSON.stringify(taskOrder));
-  }, [taskOrder]);
-
-  // Apply custom ordering to tasks within each status
-  const orderedTasksByStatus = useMemo(() => {
-    const result: Record<TaskStatus, Task[]> = {} as Record<TaskStatus, Task[]>;
-    
-    columns.forEach(column => {
-      const columnTasks = tasksByStatus[column.id];
-      const order = taskOrder[column.id] || [];
-      
-      // Sort tasks based on saved order, with unordered tasks at the end
-      const ordered = [...columnTasks].sort((a, b) => {
-        const indexA = order.indexOf(a.id);
-        const indexB = order.indexOf(b.id);
-        
-        if (indexA === -1 && indexB === -1) return 0;
-        if (indexA === -1) return 1;
-        if (indexB === -1) return -1;
-        return indexA - indexB;
-      });
-      
-      result[column.id] = ordered;
-    });
-    
-    return result;
-  }, [tasksByStatus, taskOrder, columns]);
   
   const handleDragStart = (e: React.DragEvent, task: Task) => {
     setDraggedTask(task);
@@ -193,125 +139,12 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   };
-
-  const handleDragOverTask = (e: React.DragEvent, taskId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDraggedOverTask(taskId);
-  };
-
-  const handleDragLeave = () => {
-    setDraggedOverTask(null);
-  };
   
-  const handleDropOnTask = async (e: React.DragEvent, targetTask: Task, status: TaskStatus) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!draggedTask) return;
-    
-    const taskId = draggedTask.id;
-    const oldStatus = draggedTask.status;
-    
-    // Get current tasks in the target column
-    const columnTasks = orderedTasksByStatus[status];
-    const targetIndex = columnTasks.findIndex(t => t.id === targetTask.id);
-    
-    // If moving within the same column, reorder
-    if (oldStatus === status) {
-      const currentIndex = columnTasks.findIndex(t => t.id === taskId);
-      if (currentIndex === targetIndex) {
-        setDraggedTask(null);
-        setDraggedOverTask(null);
-        return;
-      }
-      
-      // Create new order for this column
-      const newColumnOrder = columnTasks
-        .filter(t => t.id !== taskId)
-        .map(t => t.id);
-      
-      newColumnOrder.splice(targetIndex, 0, taskId);
-      
-      setTaskOrder(prev => ({
-        ...prev,
-        [status]: newColumnOrder
-      }));
-    } else {
-      // Moving to different column - update status and insert at position
-      setOptimisticTasks(prev => 
-        prev.map(t => t.id === taskId ? { ...t, status } : t)
-      );
-      
-      // Update order for target column
-      const newColumnOrder = columnTasks.map(t => t.id);
-      newColumnOrder.splice(targetIndex, 0, taskId);
-      
-      setTaskOrder(prev => ({
-        ...prev,
-        [status]: newColumnOrder
-      }));
-      
-      // Perform actual update in background
-      try {
-        await moveTask(taskId, status);
-      } catch (error) {
-        console.error('Failed to move task:', error);
-        setOptimisticTasks(prev => 
-          prev.map(t => t.id === taskId ? { ...t, status: oldStatus } : t)
-        );
-        toast({
-          title: "Failed to move task",
-          description: "Please try again",
-          variant: "destructive"
-        });
-      }
-    }
-    
-    setDraggedTask(null);
-    setDraggedOverTask(null);
-  };
-
   const handleDrop = async (e: React.DragEvent, status: TaskStatus) => {
     e.preventDefault();
-    if (!draggedTask) return;
-    
-    const taskId = draggedTask.id;
-    const oldStatus = draggedTask.status;
-    
-    // If dropping in the same column (at the end), don't change anything
-    if (oldStatus === status) {
+    if (draggedTask) {
+      await moveTask(draggedTask.id, status);
       setDraggedTask(null);
-      return;
-    }
-    
-    // Optimistic update - immediately update UI
-    setOptimisticTasks(prev => 
-      prev.map(t => t.id === taskId ? { ...t, status } : t)
-    );
-    setDraggedTask(null);
-    
-    // Add to end of target column order
-    const columnTasks = orderedTasksByStatus[status];
-    const newOrder = [...columnTasks.map(t => t.id), taskId];
-    setTaskOrder(prev => ({
-      ...prev,
-      [status]: newOrder
-    }));
-    
-    // Perform actual update in background
-    try {
-      await moveTask(taskId, status);
-    } catch (error) {
-      // Revert on error
-      console.error('Failed to move task:', error);
-      setOptimisticTasks(prev => 
-        prev.map(t => t.id === taskId ? { ...t, status: oldStatus } : t)
-      );
-      toast({
-        title: "Failed to move task",
-        description: "Please try again",
-        variant: "destructive"
-      });
     }
   };
   
@@ -510,8 +343,8 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
         {renderToolbar()}
         
         <div className="space-y-2">
-          {tasks.map((task, index) => (
-            <div key={task.id} className="group animate-fade-in" style={{ animationDelay: `${index * 0.02}s` }}>
+          {tasks.map(task => (
+            <div key={task.id} className="group">
               <TaskCard 
                 task={task} 
                 onClick={(e) => handleTaskClick(task, e)}
@@ -529,25 +362,21 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
             </div>
           )}
           
-      {selectedTask && (
-        <Suspense fallback={<div className="fixed inset-0 bg-background/80 backdrop-blur-sm" />}>
-          <EditTaskDialog
-            task={selectedTask}
-            open={isEditDialogOpen}
-            onOpenChange={setIsEditDialogOpen}
-          />
-        </Suspense>
-      )}
-      
-      {nestedSelectedTask && (
-        <Suspense fallback={<div className="fixed inset-0 bg-background/80 backdrop-blur-sm" />}>
-          <EditTaskDialog
-            task={nestedSelectedTask}
-            open={isNestedDialogOpen}
-            onOpenChange={setIsNestedDialogOpen}
-          />
-        </Suspense>
-      )}
+          {selectedTask && (
+            <EditTaskDialog
+              task={selectedTask}
+              open={isEditDialogOpen}
+              onOpenChange={setIsEditDialogOpen}
+            />
+          )}
+          
+          {nestedSelectedTask && (
+            <EditTaskDialog
+              task={nestedSelectedTask}
+              open={isNestedDialogOpen}
+              onOpenChange={setIsNestedDialogOpen}
+            />
+          )}
         </div>
       </div>
     );
@@ -579,18 +408,12 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                 </div>
                 
                 <div className="space-y-2 min-h-[400px]">
-                  {orderedTasksByStatus[column.id].map((task, index) => (
+                  {tasksByStatus[column.id].map(task => (
                     <div
                       key={task.id}
-                      className={`group animate-fade-in drag-transition ${
-                        draggedOverTask === task.id ? 'ring-2 ring-primary' : ''
-                      }`}
-                      style={{ animationDelay: `${index * 0.03}s` }}
+                      className="group"
                       draggable={selectedTaskIds.length === 0}
                       onDragStart={(e) => selectedTaskIds.length === 0 && handleDragStart(e, task)}
-                      onDragOver={(e) => handleDragOverTask(e, task.id)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDropOnTask(e, task, column.id)}
                     >
                       <TaskCard 
                         task={task} 
@@ -603,7 +426,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                     </div>
                   ))}
                   
-                  {orderedTasksByStatus[column.id].length === 0 && (
+                  {tasksByStatus[column.id].length === 0 && (
                     <div className="border-2 border-dashed border-muted rounded-md h-20 flex items-center justify-center bg-background/40">
                       <p className="text-sm text-muted-foreground">Drop tasks here</p>
                     </div>

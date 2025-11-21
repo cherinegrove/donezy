@@ -115,39 +115,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-@layer utilities {
-  /* Smooth transitions for interactive elements */
-  .task-card-transition {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  .drag-transition {
-    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  /* Fade in animation for loaded content */
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-out;
-  }
-  
-  /* Smooth scale on hover */
-  .hover-lift {
-    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-  }
-  
-  .hover-lift:hover {
-    transform: translateY(-2px);
-  }
-}
