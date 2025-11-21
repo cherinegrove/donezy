@@ -1591,6 +1591,7 @@ export type Database = {
           due_date: string | null
           estimated_hours: number | null
           id: string
+          order_index: number | null
           organization_id: string | null
           priority: string
           project_id: string
@@ -1612,6 +1613,7 @@ export type Database = {
           due_date?: string | null
           estimated_hours?: number | null
           id?: string
+          order_index?: number | null
           organization_id?: string | null
           priority?: string
           project_id: string
@@ -1633,6 +1635,7 @@ export type Database = {
           due_date?: string | null
           estimated_hours?: number | null
           id?: string
+          order_index?: number | null
           organization_id?: string | null
           priority?: string
           project_id?: string

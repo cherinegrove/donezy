@@ -68,6 +68,7 @@ export interface AppContextType {
   deleteTask: (taskId: string) => void;
   getTaskById: (taskId: string) => Task | undefined;
   moveTask: (taskId: string, newStatus: string) => void;
+  reorderTasks: (taskId: string, newIndex: number, newStatus?: string) => Promise<void>;
   watchTask: (taskId: string, userId: string) => void;
   unwatchTask: (taskId: string, userId: string) => void;
   linkTasks: (taskId: string, relatedTaskId: string) => void;
