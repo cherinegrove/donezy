@@ -16,6 +16,7 @@ import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
 import { ProjectNotesSimple } from "@/components/projects/ProjectNotesSimple";
 import { ProjectFilesAdvanced } from "@/components/projects/ProjectFilesAdvanced";
 import { BulkEditTasksDialog } from "@/components/tasks/BulkEditTasksDialog";
+import { GoogleChatSettings } from "@/components/projects/GoogleChatSettings";
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -321,6 +322,7 @@ export default function ProjectDetails() {
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="files">Files</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
         </TabsList>
         
         <TabsContent value="tasks">
@@ -338,6 +340,10 @@ export default function ProjectDetails() {
         
         <TabsContent value="files">
           <ProjectFilesAdvanced projectId={projectId!} />
+        </TabsContent>
+        
+        <TabsContent value="notifications">
+          <GoogleChatSettings project={project} />
         </TabsContent>
       </Tabs>
       
