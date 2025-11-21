@@ -32,7 +32,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { CollaboratorSelect } from "./CollaboratorSelect";
 import { StatusSelect } from "./StatusSelect";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Plus, Trash2 } from "lucide-react";
+import { FileText, Plus, Trash2, Link as LinkIcon, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNativeFieldConfigs } from "@/hooks/useNativeFieldConfigs";
 
@@ -114,11 +114,14 @@ export function CreateTaskDialog({
   onOpenChange,
   defaultProjectId,
 }: CreateTaskDialogProps) {
-  const { projects, users, tasks, customFields, addTask, clients, currentUser, taskTemplates } = useAppContext();
+  const { projects, users, tasks, customFields, addTask, clients, currentUser, taskTemplates, addTaskExternalLink } = useAppContext();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [clientProjects, setClientProjects] = useState<typeof projects>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("default");
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [externalLinks, setExternalLinks] = useState<{ name: string; url: string }[]>([]);
+  const [linkName, setLinkName] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
   
   // Fetch native field configurations
   const { isFieldRequired, isFieldHidden } = useNativeFieldConfigs('tasks');
@@ -366,12 +369,26 @@ export function CreateTaskDialog({
 
       console.log('addTask completed successfully');
 
+      // Add external links if any
+      if (taskId && externalLinks.length > 0) {
+        for (const link of externalLinks) {
+          try {
+            await addTaskExternalLink(taskId, link.name, link.url);
+          } catch (error) {
+            console.error('Error adding link:', error);
+          }
+        }
+      }
+
       // Update template usage count
       await updateTemplateUsage(selectedTemplate);
 
       toast.success("Task created successfully");
       form.reset();
       setSelectedTemplate("default");
+      setExternalLinks([]);
+      setLinkName("");
+      setLinkUrl("");
       onOpenChange(false);
 
       console.log('Task creation process completed');
@@ -877,6 +894,70 @@ export function CreateTaskDialog({
                         );
                       }}
                     />
+                  </div>
+
+                  {/* Links Section */}
+                  <div className="space-y-4 border rounded-lg p-4 bg-muted/20">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <LinkIcon className="h-4 w-4" />
+                        External Links (Optional)
+                      </Label>
+                      <p className="text-sm text-muted-foreground">Add links to external resources</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Link name"
+                          value={linkName}
+                          onChange={(e) => setLinkName(e.target.value)}
+                        />
+                        <Input
+                          placeholder="https://example.com"
+                          value={linkUrl}
+                          onChange={(e) => setLinkUrl(e.target.value)}
+                        />
+                        <Button 
+                          type="button" 
+                          onClick={() => {
+                            if (linkName.trim() && linkUrl.trim()) {
+                              setExternalLinks([...externalLinks, { name: linkName.trim(), url: linkUrl.trim() }]);
+                              setLinkName("");
+                              setLinkUrl("");
+                            }
+                          }} 
+                          size="icon" 
+                          variant="outline"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {externalLinks.length > 0 && (
+                        <div className="space-y-2">
+                          {externalLinks.map((link, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 p-2 rounded-md border bg-background"
+                            >
+                              <LinkIcon className="h-3 w-3 text-muted-foreground" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{link.name}</p>
+                                <p className="text-xs text-muted-foreground truncate">{link.url}</p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => setExternalLinks(externalLinks.filter((_, i) => i !== index))}
+                              >
+                                <X className="h-3 w-3 text-destructive" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Custom Fields - Show when there are template fields available - REMOVED MultiSelect usage */}
