@@ -2,13 +2,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { FileSection } from "@/components/tasks/FileSection";
 import { TimerSection } from "@/components/tasks/TimerSection";
@@ -18,13 +16,40 @@ import { CommentSection } from "@/components/tasks/CommentSection";
 import { RelatedTasksSection } from "@/components/tasks/RelatedTasksSection";
 import { format } from "date-fns";
 
-
 export default function TaskDetails() {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
-  const { tasks, users, projects } = useAppContext();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
+  
+  // Safely access context with error handling
+  let tasks, users, projects;
+  try {
+    const context = useAppContext();
+    tasks = context.tasks;
+    users = context.users;
+    projects = context.projects;
+  } catch (error) {
+    console.error('Context access error:', error);
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Wait for data to be loaded
+  if (!tasks || !users || !projects) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   // Add safety checks for arrays
   const safeTasks = Array.isArray(tasks) ? tasks : [];
