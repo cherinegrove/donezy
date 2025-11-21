@@ -8,12 +8,14 @@ import {
   Users, 
   Target,
   DollarSign,
-  CheckCircle
+  CheckCircle,
+  UserCircle
 } from "lucide-react";
 
 export type WidgetType = 
   | 'metrics'
   | 'risk-success'
+  | 'user-feedback'
   | 'project-status'
   | 'task-distribution'
   | 'time-tracking'
@@ -40,6 +42,12 @@ const widgetOptions: WidgetOption[] = [
     name: 'Risk & Success Detection',
     description: 'AI-powered identification of risks and wins',
     icon: <AlertTriangle className="h-5 w-5" />
+  },
+  {
+    id: 'user-feedback',
+    name: 'User Performance Feedback',
+    description: 'AI-powered analysis and feedback for team members',
+    icon: <UserCircle className="h-5 w-5" />
   },
   {
     id: 'project-status',
