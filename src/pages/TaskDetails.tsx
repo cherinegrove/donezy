@@ -54,18 +54,45 @@ class SectionErrorBoundary extends Component<
 }
 
 export default function TaskDetails() {
+  console.log('🔵 TaskDetails component rendering');
+  
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
-  const { tasks, users, projects } = useAppContext();
+  
+  console.log('🔵 TaskId from params:', taskId);
+  
+  let contextData;
+  try {
+    contextData = useAppContext();
+    console.log('🔵 Context loaded successfully');
+  } catch (err) {
+    console.error('🔴 Failed to load context:', err);
+    return (
+      <div className="container mx-auto py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Error loading context</h1>
+          <p className="text-muted-foreground mb-4">{String(err)}</p>
+          <Button onClick={() => navigate('/tasks')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Tasks
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
+  const { tasks, users, projects } = contextData;
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('🔵 useEffect running');
     try {
       console.log('TaskDetails - Loading task:', taskId);
-      console.log('TaskDetails - Tasks available:', tasks?.length);
+      console.log('TaskDetails - Tasks:', tasks);
+      console.log('TaskDetails - Tasks length:', tasks?.length);
       console.log('TaskDetails - Users available:', users?.length);
       console.log('TaskDetails - Projects available:', projects?.length);
       
@@ -73,27 +100,37 @@ export default function TaskDetails() {
       const safeTasks = Array.isArray(tasks) ? tasks : [];
       const task = safeTasks.find(t => t && t.id === taskId);
       
+      console.log('🔵 Found task:', task);
+      
       if (!task && safeTasks.length > 0) {
+        console.log('🔴 Task not found');
         setError('Task not found');
       }
       
       setLoading(false);
+      console.log('🔵 Loading complete');
     } catch (err) {
-      console.error('TaskDetails - Error:', err);
+      console.error('🔴 TaskDetails - Error in useEffect:', err);
       setError('Failed to load task details');
       setLoading(false);
     }
   }, [taskId, tasks, users, projects]);
+
+  console.log('🔵 Before safety checks');
 
   // Add safety checks for arrays
   const safeTasks = Array.isArray(tasks) ? tasks : [];
   const safeUsers = Array.isArray(users) ? users : [];
   const safeProjects = Array.isArray(projects) ? projects : [];
 
+  console.log('🔵 After safety checks');
+
   const task = safeTasks.find(t => t && t.id === taskId);
   const assignee = safeUsers.find(u => u && u.auth_user_id === task?.assigneeId);
   const project = safeProjects.find(p => p && p.id === task?.projectId);
   const collaborators = safeUsers.filter(u => u && task?.collaboratorIds?.includes(u.auth_user_id));
+  
+  console.log('🔵 Task data:', { task, assignee, project, collaborators });
 
   if (loading) {
     return (
