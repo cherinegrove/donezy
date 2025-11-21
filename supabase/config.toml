@@ -44,6 +44,9 @@ verify_jwt = false
 [functions.send-recovery-email]
 verify_jwt = false
 
+[functions.smart-analytics]
+verify_jwt = true
+
 [storage]
 enabled = true
 image = "supabase/storage-api:v1.0.6"
