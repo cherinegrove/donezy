@@ -1516,6 +1516,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           return newTasks;
         });
         console.log('🟢 Task successfully added to local state');
+        
+        // Send Google Chat notification asynchronously (don't await)
+        if (data.project_id) {
+          supabase.functions.invoke('send-task-notification', {
+            body: {
+              taskId: data.id,
+              projectId: data.project_id,
+              eventType: 'task_created'
+            }
+          }).then(({ error }) => {
+            if (error) console.error('Error sending task notification:', error);
+          });
+        }
+        
         return data.id;
       }
       
@@ -1634,6 +1648,33 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setTasks(prev => prev.map(task => 
         task.id === taskId ? { ...task, ...updates } : task
       ));
+
+      // Send Google Chat notification for assignment changes
+      if (updates.assigneeId !== undefined && updates.assigneeId !== currentTask.assigneeId && currentTask.projectId) {
+        supabase.functions.invoke('send-task-notification', {
+          body: {
+            taskId,
+            projectId: currentTask.projectId,
+            eventType: 'task_assigned',
+            oldTask: { assignee_id: currentTask.assigneeId }
+          }
+        }).then(({ error }) => {
+          if (error) console.error('Error sending assignment notification:', error);
+        });
+      }
+      
+      // Send notification for task completion
+      if (updates.status === 'done' && currentTask.status !== 'done' && currentTask.projectId) {
+        supabase.functions.invoke('send-task-notification', {
+          body: {
+            taskId,
+            projectId: currentTask.projectId,
+            eventType: 'task_completed'
+          }
+        }).then(({ error }) => {
+          if (error) console.error('Error sending completion notification:', error);
+        });
+      }
 
       return taskId;
     } catch (error) {
