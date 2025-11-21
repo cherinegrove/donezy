@@ -439,7 +439,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
             {columns.map((column) => (
               <div
                 key={column.id}
-                className="flex-1 min-w-[280px]"
+                className="flex-1 min-w-[140px]"
               >
                 <div 
                   className="rounded-lg p-3 h-full"
