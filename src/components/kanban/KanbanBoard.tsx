@@ -143,8 +143,45 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     [tasks, columns]
   );
   
-  // Drag and drop handlers
+  // Drag and drop handlers with position tracking
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [draggedOverTask, setDraggedOverTask] = useState<string | null>(null);
+  
+  // Load task order from localStorage
+  const [taskOrder, setTaskOrder] = useState<Record<TaskStatus, string[]>>(() => {
+    const saved = localStorage.getItem('kanban-task-order');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // Save task order to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('kanban-task-order', JSON.stringify(taskOrder));
+  }, [taskOrder]);
+
+  // Apply custom ordering to tasks within each status
+  const orderedTasksByStatus = useMemo(() => {
+    const result: Record<TaskStatus, Task[]> = {} as Record<TaskStatus, Task[]>;
+    
+    columns.forEach(column => {
+      const columnTasks = tasksByStatus[column.id];
+      const order = taskOrder[column.id] || [];
+      
+      // Sort tasks based on saved order, with unordered tasks at the end
+      const ordered = [...columnTasks].sort((a, b) => {
+        const indexA = order.indexOf(a.id);
+        const indexB = order.indexOf(b.id);
+        
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+      });
+      
+      result[column.id] = ordered;
+    });
+    
+    return result;
+  }, [tasksByStatus, taskOrder, columns]);
   
   const handleDragStart = (e: React.DragEvent, task: Task) => {
     setDraggedTask(task);
@@ -156,7 +193,84 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   };
+
+  const handleDragOverTask = (e: React.DragEvent, taskId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggedOverTask(taskId);
+  };
+
+  const handleDragLeave = () => {
+    setDraggedOverTask(null);
+  };
   
+  const handleDropOnTask = async (e: React.DragEvent, targetTask: Task, status: TaskStatus) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!draggedTask) return;
+    
+    const taskId = draggedTask.id;
+    const oldStatus = draggedTask.status;
+    
+    // Get current tasks in the target column
+    const columnTasks = orderedTasksByStatus[status];
+    const targetIndex = columnTasks.findIndex(t => t.id === targetTask.id);
+    
+    // If moving within the same column, reorder
+    if (oldStatus === status) {
+      const currentIndex = columnTasks.findIndex(t => t.id === taskId);
+      if (currentIndex === targetIndex) {
+        setDraggedTask(null);
+        setDraggedOverTask(null);
+        return;
+      }
+      
+      // Create new order for this column
+      const newColumnOrder = columnTasks
+        .filter(t => t.id !== taskId)
+        .map(t => t.id);
+      
+      newColumnOrder.splice(targetIndex, 0, taskId);
+      
+      setTaskOrder(prev => ({
+        ...prev,
+        [status]: newColumnOrder
+      }));
+    } else {
+      // Moving to different column - update status and insert at position
+      setOptimisticTasks(prev => 
+        prev.map(t => t.id === taskId ? { ...t, status } : t)
+      );
+      
+      // Update order for target column
+      const newColumnOrder = columnTasks.map(t => t.id);
+      newColumnOrder.splice(targetIndex, 0, taskId);
+      
+      setTaskOrder(prev => ({
+        ...prev,
+        [status]: newColumnOrder
+      }));
+      
+      // Perform actual update in background
+      try {
+        await moveTask(taskId, status);
+      } catch (error) {
+        console.error('Failed to move task:', error);
+        setOptimisticTasks(prev => 
+          prev.map(t => t.id === taskId ? { ...t, status: oldStatus } : t)
+        );
+        toast({
+          title: "Failed to move task",
+          description: "Please try again",
+          variant: "destructive"
+        });
+      }
+    }
+    
+    setDraggedTask(null);
+    setDraggedOverTask(null);
+  };
+
   const handleDrop = async (e: React.DragEvent, status: TaskStatus) => {
     e.preventDefault();
     if (!draggedTask) return;
@@ -164,11 +278,25 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     const taskId = draggedTask.id;
     const oldStatus = draggedTask.status;
     
+    // If dropping in the same column (at the end), don't change anything
+    if (oldStatus === status) {
+      setDraggedTask(null);
+      return;
+    }
+    
     // Optimistic update - immediately update UI
     setOptimisticTasks(prev => 
       prev.map(t => t.id === taskId ? { ...t, status } : t)
     );
     setDraggedTask(null);
+    
+    // Add to end of target column order
+    const columnTasks = orderedTasksByStatus[status];
+    const newOrder = [...columnTasks.map(t => t.id), taskId];
+    setTaskOrder(prev => ({
+      ...prev,
+      [status]: newOrder
+    }));
     
     // Perform actual update in background
     try {
@@ -451,13 +579,18 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                 </div>
                 
                 <div className="space-y-2 min-h-[400px]">
-                  {tasksByStatus[column.id].map((task, index) => (
+                  {orderedTasksByStatus[column.id].map((task, index) => (
                     <div
                       key={task.id}
-                      className="group animate-fade-in drag-transition"
+                      className={`group animate-fade-in drag-transition ${
+                        draggedOverTask === task.id ? 'ring-2 ring-primary' : ''
+                      }`}
                       style={{ animationDelay: `${index * 0.03}s` }}
                       draggable={selectedTaskIds.length === 0}
                       onDragStart={(e) => selectedTaskIds.length === 0 && handleDragStart(e, task)}
+                      onDragOver={(e) => handleDragOverTask(e, task.id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDropOnTask(e, task, column.id)}
                     >
                       <TaskCard 
                         task={task} 
@@ -470,7 +603,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                     </div>
                   ))}
                   
-                  {tasksByStatus[column.id].length === 0 && (
+                  {orderedTasksByStatus[column.id].length === 0 && (
                     <div className="border-2 border-dashed border-muted rounded-md h-20 flex items-center justify-center bg-background/40">
                       <p className="text-sm text-muted-foreground">Drop tasks here</p>
                     </div>
