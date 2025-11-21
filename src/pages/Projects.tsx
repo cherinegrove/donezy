@@ -7,6 +7,8 @@ import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
 import { useNavigate } from "react-router-dom";
 import { EnhancedFilterBar, FilterOption } from "@/components/common/EnhancedFilterBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { FolderKanban, Filter } from "lucide-react";
 import { CreateTemplateDialog } from "@/components/projects/CreateTemplateDialog";
 import { UseTemplateDialog } from "@/components/projects/UseTemplateDialog";
 import { TemplatesList } from "@/components/projects/TemplatesList";
@@ -16,6 +18,7 @@ import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import type { Project } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { CreateProjectTemplateDialog } from "@/components/projects/CreateProjectTemplateDialog";
+import { ModernToolbar, ModernToolbarSection } from "@/components/common/ModernToolbar";
 
 const Projects = () => {
   console.log("Projects component: Starting render");
@@ -213,9 +216,25 @@ const Projects = () => {
               </p>
             </div>
             <div className="flex gap-2">
-              <TabsList>
-                <TabsTrigger value="projects">Projects</TabsTrigger>
-                <TabsTrigger value="templates">Templates</TabsTrigger>
+              <TabsList className="bg-muted/50 backdrop-blur-sm border border-border/50 shadow-sm">
+                <TabsTrigger 
+                  value="projects"
+                  className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                >
+                  <FolderKanban className="mr-2 h-4 w-4" />
+                  Projects
+                  {filteredProjects.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-xs">
+                      {filteredProjects.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="templates"
+                  className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                >
+                  Templates
+                </TabsTrigger>
               </TabsList>
               {activeTab === "projects" ? (
                 <Button onClick={() => {
@@ -237,21 +256,25 @@ const Projects = () => {
             </div>
           </div>
 
-          <TabsContent value="projects" className="mt-6">
-            <div className="flex justify-between items-center mb-4">
-              <EnhancedFilterBar 
-                filters={filterOptions} 
-                onFilterChange={handleFilterChange}
-                presetKey="projects"
-              />
-              <div className="flex items-center gap-4">
+          <TabsContent value="projects" className="mt-6 animate-fade-in">
+            <ModernToolbar>
+              <ModernToolbarSection>
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <EnhancedFilterBar 
+                  filters={filterOptions} 
+                  onFilterChange={handleFilterChange}
+                  presetKey="projects"
+                />
+              </ModernToolbarSection>
+              
+              <ModernToolbarSection>
                 <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline">
                   <Plus className="mr-2 h-4 w-4" />
                   New Project
                 </Button>
                 <ViewSelector currentView={currentView} onViewChange={setCurrentView} />
-              </div>
-            </div>
+              </ModernToolbarSection>
+            </ModernToolbar>
 
             <div className="space-y-6">
               <ProjectsViewContent
@@ -267,7 +290,7 @@ const Projects = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="templates" className="mt-6">
+          <TabsContent value="templates" className="mt-6 animate-fade-in">
             <TemplatesList 
               key={templatesRefreshKey}
               onCreateTemplate={() => setIsCreateTemplateDialogOpen(true)}
