@@ -13,7 +13,7 @@ export const MyTimeTrackingCard = () => {
 
   const userTimeEntries = useMemo(() => {
     if (!currentUser) return [];
-    return timeEntries.filter(entry => entry.userId === currentUser.auth_user_id && entry.status === 'approved');
+    return timeEntries.filter(entry => entry.userId === currentUser.auth_user_id);
   }, [timeEntries, currentUser]);
 
   const calculatePeriodData = (startDate: Date, endDate: Date) => {
@@ -63,7 +63,7 @@ export const MyTimeTrackingCard = () => {
         };
       }
 
-      const hours = (entry.duration || 0) / 3600;
+      const hours = (entry.duration || 0) / 60;
       acc[clientId].hours += hours;
       acc[clientId].projects[projectId].hours += hours;
       acc[clientId].projects[projectId].tasks[taskId].hours += hours;
@@ -73,7 +73,7 @@ export const MyTimeTrackingCard = () => {
     }, {} as Record<string, any>);
 
     return {
-      totalHours: (totalHours / 3600).toFixed(2),
+      totalHours: (totalHours / 60).toFixed(2),
       entries: entries.length,
       byClient
     };
@@ -185,7 +185,7 @@ export const MyTimeTrackingCard = () => {
                                   {taskData.entries.map((entry: any, idx: number) => (
                                     <div key={idx} className="flex justify-between">
                                       <span>{format(parseISO(entry.startTime), 'MMM d, h:mm a')}</span>
-                                      <span>{((entry.duration || 0) / 3600).toFixed(2)}h</span>
+                                      <span>{((entry.duration || 0) / 60).toFixed(2)}h</span>
                                     </div>
                                   ))}
                                 </div>
