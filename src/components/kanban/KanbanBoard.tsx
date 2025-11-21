@@ -457,7 +457,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className={`space-y-2 min-h-[400px] transition-colors ${
+                        className={`space-y-2 min-h-[400px] max-h-[70vh] overflow-y-auto transition-colors ${
                           snapshot.isDraggingOver ? 'bg-background/10 rounded-md' : ''
                         }`}
                       >
