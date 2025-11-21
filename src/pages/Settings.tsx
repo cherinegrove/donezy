@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EditTeamDialog } from "@/components/teams/EditTeamDialog";
 import { ProfileSettings } from "@/components/settings/ProfileSettings";
 import { UsersManagementTab } from "@/components/settings/UsersManagementTab";
+import { IntegrationsSettings } from "@/components/settings/IntegrationsSettings";
 
 export default function Settings() {
   const { teams, currentUser, customRoles } = useAppContext();
@@ -29,9 +30,10 @@ export default function Settings() {
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
       
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
+          <TabsTrigger value="integrations">Integrations</TabsTrigger>
           {currentUser && customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin' && (
             <TabsTrigger value="users">Users</TabsTrigger>
           )}
@@ -68,6 +70,10 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="integrations">
+          <IntegrationsSettings />
         </TabsContent>
         
         {currentUser && customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin' && (
