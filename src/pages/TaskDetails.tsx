@@ -2,9 +2,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Component, ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,41 @@ import { ChecklistSection } from "@/components/tasks/ChecklistSection";
 import { CommentSection } from "@/components/tasks/CommentSection";
 import { RelatedTasksSection } from "@/components/tasks/RelatedTasksSection";
 import { format } from "date-fns";
+
+// Error boundary component for child sections
+class SectionErrorBoundary extends Component<
+  { children: ReactNode; sectionName: string },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode; sectionName: string }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error(`Error in ${this.props.sectionName}:`, error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-4 border border-destructive/50 rounded-md bg-destructive/10">
+          <div className="flex items-center gap-2 text-destructive mb-2">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="font-medium">Error loading {this.props.sectionName}</span>
+          </div>
+          <p className="text-sm text-muted-foreground">{this.state.error?.message}</p>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export default function TaskDetails() {
   const { taskId } = useParams<{ taskId: string }>();
@@ -166,32 +201,44 @@ export default function TaskDetails() {
             </div>
 
             <div className="space-y-6 pt-4 border-t">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Checklist</h3>
-                <ChecklistSection taskId={task.id} />
-              </div>
+              <SectionErrorBoundary sectionName="Checklist">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Checklist</h3>
+                  <ChecklistSection taskId={task.id} />
+                </div>
+              </SectionErrorBoundary>
 
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Comments</h3>
-                <CommentSection taskId={task.id} />
-              </div>
+              <SectionErrorBoundary sectionName="Comments">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Comments</h3>
+                  <CommentSection taskId={task.id} />
+                </div>
+              </SectionErrorBoundary>
 
-              <div>
-                <RelatedTasksSection taskId={task.id} />
-              </div>
+              <SectionErrorBoundary sectionName="Related Tasks">
+                <div>
+                  <RelatedTasksSection taskId={task.id} />
+                </div>
+              </SectionErrorBoundary>
             </div>
           </TabsContent>
           
           <TabsContent value="files">
-            <FileSection taskId={task.id} />
+            <SectionErrorBoundary sectionName="Files">
+              <FileSection taskId={task.id} />
+            </SectionErrorBoundary>
           </TabsContent>
           
           <TabsContent value="time">
-            <TimerSection taskId={task.id} />
+            <SectionErrorBoundary sectionName="Time Tracking">
+              <TimerSection taskId={task.id} />
+            </SectionErrorBoundary>
           </TabsContent>
           
           <TabsContent value="logs">
-            <TaskLogsSection taskId={task.id} />
+            <SectionErrorBoundary sectionName="Activity Log">
+              <TaskLogsSection taskId={task.id} />
+            </SectionErrorBoundary>
           </TabsContent>
         </Tabs>
       </Card>
