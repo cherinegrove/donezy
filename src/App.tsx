@@ -8,6 +8,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 import { AppLayout } from "./components/layout/AppLayout";
+import { GlobalSearch } from "./components/search/GlobalSearch";
 import Home from "./pages/Home";
 import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
@@ -180,6 +181,7 @@ const App = () => {
         <TooltipProvider>
           <BrowserRouter>
             <AppProvider>
+              <GlobalSearch />
               <Routes>
                 {/* Standalone auth routes - no protection needed */}
                 <Route path="/set-password" element={
@@ -231,7 +233,7 @@ const App = () => {
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/dashboards" element={<Dashboards />} />
                   <Route path="/settings" element={<Settings />} />
-                  <Route 
+                   <Route 
                     path="/admin" 
                     element={
                       <ProtectedRoute 
@@ -240,6 +242,7 @@ const App = () => {
                       />
                     } 
                   />
+                  <Route path="/analytics" element={<Analytics />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>
