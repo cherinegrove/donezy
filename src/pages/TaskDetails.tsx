@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,31 @@ export default function TaskDetails() {
   const { tasks, users, projects } = useAppContext();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      console.log('TaskDetails - Loading task:', taskId);
+      console.log('TaskDetails - Tasks available:', tasks?.length);
+      console.log('TaskDetails - Users available:', users?.length);
+      console.log('TaskDetails - Projects available:', projects?.length);
+      
+      // Add safety checks for arrays
+      const safeTasks = Array.isArray(tasks) ? tasks : [];
+      const task = safeTasks.find(t => t && t.id === taskId);
+      
+      if (!task && safeTasks.length > 0) {
+        setError('Task not found');
+      }
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('TaskDetails - Error:', err);
+      setError('Failed to load task details');
+      setLoading(false);
+    }
+  }, [taskId, tasks, users, projects]);
 
   // Add safety checks for arrays
   const safeTasks = Array.isArray(tasks) ? tasks : [];
@@ -35,11 +60,21 @@ export default function TaskDetails() {
   const project = safeProjects.find(p => p && p.id === task?.projectId);
   const collaborators = safeUsers.filter(u => u && task?.collaboratorIds?.includes(u.auth_user_id));
 
-  if (!task) {
+  if (loading) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !task) {
     return (
       <div className="container mx-auto py-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Task not found</h1>
+          <h1 className="text-2xl font-bold mb-4">{error || 'Task not found'}</h1>
           <Button onClick={() => navigate('/tasks')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Tasks
