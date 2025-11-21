@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
 import { Task, TaskStatus } from "@/types";
 import { Button } from "@/components/ui/button";
-import { CheckSquare, Plus, Upload, Users, User, Calendar } from "lucide-react";
+import { CheckSquare, Plus, Upload, Calendar } from "lucide-react";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { EditTaskTemplateDialog } from "@/components/tasks/EditTaskTemplateDialog";
@@ -62,7 +62,7 @@ export default function Tasks() {
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(tasks);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
-  const [showMyTasksOnly, setShowMyTasksOnly] = useState(true); // Default to showing only user's tasks
+  const showMyTasksOnly = true; // Always show only user's tasks
 
   // Define filter options
   const filterOptions: FilterOption[] = [
@@ -251,16 +251,6 @@ export default function Tasks() {
                 onFilterChange={handleFilterChange}
                 presetKey="tasks"
               />
-              
-              <Button
-                variant={showMyTasksOnly ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowMyTasksOnly(!showMyTasksOnly)}
-                className="flex items-center gap-2"
-              >
-                {showMyTasksOnly ? <User className="h-4 w-4" /> : <Users className="h-4 w-4" />}
-                {showMyTasksOnly ? "My Tasks" : "All Tasks"}
-              </Button>
 
               {viewMode !== "kanban" && (
                 <Select
