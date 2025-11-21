@@ -24,18 +24,7 @@ export function ChecklistSection({ taskId }: ChecklistSectionProps) {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
 
-  // Add safety check
-  const safeTasks = Array.isArray(tasks) ? tasks : [];
-  const task = safeTasks.find(t => t && t.id === taskId);
-  
-  if (!task) {
-    return (
-      <div className="text-center py-4 text-muted-foreground">
-        Task not found
-      </div>
-    );
-  }
-  
+  const task = tasks.find(t => t.id === taskId);
   const checklist = (task?.checklist || []) as ChecklistItem[];
 
   const completedCount = checklist.filter(item => item.completed).length;

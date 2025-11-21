@@ -35,11 +35,8 @@ export function RelatedTasksSection({ taskId }: RelatedTasksSectionProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
   
-  // Add safety checks
-  const safeTasks = Array.isArray(tasks) ? tasks : [];
-  const safeProjects = Array.isArray(projects) ? projects : [];
-  
-  const currentTask = safeTasks.find(t => t && t.id === taskId);
+  // Add null check for tasks
+  const currentTask = tasks && Array.isArray(tasks) ? tasks.find(t => t && t.id === taskId) : null;
   
   // Fallback if task not found
   if (!currentTask) {
@@ -52,11 +49,11 @@ export function RelatedTasksSection({ taskId }: RelatedTasksSectionProps) {
   
   // Get related tasks
   const relatedTaskIds = currentTask.relatedTaskIds || [];
-  const relatedTasks = safeTasks.filter(t => t && relatedTaskIds.includes(t.id));
+  const relatedTasks = tasks.filter(t => relatedTaskIds.includes(t.id));
   
   // Available tasks for linking (excluding current task and already linked tasks)
-  const availableTasks = safeTasks.filter(t => 
-    t && t.id !== taskId && 
+  const availableTasks = tasks.filter(t => 
+    t.id !== taskId && 
     !relatedTaskIds.includes(t.id)
   );
   
@@ -122,7 +119,7 @@ export function RelatedTasksSection({ taskId }: RelatedTasksSectionProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {availableTasks.map(task => {
-                    const project = safeProjects.find(p => p && p.id === task.projectId);
+                    const project = projects.find(p => p.id === task.projectId);
                     return (
                       <SelectItem key={task.id} value={task.id}>
                         {task.title} {project && `(${project.name})`}

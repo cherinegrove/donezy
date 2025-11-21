@@ -26,18 +26,11 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   const [mentionStartPos, setMentionStartPos] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Ensure we have valid arrays
+  // Ensure we have valid users array
   const safeUsers = Array.isArray(users) ? users : [];
-  const safeTasks = Array.isArray(tasks) ? tasks : [];
 
-  const task = safeTasks.find((t) => t && t.id === taskId);
-  if (!task) {
-    return (
-      <div className="text-center py-4 text-muted-foreground">
-        Task not found
-      </div>
-    );
-  }
+  const task = tasks.find((t) => t.id === taskId);
+  if (!task) return null;
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -289,7 +282,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
         <div className="space-y-4">
           {task.comments && task.comments.length > 0 ? (
             task.comments.map((comment) => {
-              const commentUser = safeUsers.find((u) => u && u.auth_user_id === comment.userId);
+              const commentUser = users.find((u) => u.auth_user_id === comment.userId);
               return (
                 <div key={comment.id} className="flex gap-3">
                   <Avatar className="h-8 w-8">

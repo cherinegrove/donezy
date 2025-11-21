@@ -11,13 +11,8 @@ interface TaskLogsSectionProps {
 export function TaskLogsSection({ taskId }: TaskLogsSectionProps) {
   const { tasks, users, taskLogs } = useAppContext();
   
-  // Add safety checks
-  const safeTasks = Array.isArray(tasks) ? tasks : [];
-  const safeUsers = Array.isArray(users) ? users : [];
-  const safeTaskLogs = Array.isArray(taskLogs) ? taskLogs : [];
-  
   // Filter logs for this task
-  const taskSpecificLogs = safeTaskLogs.filter(log => log && log.taskId === taskId);
+  const taskSpecificLogs = taskLogs?.filter(log => log.taskId === taskId) || [];
   
   // Sort logs by timestamp (newest first)
   const sortedLogs = [...taskSpecificLogs].sort((a, b) => 
@@ -25,7 +20,7 @@ export function TaskLogsSection({ taskId }: TaskLogsSectionProps) {
   );
   
   // Get task details
-  const task = safeTasks.find(t => t && t.id === taskId);
+  const task = tasks.find(t => t.id === taskId);
   if (!task) return null;
   
   return (
@@ -35,7 +30,7 @@ export function TaskLogsSection({ taskId }: TaskLogsSectionProps) {
       <div className="space-y-3">
         {sortedLogs.length > 0 ? (
           sortedLogs.map(log => {
-            const logUser = safeUsers.find(u => u && u.auth_user_id === log.userId);
+            const logUser = users.find(u => u.id === log.userId);
             return (
               <div key={log.id} className="flex gap-3 items-start">
                 <Avatar className="h-6 w-6">

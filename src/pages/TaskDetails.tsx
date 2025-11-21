@@ -7,6 +7,8 @@ import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { FileSection } from "@/components/tasks/FileSection";
 import { TimerSection } from "@/components/tasks/TimerSection";
@@ -19,46 +21,16 @@ import { format } from "date-fns";
 export default function TaskDetails() {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
+  const { tasks, users, projects } = useAppContext();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
-  
-  // Safely access context with error handling
-  let tasks, users, projects;
-  try {
-    const context = useAppContext();
-    tasks = context.tasks;
-    users = context.users;
-    projects = context.projects;
-  } catch (error) {
-    console.error('Context access error:', error);
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-        </div>
-      </div>
-    );
-  }
 
-  // Wait for data to be loaded
-  if (!tasks || !users || !projects) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-        </div>
-      </div>
-    );
-  }
+  const task = tasks.find(t => t.id === taskId);
+  const assignee = users.find(u => u.id === task?.assigneeId);
+  const project = projects.find(p => p.id === task?.projectId);
+  const collaborators = users.filter(u => task?.collaboratorIds?.includes(u.id));
 
-  // Add safety checks for arrays
-  const safeTasks = Array.isArray(tasks) ? tasks : [];
-  const safeUsers = Array.isArray(users) ? users : [];
-  const safeProjects = Array.isArray(projects) ? projects : [];
-
-  const task = safeTasks.find(t => t && t.id === taskId);
-  
-  if (!task || !taskId) {
+  if (!task) {
     return (
       <div className="container mx-auto py-8">
         <div className="text-center">
@@ -71,10 +43,6 @@ export default function TaskDetails() {
       </div>
     );
   }
-
-  const assignee = safeUsers.find(u => u && u.auth_user_id === task.assigneeId);
-  const project = safeProjects.find(p => p && p.id === task.projectId);
-  const collaborators = safeUsers.filter(u => u && task.collaboratorIds?.includes(u.auth_user_id));
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -158,47 +126,41 @@ export default function TaskDetails() {
             </div>
 
             <div className="space-y-6 pt-4 border-t">
-              {task && task.id && (
-                <>
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Checklist</h3>
-                    <ChecklistSection taskId={task.id} />
-                  </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Checklist</h3>
+                <ChecklistSection taskId={task.id} />
+              </div>
 
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Comments</h3>
-                    <CommentSection taskId={task.id} />
-                  </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Comments</h3>
+                <CommentSection taskId={task.id} />
+              </div>
 
-                  <div>
-                    <RelatedTasksSection taskId={task.id} />
-                  </div>
-                </>
-              )}
+              <div>
+                <RelatedTasksSection taskId={task.id} />
+              </div>
             </div>
           </TabsContent>
           
           <TabsContent value="files">
-            {task && task.id && <FileSection taskId={task.id} />}
+            <FileSection taskId={task.id} />
           </TabsContent>
           
           <TabsContent value="time">
-            {task && task.id && <TimerSection taskId={task.id} />}
+            <TimerSection taskId={task.id} />
           </TabsContent>
           
           <TabsContent value="logs">
-            {task && task.id && <TaskLogsSection taskId={task.id} />}
+            <TaskLogsSection taskId={task.id} />
           </TabsContent>
         </Tabs>
       </Card>
 
-      {task && (
-        <EditTaskDialog
-          task={task}
-          open={isEditOpen}
-          onOpenChange={setIsEditOpen}
-        />
-      )}
+      <EditTaskDialog
+        task={task}
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+      />
     </div>
   );
 }
