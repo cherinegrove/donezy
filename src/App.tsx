@@ -17,7 +17,6 @@ import ClientDetails from "./pages/ClientDetails";
 import Team from "./pages/Team";
 import TimeTracking from "./pages/TimeTracking";
 import Notifications from "./pages/Notifications";
-import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Tasks from "./pages/Tasks";
@@ -230,7 +229,7 @@ const App = () => {
                   />
                   <Route path="/time" element={<TimeTracking />} />
                   <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/reports" element={<Navigate to="/analytics" replace />} />
                   <Route path="/dashboards" element={<Dashboards />} />
                   <Route path="/settings" element={<Settings />} />
                    <Route 
