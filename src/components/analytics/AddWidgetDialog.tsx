@@ -39,7 +39,7 @@ const widgetOptions: WidgetOption[] = [
   },
   {
     id: 'risk-success',
-    name: 'Risk & Success Detection',
+    name: 'AI Pulse Check',
     description: 'AI-powered identification of risks and wins',
     icon: <AlertTriangle className="h-5 w-5" />
   },

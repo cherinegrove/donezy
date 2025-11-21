@@ -193,7 +193,7 @@ export default function Analytics() {
       case 'risk-success':
         return (
           <WidgetContainer
-            title="Risk & Success Detection"
+            title="AI Pulse Check"
             icon={<Sparkles className="h-5 w-5" />}
             onRemove={() => removeWidget(widget.id)}
           >
