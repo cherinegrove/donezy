@@ -439,10 +439,10 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
             {columns.map((column) => (
               <div
                 key={column.id}
-                className="flex-1 min-w-[140px]"
+                className="flex-1 min-w-[95px]"
               >
                 <div 
-                  className="rounded-lg p-3 h-full"
+                  className="rounded-lg p-2 h-full"
                   style={{ backgroundImage: columnColors[column.id] }}
                 >
                   <div className="flex justify-between items-center mb-3">
