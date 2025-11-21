@@ -1,18 +1,22 @@
 
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
 import { Task, TaskStatus } from "@/types";
 import { Button } from "@/components/ui/button";
 import { CheckSquare, Plus, Upload, Users, User, Calendar } from "lucide-react";
-import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
-import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
-import { EditTaskTemplateDialog } from "@/components/tasks/EditTaskTemplateDialog";
-import { BulkImportTasksDialog } from "@/components/tasks/BulkImportTasksDialog";
-import { BulkEditTasksDialog } from "@/components/tasks/BulkEditTasksDialog";
-import { TaskTemplatesList } from "@/components/tasks/TaskTemplatesList";
-import { RecurringTasksList } from "@/components/tasks/RecurringTasksList";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
+import { useDebouncedCallback } from 'use-debounce';
+import { KanbanColumnSkeleton } from "@/components/kanban/TaskCardSkeleton";
+
+// Lazy load dialogs for better performance
+const CreateTaskDialog = lazy(() => import("@/components/tasks/CreateTaskDialog").then(m => ({ default: m.CreateTaskDialog })));
+const CreateTaskTemplateDialog = lazy(() => import("@/components/tasks/CreateTaskTemplateDialog").then(m => ({ default: m.CreateTaskTemplateDialog })));
+const EditTaskTemplateDialog = lazy(() => import("@/components/tasks/EditTaskTemplateDialog").then(m => ({ default: m.EditTaskTemplateDialog })));
+const BulkImportTasksDialog = lazy(() => import("@/components/tasks/BulkImportTasksDialog").then(m => ({ default: m.BulkImportTasksDialog })));
+const BulkEditTasksDialog = lazy(() => import("@/components/tasks/BulkEditTasksDialog").then(m => ({ default: m.BulkEditTasksDialog })));
+const TaskTemplatesList = lazy(() => import("@/components/tasks/TaskTemplatesList").then(m => ({ default: m.TaskTemplatesList })));
+const RecurringTasksList = lazy(() => import("@/components/tasks/RecurringTasksList").then(m => ({ default: m.RecurringTasksList })));
 import { 
   Popover,
   PopoverContent,
@@ -89,8 +93,8 @@ export default function Tasks() {
     },
   ];
 
-  // Filter tasks based on all filters
-  React.useEffect(() => {
+  // Debounced filter function for better performance
+  const applyFilters = useDebouncedCallback(() => {
     const filtered = tasks.filter(task => {
       // Apply "My Tasks Only" filter first
       if (showMyTasksOnly && currentUser) {
@@ -156,7 +160,12 @@ export default function Tasks() {
     });
     
     setFilteredTasks(filtered);
-  }, [tasks, activeFilters, startDate, dueDate, projects, statusFilter, showMyTasksOnly, currentUser]);
+  }, 300);
+
+  // Apply filters whenever dependencies change
+  React.useEffect(() => {
+    applyFilters();
+  }, [tasks, activeFilters, startDate, dueDate, projects, statusFilter, showMyTasksOnly, currentUser, applyFilters]);
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setActiveFilters(filters);
@@ -330,46 +339,60 @@ export default function Tasks() {
         </TabsContent>
 
         <TabsContent value="recurring" className="mt-6">
-          <RecurringTasksList />
+          <Suspense fallback={<KanbanColumnSkeleton />}>
+            <RecurringTasksList />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="templates" className="mt-6">
-          <TaskTemplatesList 
-            onCreateTemplate={() => setIsCreateTemplateOpen(true)}
-            onEditTemplate={handleEditTemplate}
-            refreshTrigger={templateRefreshTrigger}
-          />
+          <Suspense fallback={<KanbanColumnSkeleton />}>
+            <TaskTemplatesList 
+              onCreateTemplate={() => setIsCreateTemplateOpen(true)}
+              onEditTemplate={handleEditTemplate}
+              refreshTrigger={templateRefreshTrigger}
+            />
+          </Suspense>
         </TabsContent>
       </Tabs>
       
-      <CreateTaskDialog
-        open={isCreateTaskOpen}
-        onOpenChange={setIsCreateTaskOpen}
-      />
+      <Suspense fallback={null}>
+        <CreateTaskDialog
+          open={isCreateTaskOpen}
+          onOpenChange={setIsCreateTaskOpen}
+        />
+      </Suspense>
 
-      <CreateTaskTemplateDialog
-        open={isCreateTemplateOpen}
-        onOpenChange={setIsCreateTemplateOpen}
-        onTemplateCreated={handleTemplateCreated}
-      />
+      <Suspense fallback={null}>
+        <CreateTaskTemplateDialog
+          open={isCreateTemplateOpen}
+          onOpenChange={setIsCreateTemplateOpen}
+          onTemplateCreated={handleTemplateCreated}
+        />
+      </Suspense>
 
-      <EditTaskTemplateDialog
-        open={isEditTemplateOpen}
-        onOpenChange={setIsEditTemplateOpen}
-        template={editingTemplate}
-        onTemplateUpdated={handleTemplateUpdated}
-      />
+      <Suspense fallback={null}>
+        <EditTaskTemplateDialog
+          open={isEditTemplateOpen}
+          onOpenChange={setIsEditTemplateOpen}
+          template={editingTemplate}
+          onTemplateUpdated={handleTemplateUpdated}
+        />
+      </Suspense>
 
-      <BulkImportTasksDialog
-        open={isBulkImportOpen}
-        onOpenChange={setIsBulkImportOpen}
-      />
+      <Suspense fallback={null}>
+        <BulkImportTasksDialog
+          open={isBulkImportOpen}
+          onOpenChange={setIsBulkImportOpen}
+        />
+      </Suspense>
       
-      <BulkEditTasksDialog
-        open={isBulkEditOpen}
-        onOpenChange={setIsBulkEditOpen}
-        taskIds={bulkEditTaskIds}
-      />
+      <Suspense fallback={null}>
+        <BulkEditTasksDialog
+          open={isBulkEditOpen}
+          onOpenChange={setIsBulkEditOpen}
+          taskIds={bulkEditTaskIds}
+        />
+      </Suspense>
     </div>
   );
 }
