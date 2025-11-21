@@ -237,6 +237,16 @@ const TimeTracking = () => {
   
   // Active timer for the Active tab
   const activeTimer = getActiveTimer();
+
+  // Check if current user is admin
+  const isAdmin = () => {
+    if (!currentUser) return false;
+    // Check for direct admin role
+    if (currentUser.roleId === 'admin') return true;
+    // Check for custom role with Admin name
+    const userRole = customRoles.find(r => r.id === currentUser.roleId);
+    return userRole?.name === 'Admin';
+  };
   
   // Generate monthly report data grouped by client - only approved timers
   const getMonthlyDataByClient = () => {
@@ -422,16 +432,6 @@ const TimeTracking = () => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}h ${mins}m`;
-  };
-
-  // Check if current user is admin
-  const isAdmin = () => {
-    if (!currentUser) return false;
-    // Check for direct admin role
-    if (currentUser.roleId === 'admin') return true;
-    // Check for custom role with Admin name
-    const userRole = customRoles.find(r => r.id === currentUser.roleId);
-    return userRole?.name === 'Admin';
   };
 
   // Checks if current user can edit a time entry
