@@ -10,14 +10,6 @@ interface GoogleChatConfig {
   enabled: boolean;
   webhook_url: string;
   notifications: {
-    task_created: {
-      enabled: boolean;
-      message_template: string;
-    };
-    task_assigned: {
-      enabled: boolean;
-      message_template: string;
-    };
     task_completed: {
       enabled: boolean;
       message_template: string;
@@ -124,14 +116,6 @@ serve(async (req) => {
       .replace('{status}', task.status || 'backlog')
       .replace('{due_date}', task.due_date || 'No due date');
 
-    // Add change details for task_assigned event
-    if (eventType === 'task_assigned' && oldTask) {
-      const oldAssigneeName = oldTask.assignee_id ? 
-        (await supabase.from('users').select('name').eq('auth_user_id', oldTask.assignee_id).single()).data?.name || 'Unassigned' 
-        : 'Unassigned';
-      message += `\n\n_Changed from: ${oldAssigneeName}_`;
-    }
-
     console.log('Sending message to Google Chat:', message);
 
     // Send to Google Chat
@@ -172,8 +156,6 @@ serve(async (req) => {
 
 function getDefaultTemplate(eventType: string): string {
   const templates: Record<string, string> = {
-    task_created: '📋 *New Task Created*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Assigned to:* {assignee}\n*Priority:* {priority}',
-    task_assigned: '👤 *Task Assigned*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Assigned to:* {assignee}\n*Priority:* {priority}',
     task_completed: '✅ *Task Completed*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Completed by:* {assignee}',
     task_overdue: '⚠️ *Task Overdue*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Assigned to:* {assignee}\n*Due:* {due_date}',
     task_updated: '✏️ *Task Updated*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Status:* {status}\n*Priority:* {priority}',

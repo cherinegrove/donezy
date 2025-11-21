@@ -1643,6 +1643,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       // Send notification for task completion
       if (updates.status === 'done' && currentTask.status !== 'done' && currentTask.projectId) {
+        console.log('🔔 Sending task_completed notification for task:', taskId);
         supabase.functions.invoke('send-task-notification', {
           body: {
             taskId,
@@ -1650,12 +1651,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             eventType: 'task_completed'
           }
         }).then(({ error }) => {
-          if (error) console.error('Error sending completion notification:', error);
+          if (error) {
+            console.error('❌ Error sending completion notification:', error);
+          } else {
+            console.log('✅ Completion notification sent successfully');
+          }
         });
       }
       
       // Send notification for task updates (when not status change to done)
       if (currentTask.projectId && updates.status !== 'done') {
+        console.log('🔔 Sending task_updated notification for task:', taskId);
         supabase.functions.invoke('send-task-notification', {
           body: {
             taskId,
@@ -1663,7 +1669,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             eventType: 'task_updated'
           }
         }).then(({ error }) => {
-          if (error) console.error('Error sending update notification:', error);
+          if (error) {
+            console.error('❌ Error sending update notification:', error);
+          } else {
+            console.log('✅ Update notification sent successfully');
+          }
         });
       }
 
@@ -2279,14 +2289,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       // Send notification for task updates if status changed
       if (newStatus && newStatus !== task.status && task.projectId) {
+        const eventType = newStatus === 'done' ? 'task_completed' : 'task_updated';
+        console.log(`🔔 Sending ${eventType} notification for task:`, taskId);
         supabase.functions.invoke('send-task-notification', {
           body: {
             taskId,
             projectId: task.projectId,
-            eventType: newStatus === 'done' ? 'task_completed' : 'task_updated'
+            eventType
           }
         }).then(({ error }) => {
-          if (error) console.error('Error sending notification:', error);
+          if (error) {
+            console.error(`❌ Error sending ${eventType} notification:`, error);
+          } else {
+            console.log(`✅ ${eventType} notification sent successfully`);
+          }
         });
       }
     } catch (error) {
