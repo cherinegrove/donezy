@@ -1,34 +1,60 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
+import { subDays, isAfter, isBefore, isEqual } from "date-fns";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, TrendingUp, Activity, Target, Zap } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Download, Clock, TrendingUp, Users, DollarSign, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { ReportsFilters } from "@/components/reports/ReportsFilters";
-import { PredictiveInsights } from "@/components/analytics/PredictiveInsights";
-import { BottleneckDetection } from "@/components/analytics/BottleneckDetection";
-import { PerformanceTrends } from "@/components/analytics/PerformanceTrends";
-import { CustomReportBuilder } from "@/components/reports/CustomReportBuilder";
+import { ProjectsReports } from "@/components/reports/ProjectsReports";
+import { TasksReports } from "@/components/reports/TasksReports";
+import { TimeReports } from "@/components/reports/TimeReports";
+import { BillingReports } from "@/components/reports/BillingReports";
+import { CustomReportVisualization } from "@/components/reports/CustomReportVisualization";
+import { RecordsDialog } from "@/components/reports/RecordsDialog";
+import { Task, Project, TimeEntry } from "@/types";
 
-type AnalyticsTab = 'insights' | 'bottlenecks' | 'performance' | 'custom';
+type ReportTab = 'projects' | 'tasks' | 'time' | 'billing';
 
 export default function Reports() {
   const { 
     projects, 
-    tasks, 
+    tasks: allTasks, 
     timeEntries, 
     clients, 
     users, 
-    teams
+    teams,
+    purchases,
+    savedReports,
+    customDashboards,
+    deleteSavedReport,
+    updateSavedReport
   } = useAppContext();
   
   const { toast } = useToast();
   
+  // Initialize with no date filters to show all data
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [selectedClient, setSelectedClient] = useState<string>("all");
   const [selectedProject, setSelectedProject] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<AnalyticsTab>("insights");
+  const [activeTab, setActiveTab] = useState<ReportTab>("projects");
+
+  // Dialog state for detailed records
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState("");
+  const [dialogRecords, setDialogRecords] = useState<Task[] | Project[] | TimeEntry[]>([]);
+  const [dialogType, setDialogType] = useState<"tasks" | "projects" | "timeEntries">("tasks");
 
   // Filter data based on selected filters
   const filteredProjects = selectedClient === "all" 
@@ -36,56 +62,131 @@ export default function Reports() {
     : projects.filter(p => p.clientId === selectedClient);
 
   const filteredTasks = selectedProject === "all"
-    ? tasks
-    : tasks.filter(t => t.projectId === selectedProject);
+    ? allTasks
+    : allTasks.filter(t => t.projectId === selectedProject);
 
   const filteredTimeEntries = timeEntries.filter(entry => {
+    const entryDate = new Date(entry.startTime);
+    
+    // Date range filtering
+    let matchesDateRange = true;
+    if (startDate && endDate) {
+      matchesDateRange = (isAfter(entryDate, startDate) || isEqual(entryDate, startDate)) && 
+                        (isBefore(entryDate, endDate) || isEqual(entryDate, endDate));
+    } else if (startDate) {
+      matchesDateRange = isAfter(entryDate, startDate) || isEqual(entryDate, startDate);
+    } else if (endDate) {
+      matchesDateRange = isBefore(entryDate, endDate) || isEqual(entryDate, endDate);
+    }
+    
     let matchesClient = selectedClient === "all" || entry.clientId === selectedClient;
     let matchesProject = selectedProject === "all" || entry.projectId === selectedProject;
-    return matchesClient && matchesProject;
+    
+    return matchesDateRange && matchesClient && matchesProject;
   });
 
-  const exportAnalytics = () => {
-    const analyticsData = {
-      timestamp: new Date().toISOString(),
-      filters: {
-        startDate: startDate?.toISOString(),
-        endDate: endDate?.toISOString(),
-        selectedClient,
-        selectedProject
-      },
-      summary: {
-        totalProjects: filteredProjects.length,
-        totalTasks: filteredTasks.length,
-        totalTimeEntries: filteredTimeEntries.length
-      }
+  // Calculate metrics
+  const totalHours = filteredTimeEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60;
+  const billableHours = filteredTimeEntries.filter(entry => entry.status === 'approved').reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60;
+  const totalProjects = filteredProjects.length;
+  const completedProjects = filteredProjects.filter(p => p.status === "done").length;
+  const totalTasks = filteredTasks.length;
+  const completedTasks = filteredTasks.filter(t => t.status === "done").length;
+
+  // Client revenue calculation
+  const clientRevenue = clients.map(client => {
+    const clientTimeEntries = filteredTimeEntries.filter(entry => entry.clientId === client.id);
+    const billableTime = clientTimeEntries.filter(entry => entry.status === 'approved').reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60;
+    const revenue = billableTime * 100; // Default rate of $100/hour
+    
+    return {
+      name: client.name,
+      revenue,
+      hours: billableTime
+    };
+  }).filter(item => item.revenue > 0);
+
+  // Get saved reports for each tab based on their data source
+  const getTabReports = (tabType: ReportTab) => {
+    const dataSourceMap: Record<ReportTab, string[]> = {
+      'projects': ['projects'],
+      'tasks': ['tasks'],
+      'time': ['time_entries'],
+      'billing': ['purchases']
     };
     
-    const dataStr = JSON.stringify(analyticsData, null, 2);
+    const validDataSources = dataSourceMap[tabType];
+    
+    return savedReports.filter(report => 
+      validDataSources.includes(report.reportConfig.dataSource)
+    );
+  };
+
+  // Handle metric clicks to show detailed records
+  const handleTaskMetricClick = (type: string, data: Task[]) => {
+    const titles: Record<string, string> = {
+      overdue: "Overdue Tasks",
+      dueToday: "Tasks Due Today",
+      dueThisWeek: "Tasks Due This Week",
+      all: "All Tasks",
+    };
+    setDialogTitle(titles[type] || "Tasks");
+    setDialogRecords(data);
+    setDialogType("tasks");
+    setDialogOpen(true);
+  };
+
+  const handleDeleteReport = (reportId: string, reportName: string) => {
+    deleteSavedReport(reportId);
+    toast({
+      title: "Report Deleted",
+      description: `"${reportName}" has been removed successfully.`,
+    });
+  };
+
+  const handleEditReport = (reportId: string) => {
+    // TODO: Implement edit functionality - for now just show a message
+    toast({
+      title: "Edit Report",
+      description: "Edit functionality coming soon.",
+      variant: "default",
+    });
+  };
+
+  const exportReport = () => {
+    const reportData = {
+      summary: {
+        totalHours,
+        billableHours,
+        totalProjects,
+        completedProjects,
+        totalTasks,
+        completedTasks
+      },
+      tab: activeTab,
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString(),
+      selectedClient,
+      selectedProject
+    };
+    
+    const dataStr = JSON.stringify(reportData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = `analytics-${new Date().toISOString().split('T')[0]}.json`;
+    const exportFileDefaultName = `${activeTab}-report-${new Date().toISOString().split('T')[0]}.json`;
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
-
-    toast({
-      title: "Analytics Exported",
-      description: "Your analytics data has been downloaded.",
-    });
   };
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Smart Analytics</h1>
-          <p className="text-muted-foreground mt-1">AI-powered insights and predictive analytics</p>
-        </div>
-        <Button onClick={exportAnalytics} variant="outline">
+        <h1 className="text-3xl font-bold">Reports & Analytics</h1>
+        <Button onClick={exportReport} variant="outline">
           <Download className="h-4 w-4 mr-2" />
-          Export Data
+          Export {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report
         </Button>
       </div>
 
@@ -103,56 +204,286 @@ export default function Reports() {
         projects={filteredProjects}
       />
 
-      {/* Analytics Tabs */}
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AnalyticsTab)}>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalHours.toFixed(1)}</div>
+            <p className="text-xs text-muted-foreground">
+              {billableHours.toFixed(1)} billable
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Projects</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalProjects}</div>
+            <p className="text-xs text-muted-foreground">
+              {completedProjects} completed
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Tasks</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalTasks}</div>
+            <p className="text-xs text-muted-foreground">
+              {completedTasks} completed
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ${clientRevenue.reduce((sum, client) => sum + client.revenue, 0).toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              From billable hours
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabbed Reports */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ReportTab)}>
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="insights" className="gap-2">
-            <Zap className="h-4 w-4" />
-            Predictive Insights
-          </TabsTrigger>
-          <TabsTrigger value="bottlenecks" className="gap-2">
-            <Target className="h-4 w-4" />
-            Bottlenecks
-          </TabsTrigger>
-          <TabsTrigger value="performance" className="gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Performance
-          </TabsTrigger>
-          <TabsTrigger value="custom" className="gap-2">
-            <Activity className="h-4 w-4" />
-            Custom Reports
-          </TabsTrigger>
+          <TabsTrigger value="projects">Projects</TabsTrigger>
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="time">Time</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="insights" className="space-y-6">
-          <PredictiveInsights 
-            projects={filteredProjects}
-            tasks={filteredTasks}
-            timeEntries={filteredTimeEntries}
-          />
-        </TabsContent>
-
-        <TabsContent value="bottlenecks" className="space-y-6">
-          <BottleneckDetection
-            tasks={filteredTasks}
-            projects={filteredProjects}
-            users={users}
-          />
-        </TabsContent>
-
-        <TabsContent value="performance" className="space-y-6">
-          <PerformanceTrends
-            tasks={filteredTasks}
-            timeEntries={filteredTimeEntries}
+        <TabsContent value="projects" className="space-y-6">
+          <ProjectsReports 
+            projects={filteredProjects} 
+            tasks={filteredTasks} 
             clients={clients}
-            users={users}
+            teams={teams}
           />
+          
+          {/* Saved Reports Section */}
+          {getTabReports('projects').length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Saved Project Reports</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {getTabReports('projects').map((report) => (
+                  <Card key={report.id}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">{report.name}</CardTitle>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditReport(report.id)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Report
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleDeleteReport(report.id, report.name)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Report
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <CustomReportVisualization 
+                        config={report.reportConfig} 
+                        data={report.reportData} 
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="custom" className="space-y-6">
-          <CustomReportBuilder />
+        <TabsContent value="tasks" className="space-y-6">
+          <TasksReports 
+            tasks={filteredTasks} 
+            onMetricClick={handleTaskMetricClick}
+          />
+          
+          {/* Saved Reports Section */}
+          {getTabReports('tasks').length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Saved Task Reports</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {getTabReports('tasks').map((report) => (
+                  <Card key={report.id}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">{report.name}</CardTitle>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditReport(report.id)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Report
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleDeleteReport(report.id, report.name)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Report
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <CustomReportVisualization 
+                        config={report.reportConfig} 
+                        data={report.reportData} 
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </TabsContent>
+
+        <TabsContent value="time" className="space-y-6">
+          <TimeReports timeEntries={filteredTimeEntries} users={users} teams={teams} />
+          
+          {/* Saved Reports Section */}
+          {getTabReports('time').length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Saved Time Reports</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {getTabReports('time').map((report) => (
+                  <Card key={report.id}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">{report.name}</CardTitle>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditReport(report.id)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Report
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleDeleteReport(report.id, report.name)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Report
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <CustomReportVisualization 
+                        config={report.reportConfig} 
+                        data={report.reportData} 
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="billing" className="space-y-6">
+          <BillingReports timeEntries={filteredTimeEntries} clients={clients} purchases={purchases} />
+          
+          {/* Saved Reports Section */}
+          {getTabReports('billing').length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Saved Billing Reports</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {getTabReports('billing').map((report) => (
+                  <Card key={report.id}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">{report.name}</CardTitle>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditReport(report.id)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Report
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleDeleteReport(report.id, report.name)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Report
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <CustomReportVisualization 
+                        config={report.reportConfig} 
+                        data={report.reportData} 
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
       </Tabs>
+
+      {/* Records Detail Dialog */}
+      <RecordsDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title={dialogTitle}
+        records={dialogRecords}
+        type={dialogType}
+      />
     </div>
   );
 }

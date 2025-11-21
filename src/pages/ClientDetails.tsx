@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProjectItem } from "@/components/projects/ProjectItem";
-import { WeeklyClientReport } from "@/components/clients/WeeklyClientReport";
 
 export default function ClientDetails() {
   const { id } = useParams<{ id: string }>();
@@ -108,8 +107,6 @@ export default function ClientDetails() {
           </CardContent>
         </Card>
       </div>
-
-      {id && <WeeklyClientReport clientId={id} />}
 
       <Card className="mt-6">
         <CardHeader>

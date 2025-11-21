@@ -58,22 +58,11 @@ export function TopBar() {
           </Button>
           
           <div className="relative hidden md:flex items-center">
-            <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search... (⌘K)"
-              className="w-[200px] lg:w-[300px] pl-8 bg-background cursor-pointer"
-              readOnly
-              onClick={() => {
-                const event = new KeyboardEvent('keydown', {
-                  key: 'k',
-                  code: 'KeyK',
-                  metaKey: true,
-                  ctrlKey: true,
-                  bubbles: true
-                });
-                document.dispatchEvent(event);
-              }}
+              placeholder="Search..."
+              className="w-[200px] lg:w-[300px] pl-8 bg-background"
             />
           </div>
           
