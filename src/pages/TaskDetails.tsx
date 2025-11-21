@@ -18,117 +18,29 @@ import { CommentSection } from "@/components/tasks/CommentSection";
 import { RelatedTasksSection } from "@/components/tasks/RelatedTasksSection";
 import { format } from "date-fns";
 
-// Safe wrapper component for sections
-const SafeSection = ({ children, name }: { children: React.ReactNode; name: string }) => {
-  try {
-    return <>{children}</>;
-  } catch (error) {
-    console.error(`Error in ${name}:`, error);
-    return (
-      <div className="p-4 border border-destructive/50 rounded-md bg-destructive/10">
-        <div className="flex items-center gap-2 text-destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <span className="font-medium">Error loading {name}</span>
-        </div>
-      </div>
-    );
-  }
-};
 
 export default function TaskDetails() {
-  console.log('🔵 TaskDetails component rendering');
-  
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
-  
-  console.log('🔵 TaskId from params:', taskId);
-  
-  let contextData;
-  try {
-    contextData = useAppContext();
-    console.log('🔵 Context loaded successfully');
-  } catch (err) {
-    console.error('🔴 Failed to load context:', err);
-    return (
-      <div className="container mx-auto py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Error loading context</h1>
-          <p className="text-muted-foreground mb-4">{String(err)}</p>
-          <Button onClick={() => navigate('/tasks')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Tasks
-          </Button>
-        </div>
-      </div>
-    );
-  }
-  
-  const { tasks, users, projects } = contextData;
+  const { tasks, users, projects } = useAppContext();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    console.log('🔵 useEffect running');
-    try {
-      console.log('TaskDetails - Loading task:', taskId);
-      console.log('TaskDetails - Tasks:', tasks);
-      console.log('TaskDetails - Tasks length:', tasks?.length);
-      console.log('TaskDetails - Users available:', users?.length);
-      console.log('TaskDetails - Projects available:', projects?.length);
-      
-      // Add safety checks for arrays
-      const safeTasks = Array.isArray(tasks) ? tasks : [];
-      const task = safeTasks.find(t => t && t.id === taskId);
-      
-      console.log('🔵 Found task:', task);
-      
-      if (!task && safeTasks.length > 0) {
-        console.log('🔴 Task not found');
-        setError('Task not found');
-      }
-      
-      setLoading(false);
-      console.log('🔵 Loading complete');
-    } catch (err) {
-      console.error('🔴 TaskDetails - Error in useEffect:', err);
-      setError('Failed to load task details');
-      setLoading(false);
-    }
-  }, [taskId, tasks, users, projects]);
-
-  console.log('🔵 Before safety checks');
 
   // Add safety checks for arrays
   const safeTasks = Array.isArray(tasks) ? tasks : [];
   const safeUsers = Array.isArray(users) ? users : [];
   const safeProjects = Array.isArray(projects) ? projects : [];
 
-  console.log('🔵 After safety checks');
-
   const task = safeTasks.find(t => t && t.id === taskId);
   const assignee = safeUsers.find(u => u && u.auth_user_id === task?.assigneeId);
   const project = safeProjects.find(p => p && p.id === task?.projectId);
   const collaborators = safeUsers.filter(u => u && task?.collaboratorIds?.includes(u.auth_user_id));
-  
-  console.log('🔵 Task data:', { task, assignee, project, collaborators });
 
-  if (loading) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !task) {
+  if (!task) {
     return (
       <div className="container mx-auto py-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">{error || 'Task not found'}</h1>
+          <h1 className="text-2xl font-bold mb-4">Task not found</h1>
           <Button onClick={() => navigate('/tasks')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Tasks
@@ -220,44 +132,32 @@ export default function TaskDetails() {
             </div>
 
             <div className="space-y-6 pt-4 border-t">
-              <SafeSection name="Checklist">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Checklist</h3>
-                  <ChecklistSection taskId={task.id} />
-                </div>
-              </SafeSection>
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Checklist</h3>
+                <ChecklistSection taskId={task.id} />
+              </div>
 
-              <SafeSection name="Comments">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Comments</h3>
-                  <CommentSection taskId={task.id} />
-                </div>
-              </SafeSection>
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Comments</h3>
+                <CommentSection taskId={task.id} />
+              </div>
 
-              <SafeSection name="Related Tasks">
-                <div>
-                  <RelatedTasksSection taskId={task.id} />
-                </div>
-              </SafeSection>
+              <div>
+                <RelatedTasksSection taskId={task.id} />
+              </div>
             </div>
           </TabsContent>
           
           <TabsContent value="files">
-            <SafeSection name="Files">
-              <FileSection taskId={task.id} />
-            </SafeSection>
+            <FileSection taskId={task.id} />
           </TabsContent>
           
           <TabsContent value="time">
-            <SafeSection name="Time Tracking">
-              <TimerSection taskId={task.id} />
-            </SafeSection>
+            <TimerSection taskId={task.id} />
           </TabsContent>
           
           <TabsContent value="logs">
-            <SafeSection name="Activity Log">
-              <TaskLogsSection taskId={task.id} />
-            </SafeSection>
+            <TaskLogsSection taskId={task.id} />
           </TabsContent>
         </Tabs>
       </Card>
