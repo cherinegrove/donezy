@@ -2222,31 +2222,48 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       return;
     }
     
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    // Determine the target status (use new status if provided, otherwise keep current)
+    const targetStatus = newStatus || task.status;
+    
+    // Get all tasks in the target status
+    const tasksInStatus = tasks
+      .filter(t => t.status === targetStatus)
+      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+
+    // Remove the task being moved if it's in this status already
+    const filteredTasks = tasksInStatus.filter(t => t.id !== taskId);
+    
+    // Insert the task at the new position
+    filteredTasks.splice(newIndex, 0, task);
+
+    // Update order_index for all affected tasks
+    const updates = filteredTasks.map((t, index) => ({
+      id: t.id,
+      order_index: index,
+      ...(t.id === taskId && newStatus ? { status: newStatus } : {})
+    }));
+
+    // Store previous state for rollback
+    const previousTasks = [...tasks];
+
+    // OPTIMISTIC UPDATE: Update local state immediately
+    setTasks(prev => prev.map(t => {
+      const update = updates.find(u => u.id === t.id);
+      if (update) {
+        return {
+          ...t,
+          orderIndex: update.order_index,
+          ...(update.status ? { status: update.status as TaskStatus } : {})
+        };
+      }
+      return t;
+    }));
+
+    // Background database update
     try {
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) return;
-
-      // Determine the target status (use new status if provided, otherwise keep current)
-      const targetStatus = newStatus || task.status;
-      
-      // Get all tasks in the target status
-      const tasksInStatus = tasks
-        .filter(t => t.status === targetStatus)
-        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-
-      // Remove the task being moved if it's in this status already
-      const filteredTasks = tasksInStatus.filter(t => t.id !== taskId);
-      
-      // Insert the task at the new position
-      filteredTasks.splice(newIndex, 0, task);
-
-      // Update order_index for all affected tasks
-      const updates = filteredTasks.map((t, index) => ({
-        id: t.id,
-        order_index: index,
-        ...(t.id === taskId && newStatus ? { status: newStatus } : {})
-      }));
-
       // Batch update in database
       for (const update of updates) {
         const { error } = await supabase
@@ -2259,29 +2276,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
         if (error) throw error;
       }
-
-      // Update local state
-      setTasks(prev => prev.map(t => {
-        const update = updates.find(u => u.id === t.id);
-        if (update) {
-          return {
-            ...t,
-            orderIndex: update.order_index,
-            ...(update.status ? { status: update.status as TaskStatus } : {})
-          };
-        }
-        return t;
-      }));
-
-      toast({
-        title: "Task reordered",
-        description: "Task position has been updated"
-      });
+      
+      // Send notification for task updates if status changed
+      if (newStatus && newStatus !== task.status && task.projectId) {
+        supabase.functions.invoke('send-task-notification', {
+          body: {
+            taskId,
+            projectId: task.projectId,
+            eventType: newStatus === 'done' ? 'task_completed' : 'task_updated'
+          }
+        }).then(({ error }) => {
+          if (error) console.error('Error sending notification:', error);
+        });
+      }
     } catch (error) {
       console.error('Error reordering tasks:', error);
+      // ROLLBACK: Restore previous state on error
+      setTasks(previousTasks);
       toast({
         title: "Error",
-        description: "Failed to reorder task",
+        description: "Failed to reorder task. Changes have been reverted.",
         variant: "destructive"
       });
     }
