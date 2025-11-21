@@ -33,9 +33,9 @@ serve(async (req) => {
 
     for (const event of events) {
       try {
-        // Only process ticket creation events
-        if (event.subscriptionType !== 'ticket.creation') {
-          console.log(`Skipping event type: ${event.subscriptionType}`);
+        // Process ticket creation events (HubSpot sends as 'object.creation' for tickets)
+        if (event.subscriptionType !== 'object.creation' || event.objectTypeId !== '0-5') {
+          console.log(`Skipping event type: ${event.subscriptionType}, objectTypeId: ${event.objectTypeId}`);
           continue;
         }
 
