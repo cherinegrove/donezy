@@ -72,7 +72,8 @@ export const generateClientMonthlyReportCSV = (
 export const generateClientDetailedReportCSV = (
   clientData: Record<string, ClientReportData>,
   month: string,
-  selectedClientId?: string
+  selectedClientId?: string,
+  users?: Array<{ id: string; name: string; email: string }>
 ): string => {
   const [year, monthNum] = month.split('-');
   const monthName = format(new Date(parseInt(year), parseInt(monthNum) - 1), 'MMMM yyyy');
@@ -89,7 +90,7 @@ export const generateClientDetailedReportCSV = (
   csv += `Generated: ${format(new Date(), 'PPpp')}\n\n`;
   
   // Column headers
-  csv += `Client,Project,Task,Date,Time,Duration (hours),Notes\n`;
+  csv += `Date Time,Project,Task,User,Time\n`;
   
   // Process each client
   Object.values(dataToExport).forEach(clientInfo => {
@@ -100,13 +101,12 @@ export const generateClientDetailedReportCSV = (
       // Process each task
       Object.values(projectInfo.taskDetails).forEach(taskInfo => {
         // Process each time entry
-        taskInfo.entries.forEach(entry => {
-          const entryDate = format(new Date(entry.startTime), 'yyyy-MM-dd');
-          const entryTime = format(new Date(entry.startTime), 'HH:mm');
+        taskInfo.entries.forEach((entry: any) => {
+          const dateTime = format(new Date(entry.startTime), 'yyyy-MM-dd HH:mm');
           const hours = (entry.duration / 60).toFixed(2);
-          const notes = (entry.notes || '').replace(/"/g, '""'); // Escape quotes
+          const userName = users?.find(u => u.id === entry.userId)?.name || 'Unknown User';
           
-          csv += `"${clientInfo.client.name}","${projectInfo.project.name}","${taskInfo.task.title}",${entryDate},${entryTime},${hours},"${notes}"\n`;
+          csv += `"${dateTime}","${projectInfo.project.name}","${taskInfo.task.title}","${userName}",${hours}\n`;
         });
       });
     });

@@ -419,7 +419,7 @@ const TimeTracking = () => {
       return acc;
     }, {} as Record<string, typeof monthlyData[0]>);
     
-    const csv = generateClientDetailedReportCSV(dataByClient, selectedMonth);
+    const csv = generateClientDetailedReportCSV(dataByClient, selectedMonth, undefined, users);
     const filename = `time-report-detailed-${selectedMonth}.csv`;
     downloadCSV(csv, filename);
     
@@ -436,7 +436,7 @@ const TimeTracking = () => {
       return acc;
     }, {} as Record<string, typeof monthlyData[0]>);
     
-    const csv = generateClientDetailedReportCSV(dataByClient, selectedMonth, clientId);
+    const csv = generateClientDetailedReportCSV(dataByClient, selectedMonth, clientId, users);
     const filename = `time-report-${clientName.replace(/\s+/g, '-')}-${selectedMonth}.csv`;
     downloadCSV(csv, filename);
     
