@@ -88,6 +88,47 @@ Format your response as JSON with keys: priorityActions (array), statusUpdates (
         userPrompt = `Provide recommendations based on this data: ${JSON.stringify(data)}`;
         break;
 
+      case "risk_success_detection":
+        systemPrompt = `You are an expert risk and success analyst for project management. Analyze the provided data and identify:
+
+RISKS (identify 3-5 critical issues):
+- Overdue projects or tasks
+- Projects exceeding allocated hours
+- Tasks with no assignees or collaborators
+- Projects with poor task completion rates
+- Time tracking anomalies
+
+SUCCESSES (identify 3-5 positive achievements):
+- Projects completed on time or ahead of schedule
+- Tasks with high completion rates
+- Efficient time usage vs estimates
+- Well-distributed workloads
+- High productivity patterns
+
+Format your response as a JSON object with:
+{
+  "risks": [
+    {
+      "severity": "critical|high|medium|low",
+      "title": "Brief risk title",
+      "description": "Detailed explanation of the risk and its potential impact",
+      "affectedItems": ["Project/task names that are affected"]
+    }
+  ],
+  "successes": [
+    {
+      "impact": "high|medium|low",
+      "title": "Brief success title",
+      "description": "Detailed explanation of the achievement",
+      "items": ["Project/task names involved"]
+    }
+  ],
+  "summary": "Overall assessment of team health and performance",
+  "generatedAt": "${new Date().toISOString()}"
+}`;
+        userPrompt = `Analyze this project management data and identify risks and successes: ${JSON.stringify(data)}`;
+        break;
+
       default:
         throw new Error("Invalid analysis type");
     }
