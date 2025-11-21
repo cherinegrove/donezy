@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { MessageSquare, Building2, RefreshCw, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { HubSpotTicketMapping } from "./HubSpotTicketMapping";
 
 export function IntegrationsSettings() {
   const { toast } = useToast();
@@ -257,6 +258,9 @@ export function IntegrationsSettings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* HubSpot Ticket Automation */}
+      <HubSpotTicketMapping />
     </div>
   );
 }
