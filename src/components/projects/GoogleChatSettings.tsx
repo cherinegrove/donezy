@@ -25,8 +25,8 @@ interface GoogleChatConfig {
   webhook_url: string | null;
   enabled: boolean;
   notifications: {
+    task_created: NotificationSetting;
     task_completed: NotificationSetting;
-    task_overdue: NotificationSetting;
     task_updated: NotificationSetting;
   };
 }
@@ -35,13 +35,13 @@ const defaultConfig: GoogleChatConfig = {
   webhook_url: null,
   enabled: false,
   notifications: {
+    task_created: {
+      enabled: true,
+      message_template: "🆕 New task created: {task_title} in project {project_name}"
+    },
     task_completed: {
       enabled: true,
       message_template: "✅ Task completed: {task_title} in project {project_name}"
-    },
-    task_overdue: {
-      enabled: true,
-      message_template: "⚠️ Task overdue: {task_title} in project {project_name} (Due: {due_date})"
     },
     task_updated: {
       enabled: true,
@@ -51,8 +51,8 @@ const defaultConfig: GoogleChatConfig = {
 };
 
 const notificationTypes = [
+  { key: 'task_created', label: 'Task Created', description: 'When a new task is created' },
   { key: 'task_completed', label: 'Task Completed', description: 'When a task is marked as complete' },
-  { key: 'task_overdue', label: 'Task Overdue', description: 'When a task becomes overdue' },
   { key: 'task_updated', label: 'Task Updated', description: 'When a task is modified' }
 ];
 
