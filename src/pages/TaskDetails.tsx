@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
-import { useState, useEffect, Component, ReactNode } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -18,40 +18,22 @@ import { CommentSection } from "@/components/tasks/CommentSection";
 import { RelatedTasksSection } from "@/components/tasks/RelatedTasksSection";
 import { format } from "date-fns";
 
-// Error boundary component for child sections
-class SectionErrorBoundary extends Component<
-  { children: ReactNode; sectionName: string },
-  { hasError: boolean; error: Error | null }
-> {
-  constructor(props: { children: ReactNode; sectionName: string }) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: any) {
-    console.error(`Error in ${this.props.sectionName}:`, error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-4 border border-destructive/50 rounded-md bg-destructive/10">
-          <div className="flex items-center gap-2 text-destructive mb-2">
-            <AlertTriangle className="h-4 w-4" />
-            <span className="font-medium">Error loading {this.props.sectionName}</span>
-          </div>
-          <p className="text-sm text-muted-foreground">{this.state.error?.message}</p>
+// Safe wrapper component for sections
+const SafeSection = ({ children, name }: { children: React.ReactNode; name: string }) => {
+  try {
+    return <>{children}</>;
+  } catch (error) {
+    console.error(`Error in ${name}:`, error);
+    return (
+      <div className="p-4 border border-destructive/50 rounded-md bg-destructive/10">
+        <div className="flex items-center gap-2 text-destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <span className="font-medium">Error loading {name}</span>
         </div>
-      );
-    }
-
-    return this.props.children;
+      </div>
+    );
   }
-}
+};
 
 export default function TaskDetails() {
   console.log('🔵 TaskDetails component rendering');
@@ -238,44 +220,44 @@ export default function TaskDetails() {
             </div>
 
             <div className="space-y-6 pt-4 border-t">
-              <SectionErrorBoundary sectionName="Checklist">
+              <SafeSection name="Checklist">
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Checklist</h3>
                   <ChecklistSection taskId={task.id} />
                 </div>
-              </SectionErrorBoundary>
+              </SafeSection>
 
-              <SectionErrorBoundary sectionName="Comments">
+              <SafeSection name="Comments">
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Comments</h3>
                   <CommentSection taskId={task.id} />
                 </div>
-              </SectionErrorBoundary>
+              </SafeSection>
 
-              <SectionErrorBoundary sectionName="Related Tasks">
+              <SafeSection name="Related Tasks">
                 <div>
                   <RelatedTasksSection taskId={task.id} />
                 </div>
-              </SectionErrorBoundary>
+              </SafeSection>
             </div>
           </TabsContent>
           
           <TabsContent value="files">
-            <SectionErrorBoundary sectionName="Files">
+            <SafeSection name="Files">
               <FileSection taskId={task.id} />
-            </SectionErrorBoundary>
+            </SafeSection>
           </TabsContent>
           
           <TabsContent value="time">
-            <SectionErrorBoundary sectionName="Time Tracking">
+            <SafeSection name="Time Tracking">
               <TimerSection taskId={task.id} />
-            </SectionErrorBoundary>
+            </SafeSection>
           </TabsContent>
           
           <TabsContent value="logs">
-            <SectionErrorBoundary sectionName="Activity Log">
+            <SafeSection name="Activity Log">
               <TaskLogsSection taskId={task.id} />
-            </SectionErrorBoundary>
+            </SafeSection>
           </TabsContent>
         </Tabs>
       </Card>
