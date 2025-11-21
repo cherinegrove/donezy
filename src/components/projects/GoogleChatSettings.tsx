@@ -9,7 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/contexts/AppContext";
 import { Project } from "@/types";
 import { Separator } from "@/components/ui/separator";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Send } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GoogleChatSettingsProps {
   project: Project;
@@ -38,23 +39,23 @@ const defaultConfig: GoogleChatConfig = {
   notifications: {
     task_created: {
       enabled: true,
-      message_template: "🆕 New task created: {{task_title}} in project {{project_name}}"
+      message_template: "🆕 New task created: {task_title} in project {project_name}"
     },
     task_assigned: {
       enabled: true,
-      message_template: "👤 Task assigned: {{task_title}} to {{assignee}} in project {{project_name}}"
+      message_template: "👤 Task assigned: {task_title} to {assignee} in project {project_name}"
     },
     task_completed: {
       enabled: true,
-      message_template: "✅ Task completed: {{task_title}} in project {{project_name}}"
+      message_template: "✅ Task completed: {task_title} in project {project_name}"
     },
     task_overdue: {
       enabled: true,
-      message_template: "⚠️ Task overdue: {{task_title}} in project {{project_name}} (Due: {{due_date}})"
+      message_template: "⚠️ Task overdue: {task_title} in project {project_name} (Due: {due_date})"
     },
     task_updated: {
       enabled: false,
-      message_template: "📝 Task updated: {{task_title}} in project {{project_name}}"
+      message_template: "📝 Task updated: {task_title} in project {project_name}"
     }
   }
 };
@@ -75,6 +76,7 @@ export function GoogleChatSettings({ project }: GoogleChatSettingsProps) {
   
   const [config, setConfig] = useState<GoogleChatConfig>(currentConfig);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
 
   // Sync state with project prop changes
   useEffect(() => {
@@ -136,6 +138,44 @@ export function GoogleChatSettings({ project }: GoogleChatSettingsProps) {
         }
       }
     }));
+  };
+
+  const handleTestConnection = async () => {
+    if (!config.webhook_url) {
+      toast({
+        title: "Missing webhook URL",
+        description: "Please enter a webhook URL first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTesting(true);
+
+    try {
+      const { error } = await supabase.functions.invoke('google-chat-send', {
+        body: {
+          webhookUrl: config.webhook_url,
+          message: `🎉 Test message from ${project.name}\n\nYour Google Chat integration is working correctly!`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Test successful!",
+        description: "Check your Google Chat space for the test message.",
+      });
+    } catch (error) {
+      console.error('Test error:', error);
+      toast({
+        title: "Test failed",
+        description: "Failed to send test message. Check your webhook URL.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   return (
@@ -233,7 +273,7 @@ export function GoogleChatSettings({ project }: GoogleChatSettingsProps) {
                       className="text-sm"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Available variables: {'{'}{'{'} task_title {'}'}{'}'}, {'{'}{'{'} project_name {'}'}{'}'}, {'{'}{'{'} due_date {'}'}{'}'}, {'{'}{'{'} assignee {'}'}{'}'} 
+                      Available variables: {'{'}task_title{'}'}, {'{'}project_name{'}'}, {'{'}due_date{'}'}, {'{'}assignee{'}'}
                     </p>
                   </div>
                 )}
@@ -242,9 +282,17 @@ export function GoogleChatSettings({ project }: GoogleChatSettingsProps) {
           })}
         </div>
 
-        <div className="pt-4">
+        <div className="pt-4 flex gap-2">
           <Button onClick={handleSave} disabled={isSaving || !config.enabled || !config.webhook_url}>
             {isSaving ? "Saving..." : "Save Settings"}
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleTestConnection} 
+            disabled={isTesting || !config.webhook_url}
+          >
+            <Send className="h-4 w-4 mr-2" />
+            {isTesting ? "Testing..." : "Test Connection"}
           </Button>
         </div>
       </CardContent>
