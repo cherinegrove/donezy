@@ -81,7 +81,7 @@ export default function Reports() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Smart Analytics</h1>
-          <p className="text-muted-foreground mt-1">AI-powered insights and predictive analytics</p>
+          <p className="text-muted-foreground mt-1">Data-driven insights and analytics</p>
         </div>
         <Button onClick={exportAnalytics} variant="outline">
           <Download className="h-4 w-4 mr-2" />
