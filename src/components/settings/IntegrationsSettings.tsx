@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -16,27 +16,107 @@ export function IntegrationsSettings() {
   const [isSyncingContacts, setIsSyncingContacts] = useState(false);
   const [isSyncingDeals, setIsSyncingDeals] = useState(false);
   const [isTestingChat, setIsTestingChat] = useState(false);
+  const [isSavingHubSpot, setIsSavingHubSpot] = useState(false);
 
-  const handleSaveGoogleChat = () => {
-    localStorage.setItem("googleChatWebhook", googleChatWebhook);
-    toast({
-      title: "Google Chat webhook saved",
-      description: "Your Google Chat integration is now configured.",
-    });
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('integration_settings')
+        .select('integration_name, settings')
+        .eq('auth_user_id', user.id)
+        .in('integration_name', ['google_chat', 'hubspot'])
+        .throwOnError();
+
+      if (error) throw error;
+
+      if (data) {
+        const googleChat = data.find((d: any) => d.integration_name === 'google_chat');
+        const hubspot = data.find((d: any) => d.integration_name === 'hubspot');
+
+        if (googleChat?.settings && typeof googleChat.settings === 'object' && 'webhookUrl' in googleChat.settings) {
+          setGoogleChatWebhook(googleChat.settings.webhookUrl as string);
+        }
+        if (hubspot?.settings && typeof hubspot.settings === 'object' && 'apiKey' in hubspot.settings) {
+          setHubspotApiKey(hubspot.settings.apiKey as string);
+        }
+      }
+    } catch (error: any) {
+      console.error("Error loading settings:", error);
+    }
   };
 
-  const handleSaveHubSpot = () => {
-    localStorage.setItem("hubspotApiKey", hubspotApiKey);
-    toast({
-      title: "HubSpot API key saved",
-      description: "Your HubSpot integration is now configured.",
-    });
+  const handleSaveGoogleChat = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from('integration_settings')
+        .upsert({
+          auth_user_id: user.id,
+          integration_name: 'google_chat',
+          settings: { webhookUrl: googleChatWebhook }
+        }, {
+          onConflict: 'auth_user_id,integration_name'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Google Chat webhook saved",
+        description: "Your Google Chat integration is now configured.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error saving webhook",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveHubSpot = async () => {
+    setIsSavingHubSpot(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from('integration_settings')
+        .upsert({
+          auth_user_id: user.id,
+          integration_name: 'hubspot',
+          settings: { apiKey: hubspotApiKey }
+        }, {
+          onConflict: 'auth_user_id,integration_name'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "HubSpot API key saved",
+        description: "Your HubSpot integration is now configured.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error saving API key",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingHubSpot(false);
+    }
   };
 
   const handleTestGoogleChat = async () => {
-    const webhook = googleChatWebhook || localStorage.getItem("googleChatWebhook");
-    
-    if (!webhook) {
+    if (!googleChatWebhook) {
       toast({
         title: "Error",
         description: "Please save your Google Chat webhook first.",
@@ -50,7 +130,7 @@ export function IntegrationsSettings() {
     try {
       const { data, error } = await supabase.functions.invoke('google-chat-send', {
         body: {
-          webhookUrl: webhook,
+          webhookUrl: googleChatWebhook,
           message: "🎉 Test message from your project management system!\n\nYour Google Chat integration is working correctly.",
         },
       });
@@ -74,9 +154,7 @@ export function IntegrationsSettings() {
   };
 
   const handleSyncContacts = async () => {
-    const apiKey = hubspotApiKey || localStorage.getItem("hubspotApiKey");
-    
-    if (!apiKey) {
+    if (!hubspotApiKey) {
       toast({
         title: "Error",
         description: "Please save your HubSpot API key first.",
@@ -89,7 +167,7 @@ export function IntegrationsSettings() {
 
     try {
       const { data, error } = await supabase.functions.invoke('hubspot-sync-contacts', {
-        body: { hubspotApiKey: apiKey },
+        body: { hubspotApiKey },
       });
 
       if (error) throw error;
@@ -111,9 +189,7 @@ export function IntegrationsSettings() {
   };
 
   const handleSyncDeals = async () => {
-    const apiKey = hubspotApiKey || localStorage.getItem("hubspotApiKey");
-    
-    if (!apiKey) {
+    if (!hubspotApiKey) {
       toast({
         title: "Error",
         description: "Please save your HubSpot API key first.",
@@ -126,7 +202,7 @@ export function IntegrationsSettings() {
 
     try {
       const { data, error } = await supabase.functions.invoke('hubspot-sync-deals', {
-        body: { hubspotApiKey: apiKey },
+        body: { hubspotApiKey },
       });
 
       if (error) throw error;
@@ -225,8 +301,8 @@ export function IntegrationsSettings() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleSaveHubSpot}>
-              Save API Key
+            <Button onClick={handleSaveHubSpot} disabled={isSavingHubSpot}>
+              {isSavingHubSpot ? "Saving..." : "Save API Key"}
             </Button>
           </div>
           

@@ -335,6 +335,33 @@ export type Database = {
           },
         ]
       }
+      integration_settings: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          id: string
+          integration_name: string
+          settings: Json
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          id?: string
+          integration_name: string
+          settings?: Json
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          id?: string
+          integration_name?: string
+          settings?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           created_at: string | null
