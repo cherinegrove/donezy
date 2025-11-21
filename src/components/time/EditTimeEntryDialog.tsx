@@ -187,7 +187,6 @@ export function EditTimeEntryDialog({ isOpen, onClose, timeEntry, isNewEntry = f
       endTime: endDateTime.toISOString(),
       duration,
       notes,
-      billable,
       status,
       manuallyAdded: isNewEntry || (timeEntry?.manuallyAdded ?? true),
       edited: isNewEntry ? false : true
