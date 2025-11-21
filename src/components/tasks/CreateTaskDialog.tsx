@@ -29,8 +29,8 @@ import { CollaboratorSelect } from "./CollaboratorSelect";
 import { StatusSelect } from "./StatusSelect";
 import { PrioritySelect } from "./PrioritySelect";
 import { AssigneeSelect } from "./AssigneeSelect";
-import { CalendarIcon } from "lucide-react";
-import { ChecklistSection } from "./ChecklistSection";
+import { CalendarIcon, Plus, Trash2, CheckCircle2, File } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { RelatedTasksSection } from "./RelatedTasksSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useNativeFieldConfigs } from "@/hooks/useNativeFieldConfigs";
@@ -549,51 +549,88 @@ export function CreateTaskDialog({
                 {/* Checklist Section */}
                 <div className="space-y-4 mt-6">
                   <div>
-                    <h3 className="text-sm font-medium mb-3">Checklist</h3>
-                    <div className="space-y-2">
-                      {checklist.map((item, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={item.completed}
-                            onChange={(e) => {
-                              const newChecklist = [...checklist];
-                              newChecklist[index].completed = e.target.checked;
-                              setChecklist(newChecklist);
-                            }}
-                            className="rounded"
-                          />
-                          <Input
-                            value={item.text}
-                            onChange={(e) => {
-                              const newChecklist = [...checklist];
-                              newChecklist[index].text = e.target.value;
-                              setChecklist(newChecklist);
-                            }}
-                            className="flex-1"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setChecklist(checklist.filter((_, i) => i !== index));
-                            }}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      ))}
+                    <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Checklist
+                    </h3>
+                    
+                    {/* Add New Item */}
+                    <div className="flex gap-2 mb-3">
+                      <Input
+                        placeholder="Add a checklist item..."
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const input = e.currentTarget;
+                            if (input.value.trim()) {
+                              setChecklist([...checklist, { id: crypto.randomUUID(), text: input.value.trim(), completed: false }]);
+                              input.value = '';
+                            }
+                          }
+                        }}
+                      />
                       <Button
                         type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setChecklist([...checklist, { id: crypto.randomUUID(), text: "", completed: false }]);
+                        size="icon"
+                        onClick={(e) => {
+                          const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                          if (input && input.value.trim()) {
+                            setChecklist([...checklist, { id: crypto.randomUUID(), text: input.value.trim(), completed: false }]);
+                            input.value = '';
+                          }
                         }}
                       >
-                        Add Checklist Item
+                        <Plus className="h-4 w-4" />
                       </Button>
+                    </div>
+
+                    {/* Checklist Items */}
+                    <div className="space-y-2">
+                      {checklist.length === 0 ? (
+                        <div className="text-center py-6 text-muted-foreground">
+                          <CheckCircle2 className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                          <p className="text-sm">No checklist items yet</p>
+                        </div>
+                      ) : (
+                        checklist.map((item, index) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center gap-3 p-3 rounded-md border bg-card hover:bg-accent/50 transition-colors group"
+                          >
+                            <Checkbox
+                              checked={item.completed}
+                              onCheckedChange={(checked) => {
+                                const newChecklist = [...checklist];
+                                newChecklist[index].completed = checked as boolean;
+                                setChecklist(newChecklist);
+                              }}
+                              className="mt-0.5"
+                            />
+                            <Input
+                              value={item.text}
+                              onChange={(e) => {
+                                const newChecklist = [...checklist];
+                                newChecklist[index].text = e.target.value;
+                                setChecklist(newChecklist);
+                              }}
+                              className={`flex-1 border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0 ${
+                                item.completed ? "line-through text-muted-foreground" : ""
+                              }`}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => {
+                                setChecklist(checklist.filter((_, i) => i !== index));
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
 
@@ -752,9 +789,12 @@ export function CreateTaskDialog({
               </TabsContent>
 
               <TabsContent value="files" className="space-y-4">
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Files can be added after the task is created</p>
-                  <p className="text-xs mt-2">Create the task first, then edit it to add files</p>
+                <div className="text-center py-8 space-y-3">
+                  <File className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                  <div>
+                    <p className="text-muted-foreground font-medium">Files can be added after the task is created</p>
+                    <p className="text-xs text-muted-foreground mt-2">Create the task first, then edit it to add files and links</p>
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>
