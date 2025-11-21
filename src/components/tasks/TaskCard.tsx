@@ -79,7 +79,7 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
   return (
     <div 
       className={cn(
-        "p-4 border rounded-lg cursor-pointer hover:shadow-md transition-all relative group bg-task-card hover:bg-task-card/80",
+        "p-3 border rounded-lg cursor-pointer hover:shadow-md transition-all relative group bg-task-card hover:bg-task-card/80 overflow-hidden",
         isCollaboratorTask && "border-l-4 border-l-blue-500",
         isSelected && "ring-2 ring-primary bg-primary/5"
       )}
@@ -100,23 +100,23 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
       )}
       <div className={cn(showSelection && "pr-8")}>
         <div className="flex items-center justify-between mb-2">
-          <h4 className="font-semibold text-base line-clamp-1 flex-1">
+          <h4 className="font-semibold text-sm line-clamp-1 flex-1 break-words">
             {task.title}
           </h4>
           {displayOptions.includes("status") && (
-            <Badge variant="outline" className="ml-2">
+            <Badge variant="outline" className="ml-2 text-xs shrink-0">
               {task.status}
             </Badge>
           )}
         </div>
         
         {task.description && (
-          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+          <p className="text-xs text-muted-foreground mb-3 line-clamp-2 break-words">
             {task.description}
           </p>
         )}
 
-        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           {displayOptions.includes("priority") && (
             <Badge variant="outline" className={cn("text-xs", getPriorityColor(task.priority))}>
               {task.priority}
@@ -124,25 +124,25 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
           )}
           
           {displayOptions.includes("project") && project && (
-            <span className="text-xs">{project.name}</span>
+            <span className="text-xs truncate max-w-[120px]">{project.name}</span>
           )}
           
           {displayOptions.includes("client") && client && (
-            <span className="text-xs text-blue-600">{client.name}</span>
+            <span className="text-xs text-blue-600 truncate max-w-[120px]">{client.name}</span>
           )}
           
           {displayOptions.includes("assignee") && assignee && (
-            <div className="flex items-center gap-1">
-              <Avatar className="h-5 w-5">
+            <div className="flex items-center gap-1 min-w-0">
+              <Avatar className="h-4 w-4 shrink-0">
                 <AvatarImage src={assignee.avatar} />
                 <AvatarFallback className="text-xs">{assignee.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
               </Avatar>
-              <span className="text-xs">{assignee.name}</span>
+              <span className="text-xs truncate">{assignee.name}</span>
             </div>
           )}
           
           {displayOptions.includes("dueDate") && task.dueDate && (
-            <span className={cn("text-xs", isOverdue(task.dueDate) && "text-red-500 font-medium")}>
+            <span className={cn("text-xs shrink-0", isOverdue(task.dueDate) && "text-red-500 font-medium")}>
               Due: {formatDueDate(task.dueDate)}
             </span>
           )}
