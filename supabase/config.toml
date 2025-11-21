@@ -59,6 +59,9 @@ verify_jwt = true
 [functions.hubspot-sync-deals]
 verify_jwt = true
 
+[functions.hubspot-ticket-webhook]
+verify_jwt = false
+
 [storage]
 enabled = true
 image = "supabase/storage-api:v1.0.6"
