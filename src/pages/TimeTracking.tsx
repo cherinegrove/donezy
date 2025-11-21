@@ -413,8 +413,89 @@ const TimeTracking = () => {
     return Object.values(entriesByUser).sort((a, b) => b.totalMinutes - a.totalMinutes);
   };
   
+  // Generate monthly report data for declined entries
+  const getMonthlyDeclinedDataByClient = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const startDate = startOfMonth(new Date(year, month - 1));
+    const endDate = endOfMonth(new Date(year, month - 1));
+    
+    // Get declined entries for the selected month
+    const monthEntries = timeEntries.filter(entry => {
+      const entryDate = new Date(entry.startTime);
+      const isInMonth = entryDate >= startDate && entryDate <= endDate;
+      const isDeclined = entry.status === 'declined';
+      
+      // For non-admins, filter to only their own entries
+      const isOwnEntry = !isAdmin() || entry.userId === currentUser?.auth_user_id;
+      
+      return isInMonth && isDeclined && (isAdmin() || isOwnEntry);
+    });
+    
+    // Group entries by client first (same structure as approved)
+    const entriesByClient: Record<string, { 
+      client: typeof clients[0] | { id: string, name: string },
+      totalMinutes: number,
+      projectDetails: Record<string, {
+        project: typeof projects[0] | { id: string, name: string },
+        totalMinutes: number,
+        taskDetails: Record<string, {
+          task: typeof tasks[0] | { id: string, title: string },
+          totalMinutes: number,
+          entries: typeof timeEntries
+        }>
+      }>
+    }> = {};
+    
+    // Process all entries
+    monthEntries.forEach(entry => {
+      const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
+      const project = task ? projects.find(p => p.id === task.projectId) : 
+                     (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
+      const client = project ? clients.find(c => c.id === project.clientId) : 
+                    (entry.clientId ? clients.find(c => c.id === entry.clientId) : null);
+      
+      const finalTask = task || { id: 'manual-' + entry.id, title: 'Manual Time Entry' };
+      const finalProject = project || { id: 'no-project-' + entry.id, name: 'No Project' };
+      const finalClient = client || { id: 'no-client-' + entry.id, name: 'No Client' };
+      
+      if (!entriesByClient[finalClient.id]) {
+        entriesByClient[finalClient.id] = { 
+          client: finalClient, 
+          totalMinutes: 0,
+          projectDetails: {}
+        };
+      }
+      
+      entriesByClient[finalClient.id].totalMinutes += entry.duration;
+      
+      if (!entriesByClient[finalClient.id].projectDetails[finalProject.id]) {
+        entriesByClient[finalClient.id].projectDetails[finalProject.id] = {
+          project: finalProject,
+          totalMinutes: 0,
+          taskDetails: {}
+        };
+      }
+      
+      entriesByClient[finalClient.id].projectDetails[finalProject.id].totalMinutes += entry.duration;
+      
+      if (!entriesByClient[finalClient.id].projectDetails[finalProject.id].taskDetails[finalTask.id]) {
+        entriesByClient[finalClient.id].projectDetails[finalProject.id].taskDetails[finalTask.id] = {
+          task: finalTask,
+          totalMinutes: 0,
+          entries: []
+        };
+      }
+      
+      entriesByClient[finalClient.id].projectDetails[finalProject.id].taskDetails[finalTask.id].totalMinutes += entry.duration;
+      entriesByClient[finalClient.id].projectDetails[finalProject.id].taskDetails[finalTask.id].entries.push(entry);
+    });
+    
+    return Object.values(entriesByClient).sort((a, b) => b.totalMinutes - a.totalMinutes);
+  };
+
   const monthlyDataByClient = getMonthlyDataByClient();
   const monthlyDataByUser = getMonthlyDataByUser();
+  const monthlyDeclinedDataByClient = getMonthlyDeclinedDataByClient();
   
   // Get available months for the selector
   const getAvailableMonths = () => {
@@ -1156,6 +1237,67 @@ const TimeTracking = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Declined Time Entries Section */}
+          {monthlyDeclinedDataByClient.length > 0 && (
+            <Card className="border-red-200 dark:border-red-800">
+              <CardHeader>
+                <CardTitle className="text-red-600 dark:text-red-400">Declined Time Entries</CardTitle>
+                <p className="text-sm text-muted-foreground">Time entries that were declined and not billable</p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {monthlyDeclinedDataByClient.map(clientData => (
+                    <Accordion 
+                      type="single" 
+                      collapsible 
+                      className="border border-red-200 dark:border-red-800 rounded-lg p-2 bg-red-50/50 dark:bg-red-900/10"
+                      key={clientData.client.id}
+                    >
+                      <AccordionItem value={clientData.client.id} className="border-none">
+                        <AccordionTrigger className="py-3 px-2 hover:no-underline">
+                          <div className="flex items-center justify-between w-full pr-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-shrink-0 w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center text-red-600 dark:text-red-400 font-medium">
+                                {clientData.client.name.charAt(0)}
+                              </div>
+                              <div className="font-medium">{clientData.client.name}</div>
+                            </div>
+                            <div className="font-mono font-medium text-red-600 dark:text-red-400">{formatDuration(clientData.totalMinutes)}</div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-2 pl-10">
+                            {Object.values(clientData.projectDetails).map(projectData => (
+                              <Collapsible key={projectData.project.id} className="border-l-2 border-red-300 dark:border-red-700 pl-4 py-1">
+                                <div className="flex items-center justify-between">
+                                  <CollapsibleTrigger className="flex items-center gap-1 hover:underline">
+                                    <ChevronRight className="h-4 w-4" />
+                                    <span>{projectData.project.name}</span>
+                                  </CollapsibleTrigger>
+                                  <span className="font-mono text-sm">{formatDuration(projectData.totalMinutes)}</span>
+                                </div>
+                                <CollapsibleContent>
+                                  <div className="mt-2 pl-6 space-y-1">
+                                    {Object.values(projectData.taskDetails).map(taskData => (
+                                      <div key={taskData.task.id} className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">{taskData.task.title}</span>
+                                        <span className="font-mono">{formatDuration(taskData.totalMinutes)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
       
