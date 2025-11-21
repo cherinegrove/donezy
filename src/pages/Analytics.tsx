@@ -5,6 +5,7 @@ import { Plus, Sparkles } from "lucide-react";
 import { useAppContext } from "@/contexts/AppContext";
 import { WidgetContainer } from "@/components/analytics/WidgetContainer";
 import { RiskSuccessWidget } from "@/components/analytics/RiskSuccessWidget";
+import { UserFeedbackWidget } from "@/components/analytics/UserFeedbackWidget";
 import { MetricsWidget } from "@/components/analytics/MetricsWidget";
 import { ChartWidget } from "@/components/analytics/ChartWidget";
 import { AddWidgetDialog, WidgetType } from "@/components/analytics/AddWidgetDialog";
@@ -197,6 +198,17 @@ export default function Analytics() {
             onRemove={() => removeWidget(widget.id)}
           >
             <RiskSuccessWidget data={data} />
+          </WidgetContainer>
+        );
+
+      case 'user-feedback':
+        return (
+          <WidgetContainer
+            title="User Performance Feedback"
+            icon={<Sparkles className="h-5 w-5" />}
+            onRemove={() => removeWidget(widget.id)}
+          >
+            <UserFeedbackWidget data={data} />
           </WidgetContainer>
         );
 

@@ -129,6 +129,62 @@ Format your response as a JSON object with:
         userPrompt = `Analyze this project management data and identify risks and successes: ${JSON.stringify(data)}`;
         break;
 
+      case "user_feedback":
+        systemPrompt = `You are an expert performance analyst and career coach. Analyze a user's work data and provide constructive, actionable feedback. Focus on:
+
+STRENGTHS (identify 3-5 positive aspects):
+- Completed tasks and quality of work
+- Time management and punctuality
+- Project contributions
+- Collaboration effectiveness
+- Productivity patterns
+
+AREAS FOR IMPROVEMENT (identify 2-4 constructive areas):
+- Task completion efficiency
+- Time estimation accuracy
+- Project prioritization
+- Communication and collaboration gaps
+- Workload management
+
+RECOMMENDATIONS (provide 3-5 specific action items):
+- Concrete steps to improve performance
+- Skills to develop
+- Habits to adopt or change
+- Resources or training suggestions
+
+Format your response as a JSON object with:
+{
+  "strengths": [
+    {
+      "category": "Task Completion|Time Management|Collaboration|Quality|Productivity",
+      "title": "Brief strength description",
+      "description": "Detailed explanation with specific examples from the data",
+      "impact": "high|medium|low"
+    }
+  ],
+  "improvements": [
+    {
+      "category": "Efficiency|Estimation|Prioritization|Communication|Balance",
+      "title": "Area to improve",
+      "description": "Constructive explanation with specific examples",
+      "priority": "high|medium|low"
+    }
+  ],
+  "recommendations": [
+    {
+      "action": "Specific actionable step",
+      "rationale": "Why this will help improve performance",
+      "timeline": "immediate|short-term|long-term"
+    }
+  ],
+  "overallAssessment": "Balanced summary of performance with encouraging tone",
+  "generatedAt": "${new Date().toISOString()}"
+}
+
+Keep feedback constructive, balanced, and actionable. Always be encouraging while being honest.`;
+        userPrompt = `Analyze this user's work data and provide constructive feedback: ${JSON.stringify(data)}`;
+        break;
+
       default:
         throw new Error("Invalid analysis type");
     }
