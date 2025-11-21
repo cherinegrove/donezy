@@ -16,8 +16,13 @@ export function TimerSection({ taskId }: TimerSectionProps) {
   const { toast } = useToast();
   const [startTimerDialogOpen, setStartTimerDialogOpen] = useState(false);
   
-  // Add null check for tasks
-  const task = tasks && Array.isArray(tasks) ? tasks.find(t => t && t.id === taskId) : null;
+  // Add safety checks
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const safeProjects = Array.isArray(projects) ? projects : [];
+  const safeClients = Array.isArray(clients) ? clients : [];
+  const safeTimeEntries = Array.isArray(timeEntries) ? timeEntries : [];
+  
+  const task = safeTasks.find(t => t && t.id === taskId);
   
   // Fallback if task not found
   if (!task) {
@@ -28,8 +33,8 @@ export function TimerSection({ taskId }: TimerSectionProps) {
     );
   }
   
-  const project = projects.find(p => p.id === task.projectId);
-  const client = project ? clients.find(c => c.id === project.clientId) : null;
+  const project = safeProjects.find(p => p && p.id === task.projectId);
+  const client = project ? safeClients.find(c => c && c.id === project.clientId) : null;
   
   const handleStartTimer = () => {
     setStartTimerDialogOpen(true);
@@ -43,7 +48,7 @@ export function TimerSection({ taskId }: TimerSectionProps) {
   };
   
   // Get time entries for this task
-  const taskTimeEntries = timeEntries.filter(entry => entry.taskId === taskId);
+  const taskTimeEntries = safeTimeEntries.filter(entry => entry && entry.taskId === taskId);
   
   // Calculate total time logged
   const totalMinutes = taskTimeEntries.reduce((total, entry) => total + entry.duration, 0);
