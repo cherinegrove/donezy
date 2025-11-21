@@ -1744,6 +1744,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
       if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
       if (updates.description !== undefined) dbUpdates.notes = updates.description;
+      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
       if (updates.status !== undefined) dbUpdates.status = updates.status;
       if (updates.rejectionReason !== undefined) dbUpdates.rejection_reason = updates.rejectionReason;
 
