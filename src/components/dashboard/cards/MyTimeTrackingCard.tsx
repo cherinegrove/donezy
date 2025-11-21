@@ -228,12 +228,31 @@ export const MyTimeTrackingCard = () => {
                                   </Badge>
                                 </div>
                                 <div className="text-muted-foreground space-y-0.5 pl-2">
-                                  {taskData.entries.map((entry: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between">
-                                      <span>{format(parseISO(entry.startTime), 'MMM d, h:mm a')}</span>
-                                      <span>{((entry.duration || 0) / 60).toFixed(2)}h</span>
-                                    </div>
-                                  ))}
+                                  {taskData.entries.map((entry: any, idx: number) => {
+                                    const getStatusBadge = (status: string) => {
+                                      switch (status) {
+                                        case 'approved-billable':
+                                          return <Badge className="text-xs bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-200">✓ Approved</Badge>;
+                                        case 'approved-non-billable':
+                                          return <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200">✓ Non-bill</Badge>;
+                                        case 'declined':
+                                          return <Badge className="text-xs bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-200">✗ Declined</Badge>;
+                                        case 'pending':
+                                        default:
+                                          return <Badge className="text-xs bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-200">⏱ Pending</Badge>;
+                                      }
+                                    };
+                                    
+                                    return (
+                                      <div key={idx} className="flex justify-between items-center gap-2">
+                                        <div className="flex items-center gap-2 flex-1">
+                                          <span>{format(parseISO(entry.startTime), 'MMM d, h:mm a')}</span>
+                                          {getStatusBadge(entry.status || 'pending')}
+                                        </div>
+                                        <span className="font-mono">{((entry.duration || 0) / 60).toFixed(2)}h</span>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
                             ))}
