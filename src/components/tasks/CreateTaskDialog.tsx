@@ -30,6 +30,8 @@ import { StatusSelect } from "./StatusSelect";
 import { PrioritySelect } from "./PrioritySelect";
 import { AssigneeSelect } from "./AssigneeSelect";
 import { CalendarIcon } from "lucide-react";
+import { ChecklistSection } from "./ChecklistSection";
+import { RelatedTasksSection } from "./RelatedTasksSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useNativeFieldConfigs } from "@/hooks/useNativeFieldConfigs";
 import { Calendar } from "@/components/ui/calendar";
@@ -108,6 +110,8 @@ export function CreateTaskDialog({
   const [clientProjects, setClientProjects] = useState<typeof projects>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("default");
   const [activeTab, setActiveTab] = useState("details");
+  const [checklist, setChecklist] = useState<Array<{ id: string; text: string; completed: boolean }>>([]);
+  const [relatedTaskIds, setRelatedTaskIds] = useState<string[]>([]);
   
   // Fetch native field configurations
   const { isFieldRequired, isFieldHidden } = useNativeFieldConfigs('tasks');
@@ -247,7 +251,7 @@ export function CreateTaskDialog({
         projectId: data.projectId,
         assigneeId: data.assigneeId,
         collaboratorIds: data.collaboratorIds,
-        relatedTaskIds: data.relatedTaskIds,
+        relatedTaskIds: relatedTaskIds,
         status: data.status as TaskStatus,
         priority: data.priority as "low" | "medium" | "high",
         startDate: data.startDate,
@@ -255,6 +259,7 @@ export function CreateTaskDialog({
         reminderDate: data.reminderDate,
         customFields: data.customFields || {},
         subtasks: [],
+        checklist: checklist.length > 0 ? checklist : undefined,
       });
 
       if (taskId && data.assigneeId && currentUser) {
@@ -276,6 +281,8 @@ export function CreateTaskDialog({
       toast.success("Task created successfully");
       form.reset();
       setSelectedTemplate("default");
+      setChecklist([]);
+      setRelatedTaskIds([]);
       onOpenChange(false);
     } catch (error) {
       console.error('Error during task creation:', error);
@@ -539,6 +546,110 @@ export function CreateTaskDialog({
                   )}
                 </div>
 
+                {/* Checklist Section */}
+                <div className="space-y-4 mt-6">
+                  <div>
+                    <h3 className="text-sm font-medium mb-3">Checklist</h3>
+                    <div className="space-y-2">
+                      {checklist.map((item, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={item.completed}
+                            onChange={(e) => {
+                              const newChecklist = [...checklist];
+                              newChecklist[index].completed = e.target.checked;
+                              setChecklist(newChecklist);
+                            }}
+                            className="rounded"
+                          />
+                          <Input
+                            value={item.text}
+                            onChange={(e) => {
+                              const newChecklist = [...checklist];
+                              newChecklist[index].text = e.target.value;
+                              setChecklist(newChecklist);
+                            }}
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setChecklist(checklist.filter((_, i) => i !== index));
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setChecklist([...checklist, { id: crypto.randomUUID(), text: "", completed: false }]);
+                        }}
+                      >
+                        Add Checklist Item
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Related Tasks Section */}
+                  <div>
+                    <h3 className="text-sm font-medium mb-3">Related Tasks</h3>
+                    <div className="space-y-2">
+                      <Select
+                        value=""
+                        onValueChange={(taskId) => {
+                          if (!relatedTaskIds.includes(taskId)) {
+                            setRelatedTaskIds([...relatedTaskIds, taskId]);
+                          }
+                        }}
+                        disabled={!form.watch("projectId")}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={form.watch("projectId") ? "Link a task" : "Select a project first"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {projectTasks
+                            .filter(t => !relatedTaskIds.includes(t.id))
+                            .map((task) => (
+                              <SelectItem key={task.id} value={task.id}>
+                                {task.title}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      {relatedTaskIds.length > 0 && (
+                        <div className="space-y-1">
+                          {relatedTaskIds.map((taskId) => {
+                            const relatedTask = tasks.find(t => t.id === taskId);
+                            if (!relatedTask) return null;
+                            return (
+                              <div key={taskId} className="flex items-center justify-between p-2 bg-muted rounded">
+                                <span className="text-sm">{relatedTask.title}</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setRelatedTaskIds(relatedTaskIds.filter(id => id !== taskId));
+                                  }}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 {!isFieldHidden('relatedTaskIds') && (
                   <FormField
                     control={form.control}
@@ -643,6 +754,7 @@ export function CreateTaskDialog({
               <TabsContent value="files" className="space-y-4">
                 <div className="text-center py-8 text-muted-foreground">
                   <p>Files can be added after the task is created</p>
+                  <p className="text-xs mt-2">Create the task first, then edit it to add files</p>
                 </div>
               </TabsContent>
             </Tabs>
