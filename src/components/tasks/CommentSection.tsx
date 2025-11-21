@@ -31,7 +31,13 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   const safeTasks = Array.isArray(tasks) ? tasks : [];
 
   const task = safeTasks.find((t) => t && t.id === taskId);
-  if (!task) return null;
+  if (!task) {
+    return (
+      <div className="text-center py-4 text-muted-foreground">
+        Task not found
+      </div>
+    );
+  }
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
