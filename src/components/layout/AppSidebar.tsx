@@ -1,7 +1,6 @@
 
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useSidebar } from "@/components/ui/sidebar";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import {
@@ -15,26 +14,10 @@ import {
   StickyNote,
   Settings,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 export function AppSidebar() {
-  // Update to correctly handle the sidebar context
-  const sidebar = useSidebar();
-  // Provide defaults in case sidebar context is null
-  const collapsed = sidebar?.collapsed ?? false;
-  const setCollapsed = sidebar?.setCollapsed ?? (() => {});
-  
   const location = useLocation();
   const { currentUser, customRoles } = useAppContext();
-  const isMobile = useIsMobile();
-  
-  // If on mobile, and sidebar is open, clicking a nav link should close the sidebar
-  const handleNavClick = () => {
-    if (isMobile && !collapsed) {
-      setCollapsed(true);
-    }
-  };
   
   // Check if user is admin - handle both role ID and direct role string
   const userRole = currentUser && customRoles.find(r => r.id === currentUser.roleId);
@@ -54,20 +37,14 @@ export function AppSidebar() {
   });
   
   return (
-    <div
-      className={cn(
-        "fixed inset-y-0 z-30 md:relative flex-col bg-background border-r border-border transition-transform md:flex",
-        collapsed ? "md:w-[90px] w-0" : "md:w-[280px] w-[280px]",
-        !collapsed && !isMobile ? "flex translate-x-0" : "flex md:translate-x-0 -translate-x-full"
-      )}
-    >
+    <div className="w-[280px] flex flex-col bg-background border-r border-border">
       <div className="h-14 flex items-center px-4 gap-4 border-b">
         <NavLink to="/" className="flex items-center gap-2 font-semibold">
           {/* Logo */}
           <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary">
             <span className="text-primary-foreground text-sm">DZ</span>
           </div>
-          {!collapsed && <span className="text-lg">donezy</span>}
+          <span className="text-lg">donezy</span>
         </NavLink>
       </div>
       
@@ -77,7 +54,6 @@ export function AppSidebar() {
             {/* Dashboard */}
             <NavLink
               to="/"
-              onClick={handleNavClick}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
@@ -89,13 +65,12 @@ export function AppSidebar() {
               end
             >
               <LayoutDashboard className="h-4 w-4" />
-              {!collapsed && <span>Dashboard</span>}
+              <span>Dashboard</span>
             </NavLink>
             
             {/* Projects */}
             <NavLink
               to="/projects"
-              onClick={handleNavClick}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
@@ -106,13 +81,12 @@ export function AppSidebar() {
               }
             >
               <Briefcase className="h-4 w-4" />
-              {!collapsed && <span>Projects</span>}
+              <span>Projects</span>
             </NavLink>
             
             {/* Tasks */}
             <NavLink
               to="/tasks"
-              onClick={handleNavClick}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
@@ -123,14 +97,12 @@ export function AppSidebar() {
               }
             >
               <ListTodo className="h-4 w-4" />
-              {!collapsed && <span>Tasks</span>}
+              <span>Tasks</span>
             </NavLink>
-            
             
             {/* Time */}
             <NavLink
               to="/time"
-              onClick={handleNavClick}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
@@ -141,13 +113,12 @@ export function AppSidebar() {
               }
             >
               <Clock className="h-4 w-4" />
-              {!collapsed && <span>Time Tracking</span>}
+              <span>Time Tracking</span>
             </NavLink>
             
-            {/* Notifications (changed from Messages) */}
+            {/* Notifications */}
             <NavLink
               to="/notifications"
-              onClick={handleNavClick}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
@@ -158,13 +129,12 @@ export function AppSidebar() {
               }
             >
               <Bell className="h-4 w-4" />
-              {!collapsed && <span>Notifications</span>}
+              <span>Notifications</span>
             </NavLink>
             
             {/* Analytics */}
             <NavLink
               to="/analytics"
-              onClick={handleNavClick}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
@@ -175,13 +145,12 @@ export function AppSidebar() {
               }
             >
               <BarChart className="h-4 w-4" />
-              {!collapsed && <span>Analytics</span>}
+              <span>Analytics</span>
             </NavLink>
             
             {/* Settings */}
             <NavLink
               to="/settings"
-              onClick={handleNavClick}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
@@ -192,14 +161,13 @@ export function AppSidebar() {
               }
             >
               <Settings className="h-4 w-4" />
-              {!collapsed && <span>Settings</span>}
+              <span>Settings</span>
             </NavLink>
             
             {/* Admin Dashboard - only shown to admin users */}
             {isAdmin && (
               <NavLink
                 to="/admin"
-                onClick={handleNavClick}
                 className={({ isActive }) =>
                   cn(
                     "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
@@ -210,38 +178,12 @@ export function AppSidebar() {
                 }
               >
                 <ShieldAlert className="h-4 w-4" />
-                {!collapsed && <span>Admin Dashboard</span>}
+                <span>Admin Dashboard</span>
               </NavLink>
             )}
           </nav>
         </div>
       </ScrollArea>
-      
-      <div className="h-14 flex items-center justify-center">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className="h-10 w-10"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4"
-          >
-            {collapsed ? (
-              <path d="m9 18 6-6-6-6" />
-            ) : (
-              <path d="m15 18-6-6 6-6" />
-            )}
-          </svg>
-        </Button>
-      </div>
     </div>
   );
 }
