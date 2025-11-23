@@ -94,240 +94,51 @@ const handler = async (req: Request): Promise<Response> => {
     // Build completed tasks section
     let completedSection = "";
     if (completedThisWeek.length > 0) {
-      completedSection = "<p>This week we have made progress and completed the below tasks:</p><ul>";
+      completedSection = "This week we have made progress and completed the below tasks:\n";
       completedThisWeek.forEach((task: any) => {
-        completedSection += `<li>${task.title}</li>`;
+        completedSection += `• ${task.title}\n`;
       });
-      completedSection += "</ul>";
+      completedSection += "\n";
     }
 
     // Build in progress section
     let inProgressSection = "";
     if (inProgressTasks.length > 0) {
-      inProgressSection = "<p>I am currently working on:</p><ul>";
+      inProgressSection = "I am currently working on:\n";
       inProgressTasks.forEach((task: any) => {
-        inProgressSection += `<li>${task.title}`;
+        inProgressSection += `• ${task.title}`;
         if (task.due_date) {
           inProgressSection += ` (Due: ${new Date(task.due_date).toLocaleDateString()})`;
         }
-        inProgressSection += `</li>`;
+        inProgressSection += `\n`;
       });
-      inProgressSection += "</ul>";
+      inProgressSection += "\n";
     }
 
     // Build awaiting feedback section
     let awaitingFeedbackSection = "";
     if (awaitingFeedbackTasks.length > 0) {
-      awaitingFeedbackSection = "<p>Friendly reminder that I am waiting on feedback for the below tasks:</p><ul>";
+      awaitingFeedbackSection = "Friendly reminder that I am waiting on feedback for the below tasks:\n";
       awaitingFeedbackTasks.forEach((task: any) => {
-        awaitingFeedbackSection += `<li>${task.title}`;
+        awaitingFeedbackSection += `• ${task.title}`;
         if (task.awaiting_feedback_details) {
           awaitingFeedbackSection += ` - ${task.awaiting_feedback_details}`;
         }
-        awaitingFeedbackSection += `</li>`;
+        awaitingFeedbackSection += `\n`;
       });
-      awaitingFeedbackSection += "</ul>";
+      awaitingFeedbackSection += "\n";
     }
 
-    // Generate email content
-    const emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6;">
-        <p>Hi,</p>
-        
-        <p>Here is the weekly project roundup.</p>
-        
-        ${completedSection}
-        
-        ${inProgressSection}
-        
-        ${awaitingFeedbackSection}
-        
-        <p>I hope you have a lovely weekend.</p>
-        
-        <p>Warm Regards</p>
-      </div>
-    `;
+    // Generate email content as plain text
+    const emailContent = `Hi,
+
+Here is the weekly project roundup.
+
+${completedSection}${inProgressSection}${awaitingFeedbackSection}I hope you have a lovely weekend.
+
+Warm Regards`;
 
     const subject = `Weekly Update: ${project.name} - Week of ${new Date().toLocaleDateString()}`;
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        subject,
-        emailContent,
-        stats,
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0; }
-            .content { background: white; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
-            .section { margin-bottom: 30px; }
-            .section-title { font-size: 18px; font-weight: 600; color: #667eea; margin-bottom: 12px; border-bottom: 2px solid #667eea; padding-bottom: 8px; }
-            .stat-box { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0; }
-            .progress-bar { background: #e0e0e0; border-radius: 10px; height: 20px; overflow: hidden; margin: 10px 0; }
-            .progress-fill { background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); height: 100%; transition: width 0.3s; }
-            .task-list { list-style: none; padding: 0; }
-            .task-item { padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
-            .status-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-            .status-done { background: #d4edda; color: #155724; }
-            .status-progress { background: #fff3cd; color: #856404; }
-            .status-overdue { background: #f8d7da; color: #721c24; }
-            .footer { text-align: center; margin-top: 20px; padding: 20px; color: #666; font-size: 14px; }
-            .metric { display: inline-block; margin: 10px 20px; text-align: center; }
-            .metric-value { font-size: 32px; font-weight: bold; color: #667eea; }
-            .metric-label { font-size: 14px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1 style="margin: 0;">Weekly Project Update</h1>
-              <p style="margin: 10px 0 0 0; opacity: 0.9;">${project.name}</p>
-              <p style="margin: 5px 0 0 0; opacity: 0.8; font-size: 14px;">
-                ${new Date(oneWeekAgo).toLocaleDateString()} - ${new Date().toLocaleDateString()}
-              </p>
-            </div>
-            
-            <div class="content">
-              <!-- Overview Section -->
-              <div class="section">
-                <h2 class="section-title">📊 Project Overview</h2>
-                <div style="text-align: center; margin: 20px 0;">
-                  <div class="metric">
-                    <div class="metric-value">${progressPercentage}%</div>
-                    <div class="metric-label">Complete</div>
-                  </div>
-                  <div class="metric">
-                    <div class="metric-value">${completedTasks.length}</div>
-                    <div class="metric-label">Tasks Done This Week</div>
-                  </div>
-                  <div class="metric">
-                    <div class="metric-value">${inProgressTasks.length}</div>
-                    <div class="metric-label">In Progress</div>
-                  </div>
-                </div>
-                
-                <div class="progress-bar">
-                  <div class="progress-fill" style="width: ${progressPercentage}%"></div>
-                </div>
-              </div>
-
-              <!-- Completed Tasks -->
-              ${completedTasks.length > 0 ? `
-                <div class="section">
-                  <h2 class="section-title">✅ Completed This Week</h2>
-                  <ul class="task-list">
-                    ${completedTasks.slice(0, 5).map(task => `
-                      <li class="task-item">
-                        <span class="status-badge status-done">Done</span>
-                        <strong>${task.title}</strong>
-                      </li>
-                    `).join('')}
-                    ${completedTasks.length > 5 ? `<li class="task-item"><em>...and ${completedTasks.length - 5} more</em></li>` : ''}
-                  </ul>
-                </div>
-              ` : ''}
-
-              <!-- In Progress Tasks -->
-              ${inProgressTasks.length > 0 ? `
-                <div class="section">
-                  <h2 class="section-title">🚀 Currently In Progress</h2>
-                  <ul class="task-list">
-                    ${inProgressTasks.slice(0, 5).map(task => `
-                      <li class="task-item">
-                        <span class="status-badge status-progress">${task.status}</span>
-                        <strong>${task.title}</strong>
-                        ${task.due_date ? `<br><small style="color: #666;">Due: ${new Date(task.due_date).toLocaleDateString()}</small>` : ''}
-                      </li>
-                    `).join('')}
-                    ${inProgressTasks.length > 5 ? `<li class="task-item"><em>...and ${inProgressTasks.length - 5} more</em></li>` : ''}
-                  </ul>
-                </div>
-              ` : ''}
-
-              <!-- Overdue Tasks -->
-              ${overdueTasks.length > 0 ? `
-                <div class="section">
-                  <h2 class="section-title">⚠️ Needs Attention</h2>
-                  <ul class="task-list">
-                    ${overdueTasks.slice(0, 3).map(task => `
-                      <li class="task-item">
-                        <span class="status-badge status-overdue">Overdue</span>
-                        <strong>${task.title}</strong>
-                        <br><small style="color: #721c24;">Due: ${new Date(task.due_date).toLocaleDateString()}</small>
-                      </li>
-                    `).join('')}
-                  </ul>
-                </div>
-              ` : ''}
-
-              <!-- Activity Summary -->
-              <div class="section">
-                <h2 class="section-title">📈 This Week's Activity</h2>
-                <div class="stat-box">
-                  <strong>${projectLogs.length}</strong> updates across the project this week
-                </div>
-              </div>
-
-              <!-- Project Status -->
-              <div class="section">
-                <h2 class="section-title">📌 Project Status</h2>
-                <div class="stat-box">
-                  <strong>Current Status:</strong> ${project.status}<br>
-                  ${project.due_date ? `<strong>Project Due Date:</strong> ${new Date(project.due_date).toLocaleDateString()}<br>` : ''}
-                  <strong>Total Tasks:</strong> ${totalTasks} (${completedCount} completed, ${totalTasks - completedCount} remaining)
-                </div>
-              </div>
-            </div>
-
-            <div class="footer">
-              <p>This is an automated weekly project update.</p>
-              <p style="color: #999; font-size: 12px;">Generated on ${new Date().toLocaleString()}</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-
-    // Generate text summary for copying
-    const textSummary = `
-WEEKLY PROJECT UPDATE
-Project: ${project.name}
-Period: ${new Date(oneWeekAgo).toLocaleDateString()} - ${new Date().toLocaleDateString()}
-
-OVERVIEW
-- Progress: ${progressPercentage}% Complete
-- Completed This Week: ${completedTasks.length} tasks
-- Currently In Progress: ${inProgressTasks.length} tasks
-- Total Activity: ${projectLogs.length} updates
-
-${completedTasks.length > 0 ? `COMPLETED THIS WEEK
-${completedTasks.map(t => `✓ ${t.title}`).join('\n')}
-` : ''}
-
-${inProgressTasks.length > 0 ? `IN PROGRESS
-${inProgressTasks.map(t => `• ${t.title}${t.due_date ? ` (Due: ${new Date(t.due_date).toLocaleDateString()})` : ''}`).join('\n')}
-` : ''}
-
-${overdueTasks.length > 0 ? `NEEDS ATTENTION
-${overdueTasks.map(t => `⚠ ${t.title} (Overdue: ${new Date(t.due_date).toLocaleDateString()})`).join('\n')}
-` : ''}
-
-PROJECT STATUS
-Current Status: ${project.status}
-${project.due_date ? `Project Due Date: ${new Date(project.due_date).toLocaleDateString()}` : ''}
-Total Tasks: ${totalTasks} (${completedCount} completed, ${totalTasks - completedCount} remaining)
-    `.trim();
 
     return new Response(
       JSON.stringify({
