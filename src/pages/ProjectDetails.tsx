@@ -5,7 +5,9 @@ import { Project } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Edit, Clock, AlertTriangle, User, Users, CheckSquare, FileText, Files, Bell } from "lucide-react";
+import { Calendar, Edit, Clock, AlertTriangle, User, Users, CheckSquare, FileText, Files, Bell, Mail } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { format, differenceInDays, parseISO, isValid } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,11 +24,13 @@ export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { projects, clients, tasks, timeEntries, users } = useAppContext();
+  const { toast } = useToast();
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
   const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
   const [bulkEditTaskIds, setBulkEditTaskIds] = useState<string[]>([]);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   
   // Update project when projects state changes
   useEffect(() => {
@@ -143,6 +147,40 @@ export default function ProjectDetails() {
     setIsBulkEditOpen(true);
   };
 
+  const handleSendWeeklyRoundup = async () => {
+    if (!project || !client?.email) {
+      toast({
+        title: "Cannot send email",
+        description: "Client email is not configured for this project",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-weekly-project-roundup", {
+        body: { project_id: project.id },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Weekly roundup sent!",
+        description: `Project update email sent to ${client.name} (${client.email})`,
+      });
+    } catch (error) {
+      console.error("Error sending weekly roundup:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send weekly roundup email",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -167,6 +205,15 @@ export default function ProjectDetails() {
                 )}
               </span>
             ) : "No due date"}
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={handleSendWeeklyRoundup}
+            disabled={isSendingEmail || !client?.email}
+            title={!client?.email ? "Client email not configured" : "Send weekly project update to client"}
+          >
+            <Mail className="w-4 h-4 mr-2" />
+            {isSendingEmail ? "Sending..." : "Send Weekly Roundup"}
           </Button>
           <Button onClick={() => setConvertDialogOpen(true)}>
             Convert to Template
