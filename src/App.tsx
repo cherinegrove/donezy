@@ -30,6 +30,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Admin from "./pages/Admin";
 import Dashboards from "./pages/Dashboards";
 import Analytics from "./pages/Analytics";
+import Activity from "./pages/Activity";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 import ConfirmInvite from "./pages/ConfirmInvite";
@@ -242,6 +243,7 @@ const App = () => {
                     } 
                   />
                   <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/activity" element={<Activity />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>

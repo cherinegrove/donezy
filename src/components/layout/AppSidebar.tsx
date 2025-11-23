@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   StickyNote,
   Settings,
+  Activity as ActivityIcon,
 } from "lucide-react";
 
 export function AppSidebar() {
@@ -146,6 +147,22 @@ export function AppSidebar() {
             >
               <BarChart className="h-4 w-4" />
               <span>Analytics</span>
+            </NavLink>
+            
+            {/* Activity */}
+            <NavLink
+              to="/activity"
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted"
+                )
+              }
+            >
+              <ActivityIcon className="h-4 w-4" />
+              <span>Activity</span>
             </NavLink>
             
             {/* Settings */}
