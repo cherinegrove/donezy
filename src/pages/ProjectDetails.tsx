@@ -202,19 +202,6 @@ export default function ProjectDetails() {
             <Edit className="w-4 h-4 mr-2" />
             Edit Project
           </Button>
-          <Button variant="outline">
-            <Calendar className="w-4 h-4 mr-2" />
-            {project.dueDate ? (
-              <span>
-                {format(new Date(project.dueDate), "MMM dd, yyyy")}
-                {daysLeft !== null && (
-                  <span className={`ml-2 ${daysLeft < 0 ? 'text-red-500' : daysLeft <= 7 ? 'text-orange-500' : 'text-green-500'}`}>
-                    ({daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue` : daysLeft === 0 ? 'Due today' : `${daysLeft} days left`})
-                  </span>
-                )}
-              </span>
-            ) : "No due date"}
-          </Button>
           <Button 
             variant="outline"
             onClick={handleGenerateRoundup}
