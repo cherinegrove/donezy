@@ -91,116 +91,60 @@ const handler = async (req: Request): Promise<Response> => {
       addedThisWeek: addedThisWeek.length,
     };
 
-    // Build detailed sections
-    let backlogSection = "";
-    if (backlogTasks.length > 0) {
-      backlogSection = "<h3>📋 Backlog Tasks</h3><ul>";
-      backlogTasks.forEach((task: any) => {
-        backlogSection += `<li><strong>${task.title}</strong>`;
-        if (task.backlog_reason) {
-          backlogSection += `<br/><em>Reason: ${task.backlog_reason}</em>`;
-        }
-        backlogSection += `</li>`;
+    // Build completed tasks section
+    let completedSection = "";
+    if (completedThisWeek.length > 0) {
+      completedSection = "<p>This week we have made progress and completed the below tasks:</p><ul>";
+      completedThisWeek.forEach((task: any) => {
+        completedSection += `<li>${task.title}</li>`;
       });
-      backlogSection += "</ul>";
+      completedSection += "</ul>";
     }
 
+    // Build in progress section
     let inProgressSection = "";
     if (inProgressTasks.length > 0) {
-      inProgressSection = "<h3>🚀 In Progress</h3><ul>";
+      inProgressSection = "<p>I am currently working on:</p><ul>";
       inProgressTasks.forEach((task: any) => {
-        inProgressSection += `<li><strong>${task.title}</strong>`;
+        inProgressSection += `<li>${task.title}`;
         if (task.due_date) {
-          inProgressSection += `<br/>Due: ${new Date(task.due_date).toLocaleDateString()}`;
-        }
-        if (task.due_date_change_reason) {
-          inProgressSection += `<br/><em>Due date changed: ${task.due_date_change_reason}</em>`;
+          inProgressSection += ` (Due: ${new Date(task.due_date).toLocaleDateString()})`;
         }
         inProgressSection += `</li>`;
       });
       inProgressSection += "</ul>";
     }
 
+    // Build awaiting feedback section
     let awaitingFeedbackSection = "";
     if (awaitingFeedbackTasks.length > 0) {
-      awaitingFeedbackSection = "<h3>⏳ Awaiting Feedback</h3><ul>";
+      awaitingFeedbackSection = "<p>Friendly reminder that I am waiting on feedback for the below tasks:</p><ul>";
       awaitingFeedbackTasks.forEach((task: any) => {
-        awaitingFeedbackSection += `<li><strong>${task.title}</strong>`;
+        awaitingFeedbackSection += `<li>${task.title}`;
         if (task.awaiting_feedback_details) {
-          awaitingFeedbackSection += `<br/><em>Waiting for: ${task.awaiting_feedback_details}</em>`;
+          awaitingFeedbackSection += ` - ${task.awaiting_feedback_details}`;
         }
         awaitingFeedbackSection += `</li>`;
       });
       awaitingFeedbackSection += "</ul>";
     }
 
-    let completedSection = "";
-    if (completedThisWeek.length > 0) {
-      completedSection = "<h3>✅ Completed This Week</h3><ul>";
-      completedThisWeek.forEach((task: any) => {
-        completedSection += `<li><strong>${task.title}</strong></li>`;
-      });
-      completedSection += "</ul>";
-    }
-
-    let addedSection = "";
-    if (addedThisWeek.length > 0) {
-      addedSection = "<h3>🆕 Added This Week</h3><ul>";
-      addedThisWeek.forEach((task: any) => {
-        addedSection += `<li><strong>${task.title}</strong>`;
-        if (task.description) {
-          addedSection += `<br/>${task.description}`;
-        }
-        addedSection += `</li>`;
-      });
-      addedSection += "</ul>";
-    }
-
     // Generate email content
     const emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #333; border-bottom: 3px solid #4F46E5; padding-bottom: 10px;">
-          Weekly Project Update: ${project.name}
-        </h1>
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+        <p>Hi,</p>
         
-        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h2 style="margin-top: 0;">📊 Project Overview</h2>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
-            <div style="background-color: #FEF3C7; padding: 15px; border-radius: 6px; text-align: center;">
-              <div style="font-size: 32px; font-weight: bold; color: #92400E;">${stats.backlogCount}</div>
-              <div style="color: #78350F; font-size: 14px;">Backlog</div>
-            </div>
-            <div style="background-color: #DBEAFE; padding: 15px; border-radius: 6px; text-align: center;">
-              <div style="font-size: 32px; font-weight: bold; color: #1E40AF;">${stats.inProgressCount}</div>
-              <div style="color: #1E3A8A; font-size: 14px;">In Progress</div>
-            </div>
-            <div style="background-color: #FED7AA; padding: 15px; border-radius: 6px; text-align: center;">
-              <div style="font-size: 32px; font-weight: bold; color: #C2410C;">${stats.awaitingFeedbackCount}</div>
-              <div style="color: #9A3412; font-size: 14px;">Awaiting Feedback</div>
-            </div>
-            <div style="background-color: #D1FAE5; padding: 15px; border-radius: 6px; text-align: center;">
-              <div style="font-size: 32px; font-weight: bold; color: #065F46;">${stats.completedThisWeek}</div>
-              <div style="color: #064E3B; font-size: 14px;">Completed</div>
-            </div>
-            <div style="background-color: #E9D5FF; padding: 15px; border-radius: 6px; text-align: center;">
-              <div style="font-size: 32px; font-weight: bold; color: #6B21A8;">${stats.addedThisWeek}</div>
-              <div style="color: #581C87; font-size: 14px;">Added</div>
-            </div>
-          </div>
-        </div>
-
-        <div style="margin-top: 30px;">
-          ${backlogSection}
-          ${inProgressSection}
-          ${awaitingFeedbackSection}
-          ${completedSection}
-          ${addedSection}
-        </div>
-
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
-          <p>This is an automated weekly update for project: ${project.name}</p>
-          <p>If you have any questions or concerns, please don't hesitate to reach out.</p>
-        </div>
+        <p>Here is the weekly project roundup.</p>
+        
+        ${completedSection}
+        
+        ${inProgressSection}
+        
+        ${awaitingFeedbackSection}
+        
+        <p>I hope you have a lovely weekend.</p>
+        
+        <p>Warm Regards</p>
       </div>
     `;
 
