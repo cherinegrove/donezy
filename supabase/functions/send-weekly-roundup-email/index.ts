@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,31 +18,46 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Initialize Resend inside the handler so CORS works even if API key is missing
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    const smtpHost = Deno.env.get("SMTP_HOST");
+    const smtpUser = Deno.env.get("SMTP_USER");
+    const smtpPass = Deno.env.get("SMTP_PASS");
+    const smtpFrom = Deno.env.get("SMTP_FROM");
     
-    if (!resendApiKey) {
-      console.error("RESEND_API_KEY is not configured");
+    if (!smtpHost || !smtpUser || !smtpPass || !smtpFrom) {
+      console.error("SMTP configuration is incomplete");
       return new Response(JSON.stringify({ 
-        error: "Email service is not configured. Please add your Resend API key in the Supabase secrets." 
+        error: "Email service is not configured. Please configure SMTP settings in Supabase." 
       }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    const resend = new Resend(resendApiKey);
     const { to, subject, html }: SendEmailRequest = await req.json();
     console.log("Sending email to:", to);
 
-    const emailResponse = await resend.emails.send({
-      from: "Project Updates <onboarding@resend.dev>",
-      to: [to],
+    const client = new SMTPClient({
+      connection: {
+        hostname: smtpHost,
+        port: 587,
+        tls: true,
+        auth: {
+          username: smtpUser,
+          password: smtpPass,
+        },
+      },
+    });
+
+    await client.send({
+      from: smtpFrom,
+      to: to,
       subject: subject,
       html: html,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    await client.close();
+
+    console.log("Email sent successfully");
 
     return new Response(
       JSON.stringify({ 
