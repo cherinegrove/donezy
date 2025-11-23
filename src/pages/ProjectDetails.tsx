@@ -35,8 +35,14 @@ export default function ProjectDetails() {
   const [roundupDialogOpen, setRoundupDialogOpen] = useState(false);
   const [roundupData, setRoundupData] = useState<{
     subject: string;
-    htmlContent: string;
-    textSummary: string;
+    emailContent: string;
+    stats: {
+      backlogCount: number;
+      inProgressCount: number;
+      awaitingFeedbackCount: number;
+      completedThisWeek: number;
+      addedThisWeek: number;
+    };
   } | null>(null);
   
   // Update project when projects state changes
@@ -174,8 +180,8 @@ export default function ProjectDetails() {
 
       setRoundupData({
         subject: data.subject,
-        htmlContent: data.htmlContent,
-        textSummary: data.textSummary,
+        emailContent: data.emailContent,
+        stats: data.stats,
       });
       setRoundupDialogOpen(true);
     } catch (error) {

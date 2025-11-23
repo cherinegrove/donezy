@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,58 +28,196 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { project_id }: WeeklyRoundupRequest = await req.json();
     console.log("Generating weekly roundup for project:", project_id);
+    
+    if (!project_id) {
+      return new Response(JSON.stringify({ error: "project_id is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
-    // Get project details
+    // Fetch project details
     const { data: project, error: projectError } = await supabase
       .from("projects")
-      .select("*, clients(name, email)")
+      .select("*, clients(*)")
       .eq("id", project_id)
       .single();
 
     if (projectError || !project) {
-      throw new Error("Project not found");
+      console.error("Project fetch error:", projectError);
+      return new Response(JSON.stringify({ error: "Project not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
-    // Calculate date range (last 7 days)
+    // Get the date from one week ago
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const oneWeekAgoISO = oneWeekAgo.toISOString();
 
-    // Get tasks for the project
-    const { data: allTasks } = await supabase
+    // Fetch all tasks for the project
+    const { data: tasks, error: tasksError } = await supabase
       .from("tasks")
       .select("*")
       .eq("project_id", project_id);
 
-    // Get task activity logs from the past week
-    const { data: taskLogs } = await supabase
-      .from("task_logs")
-      .select("*, tasks(title)")
-      .gte("created_at", oneWeekAgo.toISOString())
-      .order("created_at", { ascending: false });
+    if (tasksError) {
+      console.error("Tasks fetch error:", tasksError);
+      return new Response(JSON.stringify({ error: "Failed to fetch tasks" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
-    // Filter logs for this project's tasks
-    const projectTaskIds = allTasks?.map(t => t.id) || [];
-    const projectLogs = taskLogs?.filter(log => projectTaskIds.includes(log.task_id)) || [];
-
-    // Categorize tasks
-    const completedTasks = allTasks?.filter(t => 
+    // Categorize tasks and calculate stats
+    const backlogTasks = tasks.filter((t: any) => t.status === "backlog");
+    const inProgressTasks = tasks.filter((t: any) => t.status === "in-progress");
+    const awaitingFeedbackTasks = tasks.filter((t: any) => 
+      t.status === "review" || t.status === "awaiting-feedback"
+    );
+    const completedThisWeek = tasks.filter((t: any) => 
       t.status === "done" && new Date(t.updated_at) >= oneWeekAgo
-    ) || [];
-    
-    const inProgressTasks = allTasks?.filter(t => 
-      t.status !== "done" && t.status !== "backlog"
-    ) || [];
-    
-    const overdueTasks = allTasks?.filter(t => 
-      t.due_date && new Date(t.due_date) < new Date() && t.status !== "done"
-    ) || [];
+    );
+    const addedThisWeek = tasks.filter((t: any) => 
+      new Date(t.created_at) >= oneWeekAgo
+    );
 
-    // Calculate progress percentage
-    const totalTasks = allTasks?.length || 1;
-    const completedCount = allTasks?.filter(t => t.status === "done").length || 0;
-    const progressPercentage = Math.round((completedCount / totalTasks) * 100);
+    const stats = {
+      backlogCount: backlogTasks.length,
+      inProgressCount: inProgressTasks.length,
+      awaitingFeedbackCount: awaitingFeedbackTasks.length,
+      completedThisWeek: completedThisWeek.length,
+      addedThisWeek: addedThisWeek.length,
+    };
 
-    // Generate email HTML
+    // Build detailed sections
+    let backlogSection = "";
+    if (backlogTasks.length > 0) {
+      backlogSection = "<h3>📋 Backlog Tasks</h3><ul>";
+      backlogTasks.forEach((task: any) => {
+        backlogSection += `<li><strong>${task.title}</strong>`;
+        if (task.backlog_reason) {
+          backlogSection += `<br/><em>Reason: ${task.backlog_reason}</em>`;
+        }
+        backlogSection += `</li>`;
+      });
+      backlogSection += "</ul>";
+    }
+
+    let inProgressSection = "";
+    if (inProgressTasks.length > 0) {
+      inProgressSection = "<h3>🚀 In Progress</h3><ul>";
+      inProgressTasks.forEach((task: any) => {
+        inProgressSection += `<li><strong>${task.title}</strong>`;
+        if (task.due_date) {
+          inProgressSection += `<br/>Due: ${new Date(task.due_date).toLocaleDateString()}`;
+        }
+        if (task.due_date_change_reason) {
+          inProgressSection += `<br/><em>Due date changed: ${task.due_date_change_reason}</em>`;
+        }
+        inProgressSection += `</li>`;
+      });
+      inProgressSection += "</ul>";
+    }
+
+    let awaitingFeedbackSection = "";
+    if (awaitingFeedbackTasks.length > 0) {
+      awaitingFeedbackSection = "<h3>⏳ Awaiting Feedback</h3><ul>";
+      awaitingFeedbackTasks.forEach((task: any) => {
+        awaitingFeedbackSection += `<li><strong>${task.title}</strong>`;
+        if (task.awaiting_feedback_details) {
+          awaitingFeedbackSection += `<br/><em>Waiting for: ${task.awaiting_feedback_details}</em>`;
+        }
+        awaitingFeedbackSection += `</li>`;
+      });
+      awaitingFeedbackSection += "</ul>";
+    }
+
+    let completedSection = "";
+    if (completedThisWeek.length > 0) {
+      completedSection = "<h3>✅ Completed This Week</h3><ul>";
+      completedThisWeek.forEach((task: any) => {
+        completedSection += `<li><strong>${task.title}</strong></li>`;
+      });
+      completedSection += "</ul>";
+    }
+
+    let addedSection = "";
+    if (addedThisWeek.length > 0) {
+      addedSection = "<h3>🆕 Added This Week</h3><ul>";
+      addedThisWeek.forEach((task: any) => {
+        addedSection += `<li><strong>${task.title}</strong>`;
+        if (task.description) {
+          addedSection += `<br/>${task.description}`;
+        }
+        addedSection += `</li>`;
+      });
+      addedSection += "</ul>";
+    }
+
+    // Generate email content
+    const emailContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #333; border-bottom: 3px solid #4F46E5; padding-bottom: 10px;">
+          Weekly Project Update: ${project.name}
+        </h1>
+        
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h2 style="margin-top: 0;">📊 Project Overview</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+            <div style="background-color: #FEF3C7; padding: 15px; border-radius: 6px; text-align: center;">
+              <div style="font-size: 32px; font-weight: bold; color: #92400E;">${stats.backlogCount}</div>
+              <div style="color: #78350F; font-size: 14px;">Backlog</div>
+            </div>
+            <div style="background-color: #DBEAFE; padding: 15px; border-radius: 6px; text-align: center;">
+              <div style="font-size: 32px; font-weight: bold; color: #1E40AF;">${stats.inProgressCount}</div>
+              <div style="color: #1E3A8A; font-size: 14px;">In Progress</div>
+            </div>
+            <div style="background-color: #FED7AA; padding: 15px; border-radius: 6px; text-align: center;">
+              <div style="font-size: 32px; font-weight: bold; color: #C2410C;">${stats.awaitingFeedbackCount}</div>
+              <div style="color: #9A3412; font-size: 14px;">Awaiting Feedback</div>
+            </div>
+            <div style="background-color: #D1FAE5; padding: 15px; border-radius: 6px; text-align: center;">
+              <div style="font-size: 32px; font-weight: bold; color: #065F46;">${stats.completedThisWeek}</div>
+              <div style="color: #064E3B; font-size: 14px;">Completed</div>
+            </div>
+            <div style="background-color: #E9D5FF; padding: 15px; border-radius: 6px; text-align: center;">
+              <div style="font-size: 32px; font-weight: bold; color: #6B21A8;">${stats.addedThisWeek}</div>
+              <div style="color: #581C87; font-size: 14px;">Added</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 30px;">
+          ${backlogSection}
+          ${inProgressSection}
+          ${awaitingFeedbackSection}
+          ${completedSection}
+          ${addedSection}
+        </div>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+          <p>This is an automated weekly update for project: ${project.name}</p>
+          <p>If you have any questions or concerns, please don't hesitate to reach out.</p>
+        </div>
+      </div>
+    `;
+
+    const subject = `Weekly Update: ${project.name} - Week of ${new Date().toLocaleDateString()}`;
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        subject,
+        emailContent,
+        stats,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
     const emailHtml = `
       <!DOCTYPE html>
       <html>
@@ -247,13 +385,12 @@ ${project.due_date ? `Project Due Date: ${new Date(project.due_date).toLocaleDat
 Total Tasks: ${totalTasks} (${completedCount} completed, ${totalTasks - completedCount} remaining)
     `.trim();
 
-    // Return the generated content for preview
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
-        subject: `Weekly Update: ${project.name} - ${progressPercentage}% Complete`,
-        htmlContent: emailHtml,
-        textSummary: textSummary,
+        subject,
+        emailContent,
+        stats,
       }),
       {
         status: 200,
@@ -263,7 +400,7 @@ Total Tasks: ${totalTasks} (${completedCount} completed, ${totalTasks - complete
   } catch (error: any) {
     console.error("Error in send-weekly-project-roundup:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || "Internal server error" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
