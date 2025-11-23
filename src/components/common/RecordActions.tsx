@@ -103,13 +103,13 @@ export function RecordActions({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
           <Button variant="ghost" size="icon">
             <MoreHorizontal className="h-4 w-4" />
             <span className="sr-only">Open menu</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
           {showApproveDecline && (
             <>
               {onApproveBillable ? (
@@ -144,13 +144,13 @@ export function RecordActions({
           )}
           
           {!disableEdit && (
-            <DropdownMenuItem onClick={onEdit}>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit?.(); }}>
               <Pencil className="mr-2 h-4 w-4" />
               <span>Edit</span>
             </DropdownMenuItem>
           )}
           {!disableDuplicate && (
-            <DropdownMenuItem onClick={handleDuplicate}>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicate(); }}>
               <Copy className="mr-2 h-4 w-4" />
               <span>Duplicate</span>
             </DropdownMenuItem>
@@ -160,7 +160,7 @@ export function RecordActions({
               {(!disableEdit || !disableDuplicate || showApproveDecline) && <DropdownMenuSeparator />}
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive"
-                onClick={() => setShowDeleteDialog(true)}
+                onClick={(e) => { e.stopPropagation(); setShowDeleteDialog(true); }}
               >
                 <Trash className="mr-2 h-4 w-4" />
                 <span>Delete</span>
