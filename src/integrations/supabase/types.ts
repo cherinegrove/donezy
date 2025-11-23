@@ -149,6 +149,42 @@ export type Database = {
           },
         ]
       }
+      check_ins: {
+        Row: {
+          auth_user_id: string
+          blockers: string | null
+          created_at: string
+          date: string
+          id: string
+          today: string
+          updated_at: string
+          user_id: string
+          yesterday: string | null
+        }
+        Insert: {
+          auth_user_id: string
+          blockers?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          today: string
+          updated_at?: string
+          user_id: string
+          yesterday?: string | null
+        }
+        Update: {
+          auth_user_id?: string
+          blockers?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          today?: string
+          updated_at?: string
+          user_id?: string
+          yesterday?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address: string | null
