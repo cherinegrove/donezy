@@ -3,8 +3,11 @@ import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
 import { useState, useEffect } from "react";
 import { EditTaskDialog } from "../tasks/EditTaskDialog";
+import { TaskStatusPromptDialog } from "../tasks/TaskStatusPromptDialog";
 import { Settings, Edit2, CheckSquare, Trash2, GripVertical } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +37,10 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [nestedSelectedTask, setNestedSelectedTask] = useState<Task | null>(null);
   const [isNestedDialogOpen, setIsNestedDialogOpen] = useState(false);
+  const [statusPromptTask, setStatusPromptTask] = useState<Task | null>(null);
+  const [newStatus, setNewStatus] = useState<string>("");
+  const [statusPromptOpen, setStatusPromptOpen] = useState(false);
+  const { toast } = useToast();
   const [columnColors, setColumnColors] = useState<Record<TaskStatus, string>>({
     backlog: "var(--kanban-backlog)",
     todo: "var(--kanban-todo)",
@@ -147,6 +154,22 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     const sourceStatus = source.droppableId as TaskStatus;
     const destinationStatus = destination.droppableId as TaskStatus;
     
+    // Check if we need to prompt for additional info
+    const needsPrompt = destinationStatus === "backlog" || 
+                        destinationStatus === "in-progress" || 
+                        destinationStatus === "review";
+    
+    if (needsPrompt && sourceStatus !== destinationStatus) {
+      const task = tasks.find(t => t.id === draggableId);
+      if (task) {
+        setStatusPromptTask(task);
+        setNewStatus(destinationStatus);
+        setStatusPromptOpen(true);
+        // Don't reorder yet, wait for confirmation
+        return;
+      }
+    }
+    
     // Reorder task
     if (reorderTasks) {
       await reorderTasks(
@@ -154,6 +177,49 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
         destination.index,
         sourceStatus !== destinationStatus ? destinationStatus : undefined
       );
+    }
+  };
+
+  const handleStatusPromptConfirm = async (data: any) => {
+    if (!statusPromptTask) return;
+
+    try {
+      // Update task with new status and additional fields
+      const updates: any = {
+        status: newStatus,
+      };
+
+      if (data.backlogReason) updates.backlog_reason = data.backlogReason;
+      if (data.awaitingFeedbackDetails) updates.awaiting_feedback_details = data.awaitingFeedbackDetails;
+      if (data.dueDateChangeReason) updates.due_date_change_reason = data.dueDateChangeReason;
+      if (data.newDueDate) {
+        updates.due_date = data.newDueDate;
+        updates.last_due_date_change = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from("tasks")
+        .update(updates)
+        .eq("id", statusPromptTask.id);
+
+      if (error) throw error;
+
+      // Now perform the reorder/move
+      if (moveTask) {
+        await moveTask(statusPromptTask.id, newStatus as TaskStatus);
+      }
+
+      toast({
+        title: "Task updated",
+        description: "Task has been moved and updated successfully",
+      });
+    } catch (error) {
+      console.error("Error updating task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive",
+      });
     }
   };
   
@@ -424,6 +490,16 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
             onOpenChange={setIsNestedDialogOpen}
           />
         )}
+
+        {statusPromptTask && (
+          <TaskStatusPromptDialog
+            open={statusPromptOpen}
+            onOpenChange={setStatusPromptOpen}
+            task={statusPromptTask}
+            newStatus={newStatus}
+            onConfirm={handleStatusPromptConfirm}
+          />
+        )}
       </div>
     );
   }
@@ -517,6 +593,16 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
           task={nestedSelectedTask}
           open={isNestedDialogOpen}
           onOpenChange={setIsNestedDialogOpen}
+        />
+      )}
+
+      {statusPromptTask && (
+        <TaskStatusPromptDialog
+          open={statusPromptOpen}
+          onOpenChange={setStatusPromptOpen}
+          task={statusPromptTask}
+          newStatus={newStatus}
+          onConfirm={handleStatusPromptConfirm}
         />
       )}
     </div>

@@ -1650,13 +1650,17 @@ export type Database = {
           actual_hours: number | null
           assignee_id: string | null
           auth_user_id: string
+          awaiting_feedback_details: string | null
+          backlog_reason: string | null
           checklist: Json | null
           collaborator_ids: string[] | null
           created_at: string
           description: string | null
           due_date: string | null
+          due_date_change_reason: string | null
           estimated_hours: number | null
           id: string
+          last_due_date_change: string | null
           order_index: number | null
           organization_id: string | null
           priority: string
@@ -1672,13 +1676,17 @@ export type Database = {
           actual_hours?: number | null
           assignee_id?: string | null
           auth_user_id: string
+          awaiting_feedback_details?: string | null
+          backlog_reason?: string | null
           checklist?: Json | null
           collaborator_ids?: string[] | null
           created_at?: string
           description?: string | null
           due_date?: string | null
+          due_date_change_reason?: string | null
           estimated_hours?: number | null
           id?: string
+          last_due_date_change?: string | null
           order_index?: number | null
           organization_id?: string | null
           priority?: string
@@ -1694,13 +1702,17 @@ export type Database = {
           actual_hours?: number | null
           assignee_id?: string | null
           auth_user_id?: string
+          awaiting_feedback_details?: string | null
+          backlog_reason?: string | null
           checklist?: Json | null
           collaborator_ids?: string[] | null
           created_at?: string
           description?: string | null
           due_date?: string | null
+          due_date_change_reason?: string | null
           estimated_hours?: number | null
           id?: string
+          last_due_date_change?: string | null
           order_index?: number | null
           organization_id?: string | null
           priority?: string
