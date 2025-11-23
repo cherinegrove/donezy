@@ -19,6 +19,7 @@ import { ProjectNotesSimple } from "@/components/projects/ProjectNotesSimple";
 import { ProjectFilesAdvanced } from "@/components/projects/ProjectFilesAdvanced";
 import { BulkEditTasksDialog } from "@/components/tasks/BulkEditTasksDialog";
 import { GoogleChatSettings } from "@/components/projects/GoogleChatSettings";
+import { WeeklyRoundupDialog } from "@/components/projects/WeeklyRoundupDialog";
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -30,7 +31,13 @@ export default function ProjectDetails() {
   const [project, setProject] = useState<Project | null>(null);
   const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
   const [bulkEditTaskIds, setBulkEditTaskIds] = useState<string[]>([]);
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isGeneratingRoundup, setIsGeneratingRoundup] = useState(false);
+  const [roundupDialogOpen, setRoundupDialogOpen] = useState(false);
+  const [roundupData, setRoundupData] = useState<{
+    subject: string;
+    htmlContent: string;
+    textSummary: string;
+  } | null>(null);
   
   // Update project when projects state changes
   useEffect(() => {
@@ -147,17 +154,17 @@ export default function ProjectDetails() {
     setIsBulkEditOpen(true);
   };
 
-  const handleSendWeeklyRoundup = async () => {
+  const handleGenerateRoundup = async () => {
     if (!project || !client?.email) {
       toast({
-        title: "Cannot send email",
+        title: "Cannot generate roundup",
         description: "Client email is not configured for this project",
         variant: "destructive",
       });
       return;
     }
     
-    setIsSendingEmail(true);
+    setIsGeneratingRoundup(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-weekly-project-roundup", {
         body: { project_id: project.id },
@@ -165,19 +172,21 @@ export default function ProjectDetails() {
 
       if (error) throw error;
 
-      toast({
-        title: "Weekly roundup sent!",
-        description: `Project update email sent to ${client.name} (${client.email})`,
+      setRoundupData({
+        subject: data.subject,
+        htmlContent: data.htmlContent,
+        textSummary: data.textSummary,
       });
+      setRoundupDialogOpen(true);
     } catch (error) {
-      console.error("Error sending weekly roundup:", error);
+      console.error("Error generating roundup:", error);
       toast({
         title: "Error",
-        description: "Failed to send weekly roundup email",
+        description: "Failed to generate weekly roundup",
         variant: "destructive",
       });
     } finally {
-      setIsSendingEmail(false);
+      setIsGeneratingRoundup(false);
     }
   };
 
@@ -208,12 +217,12 @@ export default function ProjectDetails() {
           </Button>
           <Button 
             variant="outline"
-            onClick={handleSendWeeklyRoundup}
-            disabled={isSendingEmail || !client?.email}
-            title={!client?.email ? "Client email not configured" : "Send weekly project update to client"}
+            onClick={handleGenerateRoundup}
+            disabled={isGeneratingRoundup || !client?.email}
+            title={!client?.email ? "Client email not configured" : "Generate weekly project update preview"}
           >
             <Mail className="w-4 h-4 mr-2" />
-            {isSendingEmail ? "Sending..." : "Send Weekly Roundup"}
+            {isGeneratingRoundup ? "Generating..." : "Weekly Roundup"}
           </Button>
           <Button onClick={() => setConvertDialogOpen(true)}>
             Convert to Template
@@ -440,6 +449,15 @@ export default function ProjectDetails() {
         open={isBulkEditOpen}
         onOpenChange={setIsBulkEditOpen}
         taskIds={bulkEditTaskIds}
+      />
+      
+      <WeeklyRoundupDialog
+        open={roundupDialogOpen}
+        onOpenChange={setRoundupDialogOpen}
+        projectId={projectId!}
+        clientEmail={client?.email || ""}
+        clientName={client?.name || ""}
+        roundupData={roundupData}
       />
     </div>
   );

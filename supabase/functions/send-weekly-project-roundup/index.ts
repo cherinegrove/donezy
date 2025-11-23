@@ -220,26 +220,43 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // Send email to client
-    const clientEmail = project.clients?.email;
-    if (!clientEmail) {
-      throw new Error("Client email not found");
-    }
+    // Generate text summary for copying
+    const textSummary = `
+WEEKLY PROJECT UPDATE
+Project: ${project.name}
+Period: ${new Date(oneWeekAgo).toLocaleDateString()} - ${new Date().toLocaleDateString()}
 
-    const emailResponse = await resend.emails.send({
-      from: "Project Updates <onboarding@resend.dev>",
-      to: [clientEmail],
-      subject: `Weekly Update: ${project.name} - ${progressPercentage}% Complete`,
-      html: emailHtml,
-    });
+OVERVIEW
+- Progress: ${progressPercentage}% Complete
+- Completed This Week: ${completedTasks.length} tasks
+- Currently In Progress: ${inProgressTasks.length} tasks
+- Total Activity: ${projectLogs.length} updates
 
-    console.log("Email sent successfully:", emailResponse);
+${completedTasks.length > 0 ? `COMPLETED THIS WEEK
+${completedTasks.map(t => `✓ ${t.title}`).join('\n')}
+` : ''}
 
+${inProgressTasks.length > 0 ? `IN PROGRESS
+${inProgressTasks.map(t => `• ${t.title}${t.due_date ? ` (Due: ${new Date(t.due_date).toLocaleDateString()})` : ''}`).join('\n')}
+` : ''}
+
+${overdueTasks.length > 0 ? `NEEDS ATTENTION
+${overdueTasks.map(t => `⚠ ${t.title} (Overdue: ${new Date(t.due_date).toLocaleDateString()})`).join('\n')}
+` : ''}
+
+PROJECT STATUS
+Current Status: ${project.status}
+${project.due_date ? `Project Due Date: ${new Date(project.due_date).toLocaleDateString()}` : ''}
+Total Tasks: ${totalTasks} (${completedCount} completed, ${totalTasks - completedCount} remaining)
+    `.trim();
+
+    // Return the generated content for preview
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        message: "Weekly roundup sent successfully",
-        email_id: emailResponse.id 
+        success: true,
+        subject: `Weekly Update: ${project.name} - ${progressPercentage}% Complete`,
+        htmlContent: emailHtml,
+        textSummary: textSummary,
       }),
       {
         status: 200,
