@@ -16,10 +16,14 @@ const SidebarContext = React.createContext<SidebarContextType>({
 });
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
-  const [collapsed, setCollapsed] = React.useState(false);
+  // Always keep sidebar expanded (not collapsed)
+  const collapsed = false;
+  const setCollapsed = React.useCallback(() => {
+    // Do nothing - prevent collapsing
+  }, []);
 
   const toggleSidebar = React.useCallback(() => {
-    setCollapsed((prev) => !prev);
+    // Do nothing - prevent toggling
   }, []);
 
   return (
