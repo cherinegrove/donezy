@@ -4,8 +4,27 @@ import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { DailyMetricsDialog } from "@/components/dashboard/DailyMetricsDialog";
+import { useState, useEffect } from "react";
 
 export function AppLayout() {
+  const [showDailyMetrics, setShowDailyMetrics] = useState(false);
+
+  useEffect(() => {
+    // Check if we should show the daily metrics
+    const lastShown = localStorage.getItem("dailyMetricsLastShown");
+    const today = new Date().toDateString();
+
+    if (lastShown !== today) {
+      // Show after a short delay to let the page load
+      const timer = setTimeout(() => {
+        setShowDailyMetrics(true);
+        localStorage.setItem("dailyMetricsLastShown", today);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, []);
   
   return (
     <ThemeProvider>
@@ -20,6 +39,11 @@ export function AppLayout() {
             </main>
           </div>
         </div>
+
+        <DailyMetricsDialog 
+          open={showDailyMetrics} 
+          onOpenChange={setShowDailyMetrics} 
+        />
       </SidebarProvider>
     </ThemeProvider>
   );
