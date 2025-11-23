@@ -4,13 +4,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Building2, RefreshCw, ArrowLeft, CheckCircle } from "lucide-react";
+import { Building2, RefreshCw, ArrowLeft, CheckCircle, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { HubSpotTicketMapping } from "./HubSpotTicketMapping";
 import { Badge } from "@/components/ui/badge";
 
-type IntegrationName = 'hubspot' | null;
+type IntegrationName = 'hubspot' | 'google-chat' | null;
 
 export function IntegrationsSettings() {
   const { toast } = useToast();
@@ -164,6 +164,13 @@ export function IntegrationsSettings() {
       icon: Building2,
       configured: isHubSpotConfigured,
     },
+    {
+      name: 'google-chat' as const,
+      title: 'Google Chat',
+      description: 'Send project notifications to Google Chat spaces',
+      icon: MessageSquare,
+      configured: false, // Configured per-project
+    },
   ];
 
   if (!selectedIntegration) {
@@ -205,6 +212,109 @@ export function IntegrationsSettings() {
             </Card>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  // Google Chat integration detail view
+  if (selectedIntegration === 'google-chat') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedIntegration(null)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Integrations
+          </Button>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Google Chat
+            </CardTitle>
+            <CardDescription>
+              Send project notifications and updates directly to Google Chat spaces
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="rounded-lg bg-muted p-4">
+              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Per-Project Configuration
+              </h4>
+              <p className="text-sm text-muted-foreground mb-4">
+                Google Chat is configured individually for each project. This allows you to send notifications to different Google Chat spaces based on the project.
+              </p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h4 className="font-semibold">How to Set Up Google Chat for a Project</h4>
+              
+              <ol className="space-y-3 text-sm list-decimal list-inside">
+                <li className="space-y-2">
+                  <span className="font-medium">Create a Google Chat Webhook</span>
+                  <ul className="ml-6 mt-1 space-y-1 text-muted-foreground list-disc list-inside">
+                    <li>Open the Google Chat space where you want to receive notifications</li>
+                    <li>Click the space name at the top, then select "Apps & integrations"</li>
+                    <li>Click "Add webhooks" and create a new webhook</li>
+                    <li>Copy the webhook URL</li>
+                  </ul>
+                </li>
+
+                <li className="space-y-2">
+                  <span className="font-medium">Configure in Your Project</span>
+                  <ul className="ml-6 mt-1 space-y-1 text-muted-foreground list-disc list-inside">
+                    <li>Navigate to the project where you want to enable Google Chat</li>
+                    <li>Look for the "Google Chat Settings" section in the project details</li>
+                    <li>Paste your webhook URL</li>
+                    <li>Configure which notifications you want to send to Google Chat</li>
+                  </ul>
+                </li>
+
+                <li className="space-y-2">
+                  <span className="font-medium">Notification Types</span>
+                  <ul className="ml-6 mt-1 space-y-1 text-muted-foreground list-disc list-inside">
+                    <li>Task created or updated</li>
+                    <li>Project status changes</li>
+                    <li>Comments and mentions</li>
+                    <li>Due date reminders</li>
+                  </ul>
+                </li>
+              </ol>
+            </div>
+
+            <Separator />
+
+            <div className="rounded-lg bg-blue-50 dark:bg-blue-950 p-4">
+              <h4 className="font-semibold mb-2 text-blue-900 dark:text-blue-100">💡 Pro Tip</h4>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                You can configure different Google Chat spaces for different projects. This is useful for keeping client communications separate or organizing notifications by team.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <Button onClick={() => window.location.href = '/projects'}>
+                Go to Projects
+              </Button>
+              <Button variant="outline" asChild>
+                <a 
+                  href="https://developers.google.com/chat/how-tos/webhooks" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  Google Chat Webhook Docs
+                </a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
