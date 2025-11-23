@@ -3,9 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Send } from "lucide-react";
-import { RichTextEditor } from "./RichTextEditor";
+import { Copy } from "lucide-react";
 
 interface WeeklyRoundupDialogProps {
   open: boolean;
@@ -35,7 +33,6 @@ export function WeeklyRoundupDialog({
   roundupData,
 }: WeeklyRoundupDialogProps) {
   const { toast } = useToast();
-  const [isSending, setIsSending] = useState(false);
   const [editedContent, setEditedContent] = useState("");
 
   // Update edited content when roundup data changes
@@ -45,35 +42,22 @@ export function WeeklyRoundupDialog({
     }
   }, [roundupData]);
 
-  const handleSendEmail = async () => {
-    if (!roundupData) return;
+  const handleCopy = async () => {
+    if (!editedContent) return;
 
-    setIsSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-weekly-roundup-email", {
-        body: {
-          to: clientEmail,
-          subject: roundupData.subject,
-          html: editedContent,
-        },
-      });
-
-      if (error) throw error;
-
+      await navigator.clipboard.writeText(editedContent);
       toast({
-        title: "Email sent!",
-        description: `Weekly roundup sent to ${clientName} (${clientEmail})`,
+        title: "Copied!",
+        description: "Email content copied to clipboard",
       });
-      onOpenChange(false);
     } catch (error) {
-      console.error("Error sending email:", error);
+      console.error("Error copying to clipboard:", error);
       toast({
         title: "Error",
-        description: "Failed to send email",
+        description: "Failed to copy to clipboard",
         variant: "destructive",
       });
-    } finally {
-      setIsSending(false);
     }
   };
 
@@ -117,24 +101,23 @@ export function WeeklyRoundupDialog({
 
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="text-sm text-muted-foreground mb-2">
-            Edit the email content below before sending
+            Edit the email content below before copying
           </div>
-          <div className="flex-1 border rounded-md overflow-hidden">
-            <RichTextEditor
-              content={editedContent}
-              onChange={setEditedContent}
-              placeholder="Email content..."
-            />
-          </div>
+          <Textarea
+            value={editedContent}
+            onChange={(e) => setEditedContent(e.target.value)}
+            className="flex-1 min-h-[300px] font-mono text-sm"
+            placeholder="Email content..."
+          />
         </div>
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <Button onClick={handleSendEmail} disabled={isSending}>
-            <Send className="w-4 h-4 mr-2" />
-            {isSending ? "Sending..." : "Send Email"}
+          <Button onClick={handleCopy}>
+            <Copy className="w-4 h-4 mr-2" />
+            Copy
           </Button>
         </DialogFooter>
       </DialogContent>
