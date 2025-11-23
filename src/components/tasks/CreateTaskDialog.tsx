@@ -633,58 +633,6 @@ export function CreateTaskDialog({
                       )}
                     </div>
                   </div>
-
-                  {/* Related Tasks Section */}
-                  <div>
-                    <h3 className="text-sm font-medium mb-3">Related Tasks</h3>
-                    <div className="space-y-2">
-                      <Select
-                        value=""
-                        onValueChange={(taskId) => {
-                          if (!relatedTaskIds.includes(taskId)) {
-                            setRelatedTaskIds([...relatedTaskIds, taskId]);
-                          }
-                        }}
-                        disabled={!form.watch("projectId")}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={form.watch("projectId") ? "Link a task" : "Select a project first"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {projectTasks
-                            .filter(t => !relatedTaskIds.includes(t.id))
-                            .map((task) => (
-                              <SelectItem key={task.id} value={task.id}>
-                                {task.title}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                      {relatedTaskIds.length > 0 && (
-                        <div className="space-y-1">
-                          {relatedTaskIds.map((taskId) => {
-                            const relatedTask = tasks.find(t => t.id === taskId);
-                            if (!relatedTask) return null;
-                            return (
-                              <div key={taskId} className="flex items-center justify-between p-2 bg-muted rounded">
-                                <span className="text-sm">{relatedTask.title}</span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setRelatedTaskIds(relatedTaskIds.filter(id => id !== taskId));
-                                  }}
-                                >
-                                  Remove
-                                </Button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 </div>
 
                 {!isFieldHidden('relatedTaskIds') && (
