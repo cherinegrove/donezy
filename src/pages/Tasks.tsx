@@ -244,8 +244,8 @@ export default function Tasks() {
 
         <TabsContent value="tasks" className="space-y-6 animate-fade-in">
           <ModernToolbar>
-            <ModernToolbarSection>
-              <Filter className="h-4 w-4 text-muted-foreground" />
+            <ModernToolbarSection className="flex-nowrap">
+              <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <EnhancedFilterBar 
                 filters={filterOptions} 
                 onFilterChange={handleFilterChange}
@@ -256,7 +256,7 @@ export default function Tasks() {
                 variant={showMyTasksOnly ? "default" : "outline"}
                 size="sm"
                 onClick={() => setShowMyTasksOnly(!showMyTasksOnly)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 flex-shrink-0"
               >
                 {showMyTasksOnly ? <User className="h-4 w-4" /> : <Users className="h-4 w-4" />}
                 {showMyTasksOnly ? "My Tasks" : "All Tasks"}
@@ -267,7 +267,7 @@ export default function Tasks() {
                   value={statusFilter}
                   onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}
                 >
-                  <SelectTrigger className="w-[180px] h-9">
+                  <SelectTrigger className="w-[180px] h-9 flex-shrink-0">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -287,7 +287,7 @@ export default function Tasks() {
                     variant="outline"
                     size="sm"
                     className={cn(
-                      "justify-start text-left font-normal",
+                      "justify-start text-left font-normal flex-shrink-0",
                       !dueDate && "text-muted-foreground"
                     )}
                   >
@@ -316,13 +316,14 @@ export default function Tasks() {
                     setStatusFilter("all");
                     setActiveFilters({});
                   }}
+                  className="flex-shrink-0"
                 >
                   Clear All Filters
                 </Button>
               )}
             </ModernToolbarSection>
             
-            <ModernToolbarSection>
+            <ModernToolbarSection className="flex-shrink-0">
               <ViewSelector currentView={viewMode} onViewChange={setViewMode} />
             </ModernToolbarSection>
           </ModernToolbar>
