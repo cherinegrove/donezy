@@ -23,7 +23,7 @@ import { ModernToolbar, ModernToolbarSection } from "@/components/common/ModernT
 const Projects = () => {
   console.log("Projects component: Starting render");
   
-  const { projects, tasks, clients, teams, deleteProject } = useAppContext();
+  const { projects, tasks, clients, teams, users, deleteProject } = useAppContext();
 
   // Listen for template creation events to refresh the templates list
   useEffect(() => {
@@ -71,6 +71,14 @@ const Projects = () => {
       options: teams.map(team => ({
         id: team.id,
         label: team.name,
+      })),
+    },
+    {
+      id: "owners",
+      name: "Owner",
+      options: users.map(user => ({
+        id: user.auth_user_id,
+        label: user.name,
       })),
     },
     {
@@ -122,6 +130,12 @@ const Projects = () => {
             if (!projectTeamIds.some(id => values.includes(id))) {
               return false;
             }
+          }
+          break;
+        case "owners":
+          // Check if project has the selected owner
+          if (!project.ownerId || !values.includes(project.ownerId)) {
+            return false;
           }
           break;
         case "status":
