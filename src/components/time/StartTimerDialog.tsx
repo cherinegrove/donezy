@@ -108,6 +108,13 @@ export function StartTimerDialog({
             {clients.length === 0 ? 'No clients available - create a client first' : 'Select a client to start tracking time'}
           </DialogDescription>
         </DialogHeader>
+
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+          <p className="text-sm text-blue-900 dark:text-blue-100">
+            <strong className="font-semibold">💡 Pro tip:</strong> Track time at the client level for flexibility, or link to specific projects and tasks for detailed reporting.
+          </p>
+        </div>
+
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="client">Client (Required)</Label>

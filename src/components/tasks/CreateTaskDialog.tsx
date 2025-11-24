@@ -314,6 +314,12 @@ export function CreateTaskDialog({
           <DialogTitle>Create New Task</DialogTitle>
         </DialogHeader>
 
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+          <p className="text-sm text-blue-900 dark:text-blue-100">
+            <strong className="font-semibold">💡 Pro tip:</strong> Use task templates to quickly create tasks with pre-configured fields and save time on repetitive task creation.
+          </p>
+        </div>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {/* Template Selection - Always at top */}

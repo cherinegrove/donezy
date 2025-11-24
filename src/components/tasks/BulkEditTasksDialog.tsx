@@ -116,6 +116,12 @@ export function BulkEditTasksDialog({
           </DialogDescription>
         </DialogHeader>
 
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+          <p className="text-sm text-blue-900 dark:text-blue-100">
+            <strong className="font-semibold">💡 Pro tip:</strong> Use bulk edit to quickly update project, assignee, collaborators, or priority across multiple tasks at once.
+          </p>
+        </div>
+
         <div className="mb-4">
           <h4 className="text-sm font-medium mb-2">Selected Tasks ({selectedTasks.length})</h4>
           <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
