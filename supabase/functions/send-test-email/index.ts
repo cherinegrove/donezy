@@ -80,8 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: "Test email sent successfully",
-      data: emailResponse 
+      message: "Test email sent successfully"
     }), {
       status: 200,
       headers: {
