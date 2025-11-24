@@ -37,6 +37,7 @@ import { CommentSection } from "./CommentSection";
 import { RelatedTasksSection } from "./RelatedTasksSection";
 import { supabase } from "@/integrations/supabase/client";
 import { RecurringTaskDialog } from "./RecurringTaskDialog";
+import { TaskStatusPromptDialog } from "./TaskStatusPromptDialog";
 import { Repeat } from "lucide-react";
 
 interface EditTaskDialogProps {
@@ -80,6 +81,8 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
+  const [statusPromptOpen, setStatusPromptOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   // Reset form state when task changes
   useEffect(() => {
@@ -94,8 +97,13 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     setReminderDate(task.reminderDate ? new Date(task.reminderDate) : undefined);
   }, [task]);
 
-  const handleSaveChanges = async () => {
-    const taskId = await updateTask(task.id, {
+  const handleSaveChanges = async (additionalData?: {
+    backlogReason?: string;
+    awaitingFeedbackDetails?: string;
+    dueDateChangeReason?: string;
+    newDueDate?: string;
+  }) => {
+    const updates: any = {
       title,
       description,
       status,
@@ -105,7 +113,26 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       projectId,
       dueDate: dueDate ? dueDate.toISOString() : undefined,
       reminderDate: reminderDate ? reminderDate.toISOString() : undefined,
-    });
+    };
+
+    // Add additional data from status prompts
+    if (additionalData) {
+      if (additionalData.backlogReason) {
+        updates.backlogReason = additionalData.backlogReason;
+      }
+      if (additionalData.awaitingFeedbackDetails) {
+        updates.awaitingFeedbackDetails = additionalData.awaitingFeedbackDetails;
+      }
+      if (additionalData.dueDateChangeReason) {
+        updates.dueDateChangeReason = additionalData.dueDateChangeReason;
+      }
+      if (additionalData.newDueDate) {
+        updates.dueDate = additionalData.newDueDate;
+        setDueDate(new Date(additionalData.newDueDate));
+      }
+    }
+
+    const taskId = await updateTask(task.id, updates);
 
     // Only send notification if assignee has been changed
     if (taskId && assigneeId && currentUser && assigneeId !== task.assigneeId) {
@@ -161,7 +188,39 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   };
 
   const handleStatusChange = (value: string) => {
-    setStatus(value as "backlog" | "todo" | "in-progress" | "review" | "done");
+    const statusValue = value as "backlog" | "todo" | "in-progress" | "review" | "done";
+    
+    // Check if this status change requires a prompt
+    const needsPrompt = statusValue === "backlog" || 
+                       statusValue === "in-progress" || 
+                       statusValue === "review";
+    
+    if (needsPrompt && statusValue !== task.status) {
+      // Save the pending status and show the prompt dialog
+      setPendingStatus(statusValue);
+      setStatusPromptOpen(true);
+    } else {
+      // Direct status change for statuses that don't need prompts
+      setStatus(statusValue);
+    }
+  };
+
+  const handleStatusPromptConfirm = async (data: {
+    backlogReason?: string;
+    awaitingFeedbackDetails?: string;
+    dueDateChangeReason?: string;
+    newDueDate?: string;
+  }) => {
+    if (pendingStatus) {
+      // Update the status
+      setStatus(pendingStatus as any);
+      
+      // Save changes with additional data
+      await handleSaveChanges(data);
+      
+      // Reset pending status
+      setPendingStatus(null);
+    }
   };
 
   const handleProjectChange = (value: string) => {
@@ -384,6 +443,21 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
           estimated_hours: task.estimatedHours || undefined,
         }}
       />
+
+      {pendingStatus && (
+        <TaskStatusPromptDialog
+          open={statusPromptOpen}
+          onOpenChange={(open) => {
+            setStatusPromptOpen(open);
+            if (!open) {
+              setPendingStatus(null);
+            }
+          }}
+          task={task}
+          newStatus={pendingStatus}
+          onConfirm={handleStatusPromptConfirm}
+        />
+      )}
     </>
   );
 }
