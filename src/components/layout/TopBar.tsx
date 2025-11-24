@@ -38,6 +38,7 @@ export function TopBar() {
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isTimerBoxOpen, setIsTimerBoxOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Toggle between light and dark mode
   const toggleTheme = () => {
@@ -64,9 +65,13 @@ export function TopBar() {
             <Input
               type="search"
               placeholder="Search tasks... (⌘K)"
-              className="w-[200px] lg:w-[300px] pl-8 bg-background cursor-pointer"
+              className="w-[200px] lg:w-[300px] pl-8 bg-background"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (!isSearchOpen) setIsSearchOpen(true);
+              }}
               onFocus={() => setIsSearchOpen(true)}
-              readOnly
             />
           </div>
           
@@ -227,7 +232,11 @@ export function TopBar() {
 
       <GlobalSearch 
         externalOpen={isSearchOpen}
-        onExternalOpenChange={setIsSearchOpen}
+        onExternalOpenChange={(open) => {
+          setIsSearchOpen(open);
+          if (!open) setSearchQuery("");
+        }}
+        initialQuery={searchQuery}
       />
     </header>
   );
