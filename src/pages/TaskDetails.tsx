@@ -106,7 +106,7 @@ export default function TaskDetails() {
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">
-                  <span className="text-muted-foreground">Assignee:</span> {assignee.name}
+                  <span className="text-muted-foreground">Owner:</span> {assignee.name}
                 </span>
               </div>
             )}

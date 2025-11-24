@@ -221,7 +221,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Assignee</Label>
+                  <Label>Owner</Label>
                   <AssigneeSelect
                     field={{ value: assigneeId, onChange: handleAssigneeChange }}
                   />

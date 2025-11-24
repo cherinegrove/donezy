@@ -397,7 +397,7 @@ export function CreateTaskDialog({
                       name="assigneeId"
                       render={({ field }) => (
                         <div className="space-y-2">
-                          <Label>Assignee {isFieldRequired('assigneeId') && '*'}</Label>
+                          <Label>Owner {isFieldRequired('assigneeId') && '*'}</Label>
                           <AssigneeSelect field={field} />
                           <FormMessage />
                         </div>
