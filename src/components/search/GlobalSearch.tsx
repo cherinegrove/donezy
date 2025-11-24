@@ -26,8 +26,13 @@ interface SearchResult {
   score?: number;
 }
 
-export function GlobalSearch() {
-  const [open, setOpen] = useState(false);
+interface GlobalSearchProps {
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
+}
+
+export function GlobalSearch({ externalOpen, onExternalOpenChange }: GlobalSearchProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const { 
@@ -41,6 +46,16 @@ export function GlobalSearch() {
     timeEntries,
     currentUser 
   } = useAppContext();
+
+  // Use external control if provided, otherwise use internal state
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = (value: boolean) => {
+    if (onExternalOpenChange) {
+      onExternalOpenChange(value);
+    } else {
+      setInternalOpen(value);
+    }
+  };
 
   // Build searchable data with access control
   const searchableData = useMemo(() => {
@@ -237,13 +252,13 @@ export function GlobalSearch() {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setOpen((open) => !open);
+        setOpen(!open);
       }
     };
 
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, []);
+  }, [open]);
 
   const handleSelect = (path: string) => {
     setOpen(false);
