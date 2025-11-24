@@ -300,8 +300,14 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   // Render toolbar with selection controls and display options
   const renderToolbar = () => {
     return (
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2">
+      <>
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+          <p className="text-sm text-blue-900 dark:text-blue-100">
+            <strong className="font-semibold">💡 Pro tip:</strong> Drag tasks between columns to update their status. Hold Ctrl/Cmd while clicking tasks to select multiple for bulk actions.
+          </p>
+        </div>
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-2">
           {selectedTaskIds.length > 0 && (
             <>
               <Badge variant="secondary">
@@ -403,11 +409,12 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
               </DropdownMenu>
             </TooltipTrigger>
             <TooltipContent>
-              Configure what information is displayed on task cards
+               Configure what information is displayed on task cards
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
+      </>
     );
   };
   

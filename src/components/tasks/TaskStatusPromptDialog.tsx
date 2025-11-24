@@ -85,6 +85,12 @@ export function TaskStatusPromptDialog({
           <DialogTitle>{getPromptTitle()}</DialogTitle>
         </DialogHeader>
 
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+          <p className="text-sm text-blue-900 dark:text-blue-100">
+            <strong className="font-semibold">💡 Pro tip:</strong> These prompts help maintain a clear history of task changes and reasons for status updates.
+          </p>
+        </div>
+
         <div className="space-y-4 py-4">
           <div className="text-sm text-muted-foreground mb-4">
             Task: <span className="font-medium text-foreground">{task.title}</span>

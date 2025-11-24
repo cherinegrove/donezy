@@ -151,6 +151,12 @@ export function UseTemplateDialog({
         <DialogHeader>
           <DialogTitle>Create Project from Template</DialogTitle>
         </DialogHeader>
+
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+          <p className="text-sm text-blue-900 dark:text-blue-100">
+            <strong className="font-semibold">💡 Pro tip:</strong> Templates copy all tasks, subtasks, and timelines to your new project, saving hours of setup time.
+          </p>
+        </div>
         
         <div className="flex flex-col md:flex-row gap-6">
           {/* Template selection sidebar */}

@@ -403,6 +403,12 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
             Create a new project and assign it to a client.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+          <p className="text-sm text-blue-900 dark:text-blue-100">
+            <strong className="font-semibold">💡 Pro tip:</strong> Project templates help you standardize workflows and include pre-configured tasks, custom fields, and timelines.
+          </p>
+        </div>
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
