@@ -46,7 +46,7 @@ export function AssigneeSelect({ field, value, onChange }: AssigneeSelectProps) 
       defaultValue={selectValue}
     >
       <SelectTrigger>
-        <SelectValue placeholder="Select assignee" />
+        <SelectValue placeholder="Select owner" />
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="unassigned">Unassigned</SelectItem>

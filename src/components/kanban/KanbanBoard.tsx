@@ -373,7 +373,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                     checked={displayOptions.includes("assignee")}
                     onCheckedChange={() => toggleDisplayOption("assignee")}
                   >
-                    Assignee
+                    Owner
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
                     checked={displayOptions.includes("collaborators")}

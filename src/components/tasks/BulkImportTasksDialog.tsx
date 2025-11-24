@@ -477,7 +477,7 @@ export function BulkImportTasksDialog({ open, onOpenChange }: BulkImportTasksDia
     { value: 'projectId', label: 'Project' },
     { value: 'priority', label: 'Priority' },
     { value: 'status', label: 'Status' },
-    { value: 'assigneeId', label: 'Assignee' },
+    { value: 'assigneeId', label: 'Owner' },
     { value: 'dueDate', label: 'Due Date' },
     { value: 'estimatedHours', label: 'Estimated Hours' },
     ...customFields.filter(cf => cf.applicableTo.includes('tasks')).map(cf => ({

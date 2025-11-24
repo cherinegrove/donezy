@@ -165,7 +165,7 @@ export function BulkEditTasksDialog({
               name="assigneeId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Assignee (Optional)</FormLabel>
+                  <FormLabel>Owner (Optional)</FormLabel>
                   <FormControl>
                     <div className="flex items-center gap-2">
                       <div className="flex-1">

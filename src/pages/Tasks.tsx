@@ -84,7 +84,7 @@ export default function Tasks() {
     },
     {
       id: "assignees",
-      name: "Assignee",
+      name: "Owner",
       options: users.map(user => ({
         id: user.id,
         label: user.name,
