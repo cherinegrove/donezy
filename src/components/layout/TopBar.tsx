@@ -49,7 +49,7 @@ export function TopBar() {
   };
   
   return (
-    <header className="border-b bg-background px-6 py-3">
+    <header className="sticky top-0 z-50 border-b bg-background px-6 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:hidden">
