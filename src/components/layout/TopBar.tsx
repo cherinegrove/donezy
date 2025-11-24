@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { StartTimerDialog } from "@/components/time/StartTimerDialog";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { EditTimeEntryDialog } from "@/components/time/EditTimeEntryDialog";
+import { GlobalSearch } from "@/components/search/GlobalSearch";
 
 import { useState } from "react";
 import {
@@ -36,6 +37,7 @@ export function TopBar() {
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isTimerBoxOpen, setIsTimerBoxOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   
   // Toggle between light and dark mode
   const toggleTheme = () => {
@@ -58,11 +60,13 @@ export function TopBar() {
           </Button>
           
           <div className="relative hidden md:flex items-center">
-            <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               type="search"
-              placeholder="Search..."
-              className="w-[200px] lg:w-[300px] pl-8 bg-background"
+              placeholder="Search tasks... (⌘K)"
+              className="w-[200px] lg:w-[300px] pl-8 bg-background cursor-pointer"
+              onFocus={() => setIsSearchOpen(true)}
+              readOnly
             />
           </div>
           
@@ -220,6 +224,11 @@ export function TopBar() {
           userId={currentUser.auth_user_id}
         />
       )}
+
+      <GlobalSearch 
+        externalOpen={isSearchOpen}
+        onExternalOpenChange={setIsSearchOpen}
+      />
     </header>
   );
 }
