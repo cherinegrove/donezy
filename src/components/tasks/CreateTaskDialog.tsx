@@ -29,7 +29,7 @@ import { CollaboratorSelect } from "./CollaboratorSelect";
 import { StatusSelect } from "./StatusSelect";
 import { PrioritySelect } from "./PrioritySelect";
 import { AssigneeSelect } from "./AssigneeSelect";
-import { CalendarIcon, Plus, Trash2, CheckCircle2, File } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, CheckCircle2, File, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RelatedTasksSection } from "./RelatedTasksSection";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,13 @@ import { useNativeFieldConfigs } from "@/hooks/useNativeFieldConfigs";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Define schema for task form
 const createTaskSchema = (fieldRequirements: { [fieldName: string]: boolean }) => {
@@ -112,6 +119,10 @@ export function CreateTaskDialog({
   const [activeTab, setActiveTab] = useState("details");
   const [checklist, setChecklist] = useState<Array<{ id: string; text: string; completed: boolean }>>([]);
   const [relatedTaskIds, setRelatedTaskIds] = useState<string[]>([]);
+  const [tempLinks, setTempLinks] = useState<Array<{ id: string; name: string; url: string }>>([]);
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
+  const [linkName, setLinkName] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
   
   // Fetch native field configurations
   const { isFieldRequired, isFieldHidden } = useNativeFieldConfigs('tasks');
@@ -262,6 +273,20 @@ export function CreateTaskDialog({
         checklist: checklist.length > 0 ? checklist : undefined,
       });
 
+      // Add links after task is created
+      if (taskId && tempLinks.length > 0 && currentUser) {
+        for (const link of tempLinks) {
+          await supabase.from('task_files').insert({
+            task_id: taskId,
+            name: link.name,
+            external_url: link.url,
+            is_external_link: true,
+            mime_type: 'text/uri-list',
+            auth_user_id: currentUser.auth_user_id,
+          });
+        }
+      }
+
       if (taskId && data.assigneeId && currentUser) {
         const { error } = await supabase.functions.invoke('send-task-assignment-notification', {
           body: {
@@ -283,6 +308,7 @@ export function CreateTaskDialog({
       setSelectedTemplate("default");
       setChecklist([]);
       setRelatedTaskIds([]);
+      setTempLinks([]);
       onOpenChange(false);
     } catch (error) {
       console.error('Error during task creation:', error);
@@ -737,13 +763,158 @@ export function CreateTaskDialog({
               </TabsContent>
 
               <TabsContent value="files" className="space-y-4">
-                <div className="text-center py-8 space-y-3">
-                  <File className="h-12 w-12 mx-auto text-muted-foreground/50" />
-                  <div>
-                    <p className="text-muted-foreground font-medium">Files can be added after the task is created</p>
-                    <p className="text-xs text-muted-foreground mt-2">Create the task first, then edit it to add files and links</p>
-                  </div>
-                </div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <File className="h-5 w-5" />
+                      Files & Links
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
+                        <Button 
+                          variant="outline" 
+                          type="button"
+                          onClick={() => setIsLinkDialogOpen(true)}
+                        >
+                          <LinkIcon className="h-4 w-4 mr-2" />
+                          Add Link
+                        </Button>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Add External Link</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="link-name">Link Name</Label>
+                              <Input
+                                id="link-name"
+                                value={linkName}
+                                onChange={(e) => setLinkName(e.target.value)}
+                                placeholder="e.g., Design Mockups"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="link-url">URL</Label>
+                              <Input
+                                id="link-url"
+                                value={linkUrl}
+                                onChange={(e) => setLinkUrl(e.target.value)}
+                                placeholder="https://example.com"
+                                type="url"
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button 
+                              variant="outline" 
+                              type="button"
+                              onClick={() => {
+                                setIsLinkDialogOpen(false);
+                                setLinkName("");
+                                setLinkUrl("");
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              type="button"
+                              onClick={() => {
+                                if (!linkName.trim() || !linkUrl.trim()) {
+                                  toast.error("Please provide both a name and URL for the link.");
+                                  return;
+                                }
+                                const newLink = {
+                                  id: `temp-${Date.now()}`,
+                                  name: linkName,
+                                  url: linkUrl,
+                                };
+                                setTempLinks([...tempLinks, newLink]);
+                                setLinkName("");
+                                setLinkUrl("");
+                                setIsLinkDialogOpen(false);
+                                toast.success(`${linkName} has been added.`);
+                              }}
+                            >
+                              Add Link
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+
+                    {tempLinks.length > 0 ? (
+                      <div className="space-y-2">
+                        {tempLinks.map((link) => (
+                          <div 
+                            key={link.id} 
+                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                            onClick={() => {
+                              const formattedUrl = link.url.match(/^https?:\/\//) ? link.url : `https://${link.url}`;
+                              window.open(formattedUrl, '_blank', 'noopener,noreferrer');
+                            }}
+                          >
+                            <div className="flex items-center gap-3 flex-1">
+                              <ExternalLink className="h-4 w-4" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{link.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {(() => {
+                                    try {
+                                      return new URL(link.url).hostname;
+                                    } catch {
+                                      return link.url;
+                                    }
+                                  })()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    type="button"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    •••
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={(e) => {
+                                    e.stopPropagation();
+                                    const formattedUrl = link.url.match(/^https?:\/\//) ? link.url : `https://${link.url}`;
+                                    window.open(formattedUrl, '_blank', 'noopener,noreferrer');
+                                  }}>
+                                    <ExternalLink className="h-4 w-4 mr-2" />
+                                    Open Link
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setTempLinks(tempLinks.filter(l => l.id !== link.id));
+                                      toast.success("Link removed");
+                                    }}
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No links attached to this task
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </form>
