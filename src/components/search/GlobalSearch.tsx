@@ -29,11 +29,12 @@ interface SearchResult {
 interface GlobalSearchProps {
   externalOpen?: boolean;
   onExternalOpenChange?: (open: boolean) => void;
+  initialQuery?: string;
 }
 
-export function GlobalSearch({ externalOpen, onExternalOpenChange }: GlobalSearchProps = {}) {
+export function GlobalSearch({ externalOpen, onExternalOpenChange, initialQuery = "" }: GlobalSearchProps = {}) {
   const [internalOpen, setInternalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const navigate = useNavigate();
   const { 
     projects, 
@@ -46,6 +47,13 @@ export function GlobalSearch({ externalOpen, onExternalOpenChange }: GlobalSearc
     timeEntries,
     currentUser 
   } = useAppContext();
+
+  // Sync initial query when it changes
+  useEffect(() => {
+    if (initialQuery) {
+      setSearchQuery(initialQuery);
+    }
+  }, [initialQuery]);
 
   // Use external control if provided, otherwise use internal state
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
