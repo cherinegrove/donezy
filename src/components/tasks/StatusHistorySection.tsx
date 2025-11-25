@@ -135,18 +135,17 @@ export function StatusHistorySection({
             </div>
           )}
 
-          {currentStatus === "awaiting-feedback" &&
-            currentAwaitingFeedbackDetails && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Feedback Details:</span>
-                </div>
-                <p className="text-sm text-muted-foreground pl-6">
-                  {currentAwaitingFeedbackDetails}
-                </p>
+          {currentAwaitingFeedbackDetails && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Awaiting Feedback Details:</span>
               </div>
-            )}
+              <p className="text-sm text-muted-foreground pl-6">
+                {currentAwaitingFeedbackDetails}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
