@@ -44,6 +44,7 @@ const projectSchema = z.object({
   description: z.string().min(1, "Description is required"),
   clientId: z.string().min(1, "Client is required"),
   status: z.string().min(1, "Status is required"),
+  allocatedHours: z.number().min(0, "Allocated hours must be 0 or greater").optional(),
   startDate: z.date().optional(),
   dueDate: z.date().optional(),
   customFields: z.array(z.string()).default([]),
@@ -73,6 +74,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       description: "",
       clientId: "",
       status: "",
+      allocatedHours: 0,
       customFields: [],
       customFieldValues: {},
       ownerId: "",
@@ -315,7 +317,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
         serviceType: "project",
         startDate: data.startDate?.toISOString(),
         dueDate: data.dueDate?.toISOString(),
-        allocatedHours: 0,
+        allocatedHours: data.allocatedHours || 0,
         status: data.status,
         usedHours: 0,
         templateId: selectedTemplate !== "system-default" ? selectedTemplate : undefined,
@@ -540,6 +542,25 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="allocatedHours"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Allocated Hours</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="Enter allocated hours" 
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
