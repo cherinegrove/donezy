@@ -72,9 +72,6 @@ export function TaskStatusPromptDialog({
     if (newStatus === "backlog") return backlogReason.trim() !== "";
     if (newStatus === "review" || newStatus === "awaiting-feedback") return awaitingFeedbackDetails.trim() !== "";
     if (newStatus === "in-progress") {
-      if (newDueDate !== task.dueDate) {
-        return dueDateChangeReason.trim() !== "";
-      }
       return true;
     }
     return true;
@@ -137,7 +134,7 @@ export function TaskStatusPromptDialog({
 
               {newDueDate !== task.dueDate && (
                 <div className="space-y-2">
-                  <Label htmlFor="date-change-reason">Why is the due date changing? *</Label>
+                  <Label htmlFor="date-change-reason">Why is the due date changing?</Label>
                   <Textarea
                     id="date-change-reason"
                     value={dueDateChangeReason}
