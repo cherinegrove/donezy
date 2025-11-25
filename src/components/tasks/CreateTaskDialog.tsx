@@ -112,7 +112,7 @@ export function CreateTaskDialog({
   onOpenChange,
   defaultProjectId,
 }: CreateTaskDialogProps) {
-  const { projects, users, tasks, customFields, addTask, clients, currentUser, taskTemplates } = useAppContext();
+  const { projects, users, tasks, customFields, addTask, clients, currentUser, taskTemplates, projectStatuses } = useAppContext();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [clientProjects, setClientProjects] = useState<typeof projects>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("default");
@@ -243,19 +243,35 @@ export function CreateTaskDialog({
       return;
     }
     
-    const filteredProjects = projects.filter(project => project.clientId === clientId);
+    // Filter projects by client and exclude completed projects
+    const filteredProjects = projects.filter(project => {
+      if (project.clientId !== clientId) return false;
+      const projectStatus = projectStatuses.find(s => s.value === project.status);
+      return !projectStatus?.isFinal;
+    });
     setClientProjects(filteredProjects);
     
     if (clientId !== selectedClientId) {
       form.setValue("projectId", "");
       setSelectedClientId(clientId);
     }
-  }, [form.watch("clientId"), projects, selectedClientId]);
+  }, [form.watch("clientId"), projects, selectedClientId, projectStatuses]);
   
   const onSubmit = async (data: TaskFormData) => {
     setIsSubmitting(true);
     
     try {
+      // Check if project is completed
+      const selectedProject = projects.find(p => p.id === data.projectId);
+      if (selectedProject) {
+        const projectStatus = projectStatuses.find(s => s.value === selectedProject.status);
+        if (projectStatus?.isFinal) {
+          toast.error("Cannot create tasks for completed projects");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const taskId = await addTask({
         title: data.title,
         description: data.description,

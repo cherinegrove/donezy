@@ -809,6 +809,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         value: status.name.toLowerCase().replace(/\s+/g, '-'),
         color: status.color,
         order: status.order_index,
+        isFinal: status.is_final || false,
       }));
 
       setProjectStatuses(convertedStatuses);
@@ -2669,6 +2670,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         value: status.value,
         color: data.color,
         order: data.order_index,
+        isFinal: data.is_final || false,
       };
 
       setProjectStatuses(prev => [...prev, newStatus]);
@@ -2691,6 +2693,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           name: updates.label,
           color: updates.color,
           order_index: updates.order,
+          is_final: updates.isFinal,
           updated_at: new Date().toISOString(),
         })
         .eq('id', statusId)
