@@ -26,9 +26,9 @@ export function TaskStatusPromptDialog({
   newStatus,
   onConfirm,
 }: TaskStatusPromptDialogProps) {
-  const [backlogReason, setBacklogReason] = useState("");
-  const [awaitingFeedbackDetails, setAwaitingFeedbackDetails] = useState("");
-  const [dueDateChangeReason, setDueDateChangeReason] = useState("");
+  const [backlogReason, setBacklogReason] = useState(task.backlogReason || "");
+  const [awaitingFeedbackDetails, setAwaitingFeedbackDetails] = useState(task.awaitingFeedbackDetails || "");
+  const [dueDateChangeReason, setDueDateChangeReason] = useState(task.dueDateChangeReason || "");
   const [newDueDate, setNewDueDate] = useState(
     task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ""
   );
@@ -62,9 +62,9 @@ export function TaskStatusPromptDialog({
     onOpenChange(false);
     
     // Reset form
-    setBacklogReason("");
-    setAwaitingFeedbackDetails("");
-    setDueDateChangeReason("");
+    setBacklogReason(task.backlogReason || "");
+    setAwaitingFeedbackDetails(task.awaitingFeedbackDetails || "");
+    setDueDateChangeReason(task.dueDateChangeReason || "");
     setNewDueDate(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "");
   };
 
