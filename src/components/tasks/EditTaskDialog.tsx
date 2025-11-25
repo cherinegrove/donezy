@@ -38,6 +38,7 @@ import { RelatedTasksSection } from "./RelatedTasksSection";
 import { supabase } from "@/integrations/supabase/client";
 import { RecurringTaskDialog } from "./RecurringTaskDialog";
 import { TaskStatusPromptDialog } from "./TaskStatusPromptDialog";
+import { StatusHistorySection } from "./StatusHistorySection";
 import { Repeat } from "lucide-react";
 
 interface EditTaskDialogProps {
@@ -244,10 +245,11 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full mb-4 grid grid-cols-4">
+            <TabsList className="w-full mb-4 grid grid-cols-5">
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="files">Files</TabsTrigger>
               <TabsTrigger value="time">Time</TabsTrigger>
+              <TabsTrigger value="history">Status History</TabsTrigger>
               <TabsTrigger value="logs">Activity Log</TabsTrigger>
             </TabsList>
 
@@ -376,6 +378,17 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
             
             <TabsContent value="time">
               <TimerSection taskId={task.id} />
+            </TabsContent>
+            
+            <TabsContent value="history">
+              <StatusHistorySection
+                taskId={task.id}
+                currentStatus={status}
+                currentBacklogReason={task.backlogReason}
+                currentDueDate={task.dueDate}
+                currentDueDateChangeReason={task.dueDateChangeReason}
+                currentAwaitingFeedbackDetails={task.awaitingFeedbackDetails}
+              />
             </TabsContent>
             
             <TabsContent value="logs">

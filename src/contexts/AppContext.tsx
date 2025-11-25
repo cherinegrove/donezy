@@ -349,7 +349,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         collaboratorIds: task.collaborator_ids || [],
         relatedTaskIds: task.related_task_ids || [],
         checklist: task.checklist || [],
-        files: filesByTask[task.id] || []
+        files: filesByTask[task.id] || [],
+        backlogReason: task.backlog_reason || undefined,
+        dueDateChangeReason: task.due_date_change_reason || undefined,
+        awaitingFeedbackDetails: task.awaiting_feedback_details || undefined,
+        lastDueDateChange: task.last_due_date_change || undefined,
+        reminderDate: task.reminder_date || undefined,
+        orderIndex: task.order_index || 0
       })) || [];
       
       setTasks(convertedTasks);
@@ -1625,6 +1631,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           changes.push('updated checklist');
         }
       }
+      if (updates.reminderDate !== undefined) {
+        dbUpdates.reminder_date = updates.reminderDate;
+        changes.push('updated reminder date');
+      }
+      if (updates.backlogReason !== undefined) {
+        dbUpdates.backlog_reason = updates.backlogReason;
+      }
+      if (updates.dueDateChangeReason !== undefined) {
+        dbUpdates.due_date_change_reason = updates.dueDateChangeReason;
+        dbUpdates.last_due_date_change = new Date().toISOString();
+      }
+      if (updates.awaitingFeedbackDetails !== undefined) {
+        dbUpdates.awaiting_feedback_details = updates.awaitingFeedbackDetails;
+      }
+      if (updates.orderIndex !== undefined) {
+        dbUpdates.order_index = updates.orderIndex;
+      }
 
       if (Object.keys(dbUpdates).length === 0) {
         return taskId;
@@ -1650,6 +1673,69 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             user_id: currentUser.id,
             auth_user_id: session.user.id,
             action: logAction,
+            timestamp: new Date().toISOString()
+          });
+      }
+
+      // Create specific log entries for status-related changes
+      if (updates.status !== undefined && updates.status !== currentTask.status && currentUser) {
+        await supabase
+          .from('task_logs')
+          .insert({
+            task_id: taskId,
+            user_id: currentUser.id,
+            auth_user_id: session.user.id,
+            action: 'status_changed',
+            details: {
+              oldStatus: currentTask.status,
+              newStatus: updates.status
+            },
+            timestamp: new Date().toISOString()
+          });
+      }
+
+      if (updates.backlogReason !== undefined && currentUser) {
+        await supabase
+          .from('task_logs')
+          .insert({
+            task_id: taskId,
+            user_id: currentUser.id,
+            auth_user_id: session.user.id,
+            action: 'backlog_reason_added',
+            details: {
+              backlogReason: updates.backlogReason
+            },
+            timestamp: new Date().toISOString()
+          });
+      }
+
+      if (updates.dueDate !== undefined && updates.dueDate !== currentTask.dueDate && currentUser) {
+        await supabase
+          .from('task_logs')
+          .insert({
+            task_id: taskId,
+            user_id: currentUser.id,
+            auth_user_id: session.user.id,
+            action: 'due_date_changed',
+            details: {
+              dueDate: updates.dueDate,
+              dueDateChangeReason: updates.dueDateChangeReason
+            },
+            timestamp: new Date().toISOString()
+          });
+      }
+
+      if (updates.awaitingFeedbackDetails !== undefined && currentUser) {
+        await supabase
+          .from('task_logs')
+          .insert({
+            task_id: taskId,
+            user_id: currentUser.id,
+            auth_user_id: session.user.id,
+            action: 'awaiting_feedback_details_added',
+            details: {
+              awaitingFeedbackDetails: updates.awaitingFeedbackDetails
+            },
             timestamp: new Date().toISOString()
           });
       }

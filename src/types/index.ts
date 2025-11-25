@@ -189,6 +189,10 @@ export interface Task {
   actualHours?: number;
   checklist?: ChecklistItem[];
   orderIndex?: number;
+  backlogReason?: string;
+  dueDateChangeReason?: string;
+  awaitingFeedbackDetails?: string;
+  lastDueDateChange?: string;
 }
 
 export type TimeEntryStatus = 'pending' | 'approved' | 'rejected' | 'approved-billable' | 'approved-non-billable' | 'declined';
