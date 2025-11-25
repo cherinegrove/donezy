@@ -29,7 +29,9 @@ export function TaskStatusPromptDialog({
   const [backlogReason, setBacklogReason] = useState("");
   const [awaitingFeedbackDetails, setAwaitingFeedbackDetails] = useState("");
   const [dueDateChangeReason, setDueDateChangeReason] = useState("");
-  const [newDueDate, setNewDueDate] = useState(task.dueDate || "");
+  const [newDueDate, setNewDueDate] = useState(
+    task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ""
+  );
 
   const getPromptTitle = () => {
     if (newStatus === "backlog") return "Moving to Backlog";
@@ -63,7 +65,7 @@ export function TaskStatusPromptDialog({
     setBacklogReason("");
     setAwaitingFeedbackDetails("");
     setDueDateChangeReason("");
-    setNewDueDate(task.dueDate || "");
+    setNewDueDate(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "");
   };
 
   const canSubmit = () => {
