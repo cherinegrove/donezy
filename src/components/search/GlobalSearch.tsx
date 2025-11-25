@@ -13,6 +13,8 @@ import {
 import { Search, FolderKanban, CheckSquare, User, Users, FileText, Mail, Clock, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useSmartAutocomplete } from "@/hooks/useSmartAutocomplete";
+import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
+import type { Task } from "@/types";
 
 interface SearchResult {
   id: string;
@@ -35,6 +37,8 @@ interface GlobalSearchProps {
 export function GlobalSearch({ externalOpen, onExternalOpenChange, initialQuery = "" }: GlobalSearchProps = {}) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isTaskEditOpen, setIsTaskEditOpen] = useState(false);
   const navigate = useNavigate();
   const { 
     projects, 
@@ -268,10 +272,20 @@ export function GlobalSearch({ externalOpen, onExternalOpenChange, initialQuery 
     return () => document.removeEventListener("keydown", down);
   }, [open]);
 
-  const handleSelect = (path: string) => {
-    setOpen(false);
-    setSearchQuery("");
-    navigate(path);
+  const handleSelect = (path: string, type: string, id: string) => {
+    if (type === 'task') {
+      const task = tasks.find(t => t.id === id);
+      if (task) {
+        setSelectedTask(task);
+        setIsTaskEditOpen(true);
+        setOpen(false);
+        setSearchQuery("");
+      }
+    } else {
+      setOpen(false);
+      setSearchQuery("");
+      navigate(path);
+    }
   };
 
   const getIcon = (type: string) => {
@@ -309,6 +323,7 @@ export function GlobalSearch({ externalOpen, onExternalOpenChange, initialQuery 
   };
 
   return (
+    <>
     <CommandDialog open={open} onOpenChange={setOpen}>
       <CommandInput 
         placeholder="Search anything... (⌘K)" 
@@ -333,7 +348,7 @@ export function GlobalSearch({ externalOpen, onExternalOpenChange, initialQuery 
                 <CommandItem
                   key={result.id}
                   value={result.title}
-                  onSelect={() => handleSelect(result.path)}
+                  onSelect={() => handleSelect(result.path, result.type, result.id)}
                   className="flex items-center gap-2"
                 >
                   {getIcon(result.type)}
@@ -360,7 +375,7 @@ export function GlobalSearch({ externalOpen, onExternalOpenChange, initialQuery 
                 <CommandItem
                   key={result.id}
                   value={result.title}
-                  onSelect={() => handleSelect(result.path)}
+                  onSelect={() => handleSelect(result.path, result.type, result.id)}
                   className="flex items-center gap-2"
                 >
                   {getIcon(result.type)}
@@ -396,7 +411,7 @@ export function GlobalSearch({ externalOpen, onExternalOpenChange, initialQuery 
               <CommandItem
                 key={result.id}
                 value={result.title}
-                onSelect={() => handleSelect(result.path)}
+                onSelect={() => handleSelect(result.path, result.type, result.id)}
                 className="flex items-center gap-2"
               >
                 {getIcon(result.type)}
@@ -419,7 +434,7 @@ export function GlobalSearch({ externalOpen, onExternalOpenChange, initialQuery 
                 <CommandItem
                   key={result.id}
                   value={result.title}
-                  onSelect={() => handleSelect(result.path)}
+                  onSelect={() => handleSelect(result.path, result.type, result.id)}
                   className="flex items-center gap-2"
                 >
                   {getIcon(result.type)}
@@ -446,7 +461,7 @@ export function GlobalSearch({ externalOpen, onExternalOpenChange, initialQuery 
                 <CommandItem
                   key={result.id}
                   value={result.title}
-                  onSelect={() => handleSelect(result.path)}
+                  onSelect={() => handleSelect(result.path, result.type, result.id)}
                   className="flex items-center gap-2"
                 >
                   {getIcon(result.type)}
@@ -468,7 +483,7 @@ export function GlobalSearch({ externalOpen, onExternalOpenChange, initialQuery 
                 <CommandItem
                   key={result.id}
                   value={result.title}
-                  onSelect={() => handleSelect(result.path)}
+                  onSelect={() => handleSelect(result.path, result.type, result.id)}
                   className="flex items-center gap-2"
                 >
                   {getIcon(result.type)}
@@ -490,7 +505,7 @@ export function GlobalSearch({ externalOpen, onExternalOpenChange, initialQuery 
                 <CommandItem
                   key={result.id}
                   value={result.title}
-                  onSelect={() => handleSelect(result.path)}
+                  onSelect={() => handleSelect(result.path, result.type, result.id)}
                   className="flex items-center gap-2"
                 >
                   {getIcon(result.type)}
@@ -511,7 +526,7 @@ export function GlobalSearch({ externalOpen, onExternalOpenChange, initialQuery 
               <CommandItem
                 key={result.id}
                 value={result.title}
-                onSelect={() => handleSelect(result.path)}
+                onSelect={() => handleSelect(result.path, result.type, result.id)}
                 className="flex items-center gap-2"
               >
                 {getIcon(result.type)}
@@ -530,5 +545,14 @@ export function GlobalSearch({ externalOpen, onExternalOpenChange, initialQuery 
         )}
       </CommandList>
     </CommandDialog>
+
+    {selectedTask && (
+      <EditTaskDialog
+        task={selectedTask}
+        open={isTaskEditOpen}
+        onOpenChange={setIsTaskEditOpen}
+      />
+    )}
+    </>
   );
 }
