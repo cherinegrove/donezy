@@ -136,6 +136,7 @@ export interface ProjectStatusDefinition {
   value: string;
   color: string;
   order: number;
+  isFinal?: boolean;
 }
 
 export interface Comment {

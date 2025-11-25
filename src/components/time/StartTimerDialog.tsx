@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -32,7 +33,7 @@ export function StartTimerDialog({
   onStartTimer,
   defaultProjectId,
 }: StartTimerDialogProps) {
-  const { clients, projects, tasks, currentUser, startTimeTracking } = useAppContext();
+  const { clients, projects, tasks, currentUser, startTimeTracking, projectStatuses } = useAppContext();
   
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>(defaultProjectId || "");
@@ -62,10 +63,17 @@ export function StartTimerDialog({
     }
   }, [open, defaultProjectId, projects]);
   
-  // Filter projects by selected client
+  // Filter projects by selected client and exclude completed projects
   const clientProjects = selectedClientId 
-    ? projects.filter(project => project.clientId === selectedClientId) 
-    : projects;
+    ? projects.filter(project => {
+        if (project.clientId !== selectedClientId) return false;
+        const projectStatus = projectStatuses.find(s => s.value === project.status);
+        return !projectStatus?.isFinal;
+      })
+    : projects.filter(project => {
+        const projectStatus = projectStatuses.find(s => s.value === project.status);
+        return !projectStatus?.isFinal;
+      });
   
   // Filter tasks by selected project
   const projectTasks = selectedProjectId 
@@ -78,6 +86,20 @@ export function StartTimerDialog({
       selectedProjectId,
       selectedTaskId
     });
+    
+    // Check if project is completed
+    if (selectedProjectId) {
+      const selectedProject = projects.find(p => p.id === selectedProjectId);
+      if (selectedProject) {
+        const projectStatus = projectStatuses.find(s => s.value === selectedProject.status);
+        if (projectStatus?.isFinal) {
+          toast('Cannot start timer for completed projects', {
+            description: 'Please select a different project',
+          });
+          return;
+        }
+      }
+    }
     
     if (selectedClientId) {
       console.log('🚀 StartTimerDialog: Calling AppContext startTimeTracking...');
