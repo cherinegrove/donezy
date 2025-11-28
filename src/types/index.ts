@@ -173,7 +173,7 @@ export interface Task {
   assigneeId?: string;
   collaboratorIds?: string[];
   status: TaskStatus;
-  priority: 'low' | 'medium' | 'high';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
   startDate?: string;
   dueDate?: string;
   reminderDate?: string;
@@ -261,7 +261,7 @@ export interface ProjectTemplate {
       title: string;
       description: string;
       status: TaskStatus;
-      priority: 'low' | 'medium' | 'high';
+      priority: 'low' | 'medium' | 'high' | 'urgent';
       estimatedHours?: number;
     }[];
   };
@@ -271,7 +271,7 @@ export interface ProjectTemplate {
 export interface TemplateTask {
   title: string;
   description: string;
-  priority: 'low' | 'medium' | 'high';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
   estimatedHours?: number;
   subtasks?: TemplateTask[];
   status?: TaskStatus;

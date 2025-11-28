@@ -32,8 +32,11 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
                    
   const collaborators = (task.collaboratorIds || []).map(id => users.find(u => u.id === id)).filter(Boolean);
   
+  const isUrgent = task.priority === 'urgent';
+
   const getPriorityColor = (priority: Task['priority']) => {
     switch (priority) {
+      case 'urgent': return 'text-red-500';
       case 'low': return 'text-green-500';
       case 'medium': return 'text-yellow-500';
       case 'high': return 'text-red-500';
@@ -81,7 +84,8 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
       className={cn(
         "p-3 border rounded-lg cursor-pointer hover:shadow-md transition-all relative bg-task-card hover:bg-task-card/80 w-full",
         isCollaboratorTask && "border-l-4 border-l-blue-500",
-        isSelected && "ring-2 ring-primary bg-primary/5"
+        isSelected && "ring-2 ring-primary bg-primary/5",
+        isUrgent && "border-red-500 bg-red-50 dark:bg-red-950/30"
       )}
       onClick={handleCardClick}
     >

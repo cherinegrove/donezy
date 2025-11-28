@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
-import { PrioritySelect } from "./PrioritySelect";
+import { UrgentSelect } from "./UrgentSelect";
 import { AssigneeSelect } from "./AssigneeSelect";
 import { StatusSelect } from "./StatusSelect";
 import { Label } from "@/components/ui/label";
@@ -185,7 +185,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
 
   // Handlers for the select components with proper typing
   const handlePriorityChange = (value: string) => {
-    setPriority(value as "low" | "medium" | "high");
+    setPriority(value as "low" | "medium" | "high" | "urgent");
   };
 
   const handleStatusChange = (value: string) => {
@@ -297,9 +297,8 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <Label>Priority</Label>
-                  <PrioritySelect
+                <div className="space-y-2 flex items-end pb-2">
+                  <UrgentSelect
                     field={{ value: priority, onChange: handlePriorityChange }}
                   />
                 </div>
