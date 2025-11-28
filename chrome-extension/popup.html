@@ -466,12 +466,14 @@
           </select>
         </div>
         <div class="input-group">
-          <div class="section-label">Priority</div>
-          <select id="taskPriority" class="select">
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-            <option value="high">High</option>
+          <div class="section-label">Owner</div>
+          <select id="taskAssignee" class="select">
+            <option value="">Select owner (optional)</option>
           </select>
+        </div>
+        <div class="input-group">
+          <div class="section-label">Due Date</div>
+          <input type="date" id="taskDueDate" class="input">
         </div>
         <button id="createTaskButton" class="button">Create Task</button>
       </div>

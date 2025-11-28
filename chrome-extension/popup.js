@@ -10,6 +10,7 @@ let timerInterval = null;
 let timerStartTime = null;
 let currentTimeEntry = null;
 let projectsCache = [];
+let usersCache = [];
 let selectedTaskId = null;
 
 // DOM elements
@@ -28,7 +29,8 @@ const taskList = document.getElementById('taskList');
 const taskTitle = document.getElementById('taskTitle');
 const taskDescription = document.getElementById('taskDescription');
 const taskProject = document.getElementById('taskProject');
-const taskPriority = document.getElementById('taskPriority');
+const taskAssignee = document.getElementById('taskAssignee');
+const taskDueDate = document.getElementById('taskDueDate');
 const createTaskButton = document.getElementById('createTaskButton');
 const statusToast = document.getElementById('statusToast');
 const tabs = document.querySelectorAll('.tab');
@@ -75,6 +77,7 @@ async function checkAuthState() {
       currentSession = result.supabase_session;
       showMainSection();
       await loadProjects();
+      await loadUsers();
       await checkActiveTimer();
     } else {
       showLoginSection();
@@ -118,6 +121,7 @@ async function handleLogin() {
       await chrome.storage.local.set({ supabase_session: currentSession });
       showMainSection();
       await loadProjects();
+      await loadUsers();
       await checkActiveTimer();
       showToast('Welcome back!', 'success');
     } else {
@@ -412,7 +416,8 @@ async function handleCreateTask() {
   const title = taskTitle.value.trim();
   const description = taskDescription.value.trim();
   const projectId = taskProject.value || null;
-  const priority = taskPriority.value;
+  const assigneeId = taskAssignee.value || currentSession.user.id;
+  const dueDate = taskDueDate.value || null;
   
   if (!title) {
     showToast('Please enter a task title', 'error');
@@ -432,10 +437,11 @@ async function handleCreateTask() {
       title,
       description,
       auth_user_id: currentSession.user.id,
-      assignee_id: currentSession.user.id,
+      assignee_id: assigneeId,
       project_id: projectId,
-      priority,
+      priority: 'medium',
       status: 'backlog',
+      due_date: dueDate,
       created_at: new Date().toISOString(),
     };
     
@@ -452,7 +458,8 @@ async function handleCreateTask() {
     if (response.ok) {
       taskTitle.value = '';
       taskDescription.value = '';
-      taskPriority.value = 'medium';
+      taskAssignee.value = '';
+      taskDueDate.value = '';
       showToast('Task created!', 'success');
     } else {
       throw new Error('Failed to create task');
@@ -490,5 +497,31 @@ async function loadProjects() {
     }
   } catch (error) {
     console.error('Error loading projects:', error);
+  }
+}
+
+async function loadUsers() {
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/users?select=auth_user_id,name,email&order=name.asc`,
+      {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${currentSession.access_token}`,
+        },
+      }
+    );
+    
+    if (response.ok) {
+      usersCache = await response.json();
+      
+      // Update assignee dropdown
+      const optionsHtml = '<option value="">Select owner (optional)</option>' + 
+        usersCache.map(u => `<option value="${u.auth_user_id}">${escapeHtml(u.name || u.email)}</option>`).join('');
+      
+      taskAssignee.innerHTML = optionsHtml;
+    }
+  } catch (error) {
+    console.error('Error loading users:', error);
   }
 }
