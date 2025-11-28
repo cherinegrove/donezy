@@ -109,7 +109,7 @@ export interface AppContextType {
   markMessageAsRead: (messageId: string) => void;
   
   // Comment functions
-  addComment: (taskId: string, userId: string, content: string, mentionedUserIds?: string[]) => Promise<string>;
+  addComment: (taskId: string, userId: string, content: string, mentionedUserIds?: string[], images?: string[]) => Promise<string>;
   
   // Note functions
   addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => void;

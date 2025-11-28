@@ -241,6 +241,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          images: string[] | null
           mentioned_user_ids: string[] | null
           task_id: string
           updated_at: string
@@ -251,6 +252,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          images?: string[] | null
           mentioned_user_ids?: string[] | null
           task_id: string
           updated_at?: string
@@ -261,6 +263,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          images?: string[] | null
           mentioned_user_ids?: string[] | null
           task_id?: string
           updated_at?: string
