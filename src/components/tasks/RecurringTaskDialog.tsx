@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ProjectSelect } from "./ProjectSelect";
 import { AssigneeSelect } from "./AssigneeSelect";
-import { PrioritySelect } from "./PrioritySelect";
+import { UrgentSelect } from "./UrgentSelect";
 import { CollaboratorSelect } from "./CollaboratorSelect";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -185,9 +185,8 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
               <AssigneeSelect value={assigneeId} onChange={setAssigneeId} />
             </div>
 
-            <div>
-              <Label>Priority</Label>
-              <PrioritySelect value={priority} onChange={setPriority} />
+            <div className="flex items-end pb-2">
+              <UrgentSelect value={priority} onChange={setPriority} />
             </div>
           </div>
 

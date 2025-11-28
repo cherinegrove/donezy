@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProjectSelect } from "./ProjectSelect";
 import { AssigneeSelect } from "./AssigneeSelect";
 import { CollaboratorSelect } from "./CollaboratorSelect";
-import { PrioritySelect } from "./PrioritySelect";
+import { UrgentSelect } from "./UrgentSelect";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 
@@ -32,7 +32,7 @@ const bulkEditSchema = z.object({
   projectId: z.string().optional(),
   assigneeId: z.string().optional(),
   collaboratorIds: z.array(z.string()).optional(),
-  priority: z.enum(["low", "medium", "high"]).optional(),
+  priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
 });
 
 type BulkEditFormData = z.infer<typeof bulkEditSchema>;
@@ -229,11 +229,11 @@ export function BulkEditTasksDialog({
               name="priority"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Priority (Optional)</FormLabel>
+                  <FormLabel>Urgent (Optional)</FormLabel>
                   <FormControl>
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
-                        <PrioritySelect
+                        <UrgentSelect
                           value={field.value || ""}
                           onChange={field.onChange}
                         />

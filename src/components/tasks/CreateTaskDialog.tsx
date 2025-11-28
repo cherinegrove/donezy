@@ -27,7 +27,7 @@ import { TaskStatus } from "@/types";
 import { toast } from "sonner";
 import { CollaboratorSelect } from "./CollaboratorSelect";
 import { StatusSelect } from "./StatusSelect";
-import { PrioritySelect } from "./PrioritySelect";
+import { UrgentSelect } from "./UrgentSelect";
 import { AssigneeSelect } from "./AssigneeSelect";
 import { CalendarIcon, Plus, Trash2, CheckCircle2, File, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -495,9 +495,8 @@ export function CreateTaskDialog({
                       control={form.control}
                       name="priority"
                       render={({ field }) => (
-                        <div className="space-y-2">
-                          <Label>Priority {isFieldRequired('priority') && '*'}</Label>
-                          <PrioritySelect field={field} />
+                        <div className="space-y-2 flex items-end pb-2">
+                          <UrgentSelect field={field} />
                           <FormMessage />
                         </div>
                       )}
