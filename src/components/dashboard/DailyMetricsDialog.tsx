@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
 import { useNavigate } from "react-router-dom";
-import { Calendar, AlertTriangle, Bell, ChevronRight } from "lucide-react";
+import { Calendar, AlertTriangle, Bell, ChevronRight, ListTodo } from "lucide-react";
 import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -30,6 +30,9 @@ export function DailyMetricsDialog({ open, onOpenChange }: DailyMetricsDialogPro
       task.assigneeId === currentUser?.id ||
       task.collaboratorIds?.includes(currentUser?.id || "")
   );
+
+  // All active tasks (not done)
+  const activeTasks = userTasks.filter((task) => task.status !== "done");
 
   // Calculate metrics
   const tasksDueToday = userTasks.filter((task) => {
@@ -58,6 +61,9 @@ export function DailyMetricsDialog({ open, onOpenChange }: DailyMetricsDialogPro
 
   const handleViewAll = (type: string) => {
     switch (type) {
+      case "active":
+        navigate("/tasks?filter=my_tasks");
+        break;
       case "today":
         navigate("/tasks?filter=due_today");
         break;
@@ -80,6 +86,79 @@ export function DailyMetricsDialog({ open, onOpenChange }: DailyMetricsDialogPro
 
         <ScrollArea className="max-h-[60vh] pr-4">
           <div className="space-y-3">
+            {/* All Active Tasks */}
+            <Card
+              className="p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+              onClick={() => handleSectionClick("active")}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-green-500/10">
+                    <ListTodo className="h-5 w-5 text-green-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">All Active Tasks</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {activeTasks.length} task{activeTasks.length !== 1 ? "s" : ""} assigned to you
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-lg px-3">
+                    {activeTasks.length}
+                  </Badge>
+                  <ChevronRight
+                    className={`h-5 w-5 transition-transform ${
+                      expandedSection === "active" ? "rotate-90" : ""
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {expandedSection === "active" && activeTasks.length > 0 && (
+                <div className="mt-3 space-y-2 border-t pt-3">
+                  {activeTasks.slice(0, 5).map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center justify-between p-2 rounded hover:bg-background/50 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTaskClick(task.id);
+                      }}
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{task.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          <Badge variant="outline" className="mr-2">
+                            {task.status}
+                          </Badge>
+                          {task.priority && (
+                            <Badge variant="outline" className="mr-2">
+                              {task.priority}
+                            </Badge>
+                          )}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  ))}
+                  {activeTasks.length > 5 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewAll("active");
+                      }}
+                    >
+                      View all {activeTasks.length} tasks
+                    </Button>
+                  )}
+                </div>
+              )}
+            </Card>
+
             {/* Tasks Due Today */}
             <Card
               className="p-4 cursor-pointer hover:bg-accent/50 transition-colors"
