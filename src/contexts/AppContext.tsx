@@ -2847,7 +2847,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   // Comment functions
-  const addComment = async (taskId: string, userId: string, content: string, mentionedUserIds?: string[]): Promise<string> => {
+  const addComment = async (taskId: string, userId: string, content: string, mentionedUserIds?: string[], images?: string[]): Promise<string> => {
     if (!currentUser) throw new Error('No authenticated user');
 
     try {
@@ -2861,7 +2861,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           auth_user_id: session.user.id,
           user_id: userId,
           content,
-          mentioned_user_ids: mentionedUserIds || []
+          mentioned_user_ids: mentionedUserIds || [],
+          images: images || []
         })
         .select()
         .single();
@@ -2873,7 +2874,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         userId: data.user_id,
         content: data.content,
         timestamp: data.created_at,
-        mentionedUserIds: data.mentioned_user_ids || []
+        mentionedUserIds: data.mentioned_user_ids || [],
+        images: (data as any).images || []
       };
 
       // Update local state

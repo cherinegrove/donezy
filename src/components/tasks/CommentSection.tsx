@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MentionDropdown } from "../messages/MentionDropdown";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import { X, Image as ImageIcon, Loader2 } from "lucide-react";
 
 interface CommentSectionProps {
   taskId: string;
@@ -16,6 +17,8 @@ interface CommentSectionProps {
 export function CommentSection({ taskId }: CommentSectionProps) {
   const { tasks, users, currentUser, addComment, createMessage } = useAppContext();
   const [comment, setComment] = useState("");
+  const [pendingImages, setPendingImages] = useState<{ file: File; preview: string }[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
   // Mention states
@@ -32,28 +35,92 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;
 
+  // Handle paste event for images
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          const preview = URL.createObjectURL(file);
+          setPendingImages((prev) => [...prev, { file, preview }]);
+        }
+      }
+    }
+  };
+
+  // Remove a pending image
+  const removePendingImage = (index: number) => {
+    setPendingImages((prev) => {
+      const newImages = [...prev];
+      URL.revokeObjectURL(newImages[index].preview);
+      newImages.splice(index, 1);
+      return newImages;
+    });
+  };
+
+  // Upload images to Supabase storage
+  const uploadImages = async (): Promise<string[]> => {
+    if (pendingImages.length === 0) return [];
+
+    const uploadedUrls: string[] = [];
+
+    for (const { file } of pendingImages) {
+      const fileExt = file.name.split(".").pop() || "png";
+      const fileName = `${currentUser?.auth_user_id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from("comment-images")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) {
+        console.error("Error uploading image:", error);
+        throw error;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("comment-images")
+        .getPublicUrl(data.path);
+
+      uploadedUrls.push(urlData.publicUrl);
+    }
+
+    return uploadedUrls;
+  };
+
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!comment.trim() || !currentUser) return;
+    if ((!comment.trim() && pendingImages.length === 0) || !currentUser) return;
 
-    // Extract mentioned users from the comment
-    const mentionRegex = /@(\w+)/g;
-    const mentionMatches = [...comment.matchAll(mentionRegex)];
-
-    // Find user IDs for mentioned users
-    const mentionedUserIds: string[] = [];
-    mentionMatches.forEach((match) => {
-      const firstName = match[1];
-      const mentionedUser = safeUsers.find((u) => u.name.toLowerCase().startsWith(firstName.toLowerCase()));
-
-      if (mentionedUser && !mentionedUserIds.includes(mentionedUser.auth_user_id)) {
-        mentionedUserIds.push(mentionedUser.auth_user_id);
-      }
-    });
+    setIsUploading(true);
 
     try {
-      // Add the comment to the task
-      const commentId = await addComment(taskId, currentUser.auth_user_id, comment, mentionedUserIds);
+      // Upload images first
+      const imageUrls = await uploadImages();
+
+      // Extract mentioned users from the comment
+      const mentionRegex = /@(\w+)/g;
+      const mentionMatches = [...comment.matchAll(mentionRegex)];
+
+      // Find user IDs for mentioned users
+      const mentionedUserIds: string[] = [];
+      mentionMatches.forEach((match) => {
+        const firstName = match[1];
+        const mentionedUser = safeUsers.find((u) => u.name.toLowerCase().startsWith(firstName.toLowerCase()));
+
+        if (mentionedUser && !mentionedUserIds.includes(mentionedUser.auth_user_id)) {
+          mentionedUserIds.push(mentionedUser.auth_user_id);
+        }
+      });
+
+      // Add the comment to the task with images
+      const commentId = await addComment(taskId, currentUser.auth_user_id, comment, mentionedUserIds, imageUrls);
 
       // Create notification messages for each mentioned user and task assignee/collaborators
       if (task) {
@@ -61,19 +128,6 @@ export function CommentSection({ taskId }: CommentSectionProps) {
         for (const userId of mentionedUserIds) {
           if (userId !== currentUser.auth_user_id) {
             try {
-              // console.log('Creating mention notification for user:', userId);
-              // const messageId = await createMessage({
-              //   senderId: currentUser.auth_user_id,
-              //   recipientIds: [userId],
-              //   content: `You were mentioned in a comment on task "${task.title}"`,
-              //   commentId: commentId,
-              //   taskId: taskId,
-              //   projectId: task.projectId
-              // });
-
-              // console.log('Message created with ID:', messageId);
-
-              // Only call edge function if we have a valid UUID (not a fallback temp ID)
               if (commentId) {
                 const { data, error } = await supabase.functions.invoke("send-mention-notification", {
                   body: {
@@ -144,8 +198,10 @@ export function CommentSection({ taskId }: CommentSectionProps) {
             : "Your comment was added",
       });
 
-      // Reset comment input
+      // Reset form
       setComment("");
+      pendingImages.forEach(({ preview }) => URL.revokeObjectURL(preview));
+      setPendingImages([]);
     } catch (error) {
       console.error("Error adding comment:", error);
       toast({
@@ -153,21 +209,16 @@ export function CommentSection({ taskId }: CommentSectionProps) {
         description: "Failed to add comment. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
     }
-  };
-
-  // Helper function to get first name
-  const getFirstName = (fullName: string): string => {
-    return fullName.split(" ")[0];
   };
 
   // Calculate mention dropdown position
   const calculateMentionPosition = () => {
     if (!textareaRef.current) return { top: 0, left: 0 };
-
-    // Simple positioning - just below the textarea at the mention position
     return {
-      top: 40, // Position below the textarea
+      top: 40,
       left: 0,
     };
   };
@@ -180,42 +231,30 @@ export function CommentSection({ taskId }: CommentSectionProps) {
     setComment(text);
     setCursorPosition(cursorPos);
 
-    console.log("Text changed:", text);
-    console.log("Cursor position:", cursorPos);
-
     // Check for @ mentions
     if (cursorPos > 0) {
       const textBeforeCursor = text.substring(0, cursorPos);
       const atIndex = textBeforeCursor.lastIndexOf("@");
 
-      console.log("@ index:", atIndex);
-      console.log("Text before cursor:", textBeforeCursor);
-
       if (atIndex !== -1) {
-        // Check if @ is at start or preceded by whitespace
         const charBeforeAt = atIndex > 0 ? textBeforeCursor[atIndex - 1] : " ";
         const isValidMentionStart = atIndex === 0 || /\s/.test(charBeforeAt);
 
         if (isValidMentionStart) {
           const query = textBeforeCursor.substring(atIndex + 1);
-          console.log("Mention query:", query);
 
-          // Only show mentions if there's no space in the query (still typing the mention)
           if (!query.includes(" ") && query.length <= 20) {
             setMentionStartPos(atIndex);
             setMentionQuery(query);
             setMentionOpen(true);
             setMentionPosition(calculateMentionPosition());
-            console.log("Setting mention open with query:", query);
             return;
           }
         }
       }
     }
 
-    // Close mentions if not in a valid mention context
     if (mentionOpen) {
-      console.log("Closing mentions");
       setMentionOpen(false);
       setMentionQuery("");
     }
@@ -234,11 +273,10 @@ export function CommentSection({ taskId }: CommentSectionProps) {
     setMentionOpen(false);
     setMentionQuery("");
 
-    // Focus back on textarea and set cursor position after the mention
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
-        const newCursorPos = mentionStartPos + user.name.length + 2; // +2 for @ and space
+        const newCursorPos = mentionStartPos + user.name.length + 2;
         textareaRef.current.selectionStart = newCursorPos;
         textareaRef.current.selectionEnd = newCursorPos;
       }
@@ -283,6 +321,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
           {task.comments && task.comments.length > 0 ? (
             task.comments.map((comment) => {
               const commentUser = users.find((u) => u.auth_user_id === comment.userId);
+              const commentImages = comment.images || [];
               return (
                 <div key={comment.id} className="flex gap-3">
                   <Avatar className="h-8 w-8">
@@ -297,12 +336,34 @@ export function CommentSection({ taskId }: CommentSectionProps) {
                         {format(new Date(comment.timestamp), "MMM d, yyyy 'at' h:mm a")}
                       </span>
                     </div>
-                    <div
-                      className="text-sm whitespace-pre-wrap"
-                      dangerouslySetInnerHTML={{
-                        __html: formatCommentContent(comment.content, comment.mentionedUserIds),
-                      }}
-                    />
+                    {comment.content && (
+                      <div
+                        className="text-sm whitespace-pre-wrap"
+                        dangerouslySetInnerHTML={{
+                          __html: formatCommentContent(comment.content, comment.mentionedUserIds),
+                        }}
+                      />
+                    )}
+                    {/* Display comment images */}
+                    {commentImages.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {commentImages.map((imageUrl: string, index: number) => (
+                          <a
+                            key={index}
+                            href={imageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block"
+                          >
+                            <img
+                              src={imageUrl}
+                              alt={`Comment attachment ${index + 1}`}
+                              className="max-w-[300px] max-h-[200px] rounded-lg border object-cover hover:opacity-90 transition-opacity cursor-pointer"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -319,10 +380,11 @@ export function CommentSection({ taskId }: CommentSectionProps) {
           <div className="relative">
             <Textarea
               ref={textareaRef}
-              placeholder="Add a comment... (Use @ to mention users)"
+              placeholder="Add a comment... (Use @ to mention, paste images with Ctrl+V)"
               value={comment}
               onChange={handleTextareaChange}
               onBlur={handleBlur}
+              onPaste={handlePaste}
               className="min-h-[80px]"
             />
 
@@ -346,9 +408,45 @@ export function CommentSection({ taskId }: CommentSectionProps) {
             )}
           </div>
 
-          <div className="flex justify-end">
-            <Button type="submit" disabled={!comment.trim()}>
-              Post Comment
+          {/* Pending Images Preview */}
+          {pendingImages.length > 0 && (
+            <div className="flex flex-wrap gap-2 p-2 border rounded-lg bg-muted/50">
+              {pendingImages.map((img, index) => (
+                <div key={index} className="relative group">
+                  <img
+                    src={img.preview}
+                    alt={`Pending upload ${index + 1}`}
+                    className="h-20 w-20 object-cover rounded-md border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePendingImage(index)}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              <div className="flex items-center text-xs text-muted-foreground">
+                <ImageIcon className="h-4 w-4 mr-1" />
+                {pendingImages.length} image{pendingImages.length !== 1 ? "s" : ""} to upload
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-muted-foreground">
+              Tip: Paste screenshots directly with Ctrl+V / Cmd+V
+            </span>
+            <Button type="submit" disabled={(!comment.trim() && pendingImages.length === 0) || isUploading}>
+              {isUploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                "Post Comment"
+              )}
             </Button>
           </div>
         </form>

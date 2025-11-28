@@ -145,6 +145,7 @@ export interface Comment {
   content: string;
   timestamp: string;
   mentionedUserIds?: string[];
+  images?: string[];
 }
 
 export interface TaskFile {
