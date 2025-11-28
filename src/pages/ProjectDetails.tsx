@@ -5,7 +5,7 @@ import { Project } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Edit, Clock, AlertTriangle, User, Users, CheckSquare, FileText, Files, Bell, Mail } from "lucide-react";
+import { Calendar, Edit, Clock, AlertTriangle, User, Users, CheckSquare, FileText, Files, Bell, Mail, GanttChart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format, differenceInDays, parseISO, isValid } from "date-fns";
@@ -20,6 +20,7 @@ import { ProjectFilesAdvanced } from "@/components/projects/ProjectFilesAdvanced
 import { BulkEditTasksDialog } from "@/components/tasks/BulkEditTasksDialog";
 import { GoogleChatSettings } from "@/components/projects/GoogleChatSettings";
 import { WeeklyRoundupDialog } from "@/components/projects/WeeklyRoundupDialog";
+import { TaskTimeline } from "@/components/projects/TaskTimeline";
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -396,6 +397,14 @@ export default function ProjectDetails() {
           </TabsTrigger>
           
           <TabsTrigger 
+            value="timeline"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md hover:bg-background/60 gap-2 group"
+          >
+            <GanttChart className="h-4 w-4 transition-transform group-data-[state=active]:scale-110" />
+            <span>Timeline</span>
+          </TabsTrigger>
+          
+          <TabsTrigger 
             value="notifications"
             className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md hover:bg-background/60 gap-2 group"
           >
@@ -419,6 +428,10 @@ export default function ProjectDetails() {
         
         <TabsContent value="files" className="mt-6 animate-fade-in">
           <ProjectFilesAdvanced projectId={projectId!} />
+        </TabsContent>
+        
+        <TabsContent value="timeline" className="mt-6 animate-fade-in">
+          <TaskTimeline tasks={projectTasks} projectId={projectId!} />
         </TabsContent>
         
         <TabsContent value="notifications" className="mt-6 animate-fade-in">
