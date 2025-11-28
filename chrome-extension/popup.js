@@ -32,6 +32,10 @@ const taskProject = document.getElementById('taskProject');
 const taskAssignee = document.getElementById('taskAssignee');
 const taskDueDate = document.getElementById('taskDueDate');
 const createTaskButton = document.getElementById('createTaskButton');
+const noteTitle = document.getElementById('noteTitle');
+const noteContent = document.getElementById('noteContent');
+const noteProject = document.getElementById('noteProject');
+const createNoteButton = document.getElementById('createNoteButton');
 const statusToast = document.getElementById('statusToast');
 const tabs = document.querySelectorAll('.tab');
 const tabContents = document.querySelectorAll('.tab-content');
@@ -48,6 +52,7 @@ function setupEventListeners() {
   logoutButton.addEventListener('click', handleLogout);
   timerButton.addEventListener('click', handleTimerToggle);
   createTaskButton.addEventListener('click', handleCreateTask);
+  createNoteButton.addEventListener('click', handleCreateNote);
   timerProject.addEventListener('change', handleProjectChange);
   
   // Tab switching
@@ -488,12 +493,13 @@ async function loadProjects() {
     if (response.ok) {
       projectsCache = await response.json();
       
-      // Update both project dropdowns
+      // Update all project dropdowns
       const optionsHtml = '<option value="">Select project</option>' + 
         projectsCache.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
       
       timerProject.innerHTML = optionsHtml;
       taskProject.innerHTML = optionsHtml;
+      noteProject.innerHTML = optionsHtml;
     }
   } catch (error) {
     console.error('Error loading projects:', error);
@@ -523,5 +529,60 @@ async function loadUsers() {
     }
   } catch (error) {
     console.error('Error loading users:', error);
+  }
+}
+
+// Note functions
+async function handleCreateNote() {
+  const title = noteTitle.value.trim();
+  const content = noteContent.value.trim();
+  const projectId = noteProject.value || null;
+  
+  if (!title) {
+    showToast('Please enter a note title', 'error');
+    return;
+  }
+  
+  if (!projectId) {
+    showToast('Please select a project', 'error');
+    return;
+  }
+  
+  createNoteButton.disabled = true;
+  createNoteButton.textContent = 'Saving...';
+  
+  try {
+    const note = {
+      title,
+      content,
+      auth_user_id: currentSession.user.id,
+      user_id: currentSession.user.id,
+      project_id: projectId,
+      created_at: new Date().toISOString(),
+    };
+    
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/notes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${currentSession.access_token}`,
+      },
+      body: JSON.stringify(note),
+    });
+    
+    if (response.ok) {
+      noteTitle.value = '';
+      noteContent.value = '';
+      showToast('Note saved!', 'success');
+    } else {
+      throw new Error('Failed to save note');
+    }
+  } catch (error) {
+    console.error('Error saving note:', error);
+    showToast('Failed to save note', 'error');
+  } finally {
+    createNoteButton.disabled = false;
+    createNoteButton.textContent = 'Save Note';
   }
 }

@@ -422,7 +422,8 @@
     <div class="content">
       <div class="tabs">
         <button class="tab active" data-tab="timer">⏱️ Timer</button>
-        <button class="tab" data-tab="task">✏️ New Task</button>
+        <button class="tab" data-tab="task">✏️ Task</button>
+        <button class="tab" data-tab="note">📝 Note</button>
       </div>
 
       <!-- Timer Tab -->
@@ -476,6 +477,25 @@
           <input type="date" id="taskDueDate" class="input">
         </div>
         <button id="createTaskButton" class="button">Create Task</button>
+      </div>
+
+      <!-- Note Tab -->
+      <div id="noteTab" class="tab-content">
+        <div class="input-group">
+          <div class="section-label">Note Title</div>
+          <input type="text" id="noteTitle" class="input" placeholder="Note title">
+        </div>
+        <div class="input-group">
+          <div class="section-label">Content</div>
+          <textarea id="noteContent" class="input textarea" placeholder="Write your note here..." style="min-height: 120px;"></textarea>
+        </div>
+        <div class="input-group">
+          <div class="section-label">Project</div>
+          <select id="noteProject" class="select">
+            <option value="">Select project</option>
+          </select>
+        </div>
+        <button id="createNoteButton" class="button">Save Note</button>
       </div>
     </div>
   </div>
