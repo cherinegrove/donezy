@@ -64,7 +64,7 @@ export function TopBar() {
             <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               type="search"
-              placeholder="Search tasks... (⌘K)"
+              placeholder="Search tasks... (Ctrl+K)"
               className="w-[200px] lg:w-[300px] pl-8 bg-background"
               value={searchQuery}
               onChange={(e) => {
