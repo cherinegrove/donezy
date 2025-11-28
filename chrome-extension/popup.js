@@ -555,13 +555,11 @@ async function handleCreateNote() {
     const note = {
       title,
       content,
-      auth_user_id: currentSession.user.id,
-      user_id: currentSession.user.id,
       project_id: projectId,
-      created_at: new Date().toISOString(),
+      tags: [],
     };
     
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/notes`, {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/project_notes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
