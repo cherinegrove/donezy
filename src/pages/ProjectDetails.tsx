@@ -209,15 +209,6 @@ export default function ProjectDetails() {
             <Edit className="w-4 h-4 mr-2" />
             Edit Project
           </Button>
-          <Button 
-            variant="outline"
-            onClick={handleGenerateRoundup}
-            disabled={isGeneratingRoundup || !client?.email}
-            title={!client?.email ? "Client email not configured" : "Generate weekly project update preview"}
-          >
-            <Mail className="w-4 h-4 mr-2" />
-            {isGeneratingRoundup ? "Generating..." : "Weekly Roundup"}
-          </Button>
           <Button onClick={() => setConvertDialogOpen(true)}>
             Convert to Template
           </Button>
@@ -405,6 +396,14 @@ export default function ProjectDetails() {
           </TabsTrigger>
           
           <TabsTrigger 
+            value="roundup"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md hover:bg-background/60 gap-2 group"
+          >
+            <Mail className="h-4 w-4 transition-transform group-data-[state=active]:scale-110" />
+            <span>Weekly Roundup</span>
+          </TabsTrigger>
+          
+          <TabsTrigger 
             value="notifications"
             className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md hover:bg-background/60 gap-2 group"
           >
@@ -432,6 +431,37 @@ export default function ProjectDetails() {
         
         <TabsContent value="timeline" className="mt-6 animate-fade-in">
           <TaskTimeline tasks={projectTasks} projectId={projectId!} />
+        </TabsContent>
+        
+        <TabsContent value="roundup" className="mt-6 animate-fade-in">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Weekly Project Roundup
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                Generate a weekly summary email to share with your client. This includes completed tasks, in-progress work, and items awaiting feedback.
+              </p>
+              {!client?.email ? (
+                <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    Client email is not configured for this project. Please update the client's email address to generate roundups.
+                  </p>
+                </div>
+              ) : (
+                <Button 
+                  onClick={handleGenerateRoundup}
+                  disabled={isGeneratingRoundup}
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  {isGeneratingRoundup ? "Generating..." : "Generate Weekly Roundup"}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
         
         <TabsContent value="notifications" className="mt-6 animate-fade-in">
