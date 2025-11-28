@@ -266,6 +266,43 @@ async function startTimer() {
     return;
   }
   
+  // TIMER RULE: Only one timer can run at a time
+  // Stop any existing active timer before starting a new one
+  try {
+    const existingResponse = await fetch(
+      `${SUPABASE_URL}/rest/v1/time_entries?auth_user_id=eq.${currentSession.user.id}&end_time=is.null`,
+      {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${currentSession.access_token}`,
+        },
+      }
+    );
+    
+    if (existingResponse.ok) {
+      const existingTimers = await existingResponse.json();
+      // Stop all existing active timers
+      for (const timer of existingTimers) {
+        const endTime = new Date();
+        const duration = Math.floor((endTime - new Date(timer.start_time)) / 1000 / 60);
+        await fetch(`${SUPABASE_URL}/rest/v1/time_entries?id=eq.${timer.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${currentSession.access_token}`,
+          },
+          body: JSON.stringify({
+            end_time: endTime.toISOString(),
+            duration: duration,
+          }),
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error stopping existing timers:', error);
+  }
+  
   // Find client_id from project
   const project = projectsCache.find(p => p.id === projectId);
   const clientId = project?.client_id || null;
