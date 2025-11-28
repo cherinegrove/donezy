@@ -29,6 +29,7 @@ const taskList = document.getElementById('taskList');
 const taskTitle = document.getElementById('taskTitle');
 const taskDescription = document.getElementById('taskDescription');
 const taskProject = document.getElementById('taskProject');
+const taskStatus = document.getElementById('taskStatus');
 const taskAssignee = document.getElementById('taskAssignee');
 const taskDueDate = document.getElementById('taskDueDate');
 const createTaskButton = document.getElementById('createTaskButton');
@@ -458,6 +459,7 @@ async function handleCreateTask() {
   const title = taskTitle.value.trim();
   const description = taskDescription.value.trim();
   const projectId = taskProject.value || null;
+  const status = taskStatus.value || 'backlog';
   const assigneeId = taskAssignee.value || currentSession.user.id;
   const dueDate = taskDueDate.value || null;
   
@@ -482,7 +484,7 @@ async function handleCreateTask() {
       assignee_id: assigneeId,
       project_id: projectId,
       priority: 'medium',
-      status: 'backlog',
+      status: status,
       due_date: dueDate,
       created_at: new Date().toISOString(),
     };
@@ -500,6 +502,7 @@ async function handleCreateTask() {
     if (response.ok) {
       taskTitle.value = '';
       taskDescription.value = '';
+      taskStatus.value = 'backlog';
       taskAssignee.value = '';
       taskDueDate.value = '';
       showToast('Task created!', 'success');
