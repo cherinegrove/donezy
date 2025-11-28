@@ -2,10 +2,15 @@
 const SUPABASE_URL = 'https://puwxkygdlclcbyxrtppd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1d3hreWdkbGNsY2J5eHJ0cHBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMDU2OTUsImV4cCI6MjA2MTY4MTY5NX0._p3ZxKJSSzOkZO6xml4kvg9vOA64Qlxhg5HNhuEAF-0';
 
+// Completed/closed task statuses to filter out
+const COMPLETED_STATUSES = ['done', 'completed', 'closed', 'cancelled'];
+
 let currentSession = null;
 let timerInterval = null;
 let timerStartTime = null;
 let currentTimeEntry = null;
+let projectsCache = [];
+let selectedTaskId = null;
 
 // DOM elements
 const loginSection = document.getElementById('loginSection');
@@ -14,15 +19,20 @@ const loginButton = document.getElementById('loginButton');
 const logoutButton = document.getElementById('logoutButton');
 const loginEmail = document.getElementById('loginEmail');
 const loginPassword = document.getElementById('loginPassword');
-const loginStatus = document.getElementById('loginStatus');
 const timerDisplay = document.getElementById('timerDisplay');
+const timerInfo = document.getElementById('timerInfo');
 const timerButton = document.getElementById('timerButton');
+const timerProject = document.getElementById('timerProject');
+const taskListContainer = document.getElementById('taskListContainer');
+const taskList = document.getElementById('taskList');
 const taskTitle = document.getElementById('taskTitle');
 const taskDescription = document.getElementById('taskDescription');
 const taskProject = document.getElementById('taskProject');
 const taskPriority = document.getElementById('taskPriority');
 const createTaskButton = document.getElementById('createTaskButton');
-const status = document.getElementById('status');
+const statusToast = document.getElementById('statusToast');
+const tabs = document.querySelectorAll('.tab');
+const tabContents = document.querySelectorAll('.tab-content');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -36,12 +46,24 @@ function setupEventListeners() {
   logoutButton.addEventListener('click', handleLogout);
   timerButton.addEventListener('click', handleTimerToggle);
   createTaskButton.addEventListener('click', handleCreateTask);
+  timerProject.addEventListener('change', handleProjectChange);
   
-  // Auto-fill task title from current tab
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0] && tabs[0].title) {
-      taskTitle.placeholder = `Task from: ${tabs[0].title.substring(0, 30)}...`;
-    }
+  // Tab switching
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(`${tab.dataset.tab}Tab`).classList.add('active');
+    });
+  });
+  
+  // Enter key for login
+  loginPassword.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLogin();
+  });
+  loginEmail.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') loginPassword.focus();
   });
 }
 
@@ -68,12 +90,12 @@ async function handleLogin() {
   const password = loginPassword.value.trim();
   
   if (!email || !password) {
-    showLoginStatus('Please enter email and password', 'error');
+    showToast('Please enter email and password', 'error');
     return;
   }
   
   loginButton.disabled = true;
-  loginButton.textContent = 'Logging in...';
+  loginButton.textContent = 'Signing in...';
   
   try {
     const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
@@ -82,10 +104,7 @@ async function handleLogin() {
         'Content-Type': 'application/json',
         'apikey': SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({
-        email,
-        password,
-      }),
+      body: JSON.stringify({ email, password }),
     });
     
     const data = await response.json();
@@ -99,16 +118,17 @@ async function handleLogin() {
       await chrome.storage.local.set({ supabase_session: currentSession });
       showMainSection();
       await loadProjects();
-      showLoginStatus('Login successful!', 'success');
+      await checkActiveTimer();
+      showToast('Welcome back!', 'success');
     } else {
-      showLoginStatus(data.error_description || 'Login failed', 'error');
+      showToast(data.error_description || 'Login failed', 'error');
     }
   } catch (error) {
     console.error('Login error:', error);
-    showLoginStatus('Login failed. Please try again.', 'error');
+    showToast('Login failed. Please try again.', 'error');
   } finally {
     loginButton.disabled = false;
-    loginButton.textContent = 'Login';
+    loginButton.textContent = 'Sign In';
   }
 }
 
@@ -137,22 +157,87 @@ function showMainSection() {
   mainSection.classList.remove('hidden');
 }
 
-function showLoginStatus(message, type) {
-  loginStatus.textContent = message;
-  loginStatus.className = `status ${type}`;
-  loginStatus.classList.remove('hidden');
+function showToast(message, type) {
+  statusToast.textContent = message;
+  statusToast.className = `status-toast ${type} show`;
   setTimeout(() => {
-    loginStatus.classList.add('hidden');
+    statusToast.classList.remove('show');
   }, 3000);
 }
 
-function showStatus(message, type) {
-  status.textContent = message;
-  status.className = `status ${type}`;
-  status.classList.remove('hidden');
-  setTimeout(() => {
-    status.classList.add('hidden');
-  }, 3000);
+// Project change handler - load tasks for selected project
+async function handleProjectChange() {
+  const projectId = timerProject.value;
+  selectedTaskId = null;
+  
+  if (!projectId) {
+    taskListContainer.classList.add('hidden');
+    timerButton.disabled = true;
+    return;
+  }
+  
+  timerButton.disabled = false;
+  taskListContainer.classList.remove('hidden');
+  taskList.innerHTML = '<div class="empty-state">Loading tasks...</div>';
+  
+  try {
+    // Fetch tasks for the project that are NOT completed/closed
+    const statusFilter = COMPLETED_STATUSES.map(s => `status.neq.${s}`).join('&');
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/tasks?project_id=eq.${projectId}&${statusFilter}&order=created_at.desc`,
+      {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${currentSession.access_token}`,
+        },
+      }
+    );
+    
+    if (response.ok) {
+      const tasks = await response.json();
+      renderTaskList(tasks);
+    } else {
+      taskList.innerHTML = '<div class="empty-state">Failed to load tasks</div>';
+    }
+  } catch (error) {
+    console.error('Error loading tasks:', error);
+    taskList.innerHTML = '<div class="empty-state">Failed to load tasks</div>';
+  }
+}
+
+function renderTaskList(tasks) {
+  if (tasks.length === 0) {
+    taskList.innerHTML = '<div class="empty-state">No active tasks in this project</div>';
+    return;
+  }
+  
+  taskList.innerHTML = tasks.map(task => `
+    <div class="task-item" data-task-id="${task.id}">
+      <div class="task-radio"></div>
+      <div class="task-title">${escapeHtml(task.title)}</div>
+      <span class="priority-badge priority-${task.priority || 'medium'}">${task.priority || 'medium'}</span>
+    </div>
+  `).join('');
+  
+  // Add click handlers
+  taskList.querySelectorAll('.task-item').forEach(item => {
+    item.addEventListener('click', () => {
+      taskList.querySelectorAll('.task-item').forEach(i => i.classList.remove('selected'));
+      
+      if (selectedTaskId === item.dataset.taskId) {
+        selectedTaskId = null;
+      } else {
+        item.classList.add('selected');
+        selectedTaskId = item.dataset.taskId;
+      }
+    });
+  });
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 // Timer functions
@@ -165,14 +250,27 @@ async function handleTimerToggle() {
 }
 
 async function startTimer() {
+  const projectId = timerProject.value;
+  
+  if (!projectId) {
+    showToast('Please select a project', 'error');
+    return;
+  }
+  
+  // Find client_id from project
+  const project = projectsCache.find(p => p.id === projectId);
+  const clientId = project?.client_id || null;
+  
   timerStartTime = new Date();
   
-  // Create time entry in database
   try {
     const timeEntry = {
       user_id: currentSession.user.id,
       auth_user_id: currentSession.user.id,
       start_time: timerStartTime.toISOString(),
+      project_id: projectId,
+      task_id: selectedTaskId,
+      client_id: clientId,
       status: 'pending',
     };
     
@@ -193,15 +291,22 @@ async function startTimer() {
       
       timerInterval = setInterval(updateTimerDisplay, 1000);
       timerButton.textContent = 'Stop Timer';
-      timerButton.style.background = 'hsl(0 84.2% 60.2%)';
+      timerButton.classList.add('button-stop');
+      timerProject.disabled = true;
       
-      showStatus('Timer started!', 'success');
+      const taskName = selectedTaskId 
+        ? taskList.querySelector(`[data-task-id="${selectedTaskId}"] .task-title`)?.textContent 
+        : null;
+      timerInfo.textContent = taskName ? `Tracking: ${taskName}` : `Tracking: ${project?.name || 'Project'}`;
+      timerInfo.classList.add('active');
+      
+      showToast('Timer started!', 'success');
     } else {
       throw new Error('Failed to create time entry');
     }
   } catch (error) {
     console.error('Error starting timer:', error);
-    showStatus('Failed to start timer', 'error');
+    showToast('Failed to start timer', 'error');
   }
 }
 
@@ -209,7 +314,7 @@ async function stopTimer() {
   if (!currentTimeEntry) return;
   
   const endTime = new Date();
-  const duration = Math.floor((endTime - timerStartTime) / 1000 / 60); // Duration in minutes
+  const duration = Math.floor((endTime - timerStartTime) / 1000 / 60);
   
   try {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/time_entries?id=eq.${currentTimeEntry.id}`, {
@@ -232,16 +337,21 @@ async function stopTimer() {
       timerStartTime = null;
       
       timerButton.textContent = 'Start Timer';
-      timerButton.style.background = '';
+      timerButton.classList.remove('button-stop');
+      timerProject.disabled = false;
       timerDisplay.textContent = '00:00:00';
+      timerInfo.textContent = 'No timer running';
+      timerInfo.classList.remove('active');
       
-      showStatus(`Timer stopped! Duration: ${Math.floor(duration / 60)}h ${duration % 60}m`, 'success');
+      const hours = Math.floor(duration / 60);
+      const mins = duration % 60;
+      showToast(`Timer stopped! ${hours}h ${mins}m logged`, 'success');
     } else {
       throw new Error('Failed to update time entry');
     }
   } catch (error) {
     console.error('Error stopping timer:', error);
-    showStatus('Failed to stop timer', 'error');
+    showToast('Failed to stop timer', 'error');
   }
 }
 
@@ -258,14 +368,16 @@ function updateTimerDisplay() {
 }
 
 async function checkActiveTimer() {
-  // Check if there's an active timer (time entry without end_time)
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/time_entries?auth_user_id=eq.${currentSession.user.id}&end_time=is.null&order=created_at.desc&limit=1`, {
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${currentSession.access_token}`,
-      },
-    });
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/time_entries?auth_user_id=eq.${currentSession.user.id}&end_time=is.null&order=created_at.desc&limit=1`,
+      {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${currentSession.access_token}`,
+        },
+      }
+    );
     
     if (response.ok) {
       const data = await response.json();
@@ -274,7 +386,19 @@ async function checkActiveTimer() {
         timerStartTime = new Date(currentTimeEntry.start_time);
         timerInterval = setInterval(updateTimerDisplay, 1000);
         timerButton.textContent = 'Stop Timer';
-        timerButton.style.background = 'hsl(0 84.2% 60.2%)';
+        timerButton.classList.add('button-stop');
+        timerButton.disabled = false;
+        timerProject.disabled = true;
+        
+        // Set the project dropdown
+        if (currentTimeEntry.project_id) {
+          timerProject.value = currentTimeEntry.project_id;
+        }
+        
+        const project = projectsCache.find(p => p.id === currentTimeEntry.project_id);
+        timerInfo.textContent = `Tracking: ${project?.name || 'Project'}`;
+        timerInfo.classList.add('active');
+        
         updateTimerDisplay();
       }
     }
@@ -291,7 +415,12 @@ async function handleCreateTask() {
   const priority = taskPriority.value;
   
   if (!title) {
-    showStatus('Please enter a task title', 'error');
+    showToast('Please enter a task title', 'error');
+    return;
+  }
+  
+  if (!projectId) {
+    showToast('Please select a project', 'error');
     return;
   }
   
@@ -323,16 +452,14 @@ async function handleCreateTask() {
     if (response.ok) {
       taskTitle.value = '';
       taskDescription.value = '';
-      taskProject.value = '';
       taskPriority.value = 'medium';
-      
-      showStatus('Task created successfully!', 'success');
+      showToast('Task created!', 'success');
     } else {
       throw new Error('Failed to create task');
     }
   } catch (error) {
     console.error('Error creating task:', error);
-    showStatus('Failed to create task', 'error');
+    showToast('Failed to create task', 'error');
   } finally {
     createTaskButton.disabled = false;
     createTaskButton.textContent = 'Create Task';
@@ -341,25 +468,25 @@ async function handleCreateTask() {
 
 async function loadProjects() {
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/projects?select=id,name&order=name.asc`, {
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${currentSession.access_token}`,
-      },
-    });
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/projects?select=id,name,client_id&order=name.asc`,
+      {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${currentSession.access_token}`,
+        },
+      }
+    );
     
     if (response.ok) {
-      const projects = await response.json();
+      projectsCache = await response.json();
       
-      // Clear existing options except the first one
-      taskProject.innerHTML = '<option value="">Select project (optional)</option>';
+      // Update both project dropdowns
+      const optionsHtml = '<option value="">Select project</option>' + 
+        projectsCache.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
       
-      projects.forEach(project => {
-        const option = document.createElement('option');
-        option.value = project.id;
-        option.textContent = project.name;
-        taskProject.appendChild(option);
-      });
+      timerProject.innerHTML = optionsHtml;
+      taskProject.innerHTML = optionsHtml;
     }
   } catch (error) {
     console.error('Error loading projects:', error);
