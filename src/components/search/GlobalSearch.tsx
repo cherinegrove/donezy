@@ -326,7 +326,7 @@ export function GlobalSearch({ externalOpen, onExternalOpenChange, initialQuery 
     <>
     <CommandDialog open={open} onOpenChange={setOpen}>
       <CommandInput 
-        placeholder="Search anything... (⌘K)" 
+        placeholder="Search anything... (Ctrl+K)"
         value={searchQuery}
         onValueChange={setSearchQuery}
       />
