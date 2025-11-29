@@ -2,8 +2,8 @@
 const SUPABASE_URL = 'https://puwxkygdlclcbyxrtppd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1d3hreWdkbGNsY2J5eHJ0cHBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMDU2OTUsImV4cCI6MjA2MTY4MTY5NX0._p3ZxKJSSzOkZO6xml4kvg9vOA64Qlxhg5HNhuEAF-0';
 
-// Completed/closed task statuses to filter out
-const COMPLETED_STATUSES = ['done', 'completed', 'closed', 'cancelled'];
+// Completed/closed task statuses to filter out (dynamically loaded)
+let COMPLETED_STATUSES = ['done', 'completed', 'closed', 'cancelled'];
 
 let currentSession = null;
 let timerInterval = null;
@@ -11,6 +11,7 @@ let timerStartTime = null;
 let currentTimeEntry = null;
 let projectsCache = [];
 let usersCache = [];
+let statusesCache = [];
 let selectedTaskId = null;
 
 // DOM elements
@@ -84,6 +85,7 @@ async function checkAuthState() {
       showMainSection();
       await loadProjects();
       await loadUsers();
+      await loadTaskStatuses();
       await checkActiveTimer();
     } else {
       showLoginSection();
@@ -128,6 +130,7 @@ async function handleLogin() {
       showMainSection();
       await loadProjects();
       await loadUsers();
+      await loadTaskStatuses();
       await checkActiveTimer();
       showToast('Welcome back!', 'success');
     } else {
@@ -577,6 +580,58 @@ async function loadUsers() {
     }
   } catch (error) {
     console.error('Error loading users:', error);
+  }
+}
+
+async function loadTaskStatuses() {
+  try {
+    console.log('Loading task statuses...');
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/task_status_definitions?select=id,name,value,color,is_final,order_index&order=order_index.asc`,
+      {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${currentSession.access_token}`,
+        },
+      }
+    );
+    
+    if (response.ok) {
+      statusesCache = await response.json();
+      console.log('Task statuses loaded:', statusesCache.length);
+      
+      // Update COMPLETED_STATUSES based on is_final flag
+      COMPLETED_STATUSES = statusesCache
+        .filter(s => s.is_final)
+        .map(s => s.value || s.name.toLowerCase().replace(/\s+/g, '-'));
+      
+      // Filter out final statuses for task creation dropdown
+      const nonFinalStatuses = statusesCache.filter(s => !s.is_final);
+      
+      // Update status dropdown
+      const optionsHtml = nonFinalStatuses.map(s => {
+        const value = s.value || s.name.toLowerCase().replace(/\s+/g, '-');
+        return `<option value="${value}">${escapeHtml(s.name)}</option>`;
+      }).join('');
+      
+      taskStatus.innerHTML = optionsHtml || '<option value="backlog">Backlog</option>';
+    } else {
+      console.error('Failed to load task statuses:', response.status, await response.text());
+      // Fallback to default statuses
+      taskStatus.innerHTML = `
+        <option value="backlog">Backlog</option>
+        <option value="in-progress">In Progress</option>
+        <option value="awaiting-feedback">Awaiting Feedback</option>
+      `;
+    }
+  } catch (error) {
+    console.error('Error loading task statuses:', error);
+    // Fallback to default statuses
+    taskStatus.innerHTML = `
+      <option value="backlog">Backlog</option>
+      <option value="in-progress">In Progress</option>
+      <option value="awaiting-feedback">Awaiting Feedback</option>
+    `;
   }
 }
 
