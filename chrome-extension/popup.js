@@ -520,6 +520,7 @@ async function handleCreateTask() {
 
 async function loadProjects() {
   try {
+    console.log('Loading projects...');
     const response = await fetch(
       `${SUPABASE_URL}/rest/v1/projects?select=id,name,client_id&order=name.asc`,
       {
@@ -532,6 +533,7 @@ async function loadProjects() {
     
     if (response.ok) {
       projectsCache = await response.json();
+      console.log('Projects loaded:', projectsCache.length);
       
       // Update all project dropdowns
       const optionsHtml = '<option value="">Select project</option>' + 
@@ -540,6 +542,8 @@ async function loadProjects() {
       timerProject.innerHTML = optionsHtml;
       taskProject.innerHTML = optionsHtml;
       noteProject.innerHTML = optionsHtml;
+    } else {
+      console.error('Failed to load projects:', response.status, await response.text());
     }
   } catch (error) {
     console.error('Error loading projects:', error);
@@ -548,6 +552,7 @@ async function loadProjects() {
 
 async function loadUsers() {
   try {
+    console.log('Loading users...');
     const response = await fetch(
       `${SUPABASE_URL}/rest/v1/users?select=auth_user_id,name,email&order=name.asc`,
       {
@@ -560,12 +565,15 @@ async function loadUsers() {
     
     if (response.ok) {
       usersCache = await response.json();
+      console.log('Users loaded:', usersCache.length);
       
       // Update assignee dropdown
       const optionsHtml = '<option value="">Select owner (optional)</option>' + 
         usersCache.map(u => `<option value="${u.auth_user_id}">${escapeHtml(u.name || u.email)}</option>`).join('');
       
       taskAssignee.innerHTML = optionsHtml;
+    } else {
+      console.error('Failed to load users:', response.status, await response.text());
     }
   } catch (error) {
     console.error('Error loading users:', error);
