@@ -6,10 +6,14 @@
   "permissions": [
     "activeTab",
     "storage",
-    "identity"
+    "identity",
+    "scripting",
+    "tabs"
   ],
   "host_permissions": [
-    "https://puwxkygdlclcbyxrtppd.supabase.co/*"
+    "https://puwxkygdlclcbyxrtppd.supabase.co/*",
+    "https://app.donezy.io/*",
+    "http://localhost/*"
   ],
   "action": {
     "default_popup": "popup.html",
