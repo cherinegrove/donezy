@@ -1,14 +1,13 @@
 import React, { useState, useRef } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { MentionDropdown } from "../messages/MentionDropdown";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { CommentEditor, CommentEditorRef } from "./CommentEditor";
 
 interface CommentSectionProps {
   taskId: string;
@@ -20,14 +19,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   const [pendingImages, setPendingImages] = useState<{ file: File; preview: string }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
-
-  // Mention states
-  const [mentionQuery, setMentionQuery] = useState("");
-  const [mentionOpen, setMentionOpen] = useState(false);
-  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
-  const [cursorPosition, setCursorPosition] = useState(0);
-  const [mentionStartPos, setMentionStartPos] = useState(0);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<CommentEditorRef>(null);
 
   // Ensure we have valid users array
   const safeUsers = Array.isArray(users) ? users : [];
@@ -96,7 +88,8 @@ export function CommentSection({ taskId }: CommentSectionProps) {
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!comment.trim() && pendingImages.length === 0) || !currentUser) return;
+    const plainText = getPlainTextFromHtml(comment);
+    if ((plainText.trim() === '' && pendingImages.length === 0) || !currentUser) return;
 
     setIsUploading(true);
 
@@ -104,9 +97,9 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       // Upload images first
       const imageUrls = await uploadImages();
 
-      // Extract mentioned users from the comment
+      // Extract mentioned users from the plain text
       const mentionRegex = /@(\w+)/g;
-      const mentionMatches = [...comment.matchAll(mentionRegex)];
+      const mentionMatches = [...plainText.matchAll(mentionRegex)];
 
       // Find user IDs for mentioned users
       const mentionedUserIds: string[] = [];
@@ -119,7 +112,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
         }
       });
 
-      // Add the comment to the task with images
+      // Add the comment to the task with images (store HTML for rich content)
       const commentId = await addComment(taskId, currentUser.auth_user_id, comment, mentionedUserIds, imageUrls);
 
       // Create notification messages for each mentioned user and task assignee/collaborators
@@ -200,6 +193,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
 
       // Reset form
       setComment("");
+      editorRef.current?.clearContent();
       pendingImages.forEach(({ preview }) => URL.revokeObjectURL(preview));
       setPendingImages([]);
     } catch (error) {
@@ -214,86 +208,14 @@ export function CommentSection({ taskId }: CommentSectionProps) {
     }
   };
 
-  // Calculate mention dropdown position
-  const calculateMentionPosition = () => {
-    if (!textareaRef.current) return { top: 0, left: 0 };
-    return {
-      top: 40,
-      left: 0,
-    };
+  // Helper function to extract plain text from HTML
+  const getPlainTextFromHtml = (html: string) => {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent || div.innerText || '';
   };
 
-  // Handle textarea content change to detect @ mentions
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const text = e.target.value;
-    const cursorPos = e.target.selectionStart || 0;
-
-    setComment(text);
-    setCursorPosition(cursorPos);
-
-    // Check for @ mentions
-    if (cursorPos > 0) {
-      const textBeforeCursor = text.substring(0, cursorPos);
-      const atIndex = textBeforeCursor.lastIndexOf("@");
-
-      if (atIndex !== -1) {
-        const charBeforeAt = atIndex > 0 ? textBeforeCursor[atIndex - 1] : " ";
-        const isValidMentionStart = atIndex === 0 || /\s/.test(charBeforeAt);
-
-        if (isValidMentionStart) {
-          const query = textBeforeCursor.substring(atIndex + 1);
-
-          if (!query.includes(" ") && query.length <= 20) {
-            setMentionStartPos(atIndex);
-            setMentionQuery(query);
-            setMentionOpen(true);
-            setMentionPosition(calculateMentionPosition());
-            return;
-          }
-        }
-      }
-    }
-
-    if (mentionOpen) {
-      setMentionOpen(false);
-      setMentionQuery("");
-    }
-  };
-
-  // Handle user selection from the mention dropdown
-  const handleSelectUser = (user: { id: string; name: string }) => {
-    if (!textareaRef.current) return;
-
-    const text = comment;
-    const beforeMention = text.substring(0, mentionStartPos);
-    const afterMention = text.substring(cursorPosition);
-    const newText = `${beforeMention}@${user.name} ${afterMention}`;
-
-    setComment(newText);
-    setMentionOpen(false);
-    setMentionQuery("");
-
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        const newCursorPos = mentionStartPos + user.name.length + 2;
-        textareaRef.current.selectionStart = newCursorPos;
-        textareaRef.current.selectionEnd = newCursorPos;
-      }
-    }, 0);
-  };
-
-  // Close mentions when clicking outside
-  const handleBlur = () => {
-    setTimeout(() => {
-      setMentionOpen(false);
-    }, 150);
-  };
-
-  // Filter users for mentions (exclude current user)
-  const otherUsers = safeUsers.filter((user) => user.auth_user_id !== currentUser?.auth_user_id);
-
-  // Format comment content with mentions
+  // Format comment content with mentions and links
   const formatCommentContent = (content: string, mentionedUserIds: string[] = []) => {
     let formattedContent = content;
 
@@ -377,36 +299,25 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       {/* Comment Input Form - Always at the bottom */}
       {currentUser && (
         <form onSubmit={handleSubmitComment} className="space-y-2 relative">
-          <div className="relative">
-            <Textarea
-              ref={textareaRef}
-              placeholder="Add a comment... (Use @ to mention, paste images with Ctrl+V)"
-              value={comment}
-              onChange={handleTextareaChange}
-              onBlur={handleBlur}
-              onPaste={handlePaste}
-              className="min-h-[80px]"
-            />
-
-            {mentionOpen && (
-              <div
-                className="absolute"
-                style={{
-                  top: mentionPosition.top,
-                  left: mentionPosition.left,
-                  zIndex: 1000,
-                }}
-              >
-                <MentionDropdown
-                  users={otherUsers}
-                  onSelect={handleSelectUser}
-                  isOpen={mentionOpen}
-                  searchQuery={mentionQuery}
-                  className="shadow-lg border"
-                />
-              </div>
-            )}
-          </div>
+          <CommentEditor
+            ref={editorRef}
+            content={comment}
+            onChange={setComment}
+            onPaste={(e) => {
+              const items = e.clipboardData?.items;
+              if (!items) return;
+              for (const item of Array.from(items)) {
+                if (item.type.startsWith("image/")) {
+                  const file = item.getAsFile();
+                  if (file) {
+                    const preview = URL.createObjectURL(file);
+                    setPendingImages((prev) => [...prev, { file, preview }]);
+                  }
+                }
+              }
+            }}
+            placeholder="Add a comment... (paste images with Ctrl+V)"
+          />
 
           {/* Pending Images Preview */}
           {pendingImages.length > 0 && (
@@ -438,7 +349,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
             <span className="text-xs text-muted-foreground">
               Tip: Paste screenshots directly with Ctrl+V / Cmd+V
             </span>
-            <Button type="submit" disabled={(!comment.trim() && pendingImages.length === 0) || isUploading}>
+            <Button type="submit" disabled={(getPlainTextFromHtml(comment).trim() === '' && pendingImages.length === 0) || isUploading}>
               {isUploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
