@@ -79,6 +79,9 @@ function setupEventListeners() {
 // Authentication functions
 async function checkAuthState() {
   try {
+    // First, try to sync session from main Donezy app if user is on it
+    await syncSessionFromMainApp();
+    
     const result = await chrome.storage.local.get(['supabase_session']);
     if (result.supabase_session) {
       currentSession = result.supabase_session;
@@ -92,7 +95,22 @@ async function checkAuthState() {
       });
       
       if (!testResponse.ok) {
-        console.log('Session expired, clearing and showing login');
+        console.log('Session expired, trying to sync from main app...');
+        await syncSessionFromMainApp();
+        
+        // Check again after sync attempt
+        const retryResult = await chrome.storage.local.get(['supabase_session']);
+        if (retryResult.supabase_session) {
+          currentSession = retryResult.supabase_session;
+          showMainSection();
+          await loadProjects();
+          await loadUsers();
+          await loadTaskStatuses();
+          await checkActiveTimer();
+          return;
+        }
+        
+        // If still no valid session, clear and show login
         await chrome.storage.local.remove(['supabase_session']);
         currentSession = null;
         showLoginSection();
@@ -112,6 +130,52 @@ async function checkAuthState() {
     showLoginSection();
   }
 }
+
+// Sync session from main Donezy app if available
+async function syncSessionFromMainApp() {
+  try {
+    // Get the active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    // Check if we're on the Donezy app
+    if (tab && (tab.url?.includes('app.donezy.io') || tab.url?.includes('localhost'))) {
+      console.log('Detected Donezy app, attempting to sync session...');
+      
+      // Inject script to read localStorage
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          // Look for Supabase session in localStorage
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('sb-') && key.includes('-auth-token')) {
+              const value = localStorage.getItem(key);
+              if (value) {
+                try {
+                  return JSON.parse(value);
+                } catch (e) {
+                  console.error('Failed to parse session:', e);
+                }
+              }
+            }
+          }
+          return null;
+        }
+      });
+      
+      if (results && results[0]?.result) {
+        const session = results[0].result;
+        console.log('Found session from main app, syncing to extension');
+        await chrome.storage.local.set({ supabase_session: session });
+        currentSession = session;
+      }
+    }
+  } catch (error) {
+    console.log('Could not sync session from main app:', error.message);
+    // Silently fail - this is optional enhancement
+  }
+}
+
 
 async function handleLogin() {
   const email = loginEmail.value.trim();
