@@ -31,7 +31,7 @@ export function ChecklistSection({ taskId }: ChecklistSectionProps) {
   const totalCount = checklist.length;
   const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (!newItemText.trim()) return;
 
     const newItem: ChecklistItem = {
@@ -40,38 +40,57 @@ export function ChecklistSection({ taskId }: ChecklistSectionProps) {
       completed: false,
     };
 
-    updateTask(taskId, {
-      checklist: [...checklist, newItem],
+    const newChecklist = [...checklist, newItem];
+    console.log('📝 Adding checklist item:', newItem, 'Full checklist:', newChecklist);
+    
+    const result = await updateTask(taskId, {
+      checklist: newChecklist,
     });
 
-    setNewItemText("");
-    toast({
-      title: "Item added",
-      description: "Checklist item has been added",
-    });
+    if (result) {
+      setNewItemText("");
+      toast({
+        title: "Item added",
+        description: "Checklist item has been added",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to add checklist item",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleToggleItem = (itemId: string) => {
+  const handleToggleItem = async (itemId: string) => {
     const updatedChecklist = checklist.map(item =>
       item.id === itemId ? { ...item, completed: !item.completed } : item
     );
 
-    updateTask(taskId, {
+    await updateTask(taskId, {
       checklist: updatedChecklist,
     });
   };
 
-  const handleDeleteItem = (itemId: string) => {
+  const handleDeleteItem = async (itemId: string) => {
     const updatedChecklist = checklist.filter(item => item.id !== itemId);
 
-    updateTask(taskId, {
+    const result = await updateTask(taskId, {
       checklist: updatedChecklist,
     });
 
-    toast({
-      title: "Item removed",
-      description: "Checklist item has been removed",
-    });
+    if (result) {
+      toast({
+        title: "Item removed",
+        description: "Checklist item has been removed",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to remove checklist item",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleStartEdit = (item: ChecklistItem) => {
@@ -79,23 +98,31 @@ export function ChecklistSection({ taskId }: ChecklistSectionProps) {
     setEditingText(item.text);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingText.trim() || !editingItemId) return;
 
     const updatedChecklist = checklist.map(item =>
       item.id === editingItemId ? { ...item, text: editingText.trim() } : item
     );
 
-    updateTask(taskId, {
+    const result = await updateTask(taskId, {
       checklist: updatedChecklist,
     });
 
-    setEditingItemId(null);
-    setEditingText("");
-    toast({
-      title: "Item updated",
-      description: "Checklist item has been updated",
-    });
+    if (result) {
+      setEditingItemId(null);
+      setEditingText("");
+      toast({
+        title: "Item updated",
+        description: "Checklist item has been updated",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to update checklist item",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCancelEdit = () => {
