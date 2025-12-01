@@ -82,6 +82,23 @@ async function checkAuthState() {
     const result = await chrome.storage.local.get(['supabase_session']);
     if (result.supabase_session) {
       currentSession = result.supabase_session;
+      
+      // Verify session is still valid by making a test request
+      const testResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${currentSession.access_token}`,
+        },
+      });
+      
+      if (!testResponse.ok) {
+        console.log('Session expired, clearing and showing login');
+        await chrome.storage.local.remove(['supabase_session']);
+        currentSession = null;
+        showLoginSection();
+        return;
+      }
+      
       showMainSection();
       await loadProjects();
       await loadUsers();
@@ -523,9 +540,12 @@ async function handleCreateTask() {
 
 async function loadProjects() {
   try {
-    console.log('Loading projects...');
+    console.log('Loading projects for user:', currentSession?.user?.id);
+    console.log('Access token present:', !!currentSession?.access_token);
+    
+    // Filter by auth_user_id to ensure we get projects the user owns
     const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/projects?select=id,name,client_id&order=name.asc`,
+      `${SUPABASE_URL}/rest/v1/projects?select=id,name,client_id,auth_user_id&order=name.asc`,
       {
         headers: {
           'apikey': SUPABASE_ANON_KEY,
@@ -534,9 +554,15 @@ async function loadProjects() {
       }
     );
     
+    console.log('Projects response status:', response.status);
+    
     if (response.ok) {
       projectsCache = await response.json();
-      console.log('Projects loaded:', projectsCache.length);
+      console.log('Projects loaded:', projectsCache.length, projectsCache);
+      
+      if (projectsCache.length === 0) {
+        console.warn('No projects returned - this may be an RLS policy issue');
+      }
       
       // Update all project dropdowns
       const optionsHtml = '<option value="">Select project</option>' + 
@@ -545,11 +571,16 @@ async function loadProjects() {
       timerProject.innerHTML = optionsHtml;
       taskProject.innerHTML = optionsHtml;
       noteProject.innerHTML = optionsHtml;
+      
+      console.log('Project dropdowns updated');
     } else {
-      console.error('Failed to load projects:', response.status, await response.text());
+      const errorText = await response.text();
+      console.error('Failed to load projects:', response.status, errorText);
+      showToast('Failed to load projects', 'error');
     }
   } catch (error) {
     console.error('Error loading projects:', error);
+    showToast('Error loading projects', 'error');
   }
 }
 
