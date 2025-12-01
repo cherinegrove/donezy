@@ -1620,7 +1620,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         changes.push('updated related tasks');
       }
       if (updates.checklist !== undefined) {
-        dbUpdates.checklist = updates.checklist;
+        // Ensure checklist is properly serialized as JSON for Supabase
+        dbUpdates.checklist = JSON.parse(JSON.stringify(updates.checklist));
+        console.log('📝 Updating checklist:', dbUpdates.checklist);
         const oldChecklistLength = (currentTask.checklist as any[])?.length || 0;
         const newChecklistLength = (updates.checklist as any[])?.length || 0;
         if (newChecklistLength > oldChecklistLength) {
@@ -1653,15 +1655,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return taskId;
       }
 
-      const { error } = await supabase
+      console.log('📝 Sending task update to Supabase:', { taskId, dbUpdates });
+      const { data, error } = await supabase
         .from('tasks')
         .update(dbUpdates)
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .select();
 
       if (error) {
-        console.error('Error updating task:', error);
+        console.error('❌ Error updating task:', error);
         return undefined;
       }
+      
+      console.log('✅ Task updated successfully:', data);
 
       // Create task log entry
       if (changes.length > 0 && currentUser) {
