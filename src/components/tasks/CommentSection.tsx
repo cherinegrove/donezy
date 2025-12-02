@@ -243,27 +243,28 @@ export function CommentSection({ taskId }: CommentSectionProps) {
     const editorInstance = (editorRef.current as any)?.editor;
     if (!editorInstance) return;
     
+    // Get current HTML content
+    const currentHtml = editorInstance.getHTML();
     const plainText = editorInstance.getText();
     const lastAtIndex = plainText.lastIndexOf('@');
     
     if (lastAtIndex !== -1) {
-      // Find the length of the partial mention (@ + any following word characters)
+      // Find the partial mention text after @
       const afterAt = plainText.substring(lastAtIndex);
-      const matchLength = afterAt.match(/@\w*/)?.[0].length || 1;
+      const partialMatch = afterAt.match(/@(\w*)/);
       
-      // Calculate the position in the editor to delete from
-      const { state } = editorInstance;
-      const currentPos = state.selection.anchor;
-      const deleteFrom = currentPos - (afterAt.length - matchLength);
-      
-      // Delete the partial mention and insert the full mention
-      const firstName = user.name.split(' ')[0];
-      editorInstance
-        .chain()
-        .focus()
-        .deleteRange({ from: lastAtIndex + 1, to: lastAtIndex + 1 + matchLength })
-        .insertContentAt(lastAtIndex + 1, `@${firstName} `)
-        .run();
+      if (partialMatch) {
+        const partialMention = partialMatch[0]; // e.g., "@jo"
+        const firstName = user.name.split(' ')[0];
+        const fullMention = `@${firstName}`;
+        
+        // Replace the partial mention in the HTML with the full mention
+        const newHtml = currentHtml.replace(partialMention, fullMention + ' ');
+        
+        // Set the new content
+        editorInstance.commands.setContent(newHtml);
+        editorInstance.commands.focus('end');
+      }
     }
     
     setShowMentions(false);
