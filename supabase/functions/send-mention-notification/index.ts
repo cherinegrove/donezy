@@ -20,9 +20,9 @@ serve(async (req) => {
     
     console.log('Processing mention notification request');
     
-    const { mentionedUserId, messageId, mentionerName, messageContent } = await req.json();
+    const { mentionedUserId, mentionerName, messageContent, taskId, commentId } = await req.json();
     
-    if (!mentionedUserId || !messageId) {
+    if (!mentionedUserId || !mentionerName || !messageContent) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -44,32 +44,29 @@ serve(async (req) => {
       );
     }
     
-    // Get the message details
-    const { data: message, error: messageError } = await supabase
-      .from('messages')
-      .select('subject, content, from_user_id, channel_id')
-      .eq('id', messageId)
+    // Get the mentioner's user details
+    const { data: mentionerUser, error: mentionerError } = await supabase
+      .from('users')
+      .select('auth_user_id')
+      .eq('name', mentionerName)
       .single();
     
-    if (messageError || !message) {
-      console.error('Error fetching message:', messageError);
-      return new Response(
-        JSON.stringify({ error: 'Message not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const fromUserId = mentionerUser?.auth_user_id || mentionedUserId; // fallback to avoid error
     
     // Create a notification message for the mentioned user
+    const plainText = messageContent.replace(/<[^>]*>/g, '').substring(0, 100); // Strip HTML and truncate
+    
     const { data: notification, error: notificationError } = await supabase
       .from('messages')
       .insert({
-        from_user_id: message.from_user_id,
+        from_user_id: fromUserId,
         to_user_id: mentionedUserId,
         subject: `You were mentioned by ${mentionerName}`,
-        content: `You were mentioned in: "${messageContent || message.content}"`,
+        content: `You were mentioned in a comment: "${plainText}${plainText.length >= 100 ? '...' : ''}"`,
         priority: 'high',
         read: false,
-        auth_user_id: message.from_user_id
+        task_id: taskId || null,
+        auth_user_id: fromUserId
       })
       .select()
       .single();
@@ -100,14 +97,14 @@ serve(async (req) => {
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #333;">You were mentioned!</h2>
-                <p><strong>${mentionerName}</strong> mentioned you in a message:</p>
+                <p><strong>${mentionerName}</strong> mentioned you in a comment:</p>
                 <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
-                  <p style="margin: 0;">${messageContent || message.content}</p>
+                  <p style="margin: 0;">${plainText}${plainText.length >= 100 ? '...' : ''}</p>
                 </div>
                 <p>
-                  <a href="${supabaseUrl.replace('.supabase.co', '')}/messages" 
+                  <a href="${supabaseUrl.replace('.supabase.co', '')}/tasks" 
                      style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                    View Message
+                    View Task
                   </a>
                 </p>
               </div>
