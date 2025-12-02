@@ -144,24 +144,19 @@ export function CommentSection({ taskId }: CommentSectionProps) {
         for (const userId of mentionedUserIds) {
           if (userId !== currentUser.auth_user_id) {
             try {
-              if (commentId) {
-                const { data, error } = await supabase.functions.invoke("send-mention-notification", {
-                  body: {
-                    mentionedUserId: userId,
-                    messageId: commentId,
-                    mentionerName: currentUser.name,
-                    messageContent: comment,
-                    taskId,
-                  },
-                });
+              const { data, error } = await supabase.functions.invoke("send-mention-notification", {
+                body: {
+                  mentionedUserId: userId,
+                  mentionerName: currentUser.name,
+                  messageContent: comment,
+                  taskId,
+                },
+              });
 
-                if (error) {
-                  console.error("Error calling edge function:", error);
-                } else {
-                  console.log("Edge function called successfully:", data);
-                }
+              if (error) {
+                console.error("Error calling edge function:", error);
               } else {
-                console.warn("Skipping edge function call - invalid comment ID:", commentId);
+                console.log("Edge function called successfully:", data);
               }
             } catch (error) {
               console.error("Error creating mention notification:", error);
