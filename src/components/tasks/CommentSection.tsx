@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Image as ImageIcon, Loader2 } from "lucide-react";
 import { CommentEditor, CommentEditorRef } from "./CommentEditor";
+import { MentionDropdown } from "@/components/messages/MentionDropdown";
 
 interface CommentSectionProps {
   taskId: string;
@@ -18,11 +19,33 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   const [comment, setComment] = useState("");
   const [pendingImages, setPendingImages] = useState<{ file: File; preview: string }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState("");
   const { toast } = useToast();
   const editorRef = useRef<CommentEditorRef>(null);
 
   // Ensure we have valid users array
   const safeUsers = Array.isArray(users) ? users : [];
+
+  // Watch for @ mentions in the content
+  useEffect(() => {
+    const plainText = getPlainTextFromHtml(comment);
+    const lastAtIndex = plainText.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+      const textAfterAt = plainText.substring(lastAtIndex + 1);
+      const hasSpace = textAfterAt.includes(' ');
+      
+      if (!hasSpace) {
+        setMentionSearch(textAfterAt);
+        setShowMentions(true);
+      } else {
+        setShowMentions(false);
+      }
+    } else {
+      setShowMentions(false);
+    }
+  }, [comment]);
 
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;
@@ -215,6 +238,33 @@ export function CommentSection({ taskId }: CommentSectionProps) {
     return div.textContent || div.innerText || '';
   };
 
+  // Handle mention selection
+  const handleMentionSelect = (user: any) => {
+    const plainText = getPlainTextFromHtml(comment);
+    const lastAtIndex = plainText.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+      // Get the text before and after the @ mention
+      const beforeAt = plainText.substring(0, lastAtIndex);
+      const afterMention = plainText.substring(lastAtIndex).replace(/@\w*/, '');
+      
+      // Build new content with the mention
+      const firstName = user.name.split(' ')[0];
+      const newContent = beforeAt + '@' + firstName + ' ' + afterMention;
+      
+      // Update editor
+      editorRef.current?.clearContent();
+      editorRef.current?.focus();
+      
+      // Insert the new content as HTML
+      const htmlContent = `<p>${newContent}</p>`;
+      setComment(htmlContent);
+    }
+    
+    setShowMentions(false);
+    setMentionSearch("");
+  };
+
   // Format comment content with mentions and links
   const formatCommentContent = (content: string, mentionedUserIds: string[] = []) => {
     let formattedContent = content;
@@ -299,25 +349,39 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       {/* Comment Input Form - Always at the bottom */}
       {currentUser && (
         <form onSubmit={handleSubmitComment} className="space-y-2 relative">
-          <CommentEditor
-            ref={editorRef}
-            content={comment}
-            onChange={setComment}
-            onPaste={(e) => {
-              const items = e.clipboardData?.items;
-              if (!items) return;
-              for (const item of Array.from(items)) {
-                if (item.type.startsWith("image/")) {
-                  const file = item.getAsFile();
-                  if (file) {
-                    const preview = URL.createObjectURL(file);
-                    setPendingImages((prev) => [...prev, { file, preview }]);
+          <div className="relative">
+            <CommentEditor
+              ref={editorRef}
+              content={comment}
+              onChange={setComment}
+              onPaste={(e) => {
+                const items = e.clipboardData?.items;
+                if (!items) return;
+                for (const item of Array.from(items)) {
+                  if (item.type.startsWith("image/")) {
+                    const file = item.getAsFile();
+                    if (file) {
+                      const preview = URL.createObjectURL(file);
+                      setPendingImages((prev) => [...prev, { file, preview }]);
+                    }
                   }
                 }
-              }
-            }}
-            placeholder="Add a comment... (paste images with Ctrl+V)"
-          />
+              }}
+              placeholder="Add a comment... Use @ to mention someone (paste images with Ctrl+V)"
+            />
+            
+            {/* Mention Dropdown */}
+            {showMentions && (
+              <div className="absolute bottom-full mb-2 z-50">
+                <MentionDropdown
+                  users={safeUsers}
+                  onSelect={handleMentionSelect}
+                  isOpen={showMentions}
+                  searchQuery={mentionSearch}
+                />
+              </div>
+            )}
+          </div>
 
           {/* Pending Images Preview */}
           {pendingImages.length > 0 && (
