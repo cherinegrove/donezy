@@ -243,28 +243,26 @@ export function CommentSection({ taskId }: CommentSectionProps) {
     const editorInstance = (editorRef.current as any)?.editor;
     if (!editorInstance) return;
     
-    // Get current HTML content
-    const currentHtml = editorInstance.getHTML();
-    const plainText = editorInstance.getText();
-    const lastAtIndex = plainText.lastIndexOf('@');
+    const { state } = editorInstance;
+    const { from, to } = state.selection;
+    
+    // Get the text before the cursor
+    const textBeforeCursor = state.doc.textBetween(0, from, '\n');
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
     
     if (lastAtIndex !== -1) {
-      // Find the partial mention text after @
-      const afterAt = plainText.substring(lastAtIndex);
-      const partialMatch = afterAt.match(/@(\w*)/);
+      // Calculate the actual position in the document
+      const mentionStart = lastAtIndex;
+      const mentionEnd = from;
       
-      if (partialMatch) {
-        const partialMention = partialMatch[0]; // e.g., "@jo"
-        const firstName = user.name.split(' ')[0];
-        const fullMention = `@${firstName}`;
-        
-        // Replace the partial mention in the HTML with the full mention
-        const newHtml = currentHtml.replace(partialMention, fullMention + ' ');
-        
-        // Set the new content
-        editorInstance.commands.setContent(newHtml);
-        editorInstance.commands.focus('end');
-      }
+      // Delete the partial mention and insert the full mention
+      const firstName = user.name.split(' ')[0];
+      editorInstance
+        .chain()
+        .focus()
+        .deleteRange({ from: mentionStart, to: mentionEnd })
+        .insertContentAt(mentionStart, `@${firstName} `)
+        .run();
     }
     
     setShowMentions(false);
