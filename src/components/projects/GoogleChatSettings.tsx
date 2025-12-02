@@ -66,11 +66,12 @@ export function GoogleChatSettings({ project }: GoogleChatSettingsProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
 
-  // Sync state with project prop changes
+  // Sync state with project prop changes only when project ID changes
+  // Don't sync when google_chat_settings changes to avoid overwriting user edits
   useEffect(() => {
     const updatedConfig = (project as any).google_chat_settings || defaultConfig;
     setConfig(updatedConfig);
-  }, [project.id, (project as any).google_chat_settings]);
+  }, [project.id]);
 
   const handleSave = async () => {
     setIsSaving(true);
