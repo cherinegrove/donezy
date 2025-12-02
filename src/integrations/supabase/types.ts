@@ -2191,6 +2191,7 @@ export type Database = {
         }[]
       }
       get_current_user_organization: { Args: never; Returns: string }
+      get_user_workspace_id: { Args: { _user_id: string }; Returns: string }
       has_system_role: {
         Args: {
           _role: Database["public"]["Enums"]["system_role_type"]
