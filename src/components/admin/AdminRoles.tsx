@@ -206,6 +206,52 @@ export default function AdminRoles() {
     deleteCustomRole(roleId);
   };
 
+  // Built-in role definitions
+  const builtInRoles = [
+    {
+      name: "Admin",
+      description: "Full system access with all permissions",
+      color: "#ef4444",
+      permissions: {
+        dashboard: ['View-own', 'View-team', 'View-All'],
+        projects: ['View-own', 'View-team', 'View-All', 'Create/Edit', 'Delete'],
+        tasks: ['View-own', 'View-team', 'View-All', 'Create/Edit', 'Delete'],
+        timeTracking: ['Create timer', 'Approve timer', 'Edit timer', 'Delete', 'View-own', 'View-team', 'View-All'],
+        notifications: ['View-own', 'View-team', 'View-All'],
+        reports: ['View'],
+        adminDashboard: ['Access'],
+        users: ['View', 'Create', 'Delete'],
+        billing: ['View', 'Edit'],
+        dataImport: ['Yes'],
+        clients: ['View', 'Edit', 'Delete'],
+        accountRoles: ['View', 'Edit', 'Delete'],
+        activityLog: ['Yes'],
+        accountSettings: ['Yes']
+      }
+    },
+    {
+      name: "User",
+      description: "Standard user with limited access",
+      color: "#3b82f6",
+      permissions: {
+        dashboard: ['View-own'],
+        projects: ['View-own', 'View-team'],
+        tasks: ['View-own', 'View-team', 'Create/Edit'],
+        timeTracking: ['Create timer', 'View-own'],
+        notifications: ['View-own'],
+        reports: ['View'],
+        adminDashboard: [],
+        users: [],
+        billing: [],
+        dataImport: [],
+        clients: ['View'],
+        accountRoles: [],
+        activityLog: [],
+        accountSettings: []
+      }
+    }
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -230,6 +276,63 @@ export default function AdminRoles() {
           <strong>Role Permissions:</strong> Select specific permissions for each feature. Multiple permissions can be selected for each feature area.
         </AlertDescription>
       </Alert>
+
+      {/* Built-in Roles */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Built-in Roles</CardTitle>
+          <CardDescription>
+            Default system roles with predefined permissions (cannot be modified)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            {builtInRoles.map((role) => (
+              <Card key={role.name} className="overflow-hidden">
+                <div className="flex">
+                  {/* Color block on the left */}
+                  <div 
+                    className="w-1 min-h-full"
+                    style={{ backgroundColor: role.color }}
+                  />
+                  <div className="flex-1">
+                    <CardHeader>
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-primary" />
+                        <div>
+                          <CardTitle className="text-lg">{role.name}</CardTitle>
+                          <CardDescription className="mt-1">{role.description}</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {Object.entries(role.permissions).map(([feature, permissions]) => {
+                          const permissionArray = Array.isArray(permissions) ? permissions : [];
+                          if (permissionArray.length === 0) return null;
+                          
+                          return (
+                            <div key={feature} className="flex items-center justify-between text-sm">
+                              <span className="font-medium">{featureLabels[feature as keyof typeof featureLabels] || feature}</span>
+                              <div className="flex flex-wrap gap-1 justify-end">
+                                {permissionArray.map((permission: string) => (
+                                  <Badge key={permission} variant="outline" className="text-xs">
+                                    {permission}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Create/Edit Role Form */}
       {(isCreating || editingRole) && (
