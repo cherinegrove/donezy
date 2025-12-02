@@ -240,32 +240,30 @@ export function CommentSection({ taskId }: CommentSectionProps) {
 
   // Handle mention selection
   const handleMentionSelect = (user: any) => {
-    if (!editorRef.current) return;
+    const editorInstance = (editorRef.current as any)?.editor;
+    if (!editorInstance) return;
     
-    const plainText = getPlainTextFromHtml(comment);
+    const plainText = editorInstance.getText();
     const lastAtIndex = plainText.lastIndexOf('@');
     
     if (lastAtIndex !== -1) {
-      // Get text before the @ symbol
-      const beforeAt = plainText.substring(0, lastAtIndex);
+      // Find the length of the partial mention (@ + any following word characters)
+      const afterAt = plainText.substring(lastAtIndex);
+      const matchLength = afterAt.match(/@\w*/)?.[0].length || 1;
       
-      // Get text after the partial mention (after any word characters following @)
-      const afterMatch = plainText.substring(lastAtIndex).match(/@\w*/);
-      const afterMention = afterMatch ? plainText.substring(lastAtIndex + afterMatch[0].length) : '';
+      // Calculate the position in the editor to delete from
+      const { state } = editorInstance;
+      const currentPos = state.selection.anchor;
+      const deleteFrom = currentPos - (afterAt.length - matchLength);
       
-      // Build new content with the mention
+      // Delete the partial mention and insert the full mention
       const firstName = user.name.split(' ')[0];
-      const newContent = beforeAt + '@' + firstName + ' ' + afterMention;
-      
-      // Use Tiptap's setContent to properly update the editor
-      const htmlContent = `<p>${newContent.replace(/\n/g, '<br>')}</p>`;
-      
-      // Get the editor instance and update content directly
-      const editorInstance = (editorRef.current as any).editor;
-      if (editorInstance) {
-        editorInstance.commands.setContent(htmlContent);
-        editorInstance.commands.focus('end');
-      }
+      editorInstance
+        .chain()
+        .focus()
+        .deleteRange({ from: lastAtIndex + 1, to: lastAtIndex + 1 + matchLength })
+        .insertContentAt(lastAtIndex + 1, `@${firstName} `)
+        .run();
     }
     
     setShowMentions(false);
