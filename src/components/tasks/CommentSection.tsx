@@ -257,17 +257,15 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       const firstName = user.name.split(' ')[0];
       const newContent = beforeAt + '@' + firstName + ' ' + afterMention;
       
-      // Clear editor and insert new content as plain HTML
-      editorRef.current.clearContent();
-      
-      // Insert as HTML paragraph to preserve structure
+      // Use Tiptap's setContent to properly update the editor
       const htmlContent = `<p>${newContent.replace(/\n/g, '<br>')}</p>`;
-      setComment(htmlContent);
       
-      // Focus editor at the end
-      setTimeout(() => {
-        editorRef.current?.focus();
-      }, 0);
+      // Get the editor instance and update content directly
+      const editorInstance = (editorRef.current as any).editor;
+      if (editorInstance) {
+        editorInstance.commands.setContent(htmlContent);
+        editorInstance.commands.focus('end');
+      }
     }
     
     setShowMentions(false);
