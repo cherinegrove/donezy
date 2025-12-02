@@ -240,25 +240,34 @@ export function CommentSection({ taskId }: CommentSectionProps) {
 
   // Handle mention selection
   const handleMentionSelect = (user: any) => {
+    if (!editorRef.current) return;
+    
     const plainText = getPlainTextFromHtml(comment);
     const lastAtIndex = plainText.lastIndexOf('@');
     
     if (lastAtIndex !== -1) {
-      // Get the text before and after the @ mention
+      // Get text before the @ symbol
       const beforeAt = plainText.substring(0, lastAtIndex);
-      const afterMention = plainText.substring(lastAtIndex).replace(/@\w*/, '');
+      
+      // Get text after the partial mention (after any word characters following @)
+      const afterMatch = plainText.substring(lastAtIndex).match(/@\w*/);
+      const afterMention = afterMatch ? plainText.substring(lastAtIndex + afterMatch[0].length) : '';
       
       // Build new content with the mention
       const firstName = user.name.split(' ')[0];
       const newContent = beforeAt + '@' + firstName + ' ' + afterMention;
       
-      // Update editor
-      editorRef.current?.clearContent();
-      editorRef.current?.focus();
+      // Clear editor and insert new content as plain HTML
+      editorRef.current.clearContent();
       
-      // Insert the new content as HTML
-      const htmlContent = `<p>${newContent}</p>`;
+      // Insert as HTML paragraph to preserve structure
+      const htmlContent = `<p>${newContent.replace(/\n/g, '<br>')}</p>`;
       setComment(htmlContent);
+      
+      // Focus editor at the end
+      setTimeout(() => {
+        editorRef.current?.focus();
+      }, 0);
     }
     
     setShowMentions(false);
