@@ -77,7 +77,23 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
       getText: () => editor?.getText() || '',
       clearContent: () => editor?.commands.clearContent(),
       insertMention: (user: { id: string; name: string }) => {
-        editor?.chain().focus().insertContent(`@${user.name} `).run();
+        if (!editor) return;
+        
+        // Get current position and text
+        const { from } = editor.state.selection;
+        const textBefore = editor.state.doc.textBetween(0, from, '\n');
+        const lastAtIndex = textBefore.lastIndexOf('@');
+        
+        if (lastAtIndex !== -1) {
+          // Delete from @ to cursor and insert the mention
+          const firstName = user.name.split(' ')[0];
+          editor
+            .chain()
+            .focus()
+            .deleteRange({ from: lastAtIndex, to: from })
+            .insertContent(`@${firstName} `)
+            .run();
+        }
       },
     }));
 

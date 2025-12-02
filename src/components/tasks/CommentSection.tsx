@@ -235,30 +235,12 @@ export function CommentSection({ taskId }: CommentSectionProps) {
 
   // Handle mention selection
   const handleMentionSelect = (user: any) => {
-    const editorInstance = (editorRef.current as any)?.editor;
-    if (!editorInstance) return;
+    if (!editorRef.current) return;
     
-    const { state } = editorInstance;
-    const { from, to } = state.selection;
-    
-    // Get the text before the cursor
-    const textBeforeCursor = state.doc.textBetween(0, from, '\n');
-    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-    
-    if (lastAtIndex !== -1) {
-      // Calculate the actual position in the document
-      const mentionStart = lastAtIndex;
-      const mentionEnd = from;
-      
-      // Delete the partial mention and insert the full mention
-      const firstName = user.name.split(' ')[0];
-      editorInstance
-        .chain()
-        .focus()
-        .deleteRange({ from: mentionStart, to: mentionEnd })
-        .insertContentAt(mentionStart, `@${firstName} `)
-        .run();
-    }
+    editorRef.current.insertMention({
+      id: user.auth_user_id,
+      name: user.name
+    });
     
     setShowMentions(false);
     setMentionSearch("");
