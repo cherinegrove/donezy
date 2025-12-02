@@ -115,6 +115,36 @@ export function RoleManagementTab() {
       default: return 'Unknown';
     }
   };
+
+  // Define built-in role permissions
+  const builtInRoles = [
+    {
+      name: "Admin",
+      description: "Full system access with all permissions",
+      permissions: {
+        accountSettings: "delete" as AccessLevel,
+        reports: "delete" as AccessLevel,
+        timeTracking: "delete" as AccessLevel,
+        clients: "delete" as AccessLevel,
+        projects: "delete" as AccessLevel,
+        tasks: "delete" as AccessLevel,
+        users: "delete" as AccessLevel
+      }
+    },
+    {
+      name: "User",
+      description: "Standard user with limited access",
+      permissions: {
+        accountSettings: "none" as AccessLevel,
+        reports: "view" as AccessLevel,
+        timeTracking: "edit" as AccessLevel,
+        clients: "view" as AccessLevel,
+        projects: "view" as AccessLevel,
+        tasks: "edit" as AccessLevel,
+        users: "none" as AccessLevel
+      }
+    }
+  ];
   
   return (
     <div className="space-y-6">
@@ -139,6 +169,57 @@ export function RoleManagementTab() {
           <strong>Permission Hierarchy:</strong> Higher levels include all lower permissions. Delete → Edit → Create → View → None
         </AlertDescription>
       </Alert>
+
+      {/* Built-in Roles */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Built-in Roles</CardTitle>
+          <CardDescription>
+            Default system roles with predefined permissions (cannot be modified)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {builtInRoles.map((role) => (
+              <Card key={role.name} className="border-muted">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-lg">{role.name}</CardTitle>
+                  </div>
+                  <CardDescription>{role.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {Object.entries(role.permissions).map(([key, value]) => (
+                        <tr key={key}>
+                          <td className="py-1 font-medium capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</td>
+                          <td className="py-1 text-right">
+                            <span className={
+                              value === "none" 
+                                ? "text-muted-foreground" 
+                                : value === "view"
+                                  ? "text-blue-500"
+                                  : value === "create"
+                                    ? "text-yellow-500"
+                                    : value === "edit"
+                                      ? "text-green-500"
+                                      : "text-red-500"
+                            }>
+                              {getPermissionDescription(value as AccessLevel)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {isEditing && (
         <Card>
