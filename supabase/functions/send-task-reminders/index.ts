@@ -1,28 +1,151 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.7';
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface WebhookData {
-  type: 'task_reminder';
-  reminder_type: 'start_date' | 'due_date' | 'custom_reminder';
-  task: {
-    id: string;
-    title: string;
-    description: string;
-    start_date?: string;
-    due_date?: string;
-    reminder_date?: string;
-  };
-  recipients: {
-    name: string;
-    email: string;
-    role: 'assignee' | 'collaborator';
-  }[];
-  timestamp: string;
+interface EmailTemplate {
+  id: string;
+  type: string;
+  name: string;
+  subject: string;
+  content: string;
+  is_active: boolean;
+}
+
+// Helper function to get email template from database
+async function getEmailTemplate(supabase: any, templateType: string, authUserId: string): Promise<EmailTemplate | null> {
+  const { data, error } = await supabase
+    .from('email_templates')
+    .select('*')
+    .eq('type', templateType)
+    .eq('auth_user_id', authUserId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`Error fetching email template ${templateType}:`, error);
+    return null;
+  }
+
+  return data;
+}
+
+// Helper function to replace template variables
+function processTemplate(template: string, variables: Record<string, string>): string {
+  let result = template;
+  for (const [key, value] of Object.entries(variables)) {
+    result = result.replace(new RegExp(`{{${key}}}`, 'g'), value || '');
+  }
+  return result;
+}
+
+// Default templates if none configured
+const defaultTemplates: Record<string, { subject: string; content: string }> = {
+  task_due_today: {
+    subject: 'Task Due Today: {{task_title}}',
+    content: `Hello {{user_name}},
+
+Your task "{{task_title}}" is due today.
+
+Project: {{project_name}}
+Priority: {{priority}}
+Due Date: {{due_date}}
+
+Description:
+{{task_description}}
+
+Please complete this task today to stay on track.
+
+Best regards,
+{{company_name}} Team`
+  },
+  task_reminder: {
+    subject: 'Task Reminder: {{task_title}}',
+    content: `Hello {{user_name}},
+
+This is a reminder about your upcoming task:
+
+Task: {{task_title}}
+Project: {{project_name}}
+Due Date: {{due_date}}
+Priority: {{priority}}
+
+Please make sure to complete this task on time.
+
+Best regards,
+{{company_name}} Team`
+  },
+  task_assignment: {
+    subject: 'New Task Assigned: {{task_title}}',
+    content: `Hello {{user_name}},
+
+You have been assigned a new task:
+
+Task: {{task_title}}
+Project: {{project_name}}
+Due Date: {{due_date}}
+Priority: {{priority}}
+
+Description:
+{{task_description}}
+
+Please log in to your dashboard to view full details and get started.
+
+Best regards,
+{{company_name}} Team`
+  }
+};
+
+// Send email using SMTP
+async function sendEmail(to: string, subject: string, content: string): Promise<boolean> {
+  const smtpHost = Deno.env.get("SMTP_HOST");
+  const smtpUser = Deno.env.get("SMTP_USER");
+  const smtpPass = Deno.env.get("SMTP_PASS");
+  const smtpFrom = Deno.env.get("SMTP_FROM");
+
+  if (!smtpHost || !smtpUser || !smtpPass || !smtpFrom) {
+    console.error("SMTP configuration is incomplete - skipping email send");
+    return false;
+  }
+
+  try {
+    const client = new SMTPClient({
+      connection: {
+        hostname: smtpHost,
+        port: 587,
+        tls: true,
+        auth: {
+          username: smtpUser,
+          password: smtpPass,
+        },
+      },
+    });
+
+    await client.send({
+      from: smtpFrom,
+      to: to,
+      subject: subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: white; padding: 20px; border-radius: 5px;">
+            <div style="color: #333; line-height: 1.6; white-space: pre-line;">
+              ${content.replace(/\n/g, '<br>')}
+            </div>
+          </div>
+        </div>
+      `,
+    });
+
+    await client.close();
+    console.log(`Email sent successfully to ${to}`);
+    return true;
+  } catch (error) {
+    console.error(`Error sending email to ${to}:`, error);
+    return false;
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -43,29 +166,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log('Checking for task reminders on:', todayStr);
     
-    // Find tasks starting today that haven't had start date reminders sent
-    const { data: startTasks, error: startTasksError } = await supabase
-      .from('tasks')
-      .select(`
-        id,
-        title,
-        description,
-        start_date,
-        auth_user_id,
-        assignee_id,
-        collaborator_ids
-      `)
-      .eq('start_date', todayStr)
-      .not('auth_user_id', 'is', null);
-    
-    if (startTasksError) {
-      console.error('Error fetching start date tasks:', startTasksError);
-      throw startTasksError;
-    }
-    
-    console.log('Found', startTasks?.length || 0, 'tasks starting today');
-    
-    // Find tasks due today that haven't had due date reminders sent
+    // Find tasks due today
     const { data: dueTasks, error: dueTasksError } = await supabase
       .from('tasks')
       .select(`
@@ -73,9 +174,11 @@ const handler = async (req: Request): Promise<Response> => {
         title,
         description,
         due_date,
+        priority,
         auth_user_id,
         assignee_id,
-        collaborator_ids
+        collaborator_ids,
+        project:projects(name)
       `)
       .eq('due_date', todayStr)
       .not('auth_user_id', 'is', null);
@@ -87,139 +190,12 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log('Found', dueTasks?.length || 0, 'tasks due today');
     
-    // Find tasks with custom reminders for today
-    const { data: reminderTasks, error: reminderTasksError } = await supabase
-      .from('tasks')
-      .select(`
-        id,
-        title,
-        description,
-        reminder_date,
-        auth_user_id,
-        assignee_id,
-        collaborator_ids
-      `)
-      .eq('reminder_date', todayStr)
-      .not('auth_user_id', 'is', null);
-    
-    if (reminderTasksError) {
-      console.error('Error fetching reminder tasks:', reminderTasksError);
-      throw reminderTasksError;
-    }
-    
-    console.log('Found', reminderTasks?.length || 0, 'tasks with custom reminders today');
-    
     let emailsSent = 0;
-    
-    // Process start date reminders
-    for (const task of startTasks || []) {
-      // Check if we already sent a start date reminder for this task
-      const { data: existingReminder } = await supabase
-        .from('task_reminders')
-        .select('id')
-        .eq('task_id', task.id)
-        .eq('reminder_type', 'start_date')
-        .single();
-      
-      if (existingReminder) {
-        console.log(`Start date reminder already sent for task ${task.id}`);
-        continue;
-      }
-      
-      // Get list of recipients (assignee + collaborators, excluding creator)
-      const recipients = [];
-      
-      // Add assignee if exists and different from creator
-      if (task.assignee_id && task.assignee_id !== task.auth_user_id) {
-        const { data: assigneeUser } = await supabase
-          .from('users')
-          .select('name, email, auth_user_id')
-          .eq('auth_user_id', task.assignee_id)
-          .single();
-        
-        if (assigneeUser) {
-          recipients.push(assigneeUser);
-        }
-      }
-      
-      // Add collaborators if exist and different from creator
-      if (task.collaborator_ids && task.collaborator_ids.length > 0) {
-        const { data: collaboratorUsers } = await supabase
-          .from('users')
-          .select('name, email, auth_user_id')
-          .in('auth_user_id', task.collaborator_ids)
-          .neq('auth_user_id', task.auth_user_id);
-        
-        if (collaboratorUsers) {
-          recipients.push(...collaboratorUsers);
-        }
-      }
-      
-      // Prepare webhook data for all recipients
-      if (recipients.length > 0) {
-        const webhookData: WebhookData = {
-          type: 'task_reminder',
-          reminder_type: 'start_date',
-          task: {
-            id: task.id,
-            title: task.title,
-            description: task.description || '',
-            start_date: task.start_date,
-          },
-          recipients: recipients.map(recipient => ({
-            name: recipient.name,
-            email: recipient.email,
-            role: task.assignee_id === recipient.auth_user_id ? 'assignee' : 'collaborator' as const
-          })),
-          timestamp: new Date().toISOString(),
-        };
-
-        try {
-          // Create notification messages instead of sending emails
-          for (const recipient of recipients) {
-            const { data: recipientUser } = await supabase
-              .from('users')
-              .select('auth_user_id')
-              .eq('email', recipient.email)
-              .single();
-
-            if (recipientUser) {
-              // Create notification message
-              await supabase
-                .from('messages')
-                .insert({
-                  auth_user_id: recipientUser.auth_user_id,
-                  from_user_id: 'system',
-                  to_user_id: recipientUser.auth_user_id,
-                  subject: `Task Starting Today: ${task.title}`,
-                  content: `The task "${task.title}" is scheduled to start today. ${task.description ? task.description : ''}`,
-                  priority: 'normal',
-                  read: false
-                });
-            }
-
-            // Record that we sent this reminder
-            await supabase
-              .from('task_reminders')
-              .insert({
-                task_id: task.id,
-                reminder_type: 'start_date',
-                email_sent_to: recipient.email,
-              });
-          }
-          
-          console.log(`Created start date reminder notifications for task: ${task.title}`);
-          emailsSent += recipients.length;
-          
-        } catch (error) {
-          console.error(`Failed to send start date reminder webhook for task ${task.id}:`, error);
-        }
-      }
-    }
+    let notificationsSent = 0;
     
     // Process due date reminders
     for (const task of dueTasks || []) {
-      // Check if we already sent a due date reminder for this task
+      // Check if we already sent a due date reminder for this task today
       const { data: existingReminder } = await supabase
         .from('task_reminders')
         .select('id')
@@ -232,117 +208,24 @@ const handler = async (req: Request): Promise<Response> => {
         continue;
       }
       
-      // Get list of recipients (assignee + collaborators, excluding creator)
-      const recipients = [];
+      // Get the template for task_due_today - check the task owner's templates
+      const template = await getEmailTemplate(supabase, 'task_due_today', task.auth_user_id);
       
-      // Add assignee if exists and different from creator
-      if (task.assignee_id && task.assignee_id !== task.auth_user_id) {
-        const { data: assigneeUser } = await supabase
-          .from('users')
-          .select('name, email, auth_user_id')
-          .eq('auth_user_id', task.assignee_id)
-          .single();
-        
-        if (assigneeUser) {
-          recipients.push(assigneeUser);
-        }
-      }
+      // Check if template exists and is active (use default if no custom template)
+      const isActive = template ? template.is_active : true;
       
-      // Add collaborators if exist and different from creator
-      if (task.collaborator_ids && task.collaborator_ids.length > 0) {
-        const { data: collaboratorUsers } = await supabase
-          .from('users')
-          .select('name, email, auth_user_id')
-          .in('auth_user_id', task.collaborator_ids)
-          .neq('auth_user_id', task.auth_user_id);
-        
-        if (collaboratorUsers) {
-          recipients.push(...collaboratorUsers);
-        }
-      }
-      
-      // Prepare webhook data for all recipients
-      if (recipients.length > 0) {
-        const webhookData: WebhookData = {
-          type: 'task_reminder',
-          reminder_type: 'due_date',
-          task: {
-            id: task.id,
-            title: task.title,
-            description: task.description || '',
-            due_date: task.due_date,
-          },
-          recipients: recipients.map(recipient => ({
-            name: recipient.name,
-            email: recipient.email,
-            role: task.assignee_id === recipient.auth_user_id ? 'assignee' : 'collaborator' as const
-          })),
-          timestamp: new Date().toISOString(),
-        };
-
-        try {
-          // Create notification messages instead of sending emails
-          for (const recipient of recipients) {
-            const { data: recipientUser } = await supabase
-              .from('users')
-              .select('auth_user_id')
-              .eq('email', recipient.email)
-              .single();
-
-            if (recipientUser) {
-              // Create notification message
-              await supabase
-                .from('messages')
-                .insert({
-                  auth_user_id: recipientUser.auth_user_id,
-                  from_user_id: 'system',
-                  to_user_id: recipientUser.auth_user_id,
-                  subject: `Task Due Today: ${task.title}`,
-                  content: `The task "${task.title}" is due today. Please ensure it's completed on time. ${task.description ? task.description : ''}`,
-                  priority: 'high',
-                  read: false
-                });
-            }
-
-            // Record that we sent this reminder
-            await supabase
-              .from('task_reminders')
-              .insert({
-                task_id: task.id,
-                reminder_type: 'due_date',
-                email_sent_to: recipient.email,
-              });
-          }
-          
-          console.log(`Created due date reminder notifications for task: ${task.title}`);
-          emailsSent += recipients.length;
-          
-        } catch (error) {
-          console.error(`Failed to send due date reminder webhook for task ${task.id}:`, error);
-        }
-      }
-    }
-    
-    // Process custom reminders
-    for (const task of reminderTasks || []) {
-      // Check if we already sent a custom reminder for this task
-      const { data: existingReminder } = await supabase
-        .from('task_reminders')
-        .select('id')
-        .eq('task_id', task.id)
-        .eq('reminder_type', 'custom_reminder')
-        .single();
-      
-      if (existingReminder) {
-        console.log(`Custom reminder already sent for task ${task.id}`);
+      if (!isActive) {
+        console.log(`Task due today email template is inactive for user ${task.auth_user_id} - skipping email`);
         continue;
       }
       
-      // Get list of recipients (assignee + collaborators, excluding creator)
+      const templateSubject = template?.subject || defaultTemplates.task_due_today.subject;
+      const templateContent = template?.content || defaultTemplates.task_due_today.content;
+      
+      // Get recipients (assignee + collaborators)
       const recipients = [];
       
-      // Add assignee if exists and different from creator
-      if (task.assignee_id && task.assignee_id !== task.auth_user_id) {
+      if (task.assignee_id) {
         const { data: assigneeUser } = await supabase
           .from('users')
           .select('name, email, auth_user_id')
@@ -354,88 +237,176 @@ const handler = async (req: Request): Promise<Response> => {
         }
       }
       
-      // Add collaborators if exist and different from creator
       if (task.collaborator_ids && task.collaborator_ids.length > 0) {
         const { data: collaboratorUsers } = await supabase
           .from('users')
           .select('name, email, auth_user_id')
-          .in('auth_user_id', task.collaborator_ids)
-          .neq('auth_user_id', task.auth_user_id);
+          .in('auth_user_id', task.collaborator_ids);
         
         if (collaboratorUsers) {
-          recipients.push(...collaboratorUsers);
+          for (const collab of collaboratorUsers) {
+            if (!recipients.find(r => r.auth_user_id === collab.auth_user_id)) {
+              recipients.push(collab);
+            }
+          }
         }
       }
       
-      // Prepare webhook data for all recipients
-      if (recipients.length > 0) {
-        const webhookData: WebhookData = {
-          type: 'task_reminder',
-          reminder_type: 'custom_reminder',
-          task: {
-            id: task.id,
-            title: task.title,
-            description: task.description || '',
-            reminder_date: task.reminder_date,
-          },
-          recipients: recipients.map(recipient => ({
-            name: recipient.name,
-            email: recipient.email,
-            role: task.assignee_id === recipient.auth_user_id ? 'assignee' : 'collaborator' as const
-          })),
-          timestamp: new Date().toISOString(),
+      // Send emails to each recipient
+      for (const recipient of recipients) {
+        const variables = {
+          user_name: recipient.name,
+          task_title: task.title,
+          project_name: task.project?.name || 'Unknown Project',
+          due_date: task.due_date || 'No due date',
+          priority: task.priority || 'medium',
+          task_description: task.description || 'No description',
+          company_name: 'Donezy'
         };
+        
+        const subject = processTemplate(templateSubject, variables);
+        const content = processTemplate(templateContent, variables);
+        
+        // Send email
+        const emailSent = await sendEmail(recipient.email, subject, content);
+        if (emailSent) {
+          emailsSent++;
+        }
+        
+        // Also create in-app notification
+        const { data: recipientUser } = await supabase
+          .from('users')
+          .select('auth_user_id')
+          .eq('email', recipient.email)
+          .single();
 
-        try {
-          // Create notification messages instead of sending emails
-          for (const recipient of recipients) {
-            const { data: recipientUser } = await supabase
-              .from('users')
-              .select('auth_user_id')
-              .eq('email', recipient.email)
-              .single();
+        if (recipientUser) {
+          await supabase
+            .from('messages')
+            .insert({
+              auth_user_id: recipientUser.auth_user_id,
+              from_user_id: 'system',
+              to_user_id: recipientUser.auth_user_id,
+              subject: `Task Due Today: ${task.title}`,
+              content: `The task "${task.title}" is due today.`,
+              priority: 'high',
+              read: false
+            });
+          notificationsSent++;
+        }
 
-            if (recipientUser) {
-              // Create notification message
-              await supabase
-                .from('messages')
-                .insert({
-                  auth_user_id: recipientUser.auth_user_id,
-                  from_user_id: 'system',
-                  to_user_id: recipientUser.auth_user_id,
-                  subject: `Task Reminder: ${task.title}`,
-                  content: `You have a reminder set for the task "${task.title}". ${task.description ? task.description : ''}`,
-                  priority: 'normal',
-                  read: false
-                });
-            }
-
-            // Record that we sent this reminder
-            await supabase
-              .from('task_reminders')
-              .insert({
-                task_id: task.id,
-                reminder_type: 'custom_reminder',
-                email_sent_to: recipient.email,
-              });
+        // Record the reminder
+        await supabase
+          .from('task_reminders')
+          .insert({
+            task_id: task.id,
+            reminder_type: 'due_date',
+            email_sent_to: recipient.email,
+          });
+      }
+      
+      console.log(`Processed due date reminders for task: ${task.title}`);
+    }
+    
+    // Find tasks with custom reminders for today
+    const { data: reminderTasks, error: reminderTasksError } = await supabase
+      .from('tasks')
+      .select(`
+        id,
+        title,
+        description,
+        reminder_date,
+        due_date,
+        priority,
+        auth_user_id,
+        assignee_id,
+        collaborator_ids,
+        project:projects(name)
+      `)
+      .eq('reminder_date', todayStr)
+      .not('auth_user_id', 'is', null);
+    
+    if (reminderTasksError) {
+      console.error('Error fetching reminder tasks:', reminderTasksError);
+    } else {
+      console.log('Found', reminderTasks?.length || 0, 'tasks with custom reminders today');
+      
+      for (const task of reminderTasks || []) {
+        const { data: existingReminder } = await supabase
+          .from('task_reminders')
+          .select('id')
+          .eq('task_id', task.id)
+          .eq('reminder_type', 'custom_reminder')
+          .single();
+        
+        if (existingReminder) {
+          console.log(`Custom reminder already sent for task ${task.id}`);
+          continue;
+        }
+        
+        // Get template
+        const template = await getEmailTemplate(supabase, 'task_reminder', task.auth_user_id);
+        const isActive = template ? template.is_active : true;
+        
+        if (!isActive) {
+          console.log(`Task reminder email template is inactive - skipping email`);
+          continue;
+        }
+        
+        const templateSubject = template?.subject || defaultTemplates.task_reminder.subject;
+        const templateContent = template?.content || defaultTemplates.task_reminder.content;
+        
+        const recipients = [];
+        
+        if (task.assignee_id) {
+          const { data: assigneeUser } = await supabase
+            .from('users')
+            .select('name, email, auth_user_id')
+            .eq('auth_user_id', task.assignee_id)
+            .single();
+          
+          if (assigneeUser) {
+            recipients.push(assigneeUser);
+          }
+        }
+        
+        for (const recipient of recipients) {
+          const variables = {
+            user_name: recipient.name,
+            task_title: task.title,
+            project_name: task.project?.name || 'Unknown Project',
+            due_date: task.due_date || 'No due date',
+            priority: task.priority || 'medium',
+            task_description: task.description || 'No description',
+            company_name: 'Donezy'
+          };
+          
+          const subject = processTemplate(templateSubject, variables);
+          const content = processTemplate(templateContent, variables);
+          
+          const emailSent = await sendEmail(recipient.email, subject, content);
+          if (emailSent) {
+            emailsSent++;
           }
           
-          console.log(`Created custom reminder notifications for task: ${task.title}`);
-          emailsSent += recipients.length;
-          
-        } catch (error) {
-          console.error(`Failed to send custom reminder webhook for task ${task.id}:`, error);
+          await supabase
+            .from('task_reminders')
+            .insert({
+              task_id: task.id,
+              reminder_type: 'custom_reminder',
+              email_sent_to: recipient.email,
+            });
         }
       }
     }
     
-    console.log(`Task reminder check complete. Sent ${emailsSent} webhook notifications.`);
+    console.log(`Task reminder check complete. Emails sent: ${emailsSent}, In-app notifications: ${notificationsSent}`);
     
     return new Response(
       JSON.stringify({ 
         success: true, 
-        webhooksSent: emailsSent,
-        startTasksChecked: startTasks?.length || 0,
+        emailsSent,
+        notificationsSent,
         dueTasksChecked: dueTasks?.length || 0,
         reminderTasksChecked: reminderTasks?.length || 0
       }),
