@@ -158,7 +158,7 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
             </div>
           </CollapsibleTrigger>
 
-          <CollapsibleContent className="px-3 pb-2">
+          <CollapsibleContent className="px-3 pb-2 space-y-3">
             <div className="flex items-center gap-2 mb-3 text-xs flex-wrap">
               {data.approvedCount > 0 && (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
@@ -176,9 +176,8 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
                 </Badge>
               )}
             </div>
-          </CollapsibleContent>
 
-          <CollapsibleContent className="pl-6 pt-3 space-y-3">
+            <div className="pl-3 pt-3 space-y-3">
             {Object.entries(data.byClient).map(([clientId, clientData]: [string, any]) => (
               <div key={clientId} className="border-l-2 border-primary/20 pl-4 space-y-2">
                 <Collapsible
@@ -273,6 +272,7 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
                 </Collapsible>
               </div>
             ))}
+            </div>
           </CollapsibleContent>
         </Collapsible>
       </div>
