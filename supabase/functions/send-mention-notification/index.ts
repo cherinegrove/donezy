@@ -1,13 +1,115 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+interface EmailTemplate {
+  id: string;
+  type: string;
+  name: string;
+  subject: string;
+  content: string;
+  is_active: boolean;
+}
+
+// Helper function to get email template from database
+async function getEmailTemplate(supabase: any, templateType: string, authUserId: string): Promise<EmailTemplate | null> {
+  const { data, error } = await supabase
+    .from('email_templates')
+    .select('*')
+    .eq('type', templateType)
+    .eq('auth_user_id', authUserId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`Error fetching email template ${templateType}:`, error);
+    return null;
+  }
+
+  return data;
+}
+
+// Helper function to replace template variables
+function processTemplate(template: string, variables: Record<string, string>): string {
+  let result = template;
+  for (const [key, value] of Object.entries(variables)) {
+    result = result.replace(new RegExp(`{{${key}}}`, 'g'), value || '');
+  }
+  return result;
+}
+
+// Default template for mentions
+const defaultMentionTemplate = {
+  subject: 'You were mentioned in: {{context_title}}',
+  content: `Hello {{user_name}},
+
+You have been mentioned by {{mention_by}} in {{context_type}} "{{context_title}}".
+
+Message:
+{{mention_message}}
+
+Project: {{project_name}}
+
+Please log in to view the full conversation and respond.
+
+Best regards,
+{{company_name}} Team`
+};
+
+// Send email using SMTP
+async function sendEmail(to: string, subject: string, content: string): Promise<boolean> {
+  const smtpHost = Deno.env.get("SMTP_HOST");
+  const smtpUser = Deno.env.get("SMTP_USER");
+  const smtpPass = Deno.env.get("SMTP_PASS");
+  const smtpFrom = Deno.env.get("SMTP_FROM");
+
+  if (!smtpHost || !smtpUser || !smtpPass || !smtpFrom) {
+    console.error("SMTP configuration is incomplete - skipping email send");
+    return false;
+  }
+
+  try {
+    const client = new SMTPClient({
+      connection: {
+        hostname: smtpHost,
+        port: 587,
+        tls: true,
+        auth: {
+          username: smtpUser,
+          password: smtpPass,
+        },
+      },
+    });
+
+    await client.send({
+      from: smtpFrom,
+      to: to,
+      subject: subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: white; padding: 20px; border-radius: 5px;">
+            <div style="color: #333; line-height: 1.6; white-space: pre-line;">
+              ${content.replace(/\n/g, '<br>')}
+            </div>
+          </div>
+        </div>
+      `,
+    });
+
+    await client.close();
+    console.log(`Email sent successfully to ${to}`);
+    return true;
+  } catch (error) {
+    console.error(`Error sending email to ${to}:`, error);
+    return false;
+  }
+}
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -20,7 +122,7 @@ serve(async (req) => {
     
     console.log('Processing mention notification request');
     
-    const { mentionedUserId, mentionerName, messageContent, taskId, commentId } = await req.json();
+    const { mentionedUserId, mentionerName, messageContent, taskId, commentId, projectName } = await req.json();
     
     if (!mentionedUserId || !mentionerName || !messageContent) {
       return new Response(
@@ -51,10 +153,10 @@ serve(async (req) => {
       .eq('name', mentionerName)
       .single();
     
-    const fromUserId = mentionerUser?.auth_user_id || mentionedUserId; // fallback to avoid error
+    const fromUserId = mentionerUser?.auth_user_id || mentionedUserId;
     
     // Create a notification message for the mentioned user
-    const plainText = messageContent.replace(/<[^>]*>/g, '').substring(0, 100); // Strip HTML and truncate
+    const plainText = messageContent.replace(/<[^>]*>/g, '').substring(0, 100);
     
     const { data: notification, error: notificationError } = await supabase
       .from('messages')
@@ -79,47 +181,45 @@ serve(async (req) => {
       );
     }
     
-    // Send email notification using Resend
-    const resendApiKey = Deno.env.get('resend');
+    // Check for email template - use mentioned user's auth_user_id to find their account owner's template
+    const template = await getEmailTemplate(supabase, 'mentioned', mentionedUserId);
+    const isActive = template ? template.is_active : true;
     
-    if (resendApiKey) {
-      try {
-        const emailResponse = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'notifications@taskflow.app',
-            to: [mentionedUser.email],
-            subject: `You were mentioned by ${mentionerName}`,
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #333;">You were mentioned!</h2>
-                <p><strong>${mentionerName}</strong> mentioned you in a comment:</p>
-                <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
-                  <p style="margin: 0;">${plainText}${plainText.length >= 100 ? '...' : ''}</p>
-                </div>
-                <p>
-                  <a href="${supabaseUrl.replace('.supabase.co', '')}/tasks" 
-                     style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                    View Task
-                  </a>
-                </p>
-              </div>
-            `,
-          }),
-        });
-        
-        if (!emailResponse.ok) {
-          console.error('Failed to send email:', await emailResponse.text());
-        } else {
-          console.log(`Mention notification email sent to ${mentionedUser.email}`);
+    let emailSent = false;
+    
+    if (isActive) {
+      const templateSubject = template?.subject || defaultMentionTemplate.subject;
+      const templateContent = template?.content || defaultMentionTemplate.content;
+      
+      // Get task title if available
+      let taskTitle = 'a comment';
+      if (taskId) {
+        const { data: task } = await supabase
+          .from('tasks')
+          .select('title')
+          .eq('id', taskId)
+          .single();
+        if (task) {
+          taskTitle = task.title;
         }
-      } catch (emailError) {
-        console.error('Error sending mention notification email:', emailError);
       }
+      
+      const variables = {
+        user_name: mentionedUser.name,
+        mention_by: mentionerName,
+        context_type: taskId ? 'task' : 'comment',
+        context_title: taskTitle,
+        mention_message: plainText,
+        project_name: projectName || 'Unknown Project',
+        company_name: 'Donezy'
+      };
+      
+      const subject = processTemplate(templateSubject, variables);
+      const content = processTemplate(templateContent, variables);
+      
+      emailSent = await sendEmail(mentionedUser.email, subject, content);
+    } else {
+      console.log('Mention email template is inactive - skipping email');
     }
     
     console.log(`Created mention notification for user ${mentionedUser.name}`);
@@ -128,7 +228,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         notificationId: notification.id,
-        emailSent: !!resendApiKey
+        emailSent
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
