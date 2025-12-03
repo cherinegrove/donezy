@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Mail, Send, Edit, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -500,6 +501,23 @@ export const EmailTemplatesManager = () => {
                           <SelectItem value="mentioned">Mentioned</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="template-active">Template Active</Label>
+                        <p className="text-sm text-muted-foreground">
+                          When disabled, this notification type won't be sent
+                        </p>
+                      </div>
+                      <Switch
+                        id="template-active"
+                        checked={selectedTemplate.isActive}
+                        onCheckedChange={(checked) => setSelectedTemplate({
+                          ...selectedTemplate,
+                          isActive: checked
+                        })}
+                        disabled={!isEditing}
+                      />
                     </div>
                   </div>
 
