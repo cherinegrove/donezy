@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Send, Edit } from "lucide-react";
+import { Mail, Send, Edit, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,7 +21,7 @@ interface EmailTemplate {
 
 const defaultTemplates: EmailTemplate[] = [
   {
-    id: '1',
+    id: 'task_due_today',
     name: 'Task Due Today',
     subject: 'Task Due Today: {{task_title}}',
     content: `Hello {{user_name}},
@@ -43,7 +43,7 @@ Best regards,
     isActive: true
   },
   {
-    id: '2',
+    id: 'task_reminder',
     name: 'Task Reminder',
     subject: 'Task Reminder: {{task_title}}',
     content: `Hello {{user_name}},
@@ -63,7 +63,7 @@ Best regards,
     isActive: true
   },
   {
-    id: '3',
+    id: 'task_overdue',
     name: 'Task Overdue',
     subject: 'Overdue Task: {{task_title}}',
     content: `Hello {{user_name}},
@@ -85,7 +85,7 @@ Best regards,
     isActive: true
   },
   {
-    id: '4',
+    id: 'task_assignment',
     name: 'Task Assignment',
     subject: 'New Task Assigned: {{task_title}}',
     content: `Hello {{user_name}},
@@ -108,7 +108,7 @@ Best regards,
     isActive: true
   },
   {
-    id: '5',
+    id: 'project_added',
     name: 'Added to Project',
     subject: 'You\'ve been added to project: {{project_name}}',
     content: `Hello {{user_name}},
@@ -132,7 +132,7 @@ Best regards,
     isActive: true
   },
   {
-    id: '6',
+    id: 'task_collaborator',
     name: 'Added as Task Collaborator',
     subject: 'You\'ve been added as collaborator: {{task_title}}',
     content: `Hello {{user_name}},
@@ -155,7 +155,7 @@ Best regards,
     isActive: true
   },
   {
-    id: '7',
+    id: 'mentioned',
     name: 'You\'ve been Mentioned',
     subject: 'You were mentioned in: {{context_title}}',
     content: `Hello {{user_name}},
@@ -181,21 +181,125 @@ export const EmailTemplatesManager = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+
+  // Load templates from database on mount
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const loadTemplates = async () => {
+    try {
+      setIsLoading(true);
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return;
+
+      const { data, error } = await supabase
+        .from('email_templates')
+        .select('*');
+
+      if (error) throw error;
+
+      // Merge database templates with defaults
+      const mergedTemplates = defaultTemplates.map(defaultTemplate => {
+        const dbTemplate = data?.find(t => t.type === defaultTemplate.type);
+        if (dbTemplate) {
+          return {
+            id: dbTemplate.id,
+            name: dbTemplate.name,
+            subject: dbTemplate.subject,
+            content: dbTemplate.content,
+            type: dbTemplate.type as EmailTemplate['type'],
+            isActive: dbTemplate.is_active
+          };
+        }
+        return defaultTemplate;
+      });
+
+      setTemplates(mergedTemplates);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSaveTemplate = async () => {
     if (!selectedTemplate) return;
 
-    // In a real implementation, you would save to database
-    setTemplates(prev => 
-      prev.map(t => t.id === selectedTemplate.id ? selectedTemplate : t)
-    );
-    
-    setIsEditing(false);
-    toast({
-      title: "Template Saved",
-      description: "Email template has been updated successfully."
-    });
+    try {
+      setIsSaving(true);
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to save templates.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check if template exists in database
+      const { data: existing } = await supabase
+        .from('email_templates')
+        .select('id')
+        .eq('type', selectedTemplate.type)
+        .maybeSingle();
+
+      if (existing) {
+        // Update existing template
+        const { error } = await supabase
+          .from('email_templates')
+          .update({
+            name: selectedTemplate.name,
+            subject: selectedTemplate.subject,
+            content: selectedTemplate.content,
+            is_active: selectedTemplate.isActive
+          })
+          .eq('type', selectedTemplate.type);
+
+        if (error) throw error;
+      } else {
+        // Insert new template
+        const { error } = await supabase
+          .from('email_templates')
+          .insert({
+            auth_user_id: session.session.user.id,
+            type: selectedTemplate.type,
+            name: selectedTemplate.name,
+            subject: selectedTemplate.subject,
+            content: selectedTemplate.content,
+            is_active: selectedTemplate.isActive
+          });
+
+        if (error) throw error;
+      }
+
+      // Update local state
+      setTemplates(prev => 
+        prev.map(t => t.type === selectedTemplate.type ? selectedTemplate : t)
+      );
+      
+      setIsEditing(false);
+      toast({
+        title: "Template Saved",
+        description: "Email template has been saved to the database."
+      });
+
+      // Reload to get the latest data
+      loadTemplates();
+    } catch (error) {
+      console.error('Error saving template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save template. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSendTestEmail = async () => {
@@ -273,6 +377,17 @@ export const EmailTemplatesManager = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          Loading templates...
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -289,9 +404,9 @@ export const EmailTemplatesManager = () => {
             <div className="space-y-3">
               {templates.map((template) => (
                 <div 
-                  key={template.id} 
+                  key={template.type} 
                   className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                    selectedTemplate?.id === template.id ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+                    selectedTemplate?.type === template.type ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
                   }`}
                   onClick={() => {
                     setSelectedTemplate(template);
@@ -339,7 +454,8 @@ export const EmailTemplatesManager = () => {
                         <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
                           Cancel
                         </Button>
-                        <Button size="sm" onClick={handleSaveTemplate}>
+                        <Button size="sm" onClick={handleSaveTemplate} disabled={isSaving}>
+                          {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                           Save
                         </Button>
                       </>
@@ -369,7 +485,7 @@ export const EmailTemplatesManager = () => {
                           ...selectedTemplate,
                           type: value as EmailTemplate['type']
                         })}
-                        disabled={!isEditing}
+                        disabled={true}
                       >
                         <SelectTrigger>
                           <SelectValue />

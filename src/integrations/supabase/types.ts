@@ -374,6 +374,42 @@ export type Database = {
           },
         ]
       }
+      email_templates: {
+        Row: {
+          auth_user_id: string
+          content: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          subject: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          subject: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          subject?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       integration_settings: {
         Row: {
           auth_user_id: string
