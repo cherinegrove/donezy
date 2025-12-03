@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Project } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Edit, Clock, AlertTriangle, User, Users, CheckSquare, FileText, Files, Bell, Mail, GanttChart } from "lucide-react";
+import { Calendar, Edit, Clock, AlertTriangle, User, Users, CheckSquare, FileText, Files, Bell, Mail, GanttChart, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { format, differenceInDays, parseISO, isValid } from "date-fns";
+import { format, differenceInDays, parseISO, isValid, isBefore, isAfter, startOfDay, endOfDay } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +21,9 @@ import { BulkEditTasksDialog } from "@/components/tasks/BulkEditTasksDialog";
 import { GoogleChatSettings } from "@/components/projects/GoogleChatSettings";
 import { WeeklyRoundupDialog } from "@/components/projects/WeeklyRoundupDialog";
 import { TaskTimeline } from "@/components/projects/TaskTimeline";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Label } from "@/components/ui/label";
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -34,6 +37,11 @@ export default function ProjectDetails() {
   const [bulkEditTaskIds, setBulkEditTaskIds] = useState<string[]>([]);
   const [isGeneratingRoundup, setIsGeneratingRoundup] = useState(false);
   const [roundupDialogOpen, setRoundupDialogOpen] = useState(false);
+  
+  // Task filters
+  const [ownerFilter, setOwnerFilter] = useState<string>("all");
+  const [dueDateFilter, setDueDateFilter] = useState<Date | undefined>(undefined);
+  
   const [roundupData, setRoundupData] = useState<{
     subject: string;
     emailContent: string;
@@ -57,6 +65,44 @@ export default function ProjectDetails() {
   const client = project ? clients.find(c => c.id === project.clientId) : null;
 
   const projectTasks = tasks.filter(task => task.projectId === projectId);
+  
+  // Get unique task owners for the filter dropdown
+  const taskOwners = useMemo(() => {
+    const ownerIds = new Set<string>();
+    projectTasks.forEach(task => {
+      if (task.assigneeId) {
+        ownerIds.add(task.assigneeId);
+      }
+    });
+    return Array.from(ownerIds).map(id => {
+      const user = users.find(u => u.id === id || u.auth_user_id === id);
+      return { id, name: user?.name || "Unknown" };
+    });
+  }, [projectTasks, users]);
+  
+  // Filter tasks based on selected filters
+  const filteredProjectTasks = useMemo(() => {
+    return projectTasks.filter(task => {
+      // Owner filter
+      if (ownerFilter !== "all" && task.assigneeId !== ownerFilter) {
+        return false;
+      }
+      
+      // Due date filter
+      if (dueDateFilter) {
+        if (!task.dueDate) return false;
+        const taskDueDate = new Date(task.dueDate);
+        const filterDate = startOfDay(dueDateFilter);
+        const filterDateEnd = endOfDay(dueDateFilter);
+        if (!isValid(taskDueDate) || taskDueDate < filterDate || taskDueDate > filterDateEnd) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [projectTasks, ownerFilter, dueDateFilter]);
+  
   const totalHours = timeEntries
     .filter(entry => entry.projectId === projectId)
     .reduce((sum, entry) => sum + entry.duration, 0);
@@ -413,8 +459,57 @@ export default function ProjectDetails() {
         </TabsList>
         
         <TabsContent value="tasks" className="mt-6 animate-fade-in">
+          {/* Task Filters */}
+          <div className="flex flex-wrap items-end gap-4 mb-4 p-4 bg-muted/30 rounded-lg border">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-sm font-medium">Owner</Label>
+              <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+                <SelectTrigger className="w-[180px] bg-background">
+                  <SelectValue placeholder="All Owners" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border z-50">
+                  <SelectItem value="all">All Owners</SelectItem>
+                  {taskOwners.map(owner => (
+                    <SelectItem key={owner.id} value={owner.id}>
+                      {owner.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-sm font-medium">Due Date</Label>
+              <DatePicker
+                date={dueDateFilter}
+                onDateChange={setDueDateFilter}
+              />
+            </div>
+            
+            {(ownerFilter !== "all" || dueDateFilter) && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  setOwnerFilter("all");
+                  setDueDateFilter(undefined);
+                }}
+                className="h-10"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear Filters
+              </Button>
+            )}
+            
+            {(ownerFilter !== "all" || dueDateFilter) && (
+              <Badge variant="secondary" className="h-6">
+                {filteredProjectTasks.length} of {projectTasks.length} tasks
+              </Badge>
+            )}
+          </div>
+          
           <KanbanBoard 
-            tasks={projectTasks} 
+            tasks={filteredProjectTasks} 
             projectId={projectId} 
             viewMode="kanban" 
             onBulkEdit={handleBulkEdit}
