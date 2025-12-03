@@ -1,20 +1,15 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { useAppContext } from "@/contexts/AppContext";
-import { Button } from "@/components/ui/button";
-import { Play, Clock } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Clock } from "lucide-react";
 import { TimeEntryTable } from "./TimeEntryTable";
-import { StartTimerDialog } from "@/components/time/StartTimerDialog";
 
 interface TimerSectionProps {
   taskId: string;
 }
 
 export function TimerSection({ taskId }: TimerSectionProps) {
-  const { tasks, projects, clients, currentUser, timeEntries } = useAppContext();
-  const { toast } = useToast();
-  const [startTimerDialogOpen, setStartTimerDialogOpen] = useState(false);
+  const { tasks, timeEntries } = useAppContext();
   
   // Add null check for tasks
   const task = tasks && Array.isArray(tasks) ? tasks.find(t => t && t.id === taskId) : null;
@@ -27,20 +22,6 @@ export function TimerSection({ taskId }: TimerSectionProps) {
       </div>
     );
   }
-  
-  const project = projects.find(p => p.id === task.projectId);
-  const client = project ? clients.find(c => c.id === project.clientId) : null;
-  
-  const handleStartTimer = () => {
-    setStartTimerDialogOpen(true);
-  };
-  
-  const handleTimerStarted = () => {
-    toast({
-      title: "Timer started",
-      description: `Now tracking time for "${task.title}"`,
-    });
-  };
   
   // Get time entries for this task
   const taskTimeEntries = timeEntries.filter(entry => entry.taskId === taskId);
@@ -62,26 +43,12 @@ export function TimerSection({ taskId }: TimerSectionProps) {
             </div>
           )}
         </div>
-        <Button 
-          size="sm"
-          onClick={handleStartTimer}
-        >
-          <Play className="h-4 w-4 mr-2" />
-          Start Timer
-        </Button>
       </div>
       
       <div className="space-y-4">
         <h4 className="text-md font-medium">Time Entries Log</h4>
         <TimeEntryTable taskId={taskId} showAllDetails={true} />
       </div>
-      
-      <StartTimerDialog
-        open={startTimerDialogOpen}
-        onOpenChange={setStartTimerDialogOpen}
-        onStartTimer={handleTimerStarted}
-        defaultProjectId={project?.id}
-      />
     </div>
   );
 }
