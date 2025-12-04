@@ -231,22 +231,21 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
 
       {/* Timeline */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Task Timeline by Week
-            </CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportImage}
-              disabled={isExporting}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              {isExporting ? "Exporting..." : "Export 12-Week Snapshot"}
-            </Button>
-          </div>
+        <CardHeader className="space-y-3">
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Task Timeline by Week
+          </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportImage}
+            disabled={isExporting}
+            className="w-fit"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {isExporting ? "Exporting..." : "Export 12-Week Snapshot"}
+          </Button>
         </CardHeader>
         <CardContent>
           <ScrollArea className="w-full">
