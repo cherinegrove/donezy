@@ -344,13 +344,13 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
                   <span className="text-xs text-gray-400">Wk {index + 1}</span>
                 </div>
                 
-                <div className="space-y-2 min-h-[120px]">
+                <div className="space-y-2">
                   {week.tasks.length === 0 ? (
                     <div className="text-center py-8 text-gray-400 text-sm">
                       No tasks
                     </div>
                   ) : (
-                    week.tasks.slice(0, 5).map(task => (
+                    week.tasks.map(task => (
                       <div
                         key={task.id}
                         className={`p-2 rounded border text-sm ${
@@ -365,7 +365,7 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
                           {task.priority === "urgent" && (
                             <span className="w-2 h-2 rounded-full bg-red-500 inline-block mr-1 mt-0.5" />
                           )}
-                          <span className="font-medium text-xs text-gray-900 line-clamp-2">{task.title}</span>
+                          <span className="font-medium text-xs text-gray-900">{task.title}</span>
                         </div>
                         <div className="flex items-center justify-between mt-1.5">
                           <span className="text-xs text-gray-500 truncate max-w-[80px]">
@@ -377,11 +377,6 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
                         </div>
                       </div>
                     ))
-                  )}
-                  {week.tasks.length > 5 && (
-                    <div className="text-xs text-gray-400 text-center">
-                      +{week.tasks.length - 5} more
-                    </div>
                   )}
                 </div>
                 
