@@ -2981,20 +2981,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const markMessageAsRead = async (messageId: string) => {
+    // Optimistic update - update local state immediately for instant UI feedback
+    updateMessage(messageId, { read: true });
+    
     try {
       const { error } = await supabase
         .from('messages')
         .update({ read: true })
         .eq('id', messageId);
 
-      if (error) throw error;
-      
-      // Update local state
-      updateMessage(messageId, { read: true });
+      if (error) {
+        console.error('Error marking message as read in database:', error);
+        // State is already updated, keep the optimistic update
+      }
     } catch (error) {
       console.error('Error marking message as read:', error);
-      // Fallback to local state only
-      updateMessage(messageId, { read: true });
     }
   };
 
