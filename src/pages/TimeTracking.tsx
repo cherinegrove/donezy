@@ -154,6 +154,15 @@ const TimeTracking = () => {
         id: project.id,
         label: project.name
       }))
+    },
+    {
+      id: "status",
+      name: "Status",
+      options: [
+        { id: "pending", label: "Pending" },
+        { id: "approved", label: "Approved" },
+        { id: "declined", label: "Declined" }
+      ]
     }
   ];
   
@@ -181,6 +190,16 @@ const TimeTracking = () => {
     if (selectedFilters.client?.length > 0) {
       const entryClientId = project?.clientId || entry.clientId;
       if (!entryClientId || !selectedFilters.client.includes(entryClientId)) {
+        return false;
+      }
+    }
+    
+    // Check status filter
+    if (selectedFilters.status?.length > 0) {
+      const entryStatus = entry.status || 'pending';
+      // Map approved-billable and approved-non-billable to "approved"
+      const normalizedStatus = entryStatus.startsWith('approved') ? 'approved' : entryStatus;
+      if (!selectedFilters.status.includes(normalizedStatus)) {
         return false;
       }
     }
