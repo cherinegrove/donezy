@@ -307,7 +307,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             userId: comment.user_id,
             content: comment.content,
             timestamp: comment.created_at,
-            mentionedUserIds: comment.mentioned_user_ids || []
+            mentionedUserIds: comment.mentioned_user_ids || [],
+            images: comment.images || []
           });
         });
       }
@@ -555,7 +556,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         (payload) => {
           console.log('📋 Task updated via real-time:', payload);
           
-          // Update the task in state
+          // Update the task in state, preserving comments and files
           setTasks(prev => prev.map(task => 
             task.id === payload.new.id 
               ? {
@@ -567,7 +568,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                   description: payload.new.description,
                   priority: payload.new.priority,
                   dueDate: payload.new.due_date,
-                  startDate: payload.new.start_date
+                  startDate: payload.new.start_date,
+                  // Preserve comments and files - they are managed separately
+                  comments: task.comments,
+                  files: task.files
                 }
               : task
           ));
