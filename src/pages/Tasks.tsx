@@ -12,6 +12,7 @@ import { BulkImportTasksDialog } from "@/components/tasks/BulkImportTasksDialog"
 import { BulkEditTasksDialog } from "@/components/tasks/BulkEditTasksDialog";
 import { TaskTemplatesList } from "@/components/tasks/TaskTemplatesList";
 import { RecurringTasksList } from "@/components/tasks/RecurringTasksList";
+import { TasksTimeline } from "@/components/tasks/TasksTimeline";
 import { EnhancedFilterBar, FilterOption } from "@/components/common/EnhancedFilterBar";
 import { 
   Popover,
@@ -35,7 +36,7 @@ import {
 } from "@/components/ui/select";
 import { ModernToolbar, ModernToolbarSection } from "@/components/common/ModernToolbar";
 
-type TaskViewMode = "list" | "kanban";
+type TaskViewMode = "list" | "kanban" | "timeline";
 
 export default function Tasks() {
   const { tasks, projects, users, clients, currentUser } = useAppContext();
@@ -324,12 +325,14 @@ export default function Tasks() {
             </ModernToolbarSection>
             
             <ModernToolbarSection className="flex-shrink-0">
-              <ViewSelector currentView={viewMode} onViewChange={setViewMode} />
+              <ViewSelector currentView={viewMode} onViewChange={setViewMode} showTimeline={true} />
             </ModernToolbarSection>
           </ModernToolbar>
 
           <div className="mt-6 w-full">
-            {filteredTasks.length === 0 ? (
+            {viewMode === "timeline" ? (
+              <TasksTimeline tasks={filteredTasks} />
+            ) : filteredTasks.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-10">
                   <CheckSquare className="h-10 w-10 text-muted-foreground/50" />
@@ -352,7 +355,7 @@ export default function Tasks() {
             ) : (
               <KanbanBoard 
                 tasks={filteredTasks} 
-                viewMode={viewMode}
+                viewMode={viewMode as "list" | "kanban"}
                 onBulkEdit={handleBulkEdit}
               />
             )}
