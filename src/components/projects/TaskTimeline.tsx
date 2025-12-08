@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useAppContext } from "@/contexts/AppContext";
-import { AlertCircle, Calendar, CheckCircle2, Clock, Download } from "lucide-react";
+import { AlertCircle, Calendar, CheckCircle2, Clock, Download, LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface TaskTimelineProps {
   tasks: Task[];
@@ -28,6 +29,7 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
   const { users, projects } = useAppContext();
   const exportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [viewMode, setViewMode] = useState<"visual" | "text">("visual");
 
   const project = projects.find(p => p.id === projectId);
 
@@ -232,10 +234,20 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
       {/* Timeline */}
       <Card>
         <CardHeader className="space-y-3">
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Task Timeline by Week
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Task Timeline by Week
+            </CardTitle>
+            <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "visual" | "text")}>
+              <ToggleGroupItem value="visual" aria-label="Visual view">
+                <LayoutGrid className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="text" aria-label="Text view">
+                <List className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -248,73 +260,118 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
           </Button>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="w-full">
-            <div className="flex gap-4 pb-4" style={{ minWidth: `${timelineData.length * 220}px` }}>
-              {timelineData.map((week, index) => (
-                <div
-                  key={index}
-                  className={`flex-shrink-0 w-52 rounded-lg border p-3 ${
-                    week.isCurrentWeek 
-                      ? "border-primary bg-primary/5 ring-2 ring-primary/20" 
-                      : week.isPast 
-                        ? "border-muted bg-muted/30 opacity-60" 
-                        : "border-border bg-card"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className={`text-sm font-medium ${week.isCurrentWeek ? "text-primary" : ""}`}>
-                      {week.label}
-                    </span>
-                    {week.isCurrentWeek && (
-                      <Badge variant="default" className="text-xs">Now</Badge>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2 min-h-[100px]">
-                    {week.tasks.length === 0 ? (
-                      <div className="text-center py-6 text-muted-foreground text-sm">
-                        <div className="text-2xl mb-1">📭</div>
-                        No tasks
-                      </div>
-                    ) : (
-                      week.tasks.map(task => (
-                        <div
-                          key={task.id}
-                          className={`p-2 rounded border text-sm ${
-                            task.status === "done"
-                              ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
-                              : task.priority === "urgent"
-                                ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
-                                : "bg-background border-border"
-                          }`}
-                        >
-                          <div className="flex items-start gap-1">
-                            {getPriorityIndicator(task.priority)}
-                            <span className="font-medium text-xs line-clamp-2">{task.title}</span>
-                          </div>
-                          <div className="flex items-center justify-between mt-1.5">
-                            <span className="text-xs text-muted-foreground truncate max-w-[80px]">
-                              {getAssigneeName(task.assigneeId)}
-                            </span>
-                            <Badge className={`text-[10px] px-1.5 py-0 ${getStatusColor(task.status)}`}>
-                              {task.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  
-                  {week.tasks.length > 0 && (
-                    <div className="mt-2 pt-2 border-t text-xs text-muted-foreground text-center">
-                      {week.tasks.length} task{week.tasks.length !== 1 ? "s" : ""}
+          {viewMode === "visual" ? (
+            <ScrollArea className="w-full">
+              <div className="flex gap-4 pb-4" style={{ minWidth: `${timelineData.length * 220}px` }}>
+                {timelineData.map((week, index) => (
+                  <div
+                    key={index}
+                    className={`flex-shrink-0 w-52 rounded-lg border p-3 ${
+                      week.isCurrentWeek 
+                        ? "border-primary bg-primary/5 ring-2 ring-primary/20" 
+                        : week.isPast 
+                          ? "border-muted bg-muted/30 opacity-60" 
+                          : "border-border bg-card"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className={`text-sm font-medium ${week.isCurrentWeek ? "text-primary" : ""}`}>
+                        {week.label}
+                      </span>
+                      {week.isCurrentWeek && (
+                        <Badge variant="default" className="text-xs">Now</Badge>
+                      )}
                     </div>
+                    
+                    <div className="space-y-2 min-h-[100px]">
+                      {week.tasks.length === 0 ? (
+                        <div className="text-center py-6 text-muted-foreground text-sm">
+                          <div className="text-2xl mb-1">📭</div>
+                          No tasks
+                        </div>
+                      ) : (
+                        week.tasks.map(task => (
+                          <div
+                            key={task.id}
+                            className={`p-2 rounded border text-sm ${
+                              task.status === "done"
+                                ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
+                                : task.priority === "urgent"
+                                  ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
+                                  : "bg-background border-border"
+                            }`}
+                          >
+                            <div className="flex items-start gap-1">
+                              {getPriorityIndicator(task.priority)}
+                              <span className="font-medium text-xs line-clamp-2">{task.title}</span>
+                            </div>
+                            <div className="flex items-center justify-between mt-1.5">
+                              <span className="text-xs text-muted-foreground truncate max-w-[80px]">
+                                {getAssigneeName(task.assigneeId)}
+                              </span>
+                              <Badge className={`text-[10px] px-1.5 py-0 ${getStatusColor(task.status)}`}>
+                                {task.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    
+                    {week.tasks.length > 0 && (
+                      <div className="mt-2 pt-2 border-t text-xs text-muted-foreground text-center">
+                        {week.tasks.length} task{week.tasks.length !== 1 ? "s" : ""}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          ) : (
+            /* Text View */
+            <div className="space-y-4">
+              {timelineData.map((week, index) => (
+                <div key={index} className={`${week.isPast ? "opacity-60" : ""}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className={`font-semibold ${week.isCurrentWeek ? "text-primary" : ""}`}>
+                      {week.label}
+                    </h3>
+                    {week.isCurrentWeek && (
+                      <Badge variant="default" className="text-xs">Current Week</Badge>
+                    )}
+                    <span className="text-sm text-muted-foreground">
+                      ({week.tasks.length} task{week.tasks.length !== 1 ? "s" : ""})
+                    </span>
+                  </div>
+                  {week.tasks.length === 0 ? (
+                    <p className="text-sm text-muted-foreground pl-4">No tasks scheduled</p>
+                  ) : (
+                    <ul className="space-y-1 pl-4">
+                      {week.tasks.map(task => (
+                        <li key={task.id} className="text-sm flex items-center gap-2">
+                          <span className={task.priority === "urgent" ? "text-red-600 font-medium" : ""}>
+                            • {task.title}
+                          </span>
+                          <span className="text-muted-foreground">
+                            — {getAssigneeName(task.assigneeId)}
+                          </span>
+                          <Badge className={`text-[10px] ${getStatusColor(task.status)}`}>
+                            {task.status}
+                          </Badge>
+                          {task.dueDate && (
+                            <span className="text-xs text-muted-foreground">
+                              (Due: {format(new Date(task.dueDate), "MMM d")})
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
               ))}
             </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+          )}
         </CardContent>
       </Card>
 
