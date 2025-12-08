@@ -37,7 +37,7 @@ export function AppSidebar() {
   });
   
   return (
-    <div className="w-[280px] flex flex-col bg-background border-r border-border">
+    <div className="w-[280px] flex flex-col bg-background border-r border-border sticky top-0 h-screen">
       <div className="h-14 flex items-center px-4 gap-4 border-b">
         <NavLink to="/" className="flex items-center gap-2 font-semibold">
           {/* Logo */}
