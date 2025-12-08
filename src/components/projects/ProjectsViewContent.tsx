@@ -1,9 +1,10 @@
 import { ProjectsGrid } from "./ProjectsGrid";
 import { ProjectsList } from "./ProjectsList";
+import { ProjectsTimeline } from "./ProjectsTimeline";
 import type { Project } from "@/types";
 
 interface ProjectsViewContentProps {
-  currentView: "list" | "kanban";
+  currentView: "list" | "kanban" | "timeline";
   projects: Project[];
   getProjectProgress: (projectId: string) => number;
   getClientName: (clientId: string) => string;
@@ -45,6 +46,16 @@ export function ProjectsViewContent({
         getClientName={getClientName}
         onEdit={onEdit}
         onDelete={onDelete}
+        onCardClick={onCardClick}
+      />
+    );
+  }
+
+  if (currentView === "timeline") {
+    return (
+      <ProjectsTimeline
+        projects={projects}
+        getClientName={getClientName}
         onCardClick={onCardClick}
       />
     );

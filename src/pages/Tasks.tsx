@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select";
 import { ModernToolbar, ModernToolbarSection } from "@/components/common/ModernToolbar";
 
-type ViewMode = "list" | "kanban";
+type TaskViewMode = "list" | "kanban";
 
 export default function Tasks() {
   const { tasks, projects, users, clients, currentUser } = useAppContext();
@@ -61,7 +61,7 @@ export default function Tasks() {
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(tasks);
-  const [viewMode, setViewMode] = useState<ViewMode>("kanban");
+  const [viewMode, setViewMode] = useState<TaskViewMode>("kanban");
   const [showMyTasksOnly, setShowMyTasksOnly] = useState(true); // Default to showing only user's tasks
 
   // Define filter options
