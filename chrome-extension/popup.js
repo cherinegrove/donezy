@@ -86,6 +86,22 @@ async function checkAuthState() {
     if (result.supabase_session) {
       currentSession = result.supabase_session;
       
+      // Check if token needs refresh (refresh if expires within 5 minutes)
+      const tokenNeedsRefresh = isTokenExpiringSoon(currentSession.access_token);
+      
+      if (tokenNeedsRefresh && currentSession.refresh_token) {
+        console.log('Token expiring soon, refreshing...');
+        const refreshed = await refreshSession(currentSession.refresh_token);
+        if (refreshed) {
+          showMainSection();
+          await loadProjects();
+          await loadUsers();
+          await loadTaskStatuses();
+          await checkActiveTimer();
+          return;
+        }
+      }
+      
       // Verify session is still valid by making a test request
       const testResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
         headers: {
@@ -95,7 +111,23 @@ async function checkAuthState() {
       });
       
       if (!testResponse.ok) {
-        console.log('Session expired, trying to sync from main app...');
+        console.log('Session expired, trying to refresh...');
+        
+        // Try to refresh using refresh_token first
+        if (currentSession.refresh_token) {
+          const refreshed = await refreshSession(currentSession.refresh_token);
+          if (refreshed) {
+            showMainSection();
+            await loadProjects();
+            await loadUsers();
+            await loadTaskStatuses();
+            await checkActiveTimer();
+            return;
+          }
+        }
+        
+        // If refresh failed, try to sync from main app
+        console.log('Refresh failed, trying to sync from main app...');
         await syncSessionFromMainApp();
         
         // Check again after sync attempt
@@ -128,6 +160,50 @@ async function checkAuthState() {
   } catch (error) {
     console.error('Error checking auth state:', error);
     showLoginSection();
+  }
+}
+
+// Check if JWT token is expiring within 5 minutes
+function isTokenExpiringSoon(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const expiresAt = payload.exp * 1000; // Convert to milliseconds
+    const fiveMinutesFromNow = Date.now() + (5 * 60 * 1000);
+    return expiresAt < fiveMinutesFromNow;
+  } catch (e) {
+    console.error('Error parsing token:', e);
+    return true; // If we can't parse, assume it needs refresh
+  }
+}
+
+// Refresh session using refresh token
+async function refreshSession(refreshToken) {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      currentSession = {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        user: data.user,
+        expires_at: data.expires_at,
+      };
+      await chrome.storage.local.set({ supabase_session: currentSession });
+      console.log('Session refreshed successfully');
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error refreshing session:', error);
+    return false;
   }
 }
 
@@ -202,9 +278,12 @@ async function handleLogin() {
     const data = await response.json();
     
     if (response.ok && data.access_token) {
+      // Store both access_token AND refresh_token for session persistence
       currentSession = {
         access_token: data.access_token,
+        refresh_token: data.refresh_token,
         user: data.user,
+        expires_at: data.expires_at,
       };
       
       await chrome.storage.local.set({ supabase_session: currentSession });
