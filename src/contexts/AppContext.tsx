@@ -3505,6 +3505,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     addProjectTemplate,
     updateProjectTemplate,
     deleteProjectTemplate,
+    refreshTaskTemplates: loadTaskTemplates,
     
     // Purchase functions
     addPurchase,

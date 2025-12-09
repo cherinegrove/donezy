@@ -126,6 +126,7 @@ export interface AppContextType {
   addProjectTemplate: (template: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => Promise<void>;
   updateProjectTemplate: (templateId: string, updates: Partial<ProjectTemplate>) => Promise<void>;
   deleteProjectTemplate: (templateId: string) => Promise<void>;
+  refreshTaskTemplates: () => Promise<void>;
   
   // Purchase functions
   addPurchase: (purchase: Omit<Purchase, 'id'>) => void;

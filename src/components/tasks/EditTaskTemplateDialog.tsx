@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useAppContext } from "@/contexts/AppContext";
 import {
   Dialog,
   DialogContent,
@@ -66,6 +67,7 @@ interface EditTaskTemplateDialogProps {
 }
 
 export function EditTaskTemplateDialog({ open, onOpenChange, template, onTemplateUpdated }: EditTaskTemplateDialogProps) {
+  const { refreshTaskTemplates } = useAppContext();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("details");
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
@@ -178,6 +180,7 @@ export function EditTaskTemplateDialog({ open, onOpenChange, template, onTemplat
       });
 
       onOpenChange(false);
+      await refreshTaskTemplates();
       onTemplateUpdated?.();
     } catch (error) {
       console.error('Error updating task template:', error);
