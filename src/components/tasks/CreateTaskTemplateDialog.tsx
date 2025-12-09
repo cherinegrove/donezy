@@ -56,7 +56,7 @@ interface LinkItem {
 }
 
 export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated }: CreateTaskTemplateDialogProps) {
-  const { currentUser } = useAppContext();
+  const { currentUser, refreshTaskTemplates } = useAppContext();
   const [session, setSession] = useState<any>(null);
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("details");
@@ -184,6 +184,7 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
       setChecklist([]);
       setLinks([]);
       onOpenChange(false);
+      await refreshTaskTemplates();
       onTemplateCreated?.();
     } catch (error) {
       console.error('Error creating task template:', error);
