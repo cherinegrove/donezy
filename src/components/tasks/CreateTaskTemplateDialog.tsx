@@ -159,6 +159,13 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
     setIsSubmitting(true);
 
     try {
+      // Prepare checklist and links data
+      const checklistData = checklist.length > 0 ? checklist : [];
+      const linksData = links.length > 0 ? links : [];
+      
+      console.log('Saving template with checklist:', checklistData);
+      console.log('Saving template with links:', linksData);
+
       const { error } = await supabase
         .from('task_templates')
         .insert({
@@ -166,8 +173,8 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
           description: data.templateName, // Use template name as description for backwards compatibility
           task_title: data.taskTitle,
           task_description: data.taskDescription || "",
-          checklist: checklist as any,
-          links: links as any,
+          checklist: checklistData,
+          links: linksData,
           default_priority: "medium",
           default_status: "todo",
           auth_user_id: session.user.id,
