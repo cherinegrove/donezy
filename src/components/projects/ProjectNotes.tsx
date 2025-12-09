@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Card, 
@@ -7,12 +6,12 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Plus, MessageCircle, Edit, Trash2, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/contexts/AppContext";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { RichTextEditor } from "./RichTextEditor";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -259,18 +258,16 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
       
       {/* Add Note Dialog */}
       <Dialog open={isAddingNote} onOpenChange={setIsAddingNote}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add Project Note</DialogTitle>
           </DialogHeader>
           
           <div className="py-4">
-            <Textarea
+            <RichTextEditor
+              content={newNote}
+              onChange={setNewNote}
               placeholder="Write your note here... Use @username to mention team members"
-              value={newNote}
-              onChange={(e) => setNewNote(e.target.value)}
-              rows={5}
-              className="resize-none"
             />
             <p className="text-xs text-muted-foreground mt-2">
               Tip: Use @username to mention team members
@@ -286,18 +283,16 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
       
       {/* Edit Note Dialog */}
       <Dialog open={isEditingNote} onOpenChange={setIsEditingNote}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Note</DialogTitle>
           </DialogHeader>
           
           <div className="py-4">
-            <Textarea
+            <RichTextEditor
+              content={editedNoteContent}
+              onChange={setEditedNoteContent}
               placeholder="Edit your note..."
-              value={editedNoteContent}
-              onChange={(e) => setEditedNoteContent(e.target.value)}
-              rows={5}
-              className="resize-none"
             />
             <p className="text-xs text-muted-foreground mt-2">
               Tip: Use @username to mention team members

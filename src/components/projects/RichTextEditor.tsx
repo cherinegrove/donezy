@@ -3,10 +3,12 @@ import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Link } from '@tiptap/extension-link';
+import UnderlineExtension from '@tiptap/extension-underline';
 import { Button } from '@/components/ui/button';
 import { 
   Bold, 
   Italic, 
+  Underline as UnderlineIcon,
   List, 
   ListOrdered, 
   Link as LinkIcon, 
@@ -38,6 +40,7 @@ export function RichTextEditor({ content, onChange, placeholder = "Start writing
       StarterKit,
       TextStyle,
       Color,
+      UnderlineExtension,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -92,7 +95,13 @@ export function RichTextEditor({ content, onChange, placeholder = "Start writing
           <Italic className="h-4 w-4" />
         </Button>
 
-        <div className="w-px h-6 bg-border" />
+        <Button
+          variant={editor.isActive('underline') ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+        >
+          <UnderlineIcon className="h-4 w-4" />
+        </Button>
 
         <Button
           variant={editor.isActive('bulletList') ? 'default' : 'ghost'}
