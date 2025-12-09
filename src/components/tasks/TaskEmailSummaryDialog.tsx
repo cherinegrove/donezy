@@ -51,9 +51,9 @@ export function TaskEmailSummaryDialog({
     
     if (checklist.length > 0) {
       content += `Checklist Items:\n`;
-      checklist.forEach((item, index) => {
+      checklist.forEach((item) => {
         const statusIcon = item.completed ? "✓" : "○";
-        content += `${statusIcon} ${item.text}\n`;
+        content += `  • ${statusIcon} ${item.text}\n`;
       });
       
       const completedCount = checklist.filter(item => item.completed).length;
