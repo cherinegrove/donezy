@@ -2862,7 +2862,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error('No authenticated session');
+      if (!session?.user) {
+        console.error('No authenticated session found when adding comment');
+        throw new Error('No authenticated session');
+      }
+
+      console.log('Adding comment with data:', {
+        task_id: taskId,
+        auth_user_id: session.user.id,
+        user_id: userId,
+        content: content?.substring(0, 50),
+        mentioned_user_ids: mentionedUserIds,
+        images: images?.length
+      });
 
       const { data, error } = await supabase
         .from('comments')
@@ -2877,7 +2889,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error adding comment:', error);
+        throw error;
+      }
 
       const newComment = {
         id: data.id,
