@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon, Trash, Mail } from "lucide-react";
+import { CalendarIcon, Trash } from "lucide-react";
 import { ProjectSelect } from "./ProjectSelect";
 import { Assignee2Select } from "./Assignee2Select";
 import { CollaboratorSelect } from "./CollaboratorSelect";
@@ -39,7 +39,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RecurringTaskDialog } from "./RecurringTaskDialog";
 import { TaskStatusPromptDialog } from "./TaskStatusPromptDialog";
 import { StatusHistorySection } from "./StatusHistorySection";
-import { TaskEmailSummaryDialog } from "./TaskEmailSummaryDialog";
+import { TaskEmailSummaryContent } from "./TaskEmailSummaryContent";
 import { Repeat } from "lucide-react";
 
 interface EditTaskDialogProps {
@@ -85,7 +85,6 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
   const [statusPromptOpen, setStatusPromptOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
-  const [emailSummaryOpen, setEmailSummaryOpen] = useState(false);
 
   // Reset form state when task changes
   useEffect(() => {
@@ -247,12 +246,13 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full mb-4 grid grid-cols-5">
+            <TabsList className="w-full mb-4 grid grid-cols-6">
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="files">Files</TabsTrigger>
               <TabsTrigger value="time">Time</TabsTrigger>
               <TabsTrigger value="history">Status History</TabsTrigger>
               <TabsTrigger value="logs">Activity Log</TabsTrigger>
+              <TabsTrigger value="email">Email Summary</TabsTrigger>
             </TabsList>
 
             <TabsContent value="details" className="space-y-4">
@@ -395,6 +395,10 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
             <TabsContent value="logs">
               <TaskLogsSection taskId={task.id} />
             </TabsContent>
+            
+            <TabsContent value="email">
+              <TaskEmailSummaryContent task={task} />
+            </TabsContent>
           </Tabs>
 
           <DialogFooter className="mt-6 flex justify-between">
@@ -412,13 +416,6 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
               >
                 <Repeat className="h-4 w-4 mr-2" />
                 Convert to Recurring
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setEmailSummaryOpen(true)}
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                Email Summary
               </Button>
             </div>
             <div className="flex gap-2">
@@ -479,12 +476,6 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
           onConfirm={handleStatusPromptConfirm}
         />
       )}
-
-      <TaskEmailSummaryDialog
-        open={emailSummaryOpen}
-        onOpenChange={setEmailSummaryOpen}
-        task={task}
-      />
     </>
   );
 }
