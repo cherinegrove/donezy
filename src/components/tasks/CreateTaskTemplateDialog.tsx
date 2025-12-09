@@ -6,7 +6,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -22,39 +22,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Settings, GripVertical } from "lucide-react";
+import { Plus, Trash2, Link as LinkIcon, ExternalLink, CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { CustomField, CustomFieldType, TaskStatus } from "@/types";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult
-} from "@hello-pangea/dnd";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
 
 const taskTemplateSchema = z.object({
-  name: z.string().min(1, "Template name is required"),
-  description: z.string().min(1, "Description is required"),
-  defaultPriority: z.enum(["low", "medium", "high"]).default("medium"),
-  defaultStatus: z.enum(["backlog", "todo", "in-progress", "review", "done"]).default("todo"),
-  customFields: z.array(z.string()).default([]),
-  fieldOrder: z.array(z.string()).default([]),
-  formFields: z.array(z.object({
-    name: z.string(),
-    type: z.string(),
-    required: z.boolean(),
-    hidden: z.boolean(),
-    order: z.number(),
-  })).default([]),
+  templateName: z.string().min(1, "Template name is required"),
+  taskTitle: z.string().min(1, "Task title is required"),
+  taskDescription: z.string().optional(),
 });
 
 type TaskTemplateFormData = z.infer<typeof taskTemplateSchema>;
@@ -65,36 +43,36 @@ interface CreateTaskTemplateDialogProps {
   onTemplateCreated?: () => void;
 }
 
+interface ChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+interface LinkItem {
+  id: string;
+  name: string;
+  url: string;
+}
+
 export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated }: CreateTaskTemplateDialogProps) {
   const { currentUser } = useAppContext();
   const [session, setSession] = useState<any>(null);
   const { toast } = useToast();
-  const [customFields, setCustomFields] = useState<CustomField[]>([]);
-  const [loadingFields, setLoadingFields] = useState(true);
-  const [fieldOrder, setFieldOrder] = useState<string[]>([]);
-  const [formFields, setFormFields] = useState([]);
-
-  // Default task form fields
-  const defaultTaskFields = [
-    { name: 'title', type: 'text', required: true, hidden: false, order: 1 },
-    { name: 'description', type: 'textarea', required: false, hidden: false, order: 2 },
-    { name: 'priority', type: 'select', required: true, hidden: false, order: 3 },
-    { name: 'status', type: 'select', required: true, hidden: false, order: 4 },
-    { name: 'assignee', type: 'select', required: false, hidden: false, order: 5 },
-    { name: 'dueDate', type: 'date', required: false, hidden: false, order: 6 },
-    { name: 'estimatedHours', type: 'number', required: false, hidden: false, order: 7 },
-  ];
+  const [activeTab, setActiveTab] = useState("details");
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  const [newChecklistItem, setNewChecklistItem] = useState("");
+  const [links, setLinks] = useState<LinkItem[]>([]);
+  const [linkName, setLinkName] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<TaskTemplateFormData>({
     resolver: zodResolver(taskTemplateSchema),
     defaultValues: {
-      name: "",
-      description: "",
-      defaultPriority: "medium",
-      defaultStatus: "todo",
-      customFields: [],
-      fieldOrder: [],
-      formFields: defaultTaskFields,
+      templateName: "",
+      taskTitle: "",
+      taskDescription: "",
     },
   });
 
@@ -105,115 +83,71 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
     });
   }, []);
 
-  // Fetch custom fields from Supabase
+  // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      fetchCustomFields();
-      setFormFields(defaultTaskFields);
+      form.reset();
+      setChecklist([]);
+      setLinks([]);
+      setNewChecklistItem("");
+      setLinkName("");
+      setLinkUrl("");
+      setActiveTab("details");
     }
-  }, [open]);
+  }, [open, form]);
 
-  // Sync fieldOrder with form state
-  useEffect(() => {
-    const currentFields = form.watch("customFields");
-    const newOrder = fieldOrder.filter(id => currentFields.includes(id));
-    const missingFields = currentFields.filter(id => !fieldOrder.includes(id));
-    const updatedOrder = [...newOrder, ...missingFields];
+  const handleAddChecklistItem = () => {
+    if (!newChecklistItem.trim()) return;
     
-    if (JSON.stringify(updatedOrder) !== JSON.stringify(fieldOrder)) {
-      setFieldOrder(updatedOrder);
-      form.setValue("fieldOrder", updatedOrder);
-    }
-  }, [form.watch("customFields")]);
-
-  const fetchCustomFields = async () => {
-    try {
-      setLoadingFields(true);
-      const { data, error } = await supabase
-        .from('custom_fields')
-        .select('*')
-        .contains('applicable_to', ['tasks'])
-        .order('field_order');
-      
-      if (error) throw error;
-      
-      const fields = data.map(field => ({
-        id: field.id,
-        name: field.name,
-        type: field.type as CustomFieldType,
-        description: field.description,
-        required: field.required,
-        applicableTo: field.applicable_to as ('projects' | 'tasks')[],
-        options: field.options,
-        reportable: field.reportable,
-        order: field.field_order,
-        createdAt: field.created_at,
-        updatedAt: field.updated_at,
-      }));
-      
-      setCustomFields(fields);
-    } catch (error) {
-      console.error('Error fetching custom fields:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load custom fields",
-        variant: "destructive"
-      });
-    } finally {
-      setLoadingFields(false);
-    }
+    setChecklist([
+      ...checklist,
+      {
+        id: crypto.randomUUID(),
+        text: newChecklistItem.trim(),
+        completed: false,
+      },
+    ]);
+    setNewChecklistItem("");
   };
 
-  const handleFieldToggle = (fieldId: string) => {
-    const currentFields = form.getValues("customFields");
-    const newFields = currentFields.includes(fieldId)
-      ? currentFields.filter(id => id !== fieldId)
-      : [...currentFields, fieldId];
-    
-    form.setValue("customFields", newFields);
+  const handleRemoveChecklistItem = (id: string) => {
+    setChecklist(checklist.filter((item) => item.id !== id));
   };
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-
-    const items = Array.from(fieldOrder);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    setFieldOrder(items);
-    form.setValue("fieldOrder", items);
-  };
-
-  const handleFormFieldDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-
-    const items = Array.from(formFields);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    // Update order values
-    const updatedItems = items.map((item, index) => ({
-      ...item,
-      order: index + 1,
-    }));
-
-    setFormFields(updatedItems);
-    form.setValue("formFields", updatedItems);
-  };
-
-  const handleFormFieldToggle = (fieldName: string, property: 'required' | 'hidden') => {
-    const updatedFields = formFields.map(field => 
-      field.name === fieldName 
-        ? { ...field, [property]: !field[property] }
-        : field
+  const handleToggleChecklistItem = (id: string) => {
+    setChecklist(
+      checklist.map((item) =>
+        item.id === id ? { ...item, completed: !item.completed } : item
+      )
     );
-    setFormFields(updatedFields);
-    form.setValue("formFields", updatedFields);
+  };
+
+  const handleAddLink = () => {
+    if (!linkName.trim() || !linkUrl.trim()) return;
+
+    let formattedUrl = linkUrl.trim();
+    if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
+      formattedUrl = "https://" + formattedUrl;
+    }
+
+    setLinks([
+      ...links,
+      {
+        id: crypto.randomUUID(),
+        name: linkName.trim(),
+        url: formattedUrl,
+      },
+    ]);
+    setLinkName("");
+    setLinkUrl("");
+  };
+
+  const handleRemoveLink = (id: string) => {
+    setLinks(links.filter((link) => link.id !== id));
   };
 
   const onSubmit = async (data: TaskTemplateFormData) => {
     if (!session?.user) {
-      console.error('No authenticated session found');
       toast({
         title: "Authentication Error",
         description: "Please log in to create templates",
@@ -222,32 +156,33 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
       return;
     }
 
-    console.log('Creating template with user ID:', session.user.id);
+    setIsSubmitting(true);
 
     try {
       const { error } = await supabase
         .from('task_templates')
         .insert({
-          name: data.name,
-          description: data.description,
-          default_priority: data.defaultPriority,
-          default_status: data.defaultStatus,
-          include_custom_fields: data.customFields,
-          field_order: data.fieldOrder,
-          form_fields: data.formFields,
+          name: data.templateName,
+          description: data.templateName, // Use template name as description for backwards compatibility
+          task_title: data.taskTitle,
+          task_description: data.taskDescription || "",
+          checklist: checklist as any,
+          links: links as any,
+          default_priority: "medium",
+          default_status: "todo",
           auth_user_id: session.user.id,
-        });
+        } as any);
 
       if (error) throw error;
 
       toast({
-        title: "Task template created",
-        description: `${data.name} template has been created successfully.`,
+        title: "Template created",
+        description: `${data.templateName} has been created successfully.`,
       });
 
       form.reset();
-      setFieldOrder([]);
-      setFormFields(defaultTaskFields);
+      setChecklist([]);
+      setLinks([]);
       onOpenChange(false);
       onTemplateCreated?.();
     } catch (error) {
@@ -257,282 +192,234 @@ export function CreateTaskTemplateDialog({ open, onOpenChange, onTemplateCreated
         description: "Failed to create task template",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const selectedFields = form.watch("customFields");
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Task Template</DialogTitle>
-          <DialogDescription>
-            Create a reusable template for tasks with predefined settings and custom fields.
-          </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Template Name */}
             <FormField
               control={form.control}
-              name="name"
+              name="templateName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Template Name</FormLabel>
+                  <FormLabel>Template Name *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter template name" {...field} />
+                    <Input placeholder="e.g., Bug Report, Feature Request" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Describe this template"
-                      className="resize-none"
-                      rows={2}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="defaultPriority"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Default Priority</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="w-full mb-4 grid grid-cols-3">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="checklist">Checklist</TabsTrigger>
+                <TabsTrigger value="links">Links</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="details" className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="taskTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Task Title *</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <Input placeholder="Enter default task title" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="defaultStatus"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Default Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="backlog">Backlog</SelectItem>
-                        <SelectItem value="todo">To Do</SelectItem>
-                        <SelectItem value="in-progress">In Progress</SelectItem>
-                        <SelectItem value="review">Review</SelectItem>
-                        <SelectItem value="done">Done</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Custom Fields Selection */}
-            {loadingFields ? (
-              <div className="space-y-4">
-                <div>
-                  <Label className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    Include Custom Fields
-                  </Label>
-                  <p className="text-sm text-muted-foreground">Loading custom fields...</p>
-                </div>
-              </div>
-            ) : customFields.length > 0 ? (
-              <div className="space-y-4">
-                <div>
-                  <Label className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    Include Custom Fields
-                  </Label>
-                  <p className="text-sm text-muted-foreground">Select which custom fields to include in this template</p>
-                </div>
-                
-                <div className="space-y-2">
-                  {customFields.map((field) => (
-                    <div key={field.id} className="flex items-center space-x-2">
-                      <Switch
-                        id={`field-${field.id}`}
-                        checked={selectedFields.includes(field.id)}
-                        onCheckedChange={() => handleFieldToggle(field.id)}
-                      />
-                      <Label htmlFor={`field-${field.id}`} className="flex-1 flex items-center gap-1">
-                        {field.name}
-                        {field.required && <span className="text-red-500">*</span>}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Field Order */}
-                {selectedFields.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Field Order</Label>
-                    <p className="text-sm text-muted-foreground">Drag to reorder the custom fields</p>
-                    
-                    <DragDropContext onDragEnd={handleDragEnd}>
-                      <Droppable droppableId="field-order">
-                        {(provided) => (
-                          <div
-                            {...provided.droppableProps}
-                            ref={provided.innerRef}
-                            className="space-y-2"
-                          >
-                            {fieldOrder.map((fieldId, index) => {
-                              const field = customFields.find(f => f.id === fieldId);
-                              if (!field) return null;
-                              
-                              return (
-                                <Draggable key={fieldId} draggableId={fieldId} index={index}>
-                                  {(provided) => (
-                                    <div
-                                      ref={provided.innerRef}
-                                      {...provided.draggableProps}
-                                      className="flex items-center gap-2 p-2 border rounded bg-background"
-                                    >
-                                      <div
-                                        {...provided.dragHandleProps}
-                                        className="text-muted-foreground hover:text-foreground"
-                                      >
-                                        <GripVertical className="h-4 w-4" />
-                                      </div>
-                                      <span className="text-sm">{field.name}</span>
-                                    </div>
-                                  )}
-                                </Draggable>
-                              );
-                            })}
-                            {provided.placeholder}
-                          </div>
-                        )}
-                      </Droppable>
-                    </DragDropContext>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <Label className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    Custom Fields
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    No custom fields created yet that apply to tasks. 
-                    Create custom fields in the Custom Fields Manager first.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Task Form Configuration */}
-            <div className="space-y-4">
-              <div>
-                <Label className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Task Form Configuration
-                </Label>
-                <p className="text-sm text-muted-foreground">Configure which fields appear in the task creation form</p>
-              </div>
-              
-              <DragDropContext onDragEnd={handleFormFieldDragEnd}>
-                <Droppable droppableId="form-fields">
-                  {(provided) => (
-                    <div
-                      {...provided.droppableProps}
-                      ref={provided.innerRef}
-                      className="space-y-2"
-                    >
-                      {formFields
-                        .sort((a, b) => a.order - b.order)
-                        .map((field, index) => (
-                        <Draggable key={field.name} draggableId={field.name} index={index}>
-                          {(provided) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              className="flex items-center gap-3 p-3 border rounded bg-background"
-                            >
-                              <div
-                                {...provided.dragHandleProps}
-                                className="text-muted-foreground hover:text-foreground"
-                              >
-                                <GripVertical className="h-4 w-4" />
-                              </div>
-                              <span className="text-sm font-medium capitalize flex-1">
-                                {field.name.replace(/([A-Z])/g, ' $1').trim()}
-                              </span>
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center space-x-2">
-                                  <Switch
-                                    id={`${field.name}-required`}
-                                    checked={field.required}
-                                    onCheckedChange={() => handleFormFieldToggle(field.name, 'required')}
-                                    disabled={field.name === 'title'} // Title is always required
-                                  />
-                                  <Label htmlFor={`${field.name}-required`} className="text-xs">
-                                    Required
-                                  </Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <Switch
-                                    id={`${field.name}-hidden`}
-                                    checked={field.hidden}
-                                    onCheckedChange={() => handleFormFieldToggle(field.name, 'hidden')}
-                                    disabled={field.name === 'title'} // Title cannot be hidden
-                                  />
-                                  <Label htmlFor={`${field.name}-hidden`} className="text-xs">
-                                    Hidden
-                                  </Label>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </Droppable>
-              </DragDropContext>
-            </div>
-            
-            <div className="flex justify-end space-x-2">
+                />
+
+                <FormField
+                  control={form.control}
+                  name="taskDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Task Description</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Enter default task description" 
+                          rows={6}
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+
+              <TabsContent value="checklist" className="space-y-4">
+                <div className="space-y-4">
+                  <Label>Checklist Items</Label>
+                  
+                  {/* Add new item */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add checklist item..."
+                      value={newChecklistItem}
+                      onChange={(e) => setNewChecklistItem(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddChecklistItem();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleAddChecklistItem}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Checklist items */}
+                  {checklist.length > 0 ? (
+                    <div className="space-y-2">
+                      {checklist.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-2 p-2 border rounded-md bg-muted/50"
+                        >
+                          <Checkbox
+                            checked={item.completed}
+                            onCheckedChange={() => handleToggleChecklistItem(item.id)}
+                          />
+                          <span
+                            className={`flex-1 text-sm ${
+                              item.completed ? "line-through text-muted-foreground" : ""
+                            }`}
+                          >
+                            {item.text}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleRemoveChecklistItem(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No checklist items yet. Add items that will be included when using this template.
+                    </p>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="links" className="space-y-4">
+                <div className="space-y-4">
+                  <Label>Links</Label>
+                  
+                  {/* Add new link */}
+                  <Card>
+                    <CardContent className="pt-4 space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="linkName">Link Name</Label>
+                        <Input
+                          id="linkName"
+                          placeholder="e.g., Design Document"
+                          value={linkName}
+                          onChange={(e) => setLinkName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="linkUrl">URL</Label>
+                        <Input
+                          id="linkUrl"
+                          placeholder="https://..."
+                          value={linkUrl}
+                          onChange={(e) => setLinkUrl(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddLink();
+                            }
+                          }}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleAddLink}
+                        disabled={!linkName.trim() || !linkUrl.trim()}
+                        className="w-full"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Link
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* Links list */}
+                  {links.length > 0 ? (
+                    <div className="space-y-2">
+                      {links.map((link) => (
+                        <div
+                          key={link.id}
+                          className="flex items-center gap-2 p-2 border rounded-md bg-muted/50"
+                        >
+                          <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="flex-1 text-sm truncate">{link.name}</span>
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleRemoveLink(link.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No links yet. Add links that will be included when using this template.
+                    </p>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <DialogFooter className="gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Create Template</Button>
-            </div>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Create Template
+              </Button>
+            </DialogFooter>
           </form>
         </Form>
       </DialogContent>

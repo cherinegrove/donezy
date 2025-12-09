@@ -80,6 +80,10 @@ interface TaskTemplate {
   fieldOrder?: string[];
   usageCount: number;
   type: 'task_template' | 'project_template_task';
+  taskTitle?: string;
+  taskDescription?: string;
+  checklist?: Array<{ id: string; text: string; completed: boolean }>;
+  links?: Array<{ id: string; name: string; url: string }>;
 }
 
 interface CreateTaskDialogProps {
@@ -179,17 +183,50 @@ export function CreateTaskDialog({
   useEffect(() => {
     const template = taskTemplates.find(t => t.id === selectedTemplate);
     if (template) {
-      form.setValue("description", template.description || "");
-      form.setValue("priority", template.defaultPriority);
-      form.setValue("status", template.defaultStatus);
+      // Apply new template fields (task_title, task_description, checklist, links)
+      // Note: DB uses snake_case, raw data is passed without transformation
+      const templateData = template as any;
+      
+      if (templateData.task_title) {
+        form.setValue("title", templateData.task_title);
+      }
+      if (templateData.task_description) {
+        form.setValue("description", templateData.task_description);
+      } else {
+        form.setValue("description", template.description || "");
+      }
+      
+      // Apply checklist from template
+      if (templateData.checklist && Array.isArray(templateData.checklist)) {
+        setChecklist(templateData.checklist.map((item: any) => ({
+          ...item,
+          id: crypto.randomUUID(), // Generate new IDs for the task
+        })));
+      } else {
+        setChecklist([]);
+      }
+      
+      // Apply links from template
+      if (templateData.links && Array.isArray(templateData.links)) {
+        setTempLinks(templateData.links.map((link: any) => ({
+          ...link,
+          id: crypto.randomUUID(), // Generate new IDs for the task
+        })));
+      } else {
+        setTempLinks([]);
+      }
+      
+      form.setValue("priority", templateData.default_priority || "medium");
+      form.setValue("status", templateData.default_status || "todo");
       
       // Reset custom fields
       form.setValue("customFields", {});
       
       // Apply template's custom fields
-      if (selectedTemplate !== "default" && template.customFields && template.customFields.length > 0) {
+      const customFieldsFromTemplate = templateData.include_custom_fields || templateData.customFields;
+      if (selectedTemplate !== "default" && customFieldsFromTemplate && customFieldsFromTemplate.length > 0) {
         const customFieldsValue: Record<string, any> = {};
-        template.customFields.forEach((field: any) => {
+        customFieldsFromTemplate.forEach((field: any) => {
           switch (field.type) {
             case 'text':
               customFieldsValue[field.id] = '';

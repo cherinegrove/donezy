@@ -1642,6 +1642,7 @@ export type Database = {
       task_templates: {
         Row: {
           auth_user_id: string
+          checklist: Json | null
           created_at: string
           default_priority: string
           default_status: string
@@ -1650,12 +1651,16 @@ export type Database = {
           form_fields: Json | null
           id: string
           include_custom_fields: string[] | null
+          links: Json | null
           name: string
+          task_description: string | null
+          task_title: string | null
           updated_at: string
           usage_count: number
         }
         Insert: {
           auth_user_id: string
+          checklist?: Json | null
           created_at?: string
           default_priority?: string
           default_status?: string
@@ -1664,12 +1669,16 @@ export type Database = {
           form_fields?: Json | null
           id?: string
           include_custom_fields?: string[] | null
+          links?: Json | null
           name: string
+          task_description?: string | null
+          task_title?: string | null
           updated_at?: string
           usage_count?: number
         }
         Update: {
           auth_user_id?: string
+          checklist?: Json | null
           created_at?: string
           default_priority?: string
           default_status?: string
@@ -1678,7 +1687,10 @@ export type Database = {
           form_fields?: Json | null
           id?: string
           include_custom_fields?: string[] | null
+          links?: Json | null
           name?: string
+          task_description?: string | null
+          task_title?: string | null
           updated_at?: string
           usage_count?: number
         }

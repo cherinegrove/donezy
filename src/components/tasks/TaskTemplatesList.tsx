@@ -38,6 +38,10 @@ interface TaskTemplate {
   createdAt: string;
   usageCount: number;
   formFields?: any[];
+  task_title?: string;
+  task_description?: string;
+  checklist?: any[];
+  links?: any[];
 }
 
 interface TaskTemplatesListProps {
@@ -95,6 +99,10 @@ export function TaskTemplatesList({ onCreateTemplate, onUseTemplate, refreshTrig
         createdAt: template.created_at,
         usageCount: template.usage_count || 0,
         formFields: Array.isArray(template.form_fields) ? template.form_fields : [],
+        task_title: (template as any).task_title || "",
+        task_description: (template as any).task_description || "",
+        checklist: (template as any).checklist || [],
+        links: (template as any).links || [],
       }));
 
       setTemplates(taskTemplates);
