@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon, Trash } from "lucide-react";
+import { CalendarIcon, Trash, Mail } from "lucide-react";
 import { ProjectSelect } from "./ProjectSelect";
 import { Assignee2Select } from "./Assignee2Select";
 import { CollaboratorSelect } from "./CollaboratorSelect";
@@ -39,6 +39,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RecurringTaskDialog } from "./RecurringTaskDialog";
 import { TaskStatusPromptDialog } from "./TaskStatusPromptDialog";
 import { StatusHistorySection } from "./StatusHistorySection";
+import { TaskEmailSummaryDialog } from "./TaskEmailSummaryDialog";
 import { Repeat } from "lucide-react";
 
 interface EditTaskDialogProps {
@@ -84,6 +85,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
   const [statusPromptOpen, setStatusPromptOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [emailSummaryOpen, setEmailSummaryOpen] = useState(false);
 
   // Reset form state when task changes
   useEffect(() => {
@@ -411,6 +413,13 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                 <Repeat className="h-4 w-4 mr-2" />
                 Convert to Recurring
               </Button>
+              <Button
+                variant="outline"
+                onClick={() => setEmailSummaryOpen(true)}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Email Summary
+              </Button>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => handleOpenChange(false)}>
@@ -470,6 +479,12 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
           onConfirm={handleStatusPromptConfirm}
         />
       )}
+
+      <TaskEmailSummaryDialog
+        open={emailSummaryOpen}
+        onOpenChange={setEmailSummaryOpen}
+        task={task}
+      />
     </>
   );
 }
