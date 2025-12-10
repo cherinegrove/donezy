@@ -1800,6 +1800,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return false;
     
     try {
+      // Delete related records first to avoid foreign key constraint violations
+      // Delete messages linked to this task
+      await supabase.from('messages').delete().eq('task_id', taskId);
+      
+      // Delete task files
+      await supabase.from('task_files').delete().eq('task_id', taskId);
+      
+      // Delete task reminders
+      await supabase.from('task_reminders').delete().eq('task_id', taskId);
+      
+      // Delete comments
+      await supabase.from('comments').delete().eq('task_id', taskId);
+      
+      // Now delete the task
       const { error } = await supabase
         .from('tasks')
         .delete()
