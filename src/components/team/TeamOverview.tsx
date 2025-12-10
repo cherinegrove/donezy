@@ -11,11 +11,8 @@ import { ArrowRight } from "lucide-react";
 export function TeamOverview() {
   const { users, tasks, currentUser, customRoles } = useAppContext();
   
-  // Only show team members that the current user manages or all users for admins
-  const teamMembers = users.filter(user => {
-    if (customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin') return true;
-    return false;
-  });
+  // Show all team members to everyone
+  const teamMembers = users;
   
   // Calculate task statistics for each team member
   const teamMemberStats = teamMembers.map(user => {
