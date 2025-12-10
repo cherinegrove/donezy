@@ -21,7 +21,7 @@ interface Widget {
 }
 
 export default function Analytics() {
-  const { projects, tasks, timeEntries, users, clients } = useAppContext();
+  const { projects, tasks, timeEntries, users, clients, taskStatuses } = useAppContext();
   const [widgets, setWidgets] = useState<Widget[]>([
     { id: 'metrics-1', type: 'metrics', position: 0 },
     { id: 'risk-1', type: 'risk-success', position: 1 },
@@ -100,29 +100,14 @@ export default function Analytics() {
     },
   ];
 
-  // Task distribution data (using filtered data)
-  const taskDistributionData = [
-    { 
-      name: 'To Do', 
-      value: filteredTasks.filter(t => t.status === 'todo').length,
-      items: filteredTasks.filter(t => t.status === 'todo')
-    },
-    { 
-      name: 'In Progress', 
-      value: filteredTasks.filter(t => t.status === 'in-progress').length,
-      items: filteredTasks.filter(t => t.status === 'in-progress')
-    },
-    { 
-      name: 'Review', 
-      value: filteredTasks.filter(t => t.status === 'review').length,
-      items: filteredTasks.filter(t => t.status === 'review')
-    },
-    { 
-      name: 'Done', 
-      value: filteredTasks.filter(t => t.status === 'done').length,
-      items: filteredTasks.filter(t => t.status === 'done')
-    },
-  ];
+  // Task distribution data (using filtered data and dynamic statuses)
+  const taskDistributionData = taskStatuses
+    .sort((a, b) => a.order - b.order)
+    .map(status => ({
+      name: status.label,
+      value: filteredTasks.filter(t => t.status === status.value).length,
+      items: filteredTasks.filter(t => t.status === status.value)
+    }));
 
   // Time tracking by user (using filtered data)
   const timeByUser = users.map(user => ({

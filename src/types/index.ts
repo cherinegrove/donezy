@@ -120,7 +120,7 @@ export interface Project {
   google_chat_settings?: any;
 }
 
-export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
+export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'awaiting-feedback' | 'done' | string;
 
 export interface TaskStatusDefinition {
   id: string;

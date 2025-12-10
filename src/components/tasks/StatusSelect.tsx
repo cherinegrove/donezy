@@ -63,7 +63,7 @@ export function StatusSelect({ field, value, onChange }: StatusSelectProps) {
             <SelectItem value="backlog">Backlog</SelectItem>
             <SelectItem value="todo">To Do</SelectItem>
             <SelectItem value="in-progress">In Progress</SelectItem>
-            <SelectItem value="review">Review</SelectItem>
+            <SelectItem value="awaiting-feedback">Awaiting Feedback</SelectItem>
             <SelectItem value="done">Done</SelectItem>
           </>
         )}
