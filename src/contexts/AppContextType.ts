@@ -65,7 +65,7 @@ export interface AppContextType {
   // Task functions
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>) => Promise<string | undefined>;
   updateTask: (taskId: string, updates: Partial<Task>) => Promise<string | undefined>;
-  deleteTask: (taskId: string) => void;
+  deleteTask: (taskId: string) => Promise<boolean>;
   getTaskById: (taskId: string) => Task | undefined;
   moveTask: (taskId: string, newStatus: string) => void;
   reorderTasks: (taskId: string, newIndex: number, newStatus?: string) => Promise<void>;
