@@ -159,16 +159,18 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     });
   };
 
-  const handleDelete = () => {
-    deleteTask(task.id);
+  const handleDelete = async () => {
+    const success = await deleteTask(task.id);
     setDeleteDialogOpen(false);
-    handleOpenChange(false);
-
-    toast({
-      title: "Task Deleted",
-      description: "Task has been deleted successfully",
-      variant: "destructive",
-    });
+    
+    if (success) {
+      handleOpenChange(false);
+      toast({
+        title: "Task Deleted",
+        description: "Task has been deleted successfully",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleConvertToRecurring = () => {

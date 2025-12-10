@@ -1796,8 +1796,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  const deleteTask = async (taskId: string) => {
-    if (!session?.user) return;
+  const deleteTask = async (taskId: string): Promise<boolean> => {
+    if (!session?.user) return false;
     
     try {
       const { error } = await supabase
@@ -1812,14 +1812,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           description: error.message || "Failed to delete task. You may not have permission to delete this task.",
           variant: "destructive",
         });
-        return;
+        return false;
       }
 
       setTasks(prev => prev.filter(task => task.id !== taskId));
-      toast({
-        title: "Success",
-        description: "Task deleted successfully",
-      });
+      return true;
     } catch (error) {
       console.error('Error deleting task:', error);
       toast({
@@ -1827,6 +1824,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         description: "Failed to delete task",
         variant: "destructive",
       });
+      return false;
     }
   };
 
