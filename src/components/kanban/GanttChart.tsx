@@ -43,7 +43,7 @@ interface TaskWithDetails {
 const MAX_DATE_RANGE = 40; // Maximum date range in days
 
 export function GanttChart({ tasks }: GanttChartProps) {
-  const { projects } = useAppContext();
+  const { projects, taskStatuses } = useAppContext();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [nestedTaskDialogOpen, setNestedTaskDialogOpen] = useState<boolean>(false);
@@ -88,13 +88,17 @@ export function GanttChart({ tasks }: GanttChartProps) {
     endDate: startOfDay(addDays(earliestDate, Math.min(MAX_DATE_RANGE - 1, differenceInDays(latestDate, earliestDate))))
   });
 
-  // Get color based on task status
+  // Get color based on task status from dynamic definitions
   function getColorForStatus(status: string): string {
+    const statusDef = taskStatuses.find(s => s.value === status);
+    if (statusDef?.color) return statusDef.color;
+    // Fallback colors
     switch (status) {
       case "backlog": return "#9CA3AF";
       case "todo": return "#60A5FA";
       case "in-progress": return "#F59E0B";
-      case "review": return "#EC4899";
+      case "review": 
+      case "awaiting-feedback": return "#EC4899";
       case "done": return "#10B981";
       default: return "#9CA3AF";
     }
@@ -212,14 +216,14 @@ export function GanttChart({ tasks }: GanttChartProps) {
     return format(date, "MMM d");
   };
   
-  // Status legend items
-  const legendItems = [
-    { status: "backlog", color: "#9CA3AF", label: "Backlog" },
-    { status: "todo", color: "#60A5FA", label: "To Do" },
-    { status: "in-progress", color: "#F59E0B", label: "In Progress" },
-    { status: "review", color: "#EC4899", label: "Review" },
-    { status: "done", color: "#10B981", label: "Done" }
-  ];
+  // Status legend items from dynamic definitions
+  const legendItems = taskStatuses
+    .sort((a, b) => a.order - b.order)
+    .map(status => ({
+      status: status.value,
+      color: status.color || getColorForStatus(status.value),
+      label: status.label
+    }));
 
   // Sort chart data for better display
   const sortedChartData = [...chartData].sort((a, b) => {

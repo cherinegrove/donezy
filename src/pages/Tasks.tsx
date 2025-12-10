@@ -39,7 +39,7 @@ import { ModernToolbar, ModernToolbarSection } from "@/components/common/ModernT
 type TaskViewMode = "list" | "kanban" | "timeline";
 
 export default function Tasks() {
-  const { tasks, projects, users, clients, currentUser } = useAppContext();
+  const { tasks, projects, users, clients, currentUser, taskStatuses } = useAppContext();
   
   // Debug logging to help identify why tasks aren't showing
   React.useEffect(() => {
@@ -263,7 +263,7 @@ export default function Tasks() {
                 {showMyTasksOnly ? "My Tasks" : "All Tasks"}
               </Button>
 
-              {viewMode !== "kanban" && (
+              {viewMode !== "kanban" && taskStatuses && taskStatuses.length > 0 && (
                 <Select
                   value={statusFilter}
                   onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}
@@ -273,11 +273,14 @@ export default function Tasks() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="backlog">Backlog</SelectItem>
-                    <SelectItem value="todo">To Do</SelectItem>
-                    <SelectItem value="in-progress">In Progress</SelectItem>
-                    <SelectItem value="review">Review</SelectItem>
-                    <SelectItem value="done">Done</SelectItem>
+                    {taskStatuses
+                      .sort((a, b) => a.order - b.order)
+                      .map((status) => (
+                        <SelectItem key={status.id} value={status.value}>
+                          {status.label}
+                        </SelectItem>
+                      ))
+                    }
                   </SelectContent>
                 </Select>
               )}

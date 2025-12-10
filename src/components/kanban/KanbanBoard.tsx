@@ -154,10 +154,11 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     const sourceStatus = source.droppableId as TaskStatus;
     const destinationStatus = destination.droppableId as TaskStatus;
     
-    // Check if we need to prompt for additional info
+    // Check if we need to prompt for additional info (backlog, in-progress, or awaiting feedback/review statuses)
     const needsPrompt = destinationStatus === "backlog" || 
                         destinationStatus === "in-progress" || 
-                        destinationStatus === "review";
+                        destinationStatus === "review" ||
+                        destinationStatus === "awaiting-feedback";
     
     if (needsPrompt && sourceStatus !== destinationStatus) {
       const task = tasks.find(t => t.id === draggableId);

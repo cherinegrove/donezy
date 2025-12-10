@@ -71,6 +71,7 @@ const TaskTemplateForm = ({
   customFields,
   isEdit = false 
 }: TaskTemplateFormProps) => {
+  const { taskStatuses } = useAppContext();
   const [selectedFields, setSelectedFields] = useState<string[]>(template.includeCustomFields || []);
   const [fieldOrder, setFieldOrder] = useState<string[]>(template.fieldOrder || []);
 
@@ -186,11 +187,23 @@ const TaskTemplateForm = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="backlog">Backlog</SelectItem>
-              <SelectItem value="todo">To Do</SelectItem>
-              <SelectItem value="in-progress">In Progress</SelectItem>
-              <SelectItem value="review">Review</SelectItem>
-              <SelectItem value="done">Done</SelectItem>
+              {taskStatuses && taskStatuses.length > 0 ? (
+                taskStatuses
+                  .sort((a, b) => a.order - b.order)
+                  .map((status) => (
+                    <SelectItem key={status.id} value={status.value}>
+                      {status.label}
+                    </SelectItem>
+                  ))
+              ) : (
+                <>
+                  <SelectItem value="backlog">Backlog</SelectItem>
+                  <SelectItem value="todo">To Do</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="awaiting-feedback">Awaiting Feedback</SelectItem>
+                  <SelectItem value="done">Done</SelectItem>
+                </>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -359,7 +372,7 @@ function TaskTemplateCard({ template, onEdit, onDelete, onDuplicate }: TaskTempl
 }
 
 export function TaskTemplateManager() {
-  const { currentUser } = useAppContext();
+  const { currentUser, taskStatuses } = useAppContext();
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingFields, setLoadingFields] = useState(true);
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
