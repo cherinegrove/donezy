@@ -80,6 +80,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   const [reminderDate, setReminderDate] = useState<Date | undefined>(
     task.reminderDate ? new Date(task.reminderDate) : undefined
   );
+  const [estimatedHours, setEstimatedHours] = useState<number | undefined>(task.estimatedHours);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
@@ -97,6 +98,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     setProjectId(task.projectId);
     setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
     setReminderDate(task.reminderDate ? new Date(task.reminderDate) : undefined);
+    setEstimatedHours(task.estimatedHours);
   }, [task]);
 
   const handleSaveChanges = async (additionalData?: {
@@ -115,6 +117,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       projectId,
       dueDate: dueDate ? dueDate.toISOString() : undefined,
       reminderDate: reminderDate ? reminderDate.toISOString() : undefined,
+      estimatedHours,
     };
 
     // Add additional data from status prompts
@@ -365,6 +368,19 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                   <p className="text-xs text-muted-foreground">
                     Get an email reminder on this date
                   </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="estimatedHours">Estimated Hours</Label>
+                  <Input
+                    id="estimatedHours"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="Enter estimated hours"
+                    value={estimatedHours ?? ""}
+                    onChange={(e) => setEstimatedHours(e.target.value ? parseFloat(e.target.value) : undefined)}
+                  />
                 </div>
               </div>
 

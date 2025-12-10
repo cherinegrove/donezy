@@ -60,6 +60,7 @@ const createTaskSchema = (fieldRequirements: { [fieldName: string]: boolean }) =
     startDate: z.string().optional(),
     dueDate: fieldRequirements.dueDate ? z.string().min(1, { message: "Due date is required" }) : z.string().optional(),
     reminderDate: z.string().optional(),
+    estimatedHours: z.number().optional(),
     customFields: z.record(z.string(), z.any()),
   };
 
@@ -159,6 +160,7 @@ export function CreateTaskDialog({
       startDate: "",
       dueDate: "",
       reminderDate: "",
+      estimatedHours: undefined,
       customFields: {},
     },
   });
@@ -321,6 +323,7 @@ export function CreateTaskDialog({
         startDate: data.startDate,
         dueDate: data.dueDate,
         reminderDate: data.reminderDate,
+        estimatedHours: data.estimatedHours,
         customFields: data.customFields || {},
         subtasks: [],
         checklist: checklist.length > 0 ? checklist : undefined,
@@ -622,6 +625,28 @@ export function CreateTaskDialog({
                       )}
                     />
                   )}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="estimatedHours"
+                    render={({ field }) => (
+                      <div className="space-y-2">
+                        <Label htmlFor="estimatedHours">Estimated Hours</Label>
+                        <Input
+                          id="estimatedHours"
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          placeholder="Enter estimated hours"
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                        />
+                        <FormMessage />
+                      </div>
+                    )}
+                  />
                 </div>
 
                 {/* Checklist Section */}
