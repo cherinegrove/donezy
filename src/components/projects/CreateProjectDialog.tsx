@@ -557,8 +557,8 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
                     <Input 
                       type="number" 
                       placeholder="Enter allocated hours" 
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
