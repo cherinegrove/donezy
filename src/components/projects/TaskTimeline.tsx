@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useAppContext } from "@/contexts/AppContext";
-import { AlertCircle, Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, Download, LayoutGrid, List, User, Users } from "lucide-react";
+import { AlertCircle, Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, Copy, Download, LayoutGrid, List, Mail, User, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
@@ -287,6 +287,72 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
     }
   };
 
+  const generateEmailSummary = () => {
+    const lines: string[] = [];
+    
+    lines.push(`Timeline Summary: ${project?.name || "Project"}`);
+    lines.push(`Generated: ${format(new Date(), "MMMM d, yyyy")}`);
+    lines.push("");
+    lines.push("=".repeat(50));
+    lines.push("");
+
+    // Use twelveWeekData for a comprehensive 12-week outlook
+    twelveWeekData.forEach(week => {
+      if (week.tasks.length > 0) {
+        lines.push(`📅 ${week.label}`);
+        lines.push("-".repeat(30));
+        
+        week.tasks.forEach(task => {
+          const ownerName = getAssigneeName(task.assigneeId);
+          const statusLabel = getStatusLabel(task.status);
+          const urgentMarker = task.priority === "urgent" ? "🔴 " : "";
+          
+          lines.push(`  ${urgentMarker}• ${task.title}`);
+          lines.push(`    Owner: ${ownerName} | Status: ${statusLabel}`);
+          if (task.dueDate) {
+            lines.push(`    Due: ${format(new Date(task.dueDate), "MMM d, yyyy")}`);
+          }
+        });
+        
+        lines.push("");
+      }
+    });
+
+    // Add unscheduled tasks section
+    if (tasksNoDueDate.length > 0) {
+      lines.push("📋 Tasks Without Due Date");
+      lines.push("-".repeat(30));
+      tasksNoDueDate.forEach(task => {
+        const ownerName = getAssigneeName(task.assigneeId);
+        const statusLabel = getStatusLabel(task.status);
+        lines.push(`  • ${task.title}`);
+        lines.push(`    Owner: ${ownerName} | Status: ${statusLabel}`);
+      });
+      lines.push("");
+    }
+
+    // Summary stats
+    lines.push("=".repeat(50));
+    lines.push("Summary:");
+    lines.push(`  • Total Scheduled Tasks: ${totalTasksScheduled}`);
+    lines.push(`  • Average Tasks/Week: ${avgTasksPerWeek}`);
+    lines.push(`  • Team Members: ${ownerCapacities.length}`);
+    lines.push(`  • Tasks Without Due Date: ${tasksNoDueDate.length}`);
+
+    return lines.join("\n");
+  };
+
+  const handleCopyEmailSummary = async () => {
+    const summary = generateEmailSummary();
+    try {
+      await navigator.clipboard.writeText(summary);
+      toast.success("Timeline summary copied to clipboard");
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      toast.error("Failed to copy summary");
+    }
+  };
+
   const goToPrevious = () => {
     setViewRangeStart(prev => addWeeks(prev, -WEEKS_TO_SHOW));
   };
@@ -366,6 +432,15 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
                 <List className="h-4 w-4" />
               </ToggleGroupItem>
             </ToggleGroup>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyEmailSummary}
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              Email Summary
+            </Button>
 
             <Button
               variant="outline"
