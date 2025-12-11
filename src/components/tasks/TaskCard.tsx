@@ -18,7 +18,7 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onClick, showProject = true, displayOptions = [], isSelected = false, onSelectionChange, showSelection = false }: TaskCardProps) {
-  const { projects, users, currentUser, clients } = useAppContext();
+  const { projects, users, currentUser, clients, taskStatuses } = useAppContext();
   
   const project = projects.find(p => p.id === task.projectId);
   const client = project ? clients.find(c => c.id === project.clientId) : null;
@@ -109,7 +109,7 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
           </h4>
           {displayOptions.includes("status") && (
             <Badge variant="outline" className="text-xs shrink-0 whitespace-nowrap">
-              {task.status}
+              {taskStatuses.find(s => s.value === task.status)?.label || task.status}
             </Badge>
           )}
         </div>
