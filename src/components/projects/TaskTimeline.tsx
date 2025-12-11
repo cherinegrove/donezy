@@ -60,7 +60,7 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const project = projects.find(p => p.id === projectId);
-  const WEEKS_TO_SHOW = 12;
+  const WEEKS_TO_SHOW = 6;
 
   // Parse date helper
   const parseDate = (dateStr: string | null | undefined): Date | null => {
@@ -386,73 +386,70 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
             </CardHeader>
             <CardContent>
               {viewMode === "visual" ? (
-                <ScrollArea className="w-full">
-                  <div className="flex gap-4 pb-4" style={{ minWidth: `${timelineData.length * 220}px` }}>
-                    {timelineData.map((week, index) => (
-                      <div
-                        key={index}
-                        className={`flex-shrink-0 w-52 rounded-lg border p-3 ${
-                          week.isCurrentWeek 
-                            ? "border-primary bg-primary/5 ring-2 ring-primary/20" 
-                            : week.isPast 
-                              ? "border-muted bg-muted/30 opacity-60" 
-                              : "border-border bg-card"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <span className={`text-sm font-medium ${week.isCurrentWeek ? "text-primary" : ""}`}>
-                            {week.label}
-                          </span>
-                          {week.isCurrentWeek && (
-                            <Badge variant="default" className="text-xs">Now</Badge>
-                          )}
-                        </div>
-                        
-                        <div className="space-y-2 min-h-[100px]">
-                          {week.tasks.length === 0 ? (
-                            <div className="text-center py-6 text-muted-foreground text-sm">
-                              <div className="text-2xl mb-1">📭</div>
-                              No tasks
-                            </div>
-                          ) : (
-                            week.tasks.map(task => (
-                              <div
-                                key={task.id}
-                                className={`p-2 rounded border text-sm ${
-                                  task.status === "done"
-                                    ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
-                                    : task.priority === "urgent"
-                                      ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
-                                      : "bg-background border-border"
-                                }`}
-                              >
-                                <div className="flex items-start gap-1">
-                                  {getPriorityIndicator(task.priority)}
-                                  <span className="font-medium text-xs line-clamp-2">{task.title}</span>
-                                </div>
-                                <div className="flex items-center justify-between mt-1.5">
-                                  <span className="text-xs text-muted-foreground truncate max-w-[80px]">
-                                    {getAssigneeName(task.assigneeId)}
-                                  </span>
-                                  <Badge className={`text-[10px] px-1.5 py-0 ${getStatusColor(task.status)}`}>
-                                    {task.status}
-                                  </Badge>
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                        
-                        {week.tasks.length > 0 && (
-                          <div className="mt-2 pt-2 border-t text-xs text-muted-foreground text-center">
-                            {week.tasks.length} task{week.tasks.length !== 1 ? "s" : ""}
-                          </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {timelineData.map((week, index) => (
+                    <div
+                      key={index}
+                      className={`rounded-lg border p-3 ${
+                        week.isCurrentWeek 
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/20" 
+                          : week.isPast 
+                            ? "border-muted bg-muted/30 opacity-60" 
+                            : "border-border bg-card"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className={`text-sm font-medium ${week.isCurrentWeek ? "text-primary" : ""}`}>
+                          {week.label}
+                        </span>
+                        {week.isCurrentWeek && (
+                          <Badge variant="default" className="text-xs">Now</Badge>
                         )}
                       </div>
-                    ))}
-                  </div>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
+                      
+                      <div className="space-y-2 min-h-[100px] max-h-[200px] overflow-y-auto">
+                        {week.tasks.length === 0 ? (
+                          <div className="text-center py-6 text-muted-foreground text-sm">
+                            <div className="text-2xl mb-1">📭</div>
+                            No tasks
+                          </div>
+                        ) : (
+                          week.tasks.map(task => (
+                            <div
+                              key={task.id}
+                              className={`p-2 rounded border text-sm ${
+                                task.status === "done"
+                                  ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
+                                  : task.priority === "urgent"
+                                    ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
+                                    : "bg-background border-border"
+                              }`}
+                            >
+                              <div className="flex items-start gap-1">
+                                {getPriorityIndicator(task.priority)}
+                                <span className="font-medium text-xs line-clamp-2">{task.title}</span>
+                              </div>
+                              <div className="flex items-center justify-between mt-1.5">
+                                <span className="text-xs text-muted-foreground truncate max-w-[80px]">
+                                  {getAssigneeName(task.assigneeId)}
+                                </span>
+                                <Badge className={`text-[10px] px-1.5 py-0 ${getStatusColor(task.status)}`}>
+                                  {task.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      
+                      {week.tasks.length > 0 && (
+                        <div className="mt-2 pt-2 border-t text-xs text-muted-foreground text-center">
+                          {week.tasks.length} task{week.tasks.length !== 1 ? "s" : ""}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="space-y-4">
                   {timelineData.map((week, index) => (
@@ -539,128 +536,116 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
 
             <CardContent>
               {viewMode === "visual" ? (
-                <ScrollArea className="w-full">
-                  <div className="pb-4">
-                    {/* Week headers */}
-                    <div className="flex mb-2">
-                      <div className="w-48 flex-shrink-0" />
-                      <div className="flex gap-1" style={{ minWidth: `${WEEKS_TO_SHOW * 100}px` }}>
-                        {weekDates.map((week, index) => (
-                          <div
-                            key={index}
-                            className={`flex-shrink-0 w-24 text-center text-xs font-medium py-1 rounded ${
-                              week.isCurrentWeek 
-                                ? "bg-primary text-primary-foreground" 
-                                : week.isPast
-                                  ? "bg-muted/50 text-muted-foreground"
-                                  : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {week.label}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Owner rows */}
-                    {ownerCapacities.map((owner) => (
-                      <div key={owner.ownerId} className="mb-4">
-                        {/* Owner header with capacity indicators */}
-                        <div className="flex items-center mb-2">
-                          <div className="w-48 flex-shrink-0 flex items-center gap-2 pr-4">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={owner.ownerAvatar} />
-                              <AvatarFallback className="text-xs">
-                                {owner.ownerName.split(" ").map(n => n[0]).join("").toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium truncate">{owner.ownerName}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {owner.tasks.length} task{owner.tasks.length !== 1 ? "s" : ""} • Max {owner.maxConcurrent}/wk
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {/* Weekly capacity bars */}
-                          <div className="flex gap-1" style={{ minWidth: `${WEEKS_TO_SHOW * 100}px` }}>
-                            {owner.weeklyCount.map((count, weekIndex) => {
-                              const capacityColor = count === 0 
-                                ? "bg-muted" 
-                                : count <= 2 
-                                  ? "bg-green-200 dark:bg-green-900" 
-                                  : count <= 4 
-                                    ? "bg-yellow-200 dark:bg-yellow-900" 
-                                    : "bg-red-200 dark:bg-red-900";
-                              
-                              return (
-                                <TooltipProvider key={weekIndex}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <div
-                                        className={`flex-shrink-0 w-24 h-6 rounded flex items-center justify-center text-[10px] font-medium ${capacityColor} ${weekDates[weekIndex]?.isPast ? "opacity-50" : ""}`}
-                                      >
-                                        {count > 0 && `${count} task${count !== 1 ? "s" : ""}`}
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{count} task(s) due for {owner.ownerName}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Task list for this owner */}
-                        <div className="flex">
-                          <div className="w-48 flex-shrink-0" />
-                          <div className="flex-1">
-                            <div className="flex flex-wrap gap-1 pl-1">
-                              {owner.tasks.slice(0, 8).map(task => (
-                                <TooltipProvider key={task.id}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge 
-                                        variant="outline" 
-                                        className={`text-[10px] max-w-[150px] truncate cursor-default ${
-                                          task.priority === "urgent" ? "border-red-300 bg-red-50 dark:bg-red-950/20" : ""
-                                        }`}
-                                      >
-                                        {task.priority === "urgent" && <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1" />}
-                                        {task.title}
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <div className="space-y-1">
-                                        <p className="font-medium">{task.title}</p>
-                                        <p className="text-xs">Due: {task.dueDate ? format(new Date(task.dueDate), "MMM d, yyyy") : "No date"}</p>
-                                        <p className="text-xs">Status: {task.status}</p>
-                                      </div>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              ))}
-                              {owner.tasks.length > 8 && (
-                                <Badge variant="secondary" className="text-[10px]">
-                                  +{owner.tasks.length - 8} more
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+                <div className="space-y-4">
+                  {/* Week headers */}
+                  <div className="grid grid-cols-7 gap-2">
+                    <div className="col-span-1" />
+                    {weekDates.map((week, index) => (
+                      <div
+                        key={index}
+                        className={`text-center text-xs font-medium py-1 rounded ${
+                          week.isCurrentWeek 
+                            ? "bg-primary text-primary-foreground" 
+                            : week.isPast
+                              ? "bg-muted/50 text-muted-foreground"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {week.label}
                       </div>
                     ))}
-
-                    {ownerCapacities.length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No tasks with due dates scheduled
-                      </div>
-                    )}
                   </div>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
+
+                  {/* Owner rows */}
+                  {ownerCapacities.map((owner) => (
+                    <div key={owner.ownerId} className="border rounded-lg p-3">
+                      {/* Owner header with capacity indicators */}
+                      <div className="grid grid-cols-7 gap-2 items-center mb-2">
+                        <div className="col-span-1 flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={owner.ownerAvatar} />
+                            <AvatarFallback className="text-xs">
+                              {owner.ownerName.split(" ").map(n => n[0]).join("").toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 hidden sm:block">
+                            <p className="text-sm font-medium truncate">{owner.ownerName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {owner.tasks.length} task{owner.tasks.length !== 1 ? "s" : ""}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Weekly capacity bars */}
+                        {owner.weeklyCount.map((count, weekIndex) => {
+                          const capacityColor = count === 0 
+                            ? "bg-muted" 
+                            : count <= 2 
+                              ? "bg-green-200 dark:bg-green-900" 
+                              : count <= 4 
+                                ? "bg-yellow-200 dark:bg-yellow-900" 
+                                : "bg-red-200 dark:bg-red-900";
+                          
+                          return (
+                            <TooltipProvider key={weekIndex}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    className={`h-8 rounded flex items-center justify-center text-[10px] font-medium ${capacityColor} ${weekDates[weekIndex]?.isPast ? "opacity-50" : ""}`}
+                                  >
+                                    {count > 0 && count}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{count} task(s) due for {owner.ownerName}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })}
+                      </div>
+
+                      {/* Task list for this owner */}
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {owner.tasks.slice(0, 6).map(task => (
+                          <TooltipProvider key={task.id}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-[10px] max-w-[120px] truncate cursor-default ${
+                                    task.priority === "urgent" ? "border-red-300 bg-red-50 dark:bg-red-950/20" : ""
+                                  }`}
+                                >
+                                  {task.priority === "urgent" && <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1" />}
+                                  {task.title}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="space-y-1">
+                                  <p className="font-medium">{task.title}</p>
+                                  <p className="text-xs">Due: {task.dueDate ? format(new Date(task.dueDate), "MMM d, yyyy") : "No date"}</p>
+                                  <p className="text-xs">Status: {task.status}</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ))}
+                        {owner.tasks.length > 6 && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            +{owner.tasks.length - 6} more
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {ownerCapacities.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No tasks with due dates scheduled
+                    </div>
+                  )}
+                </div>
               ) : (
                 /* Text View */
                 <div className="space-y-6">
