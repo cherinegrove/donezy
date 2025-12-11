@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { DrillDownDialog } from "./DrillDownDialog";
+import { useAppContext } from "@/contexts/AppContext";
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--secondary))', 'hsl(var(--destructive))', 'hsl(var(--muted))'];
 
@@ -14,9 +15,14 @@ interface ChartWidgetProps {
 }
 
 export const ChartWidget = ({ type, data, dataKey, nameKey, onDataClick }: ChartWidgetProps) => {
+  const { taskStatuses } = useAppContext();
   const [drillDownOpen, setDrillDownOpen] = useState(false);
   const [drillDownData, setDrillDownData] = useState<any[]>([]);
   const [drillDownTitle, setDrillDownTitle] = useState("");
+  
+  const getStatusLabel = (status: string) => {
+    return taskStatuses.find(s => s.value === status)?.label || status;
+  };
 
   const handleClick = (data: any) => {
     if (!onDataClick) return;
@@ -31,7 +37,7 @@ export const ChartWidget = ({ type, data, dataKey, nameKey, onDataClick }: Chart
         return {
           id: item.id,
           name: item.title || item.name,
-          status: item.status,
+          status: item.status ? getStatusLabel(item.status) : undefined,
           value: item.estimatedHours || item.allocatedHours,
           metadata: {
             ...(item.priority && { Priority: item.priority }),
