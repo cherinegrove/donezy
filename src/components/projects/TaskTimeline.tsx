@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
 
 interface TaskTimelineProps {
   tasks: Task[];
@@ -56,6 +57,7 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
   const [viewRangeStart, setViewRangeStart] = useState<Date>(() => {
     return startOfWeek(new Date(), { weekStartsOn: 1 });
   });
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const project = projects.find(p => p.id === projectId);
   const WEEKS_TO_SHOW = 12;
@@ -829,33 +831,47 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-2">
               {tasksNoDueDate.map(task => (
                 <div
                   key={task.id}
-                  className={`p-3 rounded border ${
+                  onClick={() => setSelectedTask(task)}
+                  className={`p-3 rounded border cursor-pointer hover:bg-accent/50 transition-colors ${
                     task.priority === "urgent"
                       ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
                       : "bg-muted/30 border-border"
                   }`}
                 >
-                  <div className="flex items-start gap-1">
-                    {getPriorityIndicator(task.priority)}
-                    <span className="font-medium text-sm">{task.title}</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-muted-foreground">
-                      {getAssigneeName(task.assigneeId)}
-                    </span>
-                    <Badge className={`text-xs ${getStatusColor(task.status)}`}>
-                      {task.status}
-                    </Badge>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {getPriorityIndicator(task.priority)}
+                      <span className={`font-medium text-sm truncate ${task.priority === "urgent" ? "text-red-600" : ""}`}>
+                        {task.title}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-xs text-muted-foreground">
+                        {getAssigneeName(task.assigneeId)}
+                      </span>
+                      <Badge className={`text-xs ${getStatusColor(task.status)}`}>
+                        {task.status}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Edit Task Dialog */}
+      {selectedTask && (
+        <EditTaskDialog
+          task={selectedTask}
+          open={!!selectedTask}
+          onOpenChange={(open) => !open && setSelectedTask(null)}
+        />
       )}
     </div>
   );
