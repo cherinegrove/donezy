@@ -309,7 +309,7 @@ export function EditProjectDialog({ project, open, onClose }: EditProjectDialogP
                     <Input 
                       type="number" 
                       placeholder="Enter allocated hours"
-                      {...field}
+                      value={field.value ?? ''}
                       onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
                     />
                   </FormControl>
