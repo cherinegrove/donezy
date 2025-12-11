@@ -20,7 +20,7 @@ interface DailyMetricsDialogProps {
 }
 
 export function DailyMetricsDialog({ open, onOpenChange }: DailyMetricsDialogProps) {
-  const { tasks, currentUser } = useAppContext();
+  const { tasks, currentUser, taskStatuses } = useAppContext();
   const navigate = useNavigate();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
@@ -130,7 +130,7 @@ export function DailyMetricsDialog({ open, onOpenChange }: DailyMetricsDialogPro
                         <p className="font-medium text-sm">{task.title}</p>
                         <p className="text-xs text-muted-foreground">
                           <Badge variant="outline" className="mr-2">
-                            {task.status}
+                            {taskStatuses.find(s => s.value === task.status)?.label || task.status}
                           </Badge>
                           {task.priority && (
                             <Badge variant="outline" className="mr-2">

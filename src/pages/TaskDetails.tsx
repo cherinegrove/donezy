@@ -16,7 +16,7 @@ import { Separator } from "@/components/ui/separator";
 export default function TaskDetails() {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
-  const { tasks, users, projects } = useAppContext();
+  const { tasks, users, projects, taskStatuses } = useAppContext();
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   const task = tasks.find(t => t.id === taskId);
@@ -72,7 +72,7 @@ export default function TaskDetails() {
                   task.status === 'done' ? 'default' :
                   task.status === 'in-progress' ? 'secondary' : 'outline'
                 }>
-                  {task.status}
+                  {taskStatuses.find(s => s.value === task.status)?.label || task.status}
                 </Badge>
                 <Badge variant={
                   task.priority === 'high' ? 'destructive' :

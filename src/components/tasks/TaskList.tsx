@@ -14,7 +14,7 @@ interface TaskListProps {
 }
 
 export function TaskList({ tasks, onTaskClick }: TaskListProps) {
-  const { users } = useAppContext();
+  const { users, taskStatuses } = useAppContext();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -67,7 +67,7 @@ export function TaskList({ tasks, onTaskClick }: TaskListProps) {
               <div className="flex items-start justify-between">
                 <CardTitle className="text-lg">{task.title}</CardTitle>
                 <Badge className={getStatusColor(task.status)}>
-                  {task.status}
+                  {taskStatuses.find(s => s.value === task.status)?.label || task.status}
                 </Badge>
               </div>
             </CardHeader>

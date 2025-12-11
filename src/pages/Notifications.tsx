@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
 export default function Notifications() {
-  const { messages, users, projects, tasks, currentUser, markMessageAsRead, clients } = useAppContext();
+  const { messages, users, projects, tasks, currentUser, markMessageAsRead, clients, taskStatuses } = useAppContext();
   const navigate = useNavigate();
   const [selectedNotification, setSelectedNotification] = useState<Message | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -251,7 +251,7 @@ export default function Notifications() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Status</p>
-                        <Badge variant="outline">{task.status}</Badge>
+                        <Badge variant="outline">{taskStatuses.find(s => s.value === task.status)?.label || task.status}</Badge>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Priority</p>

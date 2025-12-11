@@ -49,7 +49,11 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
-  const { users, projects } = useAppContext();
+  const { users, projects, taskStatuses } = useAppContext();
+  
+  const getStatusLabel = (status: string) => {
+    return taskStatuses.find(s => s.value === status)?.label || status;
+  };
   const exportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [viewMode, setViewMode] = useState<"visual" | "text">("visual");
@@ -434,7 +438,7 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
                                   {getAssigneeName(task.assigneeId)}
                                 </span>
                                 <Badge className={`text-[10px] px-1.5 py-0 ${getStatusColor(task.status)}`}>
-                                  {task.status}
+                                  {getStatusLabel(task.status)}
                                 </Badge>
                               </div>
                             </div>
@@ -478,7 +482,7 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
                                 — {getAssigneeName(task.assigneeId)}
                               </span>
                               <Badge className={`text-[10px] ${getStatusColor(task.status)}`}>
-                                {task.status}
+                                {getStatusLabel(task.status)}
                               </Badge>
                             </li>
                           ))}
@@ -625,7 +629,7 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
                                 <div className="space-y-1">
                                   <p className="font-medium">{task.title}</p>
                                   <p className="text-xs">Due: {task.dueDate ? format(new Date(task.dueDate), "MMM d, yyyy") : "No date"}</p>
-                                  <p className="text-xs">Status: {task.status}</p>
+                                  <p className="text-xs">Status: {getStatusLabel(task.status)}</p>
                                 </div>
                               </TooltipContent>
                             </Tooltip>
@@ -692,7 +696,7 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
                                   <li key={task.id} className="text-sm flex items-center gap-2">
                                     {task.priority === "urgent" && <span className="w-2 h-2 rounded-full bg-red-500" />}
                                     <span className={task.priority === "urgent" ? "text-red-600" : ""}>{task.title}</span>
-                                    <Badge className={`text-[10px] ${getStatusColor(task.status)}`}>{task.status}</Badge>
+                                    <Badge className={`text-[10px] ${getStatusColor(task.status)}`}>{getStatusLabel(task.status)}</Badge>
                                   </li>
                                 ))}
                               </ul>
@@ -789,7 +793,7 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
                             {getAssigneeName(task.assigneeId)}
                           </span>
                           <span className={`text-[10px] px-1.5 py-0.5 rounded ${getStatusColor(task.status)}`}>
-                            {task.status}
+                            {getStatusLabel(task.status)}
                           </span>
                         </div>
                       </div>
@@ -839,7 +843,7 @@ export function TaskTimeline({ tasks, projectId }: TaskTimelineProps) {
                         {getAssigneeName(task.assigneeId)}
                       </span>
                       <Badge className={`text-xs ${getStatusColor(task.status)}`}>
-                        {task.status}
+                        {getStatusLabel(task.status)}
                       </Badge>
                     </div>
                   </div>
