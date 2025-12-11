@@ -280,7 +280,7 @@ export default function ProjectDetails() {
               <span className="font-medium capitalize">{project.serviceType?.replace('-', ' ')}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Budget:</span>
+              <span className="text-sm text-muted-foreground">Allocated Hours:</span>
               <span className="font-medium">{project.allocatedHours || 0}h</span>
             </div>
             <div className="flex justify-between items-center">
