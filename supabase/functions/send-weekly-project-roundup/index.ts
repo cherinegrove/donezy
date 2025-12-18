@@ -122,11 +122,11 @@ const handler = async (req: Request): Promise<Response> => {
       awaitingFeedbackTasks.forEach((task: any) => {
         awaitingFeedbackSection += `• ${task.title}`;
         if (task.awaiting_feedback_details) {
-          awaitingFeedbackSection += ` - ${task.awaiting_feedback_details}`;
+          // Format details on a new line, indented for clarity
+          awaitingFeedbackSection += `\n  ${task.awaiting_feedback_details}`;
         }
-        awaitingFeedbackSection += `\n`;
+        awaitingFeedbackSection += `\n\n`;
       });
-      awaitingFeedbackSection += "\n";
     }
 
     // Generate email content as plain text
