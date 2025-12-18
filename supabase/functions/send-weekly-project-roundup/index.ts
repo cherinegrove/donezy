@@ -94,7 +94,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Build completed tasks section
     let completedSection = "";
     if (completedThisWeek.length > 0) {
-      completedSection = "This week we have made progress and completed the below tasks:\n";
+      completedSection = "Tasks completed this week:\n\n";
       completedThisWeek.forEach((task: any) => {
         completedSection += `• ${task.title}\n`;
       });
@@ -104,7 +104,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Build in progress section
     let inProgressSection = "";
     if (inProgressTasks.length > 0) {
-      inProgressSection = "I am currently working on:\n";
+      inProgressSection = "Tasks currently in progress:\n\n";
       inProgressTasks.forEach((task: any) => {
         inProgressSection += `• ${task.title}`;
         if (task.due_date) {
@@ -118,7 +118,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Build awaiting feedback section
     let awaitingFeedbackSection = "";
     if (awaitingFeedbackTasks.length > 0) {
-      awaitingFeedbackSection = "Friendly reminder that I am waiting on feedback for the below tasks:\n";
+      awaitingFeedbackSection = "Friendly reminder that I am waiting on feedback for the below tasks:\n\n";
       awaitingFeedbackTasks.forEach((task: any) => {
         awaitingFeedbackSection += `• ${task.title}`;
         if (task.awaiting_feedback_details) {
