@@ -114,11 +114,18 @@ export function CommentSection({ taskId }: CommentSectionProps) {
     const plainText = getPlainTextFromHtml(comment);
     if ((plainText.trim() === '' && pendingImages.length === 0) || !currentUser) return;
 
+    // Store the comment content before clearing (in case we need to restore on failure)
+    const commentContent = comment;
+    const imagesToUpload = [...pendingImages];
+
     setIsUploading(true);
 
     try {
       // Upload images first
-      const imageUrls = await uploadImages();
+      let imageUrls: string[] = [];
+      if (imagesToUpload.length > 0) {
+        imageUrls = await uploadImages();
+      }
 
       // Extract mentioned users from the plain text
       const mentionRegex = /@(\w+)/g;
@@ -136,31 +143,41 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       });
 
       // Add the comment to the task with images (store HTML for rich content)
-      const commentId = await addComment(taskId, currentUser.auth_user_id, comment, mentionedUserIds, imageUrls);
+      // This is the critical save operation - must complete successfully
+      const commentId = await addComment(taskId, currentUser.auth_user_id, commentContent, mentionedUserIds, imageUrls);
+      
+      // Verify comment was saved by checking we got an ID back
+      if (!commentId) {
+        throw new Error('Comment was not saved - no ID returned');
+      }
 
-      // Create notification messages for each mentioned user and task assignee/collaborators
+      // Clear form ONLY after successful save
+      setComment("");
+      editorRef.current?.clearContent();
+      imagesToUpload.forEach(({ preview }) => URL.revokeObjectURL(preview));
+      setPendingImages([]);
+
+      toast({
+        title: "Comment Added",
+        description:
+          mentionedUserIds.length > 0
+            ? "Your comment was added and mentioned users were notified"
+            : "Your comment was added",
+      });
+
+      // Handle notifications in background (don't block on these)
+      // For mentions
       if (task) {
-        // For mentions
         for (const userId of mentionedUserIds) {
           if (userId !== currentUser.auth_user_id) {
-            try {
-              const { data, error } = await supabase.functions.invoke("send-mention-notification", {
-                body: {
-                  mentionedUserId: userId,
-                  mentionerName: currentUser.name,
-                  messageContent: comment,
-                  taskId,
-                },
-              });
-
-              if (error) {
-                console.error("Error calling edge function:", error);
-              } else {
-                console.log("Edge function called successfully:", data);
-              }
-            } catch (error) {
-              console.error("Error creating mention notification:", error);
-            }
+            supabase.functions.invoke("send-mention-notification", {
+              body: {
+                mentionedUserId: userId,
+                mentionerName: currentUser.name,
+                messageContent: commentContent,
+                taskId,
+              },
+            }).catch(err => console.error("Error sending mention notification:", err));
           }
         }
 
@@ -170,14 +187,14 @@ export function CommentSection({ taskId }: CommentSectionProps) {
           task.assigneeId !== currentUser.auth_user_id &&
           !mentionedUserIds.includes(task.assigneeId)
         ) {
-          await createMessage({
+          createMessage({
             senderId: currentUser.auth_user_id,
             recipientIds: [task.assigneeId],
             content: `New comment on task "${task.title}" you're assigned to`,
             commentId: commentId,
             taskId: taskId,
             projectId: task.projectId,
-          });
+          }).catch(err => console.error("Error creating message for assignee:", err));
         }
 
         // For collaborators
@@ -188,37 +205,24 @@ export function CommentSection({ taskId }: CommentSectionProps) {
               collaboratorId !== task.assigneeId &&
               !mentionedUserIds.includes(collaboratorId)
             ) {
-              await createMessage({
+              createMessage({
                 senderId: currentUser.auth_user_id,
                 recipientIds: [collaboratorId],
                 content: `New comment on task "${task.title}" you're collaborating on`,
                 commentId: commentId,
                 taskId: taskId,
                 projectId: task.projectId,
-              });
+              }).catch(err => console.error("Error creating message for collaborator:", err));
             }
           }
         }
       }
-
-      toast({
-        title: "Comment Added",
-        description:
-          mentionedUserIds.length > 0
-            ? "Your comment was added and mentioned users were notified"
-            : "Your comment was added",
-      });
-
-      // Reset form
-      setComment("");
-      editorRef.current?.clearContent();
-      pendingImages.forEach(({ preview }) => URL.revokeObjectURL(preview));
-      setPendingImages([]);
     } catch (error) {
       console.error("Error adding comment:", error);
+      // Don't clear form on error - user can retry
       toast({
         title: "Error",
-        description: "Failed to add comment. Please try again.",
+        description: "Failed to save comment. Please try again.",
         variant: "destructive",
       });
     } finally {
