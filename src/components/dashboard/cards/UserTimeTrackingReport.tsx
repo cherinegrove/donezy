@@ -2,21 +2,218 @@ import { useMemo, useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, TrendingUp, ChevronDown, ChevronRight } from "lucide-react";
+import { Clock, Calendar, TrendingUp, ChevronDown, ChevronRight, LucideIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, parseISO, format } from "date-fns";
 
+interface PeriodData {
+  totalHours: string;
+  approvedHours: string;
+  declinedHours: string;
+  pendingHours: string;
+  entries: number;
+  approvedCount: number;
+  declinedCount: number;
+  pendingCount: number;
+  byClient: Record<string, any>;
+}
+
+interface PeriodDisplayProps {
+  title: string;
+  data: PeriodData;
+  icon: LucideIcon;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  openClients: Record<string, boolean>;
+  setOpenClients: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  openProjects: Record<string, boolean>;
+  setOpenProjects: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+}
+
+const PeriodDisplay = ({ 
+  title, 
+  data, 
+  icon: Icon, 
+  isExpanded, 
+  onToggleExpand,
+  openClients,
+  setOpenClients,
+  openProjects,
+  setOpenProjects
+}: PeriodDisplayProps) => {
+  const handleClientToggle = (clientId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setOpenClients(prev => ({ ...prev, [clientId]: !prev[clientId] }));
+  };
+
+  const handleProjectToggle = (clientId: string, projectId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setOpenProjects(prev => ({ 
+      ...prev, 
+      [`${clientId}-${projectId}`]: !prev[`${clientId}-${projectId}`] 
+    }));
+  };
+
+  return (
+    <div className="space-y-3">
+      <Collapsible open={isExpanded} onOpenChange={onToggleExpand}>
+        <CollapsibleTrigger className="w-full">
+          <div className="flex items-center justify-between w-full p-3 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer">
+            <div className="flex items-center gap-2">
+              <Icon className="h-4 w-4 text-primary" />
+              <h4 className="font-semibold text-sm">{title}</h4>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="font-mono">
+                {data.totalHours}h
+              </Badge>
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </div>
+          </div>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent className="px-3 pb-2 space-y-3">
+          <div className="flex items-center gap-2 mb-3 text-xs flex-wrap">
+            {data.approvedCount > 0 && (
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                ✓ {data.approvedHours}h approved ({data.approvedCount})
+              </Badge>
+            )}
+            {data.pendingCount > 0 && (
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
+                ⏱ {data.pendingHours}h pending ({data.pendingCount})
+              </Badge>
+            )}
+            {data.declinedCount > 0 && (
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
+                ✗ {data.declinedHours}h declined ({data.declinedCount})
+              </Badge>
+            )}
+          </div>
+
+          <div className="pl-3 pt-3 space-y-3">
+          {Object.entries(data.byClient).map(([clientId, clientData]: [string, any]) => (
+            <div key={clientId} className="border-l-2 border-primary/20 pl-4 space-y-2">
+              <Collapsible
+                open={openClients[clientId] || false}
+                onOpenChange={() => {}}
+              >
+                <CollapsibleTrigger 
+                  className="w-full" 
+                  onClick={(e) => handleClientToggle(clientId, e)}
+                >
+                  <div className="flex items-center justify-between w-full p-2 hover:bg-muted/30 rounded text-left">
+                    <div className="flex items-center gap-2">
+                      {openClients[clientId] ? (
+                        <ChevronDown className="h-3 w-3" />
+                      ) : (
+                        <ChevronRight className="h-3 w-3" />
+                      )}
+                      <span className="font-medium text-sm">{clientData.name}</span>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {clientData.hours.toFixed(2)}h
+                    </Badge>
+                  </div>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent className="pl-5 pt-2 space-y-2">
+                  {Object.entries(clientData.projects).map(([projectId, projectData]: [string, any]) => (
+                    <div key={projectId} className="border-l-2 border-blue-200 dark:border-blue-800 pl-3 space-y-1">
+                      <Collapsible
+                        open={openProjects[`${clientId}-${projectId}`] || false}
+                        onOpenChange={() => {}}
+                      >
+                        <CollapsibleTrigger 
+                          className="w-full" 
+                          onClick={(e) => handleProjectToggle(clientId, projectId, e)}
+                        >
+                          <div className="flex items-center justify-between w-full p-2 hover:bg-muted/20 rounded text-left">
+                            <div className="flex items-center gap-2">
+                              {openProjects[`${clientId}-${projectId}`] ? (
+                                <ChevronDown className="h-3 w-3" />
+                              ) : (
+                                <ChevronRight className="h-3 w-3" />
+                              )}
+                              <span className="text-sm">{projectData.name}</span>
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {projectData.hours.toFixed(2)}h
+                            </Badge>
+                          </div>
+                        </CollapsibleTrigger>
+
+                        <CollapsibleContent className="pl-5 pt-1 space-y-1">
+                          {Object.entries(projectData.tasks).map(([taskId, taskData]: [string, any]) => (
+                            <div key={taskId} className="p-2 bg-muted/30 rounded text-xs space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium">{taskData.name}</span>
+                                <Badge variant="secondary" className="text-xs">
+                                  {taskData.hours.toFixed(2)}h
+                                </Badge>
+                              </div>
+                              <div className="text-muted-foreground space-y-0.5 pl-2">
+                                {taskData.entries.map((entry: any, idx: number) => {
+                                  const getStatusBadge = (status: string) => {
+                                    switch (status) {
+                                      case 'approved-billable':
+                                        return <Badge className="text-xs bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-200">✓ Approved</Badge>;
+                                      case 'approved-non-billable':
+                                        return <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200">✓ Non-bill</Badge>;
+                                      case 'declined':
+                                        return <Badge className="text-xs bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-200">✗ Declined</Badge>;
+                                      case 'pending':
+                                      default:
+                                        return <Badge className="text-xs bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-200">⏱ Pending</Badge>;
+                                    }
+                                  };
+                                  
+                                  return (
+                                    <div key={idx} className="flex justify-between items-center gap-2">
+                                      <div className="flex items-center gap-2 flex-1">
+                                        <span>{format(parseISO(entry.startTime), 'MMM d, h:mm a')}</span>
+                                        {getStatusBadge(entry.status || 'pending')}
+                                      </div>
+                                      <span className="font-mono">{((entry.duration || 0) / 60).toFixed(2)}h</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </div>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          ))}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
+  );
+};
+
 interface UserTimeTrackingReportProps {
-  userId?: string; // If not provided, uses current user
+  userId?: string;
   showTitle?: boolean;
 }
 
 export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTrackingReportProps) => {
   const { timeEntries, currentUser, clients, projects, tasks, users } = useAppContext();
   const [expandedPeriod, setExpandedPeriod] = useState<string | null>(null);
+  const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
+  const [openProjects, setOpenProjects] = useState<Record<string, boolean>>({});
 
-  // Use provided userId or fall back to current user
   const targetUserId = userId || currentUser?.auth_user_id;
   const targetUser = users.find(u => u.auth_user_id === targetUserId);
 
@@ -25,13 +222,12 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
     return timeEntries.filter(entry => entry.userId === targetUserId);
   }, [timeEntries, targetUserId]);
 
-  const calculatePeriodData = (startDate: Date, endDate: Date) => {
+  const calculatePeriodData = (startDate: Date, endDate: Date): PeriodData => {
     const entries = userTimeEntries.filter(entry => {
       const entryDate = parseISO(entry.startTime);
       return entryDate >= startDate && entryDate <= endDate;
     });
 
-    // Separate approved and declined entries
     const approvedEntries = entries.filter(entry => 
       entry.status === 'approved-billable' || entry.status === 'approved-non-billable'
     );
@@ -56,7 +252,6 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
       return sum + (entry.duration || 0);
     }, 0);
 
-    // Group by client > project > task
     const byClient = entries.reduce((acc, entry) => {
       const project = projects.find(p => p.id === entry.projectId);
       const task = tasks.find(t => t.id === entry.taskId);
@@ -129,156 +324,6 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
   const lastMonthEnd = endOfMonth(subMonths(now, 1));
   const lastMonthData = calculatePeriodData(lastMonthStart, lastMonthEnd);
 
-  const PeriodDisplay = ({ title, data, icon: Icon, periodKey }: { title: string; data: any; icon: any; periodKey: string }) => {
-    const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
-    const [openProjects, setOpenProjects] = useState<Record<string, boolean>>({});
-
-    return (
-      <div className="space-y-3">
-        <Collapsible
-          open={expandedPeriod === periodKey}
-          onOpenChange={() => setExpandedPeriod(expandedPeriod === periodKey ? null : periodKey)}
-        >
-          <CollapsibleTrigger className="w-full">
-            <div className="flex items-center justify-between w-full p-3 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer">
-              <div className="flex items-center gap-2">
-                <Icon className="h-4 w-4 text-primary" />
-                <h4 className="font-semibold text-sm">{title}</h4>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="font-mono">
-                  {data.totalHours}h
-                </Badge>
-                {expandedPeriod === periodKey ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </div>
-            </div>
-          </CollapsibleTrigger>
-
-          <CollapsibleContent className="px-3 pb-2 space-y-3">
-            <div className="flex items-center gap-2 mb-3 text-xs flex-wrap">
-              {data.approvedCount > 0 && (
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
-                  ✓ {data.approvedHours}h approved ({data.approvedCount})
-                </Badge>
-              )}
-              {data.pendingCount > 0 && (
-                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
-                  ⏱ {data.pendingHours}h pending ({data.pendingCount})
-                </Badge>
-              )}
-              {data.declinedCount > 0 && (
-                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
-                  ✗ {data.declinedHours}h declined ({data.declinedCount})
-                </Badge>
-              )}
-            </div>
-
-            <div className="pl-3 pt-3 space-y-3">
-            {Object.entries(data.byClient).map(([clientId, clientData]: [string, any]) => (
-              <div key={clientId} className="border-l-2 border-primary/20 pl-4 space-y-2">
-                <Collapsible
-                  open={openClients[clientId]}
-                  onOpenChange={() => setOpenClients(prev => ({ ...prev, [clientId]: !prev[clientId] }))}
-                >
-                  <CollapsibleTrigger className="w-full" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-between w-full p-2 hover:bg-muted/30 rounded text-left">
-                      <div className="flex items-center gap-2">
-                        {openClients[clientId] ? (
-                          <ChevronDown className="h-3 w-3" />
-                        ) : (
-                          <ChevronRight className="h-3 w-3" />
-                        )}
-                        <span className="font-medium text-sm">{clientData.name}</span>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {clientData.hours.toFixed(2)}h
-                      </Badge>
-                    </div>
-                  </CollapsibleTrigger>
-
-                  <CollapsibleContent className="pl-5 pt-2 space-y-2">
-                    {Object.entries(clientData.projects).map(([projectId, projectData]: [string, any]) => (
-                      <div key={projectId} className="border-l-2 border-blue-200 dark:border-blue-800 pl-3 space-y-1">
-                        <Collapsible
-                          open={openProjects[`${clientId}-${projectId}`]}
-                          onOpenChange={() => setOpenProjects(prev => ({ 
-                            ...prev, 
-                            [`${clientId}-${projectId}`]: !prev[`${clientId}-${projectId}`] 
-                          }))}
-                        >
-                          <CollapsibleTrigger className="w-full" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-between w-full p-2 hover:bg-muted/20 rounded text-left">
-                              <div className="flex items-center gap-2">
-                                {openProjects[`${clientId}-${projectId}`] ? (
-                                  <ChevronDown className="h-3 w-3" />
-                                ) : (
-                                  <ChevronRight className="h-3 w-3" />
-                                )}
-                                <span className="text-sm">{projectData.name}</span>
-                              </div>
-                              <Badge variant="outline" className="text-xs">
-                                {projectData.hours.toFixed(2)}h
-                              </Badge>
-                            </div>
-                          </CollapsibleTrigger>
-
-                          <CollapsibleContent className="pl-5 pt-1 space-y-1">
-                            {Object.entries(projectData.tasks).map(([taskId, taskData]: [string, any]) => (
-                              <div key={taskId} className="p-2 bg-muted/30 rounded text-xs space-y-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="font-medium">{taskData.name}</span>
-                                  <Badge variant="secondary" className="text-xs">
-                                    {taskData.hours.toFixed(2)}h
-                                  </Badge>
-                                </div>
-                                <div className="text-muted-foreground space-y-0.5 pl-2">
-                                  {taskData.entries.map((entry: any, idx: number) => {
-                                    const getStatusBadge = (status: string) => {
-                                      switch (status) {
-                                        case 'approved-billable':
-                                          return <Badge className="text-xs bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-200">✓ Approved</Badge>;
-                                        case 'approved-non-billable':
-                                          return <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200">✓ Non-bill</Badge>;
-                                        case 'declined':
-                                          return <Badge className="text-xs bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-200">✗ Declined</Badge>;
-                                        case 'pending':
-                                        default:
-                                          return <Badge className="text-xs bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-200">⏱ Pending</Badge>;
-                                      }
-                                    };
-                                    
-                                    return (
-                                      <div key={idx} className="flex justify-between items-center gap-2">
-                                        <div className="flex items-center gap-2 flex-1">
-                                          <span>{format(parseISO(entry.startTime), 'MMM d, h:mm a')}</span>
-                                          {getStatusBadge(entry.status || 'pending')}
-                                        </div>
-                                        <span className="font-mono">{((entry.duration || 0) / 60).toFixed(2)}h</span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            ))}
-                          </CollapsibleContent>
-                        </Collapsible>
-                      </div>
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
-            ))}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-      </div>
-    );
-  };
-
   if (!targetUserId) {
     return (
       <Card>
@@ -307,19 +352,69 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
           </TabsList>
 
           <TabsContent value="current" className="space-y-4 mt-4">
-            <PeriodDisplay title="Today" data={todayData} icon={Clock} periodKey="today" />
+            <PeriodDisplay 
+              title="Today" 
+              data={todayData} 
+              icon={Clock} 
+              isExpanded={expandedPeriod === "today"}
+              onToggleExpand={() => setExpandedPeriod(expandedPeriod === "today" ? null : "today")}
+              openClients={openClients}
+              setOpenClients={setOpenClients}
+              openProjects={openProjects}
+              setOpenProjects={setOpenProjects}
+            />
             <div className="border-t pt-3">
-              <PeriodDisplay title="This Week" data={thisWeekData} icon={Calendar} periodKey="this-week" />
+              <PeriodDisplay 
+                title="This Week" 
+                data={thisWeekData} 
+                icon={Calendar} 
+                isExpanded={expandedPeriod === "this-week"}
+                onToggleExpand={() => setExpandedPeriod(expandedPeriod === "this-week" ? null : "this-week")}
+                openClients={openClients}
+                setOpenClients={setOpenClients}
+                openProjects={openProjects}
+                setOpenProjects={setOpenProjects}
+              />
             </div>
             <div className="border-t pt-3">
-              <PeriodDisplay title="This Month" data={thisMonthData} icon={TrendingUp} periodKey="this-month" />
+              <PeriodDisplay 
+                title="This Month" 
+                data={thisMonthData} 
+                icon={TrendingUp} 
+                isExpanded={expandedPeriod === "this-month"}
+                onToggleExpand={() => setExpandedPeriod(expandedPeriod === "this-month" ? null : "this-month")}
+                openClients={openClients}
+                setOpenClients={setOpenClients}
+                openProjects={openProjects}
+                setOpenProjects={setOpenProjects}
+              />
             </div>
           </TabsContent>
 
           <TabsContent value="past" className="space-y-4 mt-4">
-            <PeriodDisplay title="Last Week" data={lastWeekData} icon={Calendar} periodKey="last-week" />
+            <PeriodDisplay 
+              title="Last Week" 
+              data={lastWeekData} 
+              icon={Calendar} 
+              isExpanded={expandedPeriod === "last-week"}
+              onToggleExpand={() => setExpandedPeriod(expandedPeriod === "last-week" ? null : "last-week")}
+              openClients={openClients}
+              setOpenClients={setOpenClients}
+              openProjects={openProjects}
+              setOpenProjects={setOpenProjects}
+            />
             <div className="border-t pt-3">
-              <PeriodDisplay title="Last Month" data={lastMonthData} icon={TrendingUp} periodKey="last-month" />
+              <PeriodDisplay 
+                title="Last Month" 
+                data={lastMonthData} 
+                icon={TrendingUp} 
+                isExpanded={expandedPeriod === "last-month"}
+                onToggleExpand={() => setExpandedPeriod(expandedPeriod === "last-month" ? null : "last-month")}
+                openClients={openClients}
+                setOpenClients={setOpenClients}
+                openProjects={openProjects}
+                setOpenProjects={setOpenProjects}
+              />
             </div>
           </TabsContent>
         </Tabs>
