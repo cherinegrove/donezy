@@ -184,7 +184,7 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
                   open={openClients[clientId]}
                   onOpenChange={() => setOpenClients(prev => ({ ...prev, [clientId]: !prev[clientId] }))}
                 >
-                  <CollapsibleTrigger className="w-full">
+                  <CollapsibleTrigger className="w-full" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-between w-full p-2 hover:bg-muted/30 rounded text-left">
                       <div className="flex items-center gap-2">
                         {openClients[clientId] ? (
@@ -210,7 +210,7 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
                             [`${clientId}-${projectId}`]: !prev[`${clientId}-${projectId}`] 
                           }))}
                         >
-                          <CollapsibleTrigger className="w-full">
+                          <CollapsibleTrigger className="w-full" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-between w-full p-2 hover:bg-muted/20 rounded text-left">
                               <div className="flex items-center gap-2">
                                 {openProjects[`${clientId}-${projectId}`] ? (
