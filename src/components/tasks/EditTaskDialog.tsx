@@ -39,7 +39,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RecurringTaskDialog } from "./RecurringTaskDialog";
 import { TaskStatusPromptDialog } from "./TaskStatusPromptDialog";
 import { StatusHistorySection } from "./StatusHistorySection";
-import { TaskEmailSummaryContent } from "./TaskEmailSummaryContent";
+
 import { Repeat } from "lucide-react";
 
 interface EditTaskDialogProps {
@@ -251,13 +251,12 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full mb-4 grid grid-cols-6">
+            <TabsList className="w-full mb-4 grid grid-cols-5">
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="files">Files</TabsTrigger>
               <TabsTrigger value="time">Time</TabsTrigger>
               <TabsTrigger value="history">Status History</TabsTrigger>
               <TabsTrigger value="logs">Activity Log</TabsTrigger>
-              <TabsTrigger value="email">Email Summary</TabsTrigger>
             </TabsList>
 
             <TabsContent value="details" className="space-y-4">
@@ -414,9 +413,6 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
               <TaskLogsSection taskId={task.id} />
             </TabsContent>
             
-            <TabsContent value="email">
-              <TaskEmailSummaryContent task={task} />
-            </TabsContent>
           </Tabs>
 
           <DialogFooter className="mt-6 flex justify-between">
