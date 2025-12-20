@@ -1,6 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
@@ -52,6 +53,7 @@ const Projects = () => {
   const navigate = useNavigate();
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [templatesRefreshKey, setTemplatesRefreshKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
 
   console.log("Projects component: State initialized");
 
@@ -112,8 +114,21 @@ const Projects = () => {
 
   console.log("Projects component: Helper functions defined");
 
-  // Apply filters to projects
+  // Apply filters and search to projects
   const filteredProjects = projects.filter(project => {
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const projectName = project.name?.toLowerCase() || "";
+      const projectDescription = project.description?.toLowerCase() || "";
+      const clientName = getClientName(project.clientId).toLowerCase();
+      
+      if (!projectName.includes(query) && !projectDescription.includes(query) && !clientName.includes(query)) {
+        return false;
+      }
+    }
+
+    // Apply dropdown filters
     for (const [filterId, values] of Object.entries(activeFilters)) {
       if (values.length === 0) continue;
 
@@ -272,6 +287,18 @@ const Projects = () => {
 
           <TabsContent value="projects" className="mt-6 animate-fade-in">
             <ModernToolbar>
+              <ModernToolbarSection>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search projects..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 w-[200px] h-9"
+                  />
+                </div>
+              </ModernToolbarSection>
+
               <ModernToolbarSection>
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <EnhancedFilterBar 
