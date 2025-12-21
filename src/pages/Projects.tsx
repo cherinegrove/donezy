@@ -287,14 +287,14 @@ const Projects = () => {
 
           <TabsContent value="projects" className="mt-6 animate-fade-in">
             <ModernToolbar>
-              <ModernToolbarSection>
-                <div className="relative">
+              <ModernToolbarSection className="w-full sm:w-auto">
+                <div className="relative w-full sm:w-auto">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search projects..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 w-[200px] h-9"
+                    className="pl-9 w-full sm:w-[200px] h-9"
                   />
                 </div>
               </ModernToolbarSection>
