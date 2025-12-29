@@ -3,13 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
-import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus, Pause, Save, Edit, Download, FileText } from "lucide-react";
+import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus, Pause, Save, Edit, Download, FileText, Building2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { TimeEntry, TimeEntryStatus } from "@/types";
 import { UserTimeTrackingReport } from "@/components/dashboard/cards/UserTimeTrackingReport";
+import { ClientTimeReport } from "@/components/time/ClientTimeReport";
 import { 
   Table,
   TableHeader,
@@ -711,29 +712,48 @@ const TimeTracking = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Time Tracking</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold">Time Tracking</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Track time spent on tasks and projects
           </p>
         </div>
-        <Button onClick={() => {
+        <Button size="sm" className="w-full sm:w-auto" onClick={() => {
           console.log('🟢 ADD MANUAL ENTRY BUTTON CLICKED');
           handleAddNewEntry();
         }}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Manual Entry
+          <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Add Manual Entry</span>
+          <span className="sm:hidden">Add Entry</span>
         </Button>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="active">Active Timers</TabsTrigger>
-          <TabsTrigger value="timesheet">Time Logs</TabsTrigger>
-          <TabsTrigger value="reports">Monthly Summary</TabsTrigger>
-          {isAdmin() && <TabsTrigger value="user-reports">User Reports</TabsTrigger>}
+        <TabsList className="flex-wrap h-auto gap-1 w-full sm:w-auto">
+          <TabsTrigger value="active" className="text-xs sm:text-sm">
+            <span className="hidden sm:inline">Active Timers</span>
+            <span className="sm:hidden">Active</span>
+          </TabsTrigger>
+          <TabsTrigger value="timesheet" className="text-xs sm:text-sm">
+            <span className="hidden sm:inline">Time Logs</span>
+            <span className="sm:hidden">Logs</span>
+          </TabsTrigger>
+          <TabsTrigger value="client-report" className="text-xs sm:text-sm">
+            <Building2 className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">By Client</span>
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="text-xs sm:text-sm">
+            <span className="hidden sm:inline">Monthly Summary</span>
+            <span className="sm:hidden">Summary</span>
+          </TabsTrigger>
+          {isAdmin() && (
+            <TabsTrigger value="user-reports" className="text-xs sm:text-sm">
+              <span className="hidden sm:inline">User Reports</span>
+              <span className="sm:hidden">Users</span>
+            </TabsTrigger>
+          )}
         </TabsList>
         
         <TabsContent value="active" className="space-y-6">
@@ -1084,6 +1104,10 @@ const TimeTracking = () => {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="client-report" className="space-y-6">
+          <ClientTimeReport />
         </TabsContent>
         
         <TabsContent value="reports" className="space-y-6">
