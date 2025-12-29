@@ -10,13 +10,11 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setLoading(false);
@@ -36,17 +34,17 @@ const Index = () => {
   // If user is logged in, show dashboard content
   if (session) {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-start">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Welcome to donezy</h1>
-            <p className="text-muted-foreground">Professional Time Tracking and Task Management Platform</p>
+            <h1 className="text-xl sm:text-2xl font-bold">Welcome to donezy</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">Professional Time Tracking and Task Management Platform</p>
           </div>
           <LogoutButton />
         </div>
         
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 sm:p-6">
             <h3 className="font-semibold mb-2">Quick Actions</h3>
             <p className="text-sm text-muted-foreground mb-4">Get started with these common tasks</p>
             <div className="space-y-2">
@@ -62,7 +60,7 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 sm:p-6">
             <h3 className="font-semibold mb-2">Your Account</h3>
             <p className="text-sm text-muted-foreground mb-4">Manage your profile and preferences</p>
             <div className="space-y-2">
@@ -75,7 +73,7 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 sm:p-6 md:col-span-2 lg:col-span-1">
             <h3 className="font-semibold mb-2">Recent Activity</h3>
             <p className="text-sm text-muted-foreground">No recent activity to show</p>
           </div>
@@ -86,19 +84,21 @@ const Index = () => {
 
   // If user is not logged in, show welcome screen with login option
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <div className="mb-8 flex items-center justify-center gap-2">
-          <FileText className="h-16 w-16" />
-          <h1 className="text-5xl font-bold">donezy</h1>
+    <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
+      <div className="text-center max-w-md">
+        <div className="mb-6 sm:mb-8 flex items-center justify-center gap-2">
+          <FileText className="h-10 w-10 sm:h-16 sm:w-16 text-primary" />
+          <h1 className="text-3xl sm:text-5xl font-bold">donezy</h1>
         </div>
-        <p className="text-xl text-gray-600 mb-8">Professional Time Tracking and Task Management Platform</p>
+        <p className="text-base sm:text-xl text-muted-foreground mb-6 sm:mb-8">
+          Professional Time Tracking and Task Management Platform
+        </p>
         
-        <div className="space-x-4">
-          <Button asChild size="lg">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+          <Button asChild size="lg" className="w-full sm:w-auto">
             <Link to="/login">Sign In</Link>
           </Button>
-          <Button asChild variant="outline" size="lg">
+          <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
             <Link to="/signup">Sign Up</Link>
           </Button>
         </div>

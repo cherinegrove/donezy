@@ -1,8 +1,8 @@
-
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
+import { useSidebar, MobileSidebar } from "@/components/ui/sidebar";
 import {
   LayoutDashboard,
   BarChart,
@@ -11,36 +11,40 @@ import {
   Briefcase,
   ListTodo,
   ShieldAlert,
-  StickyNote,
   Settings,
 } from "lucide-react";
 
-export function AppSidebar() {
+function SidebarContent() {
   const location = useLocation();
   const { currentUser, customRoles } = useAppContext();
+  const { setMobileOpen, isMobile } = useSidebar();
   
-  // Check if user is admin - handle both role ID and direct role string
+  // Check if user is admin
   const userRole = currentUser && customRoles.find(r => r.id === currentUser.roleId);
   const directRoleCheck = currentUser?.roleId?.toLowerCase().includes('admin');
   const customRoleCheck = userRole?.name?.toLowerCase().includes('admin');
   const isAdmin = directRoleCheck || customRoleCheck;
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setMobileOpen(false);
+    }
+  };
   
-  // Temporary debug logging
-  console.log('🔍 Sidebar Debug:', {
-    currentUser: currentUser?.id,
-    roleId: currentUser?.roleId,
-    userRole: userRole?.name,
-    directRoleCheck,
-    customRoleCheck,
-    isAdmin,
-    customRolesCount: customRoles.length
-  });
+  const navItems = [
+    { to: "/", icon: LayoutDashboard, label: "Dashboard", end: true },
+    { to: "/projects", icon: Briefcase, label: "Projects" },
+    { to: "/tasks", icon: ListTodo, label: "Tasks" },
+    { to: "/time", icon: Clock, label: "Time Tracking" },
+    { to: "/notifications", icon: Bell, label: "Notifications" },
+    { to: "/analytics", icon: BarChart, label: "Analytics" },
+    { to: "/settings", icon: Settings, label: "Integrations" },
+  ];
   
   return (
-    <div className="w-[280px] flex flex-col bg-background border-r border-border sticky top-0 h-screen">
+    <div className="flex flex-col h-full bg-background">
       <div className="h-14 flex items-center px-4 gap-4 border-b">
-        <NavLink to="/" className="flex items-center gap-2 font-semibold">
-          {/* Logo */}
+        <NavLink to="/" className="flex items-center gap-2 font-semibold" onClick={handleNavClick}>
           <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary">
             <span className="text-primary-foreground text-sm">DZ</span>
           </div>
@@ -51,123 +55,30 @@ export function AppSidebar() {
       <ScrollArea className="flex-1 overflow-hidden">
         <div className="py-4">
           <nav className="px-2 space-y-1">
-            {/* Dashboard */}
-            <NavLink
-              to="/"
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                )
-              }
-              end
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              <span>Dashboard</span>
-            </NavLink>
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                onClick={handleNavClick}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  )
+                }
+              >
+                <item.icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
             
-            {/* Projects */}
-            <NavLink
-              to="/projects"
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                )
-              }
-            >
-              <Briefcase className="h-4 w-4" />
-              <span>Projects</span>
-            </NavLink>
-            
-            {/* Tasks */}
-            <NavLink
-              to="/tasks"
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                )
-              }
-            >
-              <ListTodo className="h-4 w-4" />
-              <span>Tasks</span>
-            </NavLink>
-            
-            {/* Time */}
-            <NavLink
-              to="/time"
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                )
-              }
-            >
-              <Clock className="h-4 w-4" />
-              <span>Time Tracking</span>
-            </NavLink>
-            
-            {/* Notifications */}
-            <NavLink
-              to="/notifications"
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                )
-              }
-            >
-              <Bell className="h-4 w-4" />
-              <span>Notifications</span>
-            </NavLink>
-            
-            {/* Analytics */}
-            <NavLink
-              to="/analytics"
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                )
-              }
-            >
-              <BarChart className="h-4 w-4" />
-              <span>Analytics</span>
-            </NavLink>
-            
-            {/* Integrations */}
-            <NavLink
-              to="/settings"
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                )
-              }
-            >
-              <Settings className="h-4 w-4" />
-              <span>Integrations</span>
-            </NavLink>
-            
-            {/* Admin Dashboard - only shown to admin users */}
             {isAdmin && (
               <NavLink
                 to="/admin"
+                onClick={handleNavClick}
                 className={({ isActive }) =>
                   cn(
                     "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
@@ -184,6 +95,26 @@ export function AppSidebar() {
           </nav>
         </div>
       </ScrollArea>
+    </div>
+  );
+}
+
+export function AppSidebar() {
+  const { isMobile } = useSidebar();
+  
+  // On mobile, render sidebar inside a Sheet (drawer)
+  if (isMobile) {
+    return (
+      <MobileSidebar>
+        <SidebarContent />
+      </MobileSidebar>
+    );
+  }
+  
+  // On desktop, render fixed sidebar
+  return (
+    <div className="w-[280px] flex-shrink-0 border-r border-border sticky top-0 h-screen">
+      <SidebarContent />
     </div>
   );
 }

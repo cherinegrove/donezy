@@ -10,7 +10,7 @@ export function ModernToolbar({ children, className }: ModernToolbarProps) {
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-4 p-3 bg-muted/50 backdrop-blur-sm border border-border/50 rounded-lg shadow-sm transition-all duration-200 hover:shadow-md",
+        "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-muted/50 backdrop-blur-sm border border-border/50 rounded-lg shadow-sm transition-all duration-200 hover:shadow-md",
         className
       )}
     >
@@ -26,7 +26,7 @@ interface ModernToolbarSectionProps {
 
 export function ModernToolbarSection({ children, className }: ModernToolbarSectionProps) {
   return (
-    <div className={cn("flex items-center gap-2 flex-wrap", className)}>
+    <div className={cn("flex items-center gap-2 flex-wrap w-full sm:w-auto", className)}>
       {children}
     </div>
   );
