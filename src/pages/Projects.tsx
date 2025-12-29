@@ -237,70 +237,70 @@ const Projects = () => {
     return (
       <div className="space-y-6">
         <Tabs defaultValue="projects" value={activeTab} onValueChange={setActiveTab}>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Projects</h1>
-              <p className="text-muted-foreground mt-1">
+              <h1 className="text-2xl sm:text-3xl font-bold">Projects</h1>
+              <p className="text-sm sm:text-base text-muted-foreground mt-1">
                 Manage and track your team's projects
               </p>
             </div>
-            <div className="flex gap-2">
-              <TabsList className="bg-muted/50 backdrop-blur-sm border border-border/50 shadow-sm">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <TabsList className="bg-muted/50 backdrop-blur-sm border border-border/50 shadow-sm w-full sm:w-auto">
                 <TabsTrigger 
                   value="projects"
-                  className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                  className="flex-1 sm:flex-none data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
                 >
-                  <FolderKanban className="mr-2 h-4 w-4" />
-                  Projects
+                  <FolderKanban className="mr-1 sm:mr-2 h-4 w-4" />
+                  <span className="hidden xs:inline">Projects</span>
                   {filteredProjects.length > 0 && (
-                    <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-xs">
+                    <Badge variant="secondary" className="ml-1 sm:ml-2 px-1.5 py-0 text-xs">
                       {filteredProjects.length}
                     </Badge>
                   )}
                 </TabsTrigger>
                 <TabsTrigger 
                   value="templates"
-                  className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                  className="flex-1 sm:flex-none data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
                 >
-                  Templates
+                  <span className="hidden xs:inline">Templates</span>
+                  <span className="xs:hidden">Tmpl.</span>
                 </TabsTrigger>
               </TabsList>
               {activeTab === "projects" ? (
-                <Button onClick={() => {
+                <Button size="sm" className="w-full sm:w-auto" onClick={() => {
                   console.log("Projects component: Create project button clicked");
                   setIsCreateDialogOpen(true);
                 }}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Project
+                  <Plus className="mr-1 sm:mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">New Project</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               ) : (
-                <Button onClick={() => {
+                <Button size="sm" className="w-full sm:w-auto" onClick={() => {
                   console.log("Projects component: Create template button clicked");
                   setIsCreateTemplateDialogOpen(true);
                 }}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Template
+                  <Plus className="mr-1 sm:mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">New Template</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               )}
             </div>
           </div>
 
-          <TabsContent value="projects" className="mt-6 animate-fade-in">
+          <TabsContent value="projects" className="mt-4 sm:mt-6 animate-fade-in">
             <ModernToolbar>
-              <ModernToolbarSection className="w-full sm:w-auto">
+              <ModernToolbarSection>
                 <div className="relative w-full sm:w-auto">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search projects..."
+                    placeholder="Search..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 w-full sm:w-[200px] h-9"
+                    className="pl-9 w-full sm:w-[180px] h-9"
                   />
                 </div>
-              </ModernToolbarSection>
-
-              <ModernToolbarSection>
-                <Filter className="h-4 w-4 text-muted-foreground" />
+                <Filter className="h-4 w-4 text-muted-foreground hidden sm:block" />
                 <EnhancedFilterBar 
                   filters={filterOptions} 
                   onFilterChange={handleFilterChange}
@@ -308,7 +308,7 @@ const Projects = () => {
                 />
               </ModernToolbarSection>
               
-              <ModernToolbarSection>
+              <ModernToolbarSection className="justify-end">
                 <ViewSelector currentView={currentView} onViewChange={setCurrentView} showTimeline={true} />
               </ModernToolbarSection>
             </ModernToolbar>

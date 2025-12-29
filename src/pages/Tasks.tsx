@@ -187,66 +187,71 @@ export default function Tasks() {
   };
 
   return (
-    <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Tasks</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Manage and track all your tasks across projects
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <TabsList className="bg-muted/50 backdrop-blur-sm border border-border/50 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <TabsList className="bg-muted/50 backdrop-blur-sm border border-border/50 shadow-sm w-full sm:w-auto">
               <TabsTrigger 
                 value="tasks"
-                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                className="flex-1 sm:flex-none data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
               >
-                <CheckSquare className="mr-2 h-4 w-4" />
-                Tasks
+                <CheckSquare className="mr-1 sm:mr-2 h-4 w-4" />
+                <span className="hidden xs:inline">Tasks</span>
                 {filteredTasks.length > 0 && (
-                  <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-xs">
+                  <Badge variant="secondary" className="ml-1 sm:ml-2 px-1.5 py-0 text-xs">
                     {filteredTasks.length}
                   </Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger 
                 value="recurring"
-                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                className="flex-1 sm:flex-none data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
               >
-                Recurring
+                <span className="hidden xs:inline">Recurring</span>
+                <span className="xs:hidden">Rec.</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="templates"
-                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
+                className="flex-1 sm:flex-none data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200"
               >
-                Templates
+                <span className="hidden xs:inline">Templates</span>
+                <span className="xs:hidden">Tmpl.</span>
               </TabsTrigger>
             </TabsList>
             {activeTab === "tasks" ? (
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => setIsBulkImportOpen(true)}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Import Tasks
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setIsBulkImportOpen(true)}>
+                  <Upload className="mr-1 sm:mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Import Tasks</span>
+                  <span className="sm:hidden">Import</span>
                 </Button>
-                <Button onClick={() => setIsCreateTaskOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Task
+                <Button size="sm" className="flex-1 sm:flex-none" onClick={() => setIsCreateTaskOpen(true)}>
+                  <Plus className="mr-1 sm:mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">New Task</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               </div>
             ) : (
-              <Button onClick={() => setIsCreateTemplateOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Template
+              <Button size="sm" onClick={() => setIsCreateTemplateOpen(true)}>
+                <Plus className="mr-1 sm:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">New Template</span>
+                <span className="sm:hidden">New</span>
               </Button>
             )}
           </div>
         </div>
 
-        <TabsContent value="tasks" className="space-y-6 animate-fade-in">
+        <TabsContent value="tasks" className="space-y-4 sm:space-y-6 animate-fade-in">
           <ModernToolbar>
-            <ModernToolbarSection className="flex-nowrap">
-              <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <ModernToolbarSection>
+              <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0 hidden sm:block" />
               <EnhancedFilterBar 
                 filters={filterOptions} 
                 onFilterChange={handleFilterChange}
@@ -257,10 +262,10 @@ export default function Tasks() {
                 variant={showMyTasksOnly ? "default" : "outline"}
                 size="sm"
                 onClick={() => setShowMyTasksOnly(!showMyTasksOnly)}
-                className="flex items-center gap-2 flex-shrink-0"
+                className="flex items-center gap-1 sm:gap-2 flex-shrink-0"
               >
                 {showMyTasksOnly ? <User className="h-4 w-4" /> : <Users className="h-4 w-4" />}
-                {showMyTasksOnly ? "My Tasks" : "All Tasks"}
+                <span className="hidden sm:inline">{showMyTasksOnly ? "My Tasks" : "All Tasks"}</span>
               </Button>
 
               {viewMode !== "kanban" && taskStatuses && taskStatuses.length > 0 && (
@@ -268,8 +273,8 @@ export default function Tasks() {
                   value={statusFilter}
                   onValueChange={(value) => setStatusFilter(value as TaskStatus | "all")}
                 >
-                  <SelectTrigger className="w-[180px] h-9 flex-shrink-0">
-                    <SelectValue placeholder="Filter by status" />
+                  <SelectTrigger className="w-[120px] sm:w-[180px] h-9 flex-shrink-0">
+                    <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
@@ -295,8 +300,8 @@ export default function Tasks() {
                       !dueDate && "text-muted-foreground"
                     )}
                   >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, "PPP") : "Due Date"}
+                    <Calendar className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">{dueDate ? format(dueDate, "PPP") : "Due Date"}</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -320,14 +325,15 @@ export default function Tasks() {
                     setStatusFilter("all");
                     setActiveFilters({});
                   }}
-                  className="flex-shrink-0"
+                  className="flex-shrink-0 text-xs sm:text-sm"
                 >
-                  Clear All Filters
+                  <span className="hidden sm:inline">Clear All Filters</span>
+                  <span className="sm:hidden">Clear</span>
                 </Button>
               )}
             </ModernToolbarSection>
             
-            <ModernToolbarSection className="flex-shrink-0">
+            <ModernToolbarSection className="flex-shrink-0 justify-end">
               <ViewSelector currentView={viewMode} onViewChange={setViewMode} showTimeline={true} />
             </ModernToolbarSection>
           </ModernToolbar>

@@ -1,4 +1,3 @@
-
 import { Outlet } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
@@ -11,12 +10,10 @@ export function AppLayout() {
   const [showDailyMetrics, setShowDailyMetrics] = useState(false);
 
   useEffect(() => {
-    // Check if we should show the daily metrics
     const lastShown = localStorage.getItem("dailyMetricsLastShown");
     const today = new Date().toDateString();
 
     if (lastShown !== today) {
-      // Show after a short delay to let the page load
       const timer = setTimeout(() => {
         setShowDailyMetrics(true);
         localStorage.setItem("dailyMetricsLastShown", today);
@@ -31,10 +28,10 @@ export function AppLayout() {
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
           <AppSidebar />
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col min-w-0">
             <TopBar />
             
-            <main className="flex-1 p-6 overflow-auto">
+            <main className="flex-1 p-3 sm:p-6 overflow-auto">
               <Outlet />
             </main>
           </div>
