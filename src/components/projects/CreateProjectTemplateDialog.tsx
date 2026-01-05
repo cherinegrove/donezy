@@ -114,8 +114,10 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
       if (template) {
         const newTask: TemplateTask = {
           id: `temp-task-${Date.now()}`,
-          name: template.name,
-          description: template.description || "",
+          // Use task_title if available, otherwise fall back to template name
+          name: template.task_title || template.name || "",
+          // Use task_description if available, otherwise fall back to description
+          description: template.task_description || template.description || "",
           estimatedHours: 0,
           priority: template.default_priority || "medium",
           subtasks: [],
