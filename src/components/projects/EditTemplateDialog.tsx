@@ -106,13 +106,10 @@ export function EditTemplateDialog({
 
   const fetchTaskTemplates = async () => {
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) return;
-
+      // Fetch all task templates (RLS policy allows all authenticated users to view)
       const { data, error } = await supabase
         .from('task_templates')
         .select('*')
-        .eq('auth_user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
