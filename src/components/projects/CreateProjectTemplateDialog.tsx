@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, ChevronDown } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -32,6 +32,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 
 const templateSchema = z.object({
@@ -69,6 +76,8 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
   const { toast } = useToast();
   const [tasks, setTasks] = useState<TemplateTask[]>([]);
   const [saving, setSaving] = useState(false);
+  const [taskTemplates, setTaskTemplates] = useState<any[]>([]);
+  const [showTaskTemplateSelect, setShowTaskTemplateSelect] = useState(false);
 
   const form = useForm<TemplateFormData>({
     resolver: zodResolver(templateSchema),
@@ -80,16 +89,51 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
     },
   });
 
-  const addTask = () => {
-    const newTask: TemplateTask = {
-      id: `temp-task-${Date.now()}`,
-      name: "",
-      description: "",
-      estimatedHours: 0,
-      priority: "medium",
-      subtasks: [],
-    };
-    setTasks([...tasks, newTask]);
+  // Fetch task templates on mount
+  useEffect(() => {
+    fetchTaskTemplates();
+  }, []);
+
+  const fetchTaskTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('task_templates')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTaskTemplates(data || []);
+    } catch (error) {
+      console.error('Error fetching task templates:', error);
+    }
+  };
+
+  const addTask = (templateId?: string) => {
+    if (templateId) {
+      const template = taskTemplates.find(t => t.id === templateId);
+      if (template) {
+        const newTask: TemplateTask = {
+          id: `temp-task-${Date.now()}`,
+          name: template.name,
+          description: template.description || "",
+          estimatedHours: 0,
+          priority: template.default_priority || "medium",
+          subtasks: [],
+        };
+        setTasks([...tasks, newTask]);
+      }
+    } else {
+      const newTask: TemplateTask = {
+        id: `temp-task-${Date.now()}`,
+        name: "",
+        description: "",
+        estimatedHours: 0,
+        priority: "medium",
+        subtasks: [],
+      };
+      setTasks([...tasks, newTask]);
+    }
+    setShowTaskTemplateSelect(false);
   };
 
   const updateTask = (taskId: string, updates: Partial<TemplateTask>) => {
@@ -324,10 +368,44 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium">Template Tasks</h3>
-                <Button type="button" onClick={addTask} variant="outline" size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Task
-                </Button>
+                <DropdownMenu open={showTaskTemplateSelect} onOpenChange={setShowTaskTemplateSelect}>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" variant="outline" size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Task
+                      <ChevronDown className="h-4 w-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56 bg-background border shadow-lg z-50">
+                    <DropdownMenuItem onClick={() => addTask()}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Blank Task
+                    </DropdownMenuItem>
+                    {taskTemplates.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
+                          From Templates
+                        </div>
+                        {taskTemplates.map((template) => (
+                          <DropdownMenuItem 
+                            key={template.id}
+                            onClick={() => addTask(template.id)}
+                          >
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">{template.name}</span>
+                              {template.description && (
+                                <span className="text-xs text-muted-foreground truncate max-w-full">
+                                  {template.description}
+                                </span>
+                              )}
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {tasks.map((task, taskIndex) => (
@@ -452,10 +530,44 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
                 <Card className="border-dashed">
                   <CardContent className="flex flex-col items-center justify-center py-8">
                     <p className="text-sm text-muted-foreground mb-4">No tasks added yet</p>
-                    <Button type="button" onClick={addTask} variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Your First Task
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="outline">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Your First Task
+                          <ChevronDown className="h-4 w-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-56 bg-background border shadow-lg z-50">
+                        <DropdownMenuItem onClick={() => addTask()}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Blank Task
+                        </DropdownMenuItem>
+                        {taskTemplates.length > 0 && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
+                              From Templates
+                            </div>
+                            {taskTemplates.map((template) => (
+                              <DropdownMenuItem 
+                                key={template.id}
+                                onClick={() => addTask(template.id)}
+                              >
+                                <div className="flex flex-col items-start">
+                                  <span className="font-medium">{template.name}</span>
+                                  {template.description && (
+                                    <span className="text-xs text-muted-foreground truncate max-w-full">
+                                      {template.description}
+                                    </span>
+                                  )}
+                                </div>
+                              </DropdownMenuItem>
+                            ))}
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </CardContent>
                 </Card>
               )}
