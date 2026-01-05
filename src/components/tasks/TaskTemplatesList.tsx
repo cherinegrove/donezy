@@ -72,19 +72,11 @@ export function TaskTemplatesList({ onCreateTemplate, onUseTemplate, refreshTrig
 
     try {
       setLoading(true);
-      console.log('Fetching templates for currentUser.auth_user_id:', currentUser.auth_user_id);
-      
-      // Get current session to compare
-      const { data: sessionData } = await supabase.auth.getSession();
-      console.log('Session user ID:', sessionData.session?.user?.id);
-      
+      // Fetch all task templates (RLS policy allows all authenticated users to view)
       const { data, error } = await supabase
         .from('task_templates')
         .select('*')
-        .eq('auth_user_id', sessionData.session?.user?.id || currentUser.auth_user_id)
         .order('created_at', { ascending: false });
-      
-      console.log('Templates query result:', { data, error });
 
       if (error) throw error;
 
