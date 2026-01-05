@@ -448,12 +448,10 @@ export function TaskTemplateManager() {
         return;
       }
 
-      console.log('Fetching templates for session user ID:', session.user.id);
-
+      // Fetch all task templates (RLS policy allows all authenticated users to view)
       const { data, error } = await supabase
         .from('task_templates')
         .select('*')
-        .eq('auth_user_id', session.user.id) // Use session user ID
         .order('created_at', { ascending: false });
 
       if (error) throw error;
