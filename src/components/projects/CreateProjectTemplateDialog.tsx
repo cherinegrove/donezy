@@ -24,7 +24,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, ChevronDown } from "lucide-react";
+import { Plus, Trash2, ChevronDown, CheckSquare } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -57,6 +58,7 @@ interface TemplateTask {
   estimatedHours: number;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   subtasks: TemplateSubtask[];
+  checklist?: { id: string; text: string; completed: boolean }[];
 }
 
 interface TemplateSubtask {
@@ -112,15 +114,27 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
     if (templateId) {
       const template = taskTemplates.find(t => t.id === templateId);
       if (template) {
+        // Parse checklist from template if it exists
+        let checklist: { id: string; text: string; completed: boolean }[] | undefined;
+        if (template.checklist) {
+          const rawChecklist = typeof template.checklist === 'string' 
+            ? JSON.parse(template.checklist) 
+            : template.checklist;
+          checklist = Array.isArray(rawChecklist) ? rawChecklist.map((item: { id?: string; text: string; completed?: boolean }) => ({
+            id: item.id || `checklist-${Date.now()}-${Math.random()}`,
+            text: item.text,
+            completed: false, // Always start uncompleted when creating from template
+          })) : undefined;
+        }
+
         const newTask: TemplateTask = {
           id: `temp-task-${Date.now()}`,
-          // Use task_title if available, otherwise fall back to template name
           name: template.task_title || template.name || "",
-          // Use task_description if available, otherwise fall back to description
           description: template.task_description || template.description || "",
           estimatedHours: 0,
           priority: template.default_priority || "medium",
           subtasks: [],
+          checklist,
         };
         setTasks([...tasks, newTask]);
       }
@@ -476,7 +490,24 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
                       />
                     </div>
 
-                    {/* Subtasks */}
+                    {/* Checklist from template */}
+                    {task.checklist && task.checklist.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <CheckSquare className="h-4 w-4 text-muted-foreground" />
+                          <label className="text-sm font-medium">Checklist ({task.checklist.length} items)</label>
+                        </div>
+                        <div className="bg-muted/30 p-3 rounded-md space-y-2">
+                          {task.checklist.map((item, idx) => (
+                            <div key={item.id || idx} className="flex items-center gap-2 text-sm">
+                              <Checkbox checked={false} disabled className="h-4 w-4" />
+                              <span className="text-muted-foreground">{item.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
                         <label className="text-sm font-medium">Subtasks</label>
