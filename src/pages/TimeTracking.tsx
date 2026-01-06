@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
-import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus, Pause, Save, Edit, Download, FileText, Building2 } from "lucide-react";
+import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus, Pause, Save, Edit, Download, FileText, Building2, Timer } from "lucide-react";
+import { ActiveTimersSection } from "@/components/time/ActiveTimersSection";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
@@ -759,140 +760,24 @@ const TimeTracking = () => {
         <TabsContent value="active" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Active Timer List</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Timer className="h-5 w-5 text-primary" />
+                Active Timers
+              </CardTitle>
               <p className="text-sm text-muted-foreground">All unsaved timers (running and paused)</p>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {/* Backend Active Timer */}
-                {activeTimer && (
-                  <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
-                    <div className="flex items-center gap-3">
-                      <Clock className={cn(
-                        "h-5 w-5 text-green-600 dark:text-green-400",
-                        !isTimerPaused && "animate-pulse"
-                      )} />
-                      <div>
-                        <h3 className="font-medium text-green-800 dark:text-green-200">
-                          {activeTimer.task?.title || "Unknown Task"}
-                        </h3>
-                        <p className="text-sm text-green-600 dark:text-green-400">
-                          {activeTimer.project?.name || "No project"} • {activeTimer.client?.name || "No client"}
-                        </p>
-                        <p className="text-xs text-green-500 dark:text-green-500">
-                          Started: {format(new Date(activeTimer.timeEntry.startTime), "HH:mm")}
-                          {isTimerPaused ? " • Paused" : " • Live"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <div className="text-2xl font-mono font-bold text-green-700 dark:text-green-300">
-                          {activeTimer.elapsedTime}
-                        </div>
-                        <div className="text-xs text-green-600 dark:text-green-400">
-                          Running by {activeTimer.user?.name || "Unknown"}
-                        </div>
-                       </div>
-                       <div className="flex items-center gap-2">
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={handlePauseTimer}
-                           className={cn(
-                             "h-8 w-8 p-0",
-                             isTimerPaused ? "text-green-600 hover:text-green-700" : "text-yellow-600 hover:text-yellow-700"
-                           )}
-                         >
-                           {isTimerPaused ? (
-                             <Play className="h-4 w-4" />
-                           ) : (
-                             <Pause className="h-4 w-4" />
-                           )}
-                         </Button>
-                         
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleStopTimer}
-                            className="h-8 w-8 p-0 text-primary hover:text-primary/80"
-                          >
-                            <Save className="h-4 w-4" />
-                          </Button>
-                         
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={() => {
-                             console.log('✏️ TimeTracking: Edit button clicked for active timer');
-                             setSelectedTimeEntry(activeTimer.timeEntry);
-                             setIsEditEntryDialogOpen(true);
-                           }}
-                           className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
-                         >
-                           <Edit className="h-4 w-4" />
-                         </Button>
-                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Local Timers (unsaved) */}
-                {localTimers.map((timer) => {
-                  const now = Date.now();
-                  const elapsed = timer.isActive && !timer.isPaused
-                    ? now - timer.startTime.getTime() - (timer.totalPausedTime || 0)
-                    : timer.elapsed;
-                  
-                  const formatTime = (milliseconds: number): string => {
-                    const seconds = Math.floor((milliseconds / 1000) % 60);
-                    const minutes = Math.floor((milliseconds / (1000 * 60)) % 60);
-                    const hours = Math.floor(milliseconds / (1000 * 60 * 60));
-                    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-                  };
-
-                  return (
-                    <div key={timer.id} className="flex justify-between items-center p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-                      <div className="flex items-center gap-3">
-                        <Clock className={cn(
-                          "h-5 w-5 text-blue-600 dark:text-blue-400",
-                          timer.isActive && !timer.isPaused && "animate-pulse"
-                        )} />
-                        <div>
-                          <h3 className="font-medium text-blue-800 dark:text-blue-200">
-                            {timer.taskTitle}
-                          </h3>
-                          <p className="text-sm text-blue-600 dark:text-blue-400">
-                            {timer.projectName || "No project"} • {timer.clientName || "No client"}
-                          </p>
-                          <p className="text-xs text-blue-500 dark:text-blue-500">
-                            Started: {format(timer.startTime, "HH:mm")}
-                            {timer.isPaused ? " • Paused" : " • Live"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <div className="text-2xl font-mono font-bold text-blue-700 dark:text-blue-300">
-                            {formatTime(elapsed)}
-                          </div>
-                          <div className="text-xs text-blue-600 dark:text-blue-400">
-                            Unsaved Timer
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                
-                {!activeTimer && localTimers.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Clock className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p className="text-lg">No active timers</p>
-                    <p className="text-sm">Start a timer from a task or project to track your time</p>
-                  </div>
-                )}
-              </div>
+              <ActiveTimersSection 
+                activeTimer={activeTimer}
+                localTimers={localTimers}
+                isTimerPaused={isTimerPaused}
+                onPauseTimer={handlePauseTimer}
+                onStopTimer={handleStopTimer}
+                onEditTimer={(timeEntry) => {
+                  setSelectedTimeEntry(timeEntry);
+                  setIsEditEntryDialogOpen(true);
+                }}
+              />
             </CardContent>
           </Card>
         </TabsContent>
