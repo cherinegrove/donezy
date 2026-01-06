@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { toast } from "sonner";
@@ -19,6 +18,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface StartTimerDialogProps {
   open: boolean;
@@ -40,6 +54,7 @@ export function StartTimerDialog({
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>(defaultProjectId || "");
   const [selectedTaskId, setSelectedTaskId] = useState<string>(defaultTaskId || "");
+  const [taskComboOpen, setTaskComboOpen] = useState(false);
   
   // Reset form when dialog opens
   useEffect(() => {
@@ -87,10 +102,15 @@ export function StartTimerDialog({
         return !projectStatus?.isFinal;
       });
   
-  // Filter tasks by selected project
+  // Filter tasks by selected project and sort alphabetically
   const projectTasks = selectedProjectId 
-    ? tasks.filter(task => task.projectId === selectedProjectId) 
+    ? tasks
+        .filter(task => task.projectId === selectedProjectId)
+        .sort((a, b) => a.title.localeCompare(b.title))
     : [];
+  
+  // Get selected task name for display
+  const selectedTask = tasks.find(t => t.id === selectedTaskId);
   
   const handleStartTimer = () => {
     console.log('🎯 StartTimerDialog: handleStartTimer called with:', {
@@ -166,7 +186,10 @@ export function StartTimerDialog({
             <Label htmlFor="project">Project (Optional)</Label>
             <Select
               value={selectedProjectId}
-              onValueChange={setSelectedProjectId}
+              onValueChange={(value) => {
+                setSelectedProjectId(value);
+                setSelectedTaskId(""); // Clear task when project changes
+              }}
               disabled={!selectedClientId}
             >
               <SelectTrigger id="project">
@@ -184,22 +207,48 @@ export function StartTimerDialog({
           
           <div className="grid gap-2">
             <Label htmlFor="task">Task (Optional)</Label>
-            <Select
-              value={selectedTaskId}
-              onValueChange={setSelectedTaskId}
-              disabled={!selectedProjectId}
-            >
-              <SelectTrigger id="task">
-                <SelectValue placeholder="Select task (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {projectTasks.map((task) => (
-                  <SelectItem key={task.id} value={task.id}>
-                    {task.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={taskComboOpen} onOpenChange={setTaskComboOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={taskComboOpen}
+                  className="w-full justify-between font-normal"
+                  disabled={!selectedProjectId}
+                >
+                  {selectedTask ? selectedTask.title : "Search and select task..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search tasks..." />
+                  <CommandList>
+                    <CommandEmpty>No tasks found.</CommandEmpty>
+                    <CommandGroup>
+                      {projectTasks.map((task) => (
+                        <CommandItem
+                          key={task.id}
+                          value={task.title}
+                          onSelect={() => {
+                            setSelectedTaskId(task.id);
+                            setTaskComboOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedTaskId === task.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {task.title}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
         <DialogFooter>
