@@ -12,6 +12,7 @@ import { RecentTasksCard } from "@/components/dashboard/cards/RecentTasksCard";
 import { NotificationsCard } from "@/components/dashboard/cards/NotificationsCard";
 import { TaskRemindersCard } from "@/components/dashboard/cards/TaskRemindersCard";
 import { MyTimeTrackingCard } from "@/components/dashboard/cards/MyTimeTrackingCard";
+import { MyDailyTimeChart } from "@/components/dashboard/cards/MyDailyTimeChart";
 
 const Home = () => {
   const { tasks, projects, currentUser } = useAppContext();
@@ -83,10 +84,11 @@ const Home = () => {
         </p>
       </div>
 
+      {/* Personal Daily Time Chart - Full Width at Top */}
+      <MyDailyTimeChart />
+
       {/* Static 2-column Dashboard Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Row 1: Overdue Tasks | Tasks Due Today */}
         <Card className="border-red-200 bg-red-50">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-red-800">
