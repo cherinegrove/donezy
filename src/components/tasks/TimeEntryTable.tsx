@@ -123,8 +123,14 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
     return user?.name || "Unknown user";
   };
 
+  // Check if this is the current user's active timer
   const isActiveEntry = (entry: TimeEntry) => {
     return activeTimeEntry && entry.id === activeTimeEntry.id;
+  };
+
+  // Check if entry is unsaved (no end time) - applies to any user's timer
+  const isUnsavedEntry = (entry: TimeEntry) => {
+    return !entry.endTime;
   };
 
   // Checks if current user can edit a time entry
@@ -213,18 +219,22 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
         <TableBody>
           {sortedEntries.map((entry) => {
             const isActive = isActiveEntry(entry);
-            const duration = isActive ? calculateActiveDuration(entry) : entry.duration;
+            const isUnsaved = isUnsavedEntry(entry);
+            const isOtherUserUnsaved = isUnsaved && !isActive;
+            const duration = isUnsaved ? calculateActiveDuration(entry) : entry.duration;
             
             return (
-              <TableRow key={entry.id} className={isActive ? "bg-green-50 dark:bg-green-900/20" : ""}>
+              <TableRow key={entry.id} className={isActive ? "bg-green-50 dark:bg-green-900/20" : isOtherUserUnsaved ? "bg-orange-50 dark:bg-orange-900/20" : ""}>
                 <TableCell className="font-mono text-sm">
                   {formatTime(entry.startTime)}
                 </TableCell>
                 <TableCell className="font-mono">
                   <div className="flex items-center gap-2">
                     {isActive && <Clock className="h-3 w-3 text-green-600" />}
+                    {isOtherUserUnsaved && <Clock className="h-3 w-3 text-orange-600" />}
                     {formatDuration(duration)}
                     {isActive && <span className="text-xs text-green-600">(active)</span>}
+                    {isOtherUserUnsaved && <span className="text-xs text-orange-600">(unsaved)</span>}
                   </div>
                 </TableCell>
                 {showAllDetails && !taskId && (
@@ -243,7 +253,7 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
                 </TableCell>
                 <TableCell>
                   <Badge className={getStatusColor(entry.status || 'pending')}>
-                    {isActive ? "active" : (entry.status || 'pending')}
+                    {isActive ? "active" : isOtherUserUnsaved ? "unsaved" : (entry.status || 'pending')}
                   </Badge>
                 </TableCell>
                 <TableCell>
