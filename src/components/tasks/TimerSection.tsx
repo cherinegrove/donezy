@@ -34,13 +34,13 @@ export function TimerSection({ taskId }: TimerSectionProps) {
   const minutes = totalMinutes % 60;
   
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-medium">Time Tracking</h3>
+    <div className="space-y-4 w-full overflow-hidden">
+      <div className="flex flex-wrap justify-between items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h3 className="text-lg font-medium whitespace-nowrap">Time Tracking</h3>
           {taskTimeEntries.length > 0 && (
-            <div className="flex items-center text-sm text-muted-foreground bg-secondary/50 px-2 py-1 rounded-md">
-              <Clock className="h-3 w-3 mr-1" />
+            <div className="flex items-center text-sm text-muted-foreground bg-secondary/50 px-2 py-1 rounded-md whitespace-nowrap">
+              <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
               <span>Total: {hours}h {minutes}m</span>
             </div>
           )}
@@ -48,15 +48,18 @@ export function TimerSection({ taskId }: TimerSectionProps) {
         <Button
           size="sm"
           onClick={() => setShowStartTimerDialog(true)}
+          className="flex-shrink-0"
         >
           <Play className="h-4 w-4 mr-1" />
           Start Timer
         </Button>
       </div>
       
-      <div className="space-y-4">
+      <div className="space-y-4 w-full overflow-x-auto">
         <h4 className="text-md font-medium">Time Entries Log</h4>
-        <TimeEntryTable taskId={taskId} showAllDetails={true} />
+        <div className="min-w-0">
+          <TimeEntryTable taskId={taskId} showAllDetails={true} />
+        </div>
       </div>
       
       <StartTimerDialog
