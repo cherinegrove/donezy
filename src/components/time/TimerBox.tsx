@@ -100,9 +100,15 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     window.dispatchEvent(new CustomEvent('timersUpdated'));
   }, [timers]);
 
+  // Track the last known activeTimeEntry ID to detect when it's cleared
+  const [lastActiveEntryId, setLastActiveEntryId] = useState<string | null>(null);
+
   // Handle activeTimeEntry from backend - create timer UI representation
   useEffect(() => {
     if (activeTimeEntry) {
+      // Track this entry ID
+      setLastActiveEntryId(activeTimeEntry.id);
+      
       const task = tasks.find(t => t.id === activeTimeEntry.taskId);
       const project = projects.find(p => p.id === task?.projectId);
       const client = clients.find(c => c.id === activeTimeEntry.clientId);
@@ -150,8 +156,13 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           );
         }
       });
+    } else if (lastActiveEntryId) {
+      // activeTimeEntry was cleared - remove the corresponding timer from UI
+      console.log('🗑️ Backend timer stopped, removing from UI:', lastActiveEntryId);
+      setTimers(prev => prev.filter(t => t.id !== lastActiveEntryId || t.isLocalOnly));
+      setLastActiveEntryId(null);
     }
-  }, [activeTimeEntry, isTimerPaused, tasks, projects, clients]);
+  }, [activeTimeEntry, isTimerPaused, tasks, projects, clients, lastActiveEntryId]);
 
   // Update elapsed time for active timers (both local and backend)
   useEffect(() => {
