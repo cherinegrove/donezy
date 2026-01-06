@@ -158,23 +158,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent 
-        className="sm:max-w-[425px]"
-        onPointerDownOutside={(e) => {
-          // Prevent closing when clicking on select dropdowns
-          const target = e.target as HTMLElement;
-          if (target.closest('[data-radix-select-content]') || target.closest('[role="listbox"]')) {
-            e.preventDefault();
-          }
-        }}
-        onInteractOutside={(e) => {
-          // Prevent closing when interacting with select dropdowns
-          const target = e.target as HTMLElement;
-          if (target.closest('[data-radix-select-content]') || target.closest('[role="listbox"]')) {
-            e.preventDefault();
-          }
-        }}
-      >
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Edit User" : "Add New User"}
@@ -257,11 +241,14 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="role">Role *</Label>
-              <Select value={roleId} onValueChange={setRoleId}>
+            <Select value={roleId} onValueChange={(value) => {
+              console.log("🔍 Role selected:", value);
+              setRoleId(value);
+            }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
-                <SelectContent position="popper" className="z-[200]">
+                <SelectContent>
                   {availableRoles.map(role => (
                     <SelectItem key={role.id} value={role.id}>
                       <div className="flex items-center gap-2">
@@ -284,11 +271,14 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
 
             <div>
               <Label htmlFor="status">Status</Label>
-              <Select value={status} onValueChange={(value: 'active' | 'inactive' | 'deleted') => setStatus(value)}>
+              <Select value={status} onValueChange={(value: 'active' | 'inactive' | 'deleted') => {
+                console.log("🔍 Status selected:", value);
+                setStatus(value);
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent position="popper" className="z-[200]">
+                <SelectContent>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                   <SelectItem value="deleted">Deleted</SelectItem>
