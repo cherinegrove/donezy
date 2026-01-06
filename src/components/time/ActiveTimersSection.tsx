@@ -117,25 +117,46 @@ export function ActiveTimersSection({
     if (!selectedLocalTimer || !currentUser) return;
 
     try {
-      const now = Date.now();
-      const elapsed = selectedLocalTimer.isActive && !selectedLocalTimer.isPaused
-        ? now - selectedLocalTimer.startTime.getTime() - (selectedLocalTimer.totalPausedTime || 0)
-        : selectedLocalTimer.elapsed;
-      
-      const durationMinutes = Math.floor(elapsed / (1000 * 60));
       const endTime = new Date();
+      const startTime = new Date(selectedLocalTimer.startTime);
+      
+      // Calculate actual elapsed time at this moment (not from stale state)
+      let actualElapsedMs: number;
+      
+      if (selectedLocalTimer.isPaused) {
+        // Timer is paused - use the elapsed time at pause
+        actualElapsedMs = selectedLocalTimer.elapsed;
+      } else if (selectedLocalTimer.isActive) {
+        // Timer is actively running - calculate from start time minus paused time
+        actualElapsedMs = endTime.getTime() - startTime.getTime() - (selectedLocalTimer.totalPausedTime || 0);
+      } else {
+        // Timer is stopped/inactive - use the stored elapsed
+        actualElapsedMs = selectedLocalTimer.elapsed;
+      }
+      
+      const durationMinutes = Math.floor(actualElapsedMs / (1000 * 60));
       
       const task = tasks.find(t => t.id === selectedLocalTimer.taskId);
       const project = projects.find(p => p.id === task?.projectId);
       
-      console.log('💾 Saving local timer as completed time entry');
+      console.log('💾 Saving local timer as completed time entry:', {
+        taskTitle: selectedLocalTimer.taskTitle,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        calculatedElapsedMs: actualElapsedMs,
+        storedElapsedMs: selectedLocalTimer.elapsed,
+        durationMinutes,
+        isPaused: selectedLocalTimer.isPaused,
+        isActive: selectedLocalTimer.isActive,
+        totalPausedTime: selectedLocalTimer.totalPausedTime
+      });
       
       await addTimeEntry({
         userId: currentUser.id,
         taskId: selectedLocalTimer.taskId,
         projectId: project?.id || null,
         clientId: project?.clientId || null,
-        startTime: selectedLocalTimer.startTime.toISOString(),
+        startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         duration: durationMinutes,
         description: notes || null,
