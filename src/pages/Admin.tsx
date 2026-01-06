@@ -11,6 +11,7 @@ import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
 import { NativeFieldsManager } from "@/components/admin/NativeFieldsManager";
 import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { DataImportManager } from "@/components/admin/DataImportManager";
+import { TimeAudit } from "@/components/admin/TimeAudit";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, BarChart3, Box, Database, Settings, ShieldAlert, Users, CheckSquare, Folder } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,7 @@ const Admin = () => {
         <TabsList className="flex-wrap h-auto p-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="time-audit">Time Audit</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="data-import">Data Import</TabsTrigger>
           <TabsTrigger value="clients">Clients</TabsTrigger>
@@ -158,6 +160,10 @@ const Admin = () => {
 
         <TabsContent value="users" className="space-y-6">
           <AdminUsers />
+        </TabsContent>
+
+        <TabsContent value="time-audit" className="space-y-6">
+          <TimeAudit />
         </TabsContent>
 
         <TabsContent value="data-import" className="space-y-6">
