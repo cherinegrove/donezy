@@ -47,7 +47,11 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
   }
 
   // Include active time entry if it matches the filters
-  let allEntries = [...filteredEntries];
+  // First, remove any existing entry with the same ID as activeTimeEntry to avoid duplicates
+  let allEntries = activeTimeEntry 
+    ? filteredEntries.filter(entry => entry.id !== activeTimeEntry.id)
+    : [...filteredEntries];
+    
   if (activeTimeEntry) {
     const matchesFilters = 
       (!taskId || activeTimeEntry.taskId === taskId) &&
@@ -55,7 +59,7 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
       (!userId || activeTimeEntry.userId === userId);
     
     if (matchesFilters) {
-      allEntries = [activeTimeEntry, ...filteredEntries];
+      allEntries = [activeTimeEntry, ...allEntries];
     }
   }
 
