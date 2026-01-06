@@ -1963,42 +1963,88 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  // Mutex to prevent race conditions when starting timers
+  const isStartingTimer = React.useRef(false);
+
   const startTimeTracking = async (taskId?: string, projectId?: string, clientId?: string) => {
     if (!session?.user || !currentUser) return;
     
-    console.log('🚀 Starting new timer:', { taskId, projectId, clientId });
-    
-    // RULE: Only ONE active timer at a time
-    // If there's an active timer, PAUSE it (don't stop it) by broadcasting an event
-    if (activeTimeEntry) {
-      console.log('⏸️ Pausing current active timer before starting new one');
-      // Broadcast event to TimerBox to convert current timer to local-only
-      window.dispatchEvent(new CustomEvent('pauseActiveTimer', { 
-        detail: { timerId: activeTimeEntry.id } 
-      }));
-      
-      // Stop the backend timer
-      await stopTimeTracking('Auto-paused when starting new timer');
+    // Prevent race conditions - if already starting a timer, ignore this call
+    if (isStartingTimer.current) {
+      console.log('⚠️ Already starting a timer, ignoring duplicate call');
+      return;
     }
     
-    // Create new time entry
-    const newTimeEntry: Omit<TimeEntry, 'id'> = {
-      userId: currentUser.id,
-      taskId: taskId || null,
-      projectId: projectId || null,
-      clientId: clientId || null,
-      startTime: new Date().toISOString(),
-      endTime: null,
-      duration: null,
-      description: null,
-      billable: true,
-      status: 'pending' as TimeEntryStatus,
-    };
-
-    await addTimeEntry(newTimeEntry);
-    await loadTimeEntries(); // Reload to get the new active entry
+    isStartingTimer.current = true;
     
-    console.log('✅ New timer started');
+    try {
+      console.log('🚀 Starting new timer:', { taskId, projectId, clientId });
+      
+      // RULE: Only ONE active timer at a time
+      // First, stop ALL active timers for this user in the database (belt and suspenders)
+      const { data: activeTimers, error: fetchError } = await supabase
+        .from('time_entries')
+        .select('id, start_time')
+        .eq('user_id', currentUser.id)
+        .is('end_time', null);
+      
+      if (fetchError) {
+        console.error('Error fetching active timers:', fetchError);
+      } else if (activeTimers && activeTimers.length > 0) {
+        console.log(`⏸️ Found ${activeTimers.length} active timer(s) to stop`);
+        
+        for (const timer of activeTimers) {
+          const duration = Math.floor((Date.now() - new Date(timer.start_time).getTime()) / (1000 * 60));
+          
+          // Broadcast event to TimerBox to convert to local-only
+          window.dispatchEvent(new CustomEvent('pauseActiveTimer', { 
+            detail: { timerId: timer.id } 
+          }));
+          
+          const { error: stopError } = await supabase
+            .from('time_entries')
+            .update({
+              end_time: new Date().toISOString(),
+              duration: Math.max(1, duration),
+              notes: 'Auto-paused when starting new timer'
+            })
+            .eq('id', timer.id);
+          
+          if (stopError) {
+            console.error('Error stopping timer:', timer.id, stopError);
+          } else {
+            console.log('✅ Stopped timer:', timer.id);
+          }
+        }
+        
+        // Clear local activeTimeEntry state
+        setActiveTimeEntry(null);
+        setIsTimerPaused(false);
+        setPausedAt(null);
+        setTotalPausedTime(0);
+      }
+      
+      // Create new time entry
+      const newTimeEntry: Omit<TimeEntry, 'id'> = {
+        userId: currentUser.id,
+        taskId: taskId || null,
+        projectId: projectId || null,
+        clientId: clientId || null,
+        startTime: new Date().toISOString(),
+        endTime: null,
+        duration: null,
+        description: null,
+        billable: true,
+        status: 'pending' as TimeEntryStatus,
+      };
+
+      await addTimeEntry(newTimeEntry);
+      await loadTimeEntries(); // Reload to get the new active entry
+      
+      console.log('✅ New timer started');
+    } finally {
+      isStartingTimer.current = false;
+    }
   };
 
   const stopTimeTracking = async (notes?: string) => {
