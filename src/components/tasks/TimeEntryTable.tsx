@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Clock, MoreHorizontal, CheckCircle, XCircle } from "lucide-react";
+import { Edit, Trash2, Clock, MoreHorizontal, CheckCircle, XCircle, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { TimeEntry, TimeEntryStatus } from "@/types";
 import {
@@ -175,6 +175,17 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
     });
   };
 
+  const handleReopenTimeEntry = (entry: TimeEntry) => {
+    if (!currentUser) return;
+    
+    updateTimeEntryStatus(entry.id, "pending", currentUser.auth_user_id);
+    
+    toast({
+      title: "Time Entry Reopened",
+      description: "The time entry has been set back to pending for editing.",
+    });
+  };
+
   if (sortedEntries.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -285,6 +296,18 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
                               >
                                 <XCircle className="mr-2 h-4 w-4" />
                                 <span>Decline</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
+                          {canApproveTimeEntry() && entry.status !== 'pending' && (
+                            <>
+                              <DropdownMenuItem 
+                                onClick={() => handleReopenTimeEntry(entry)}
+                                className="text-orange-600 focus:text-orange-600"
+                              >
+                                <RotateCcw className="mr-2 h-4 w-4" />
+                                <span>Reopen for Edit</span>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                             </>
