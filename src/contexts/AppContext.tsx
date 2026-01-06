@@ -1851,6 +1851,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
+      // SAFEGUARD: If creating a new ACTIVE timer (no endTime), ensure all other active timers are stopped first
+      // This is a belt-and-suspenders check - startTimeTracking should already do this
+      if (!timeEntry.endTime && currentUser) {
+        console.log('🔒 addTimeEntry safeguard: Checking for active timers before creating new active timer');
+        const { data: activeTimers, error: fetchError } = await supabase
+          .from('time_entries')
+          .select('id, start_time')
+          .eq('user_id', currentUser.id)
+          .is('end_time', null);
+        
+        if (!fetchError && activeTimers && activeTimers.length > 0) {
+          console.log(`⚠️ Found ${activeTimers.length} active timer(s) that should have been stopped - stopping now`);
+          for (const timer of activeTimers) {
+            const duration = Math.floor((Date.now() - new Date(timer.start_time).getTime()) / (1000 * 60));
+            await supabase
+              .from('time_entries')
+              .update({
+                end_time: new Date().toISOString(),
+                duration: Math.max(1, duration),
+                notes: 'Auto-stopped by system (safeguard)'
+              })
+              .eq('id', timer.id);
+          }
+        }
+      }
+      
       const { data, error } = await supabase
         .from('time_entries')
         .insert({
