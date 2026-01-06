@@ -2046,26 +2046,28 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('✅ Timer resumed successfully');
   };
 
-  const getElapsedTime = (timeEntry: TimeEntry | null = activeTimeEntry): string => {
+  const getElapsedTime = (timeEntry: TimeEntry | null = activeTimeEntry, applyLocalPauseState: boolean = true): string => {
     if (!timeEntry) return "00:00:00";
     
     const startTime = new Date(timeEntry.startTime).getTime();
     const now = Date.now();
-    let elapsedMs = now - startTime - totalPausedTime;
     
-    console.log('⏱️ getElapsedTime calculation:', {
-      timeEntryId: timeEntry.id,
-      startTime: timeEntry.startTime,
-      totalPausedTime,
-      elapsedMs,
-      isTimerPaused,
-      pausedAt: pausedAt?.toISOString()
-    });
+    // Base elapsed time from start_time (the source of truth from database)
+    let elapsedMs = now - startTime;
     
-    // If currently paused, subtract the current pause duration
-    if (isTimerPaused && pausedAt) {
-      elapsedMs -= (now - pausedAt.getTime());
+    // Only apply local pause state if this is the current user's active timer
+    // This ensures all users see the same base elapsed time from the database
+    if (applyLocalPauseState && activeTimeEntry && timeEntry.id === activeTimeEntry.id) {
+      elapsedMs -= totalPausedTime;
+      
+      // If currently paused, subtract the current pause duration
+      if (isTimerPaused && pausedAt) {
+        elapsedMs -= (now - pausedAt.getTime());
+      }
     }
+    
+    // Ensure elapsed time is never negative
+    elapsedMs = Math.max(0, elapsedMs);
     
     const seconds = Math.floor((elapsedMs / 1000) % 60);
     const minutes = Math.floor((elapsedMs / (1000 * 60)) % 60);
