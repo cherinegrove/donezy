@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
-import { Project } from "@/types";
+import { Project, Task } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { BulkEditTasksDialog } from "@/components/tasks/BulkEditTasksDialog";
 import { GoogleChatSettings } from "@/components/projects/GoogleChatSettings";
 import { WeeklyRoundupDialog } from "@/components/projects/WeeklyRoundupDialog";
 import { TaskTimeline } from "@/components/projects/TaskTimeline";
+import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
@@ -37,6 +38,7 @@ export default function ProjectDetails() {
   const [bulkEditTaskIds, setBulkEditTaskIds] = useState<string[]>([]);
   const [isGeneratingRoundup, setIsGeneratingRoundup] = useState(false);
   const [roundupDialogOpen, setRoundupDialogOpen] = useState(false);
+  const [selectedOverdueTask, setSelectedOverdueTask] = useState<Task | null>(null);
   
   // Task filters
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
@@ -389,7 +391,11 @@ export default function ProjectDetails() {
                 <ScrollArea className="h-full">
                   <div className="space-y-2 pr-4">
                     {overdueTasks.map((task) => (
-                      <div key={task.id} className="p-2 border rounded-md bg-red-50 border-red-200">
+                      <div 
+                        key={task.id} 
+                        className="p-2 border rounded-md bg-red-50 border-red-200 cursor-pointer hover:bg-red-100 transition-colors"
+                        onClick={() => setSelectedOverdueTask(task)}
+                      >
                         <h4 className="font-medium text-sm text-red-800">{task.title}</h4>
                         <p className="text-xs text-red-600">
                           Due: {task.dueDate ? format(new Date(task.dueDate), "MMM dd, yyyy") : "No due date"}
@@ -403,6 +409,16 @@ export default function ProjectDetails() {
           </CardContent>
         </Card>
       </div>
+
+      {selectedOverdueTask && (
+        <EditTaskDialog
+          task={selectedOverdueTask}
+          open={!!selectedOverdueTask}
+          onOpenChange={(open) => {
+            if (!open) setSelectedOverdueTask(null);
+          }}
+        />
+      )}
 
       <Tabs defaultValue="tasks" className="space-y-6">
         <TabsList className="inline-flex h-12 items-center justify-start rounded-xl bg-muted/50 p-1.5 backdrop-blur-sm border border-border/50 shadow-sm w-full">
