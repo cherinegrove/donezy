@@ -97,7 +97,7 @@ export interface AppContextType {
   stopTimeTracking: (notes?: string) => void;
   pauseTimeTracking: () => void;
   resumeTimeTracking: () => Promise<void>;
-  getElapsedTime: (timeEntry?: TimeEntry | null) => string;
+  getElapsedTime: (timeEntry?: TimeEntry | null, applyLocalPauseState?: boolean) => string;
   updateTimeEntryStatus: (timeEntryId: string, status: string, reason?: string) => void;
   
   // Message functions

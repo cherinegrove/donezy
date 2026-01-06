@@ -31,7 +31,7 @@ interface TimeEntryTableProps {
 }
 
 export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = false }: TimeEntryTableProps) {
-  const { timeEntries, deleteTimeEntry, updateTimeEntryStatus, tasks, projects, clients, users, activeTimeEntry, currentUser, customRoles } = useAppContext();
+  const { timeEntries, deleteTimeEntry, updateTimeEntryStatus, tasks, projects, clients, users, activeTimeEntry, currentUser, customRoles, getElapsedTime } = useAppContext();
   const { toast } = useToast();
 
   let filteredEntries = timeEntries;
@@ -90,12 +90,12 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
     return `${hours}h ${mins}m`;
   };
 
-  const calculateActiveDuration = (startTime: string) => {
-    const now = new Date();
-    const start = new Date(startTime);
-    const diffMs = now.getTime() - start.getTime();
-    const minutes = Math.floor(diffMs / (1000 * 60));
-    return minutes;
+  // Calculate active duration from start_time (consistent for all users)
+  const calculateActiveDuration = (entry: TimeEntry) => {
+    // Use getElapsedTime with applyLocalPauseState=false for consistent display across users
+    const elapsedStr = getElapsedTime(entry, false);
+    const [hours, minutes, seconds] = elapsedStr.split(':').map(Number);
+    return hours * 60 + minutes; // Return in minutes to match duration format
   };
 
   const formatTime = (dateString: string) => {
@@ -202,7 +202,7 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
         <TableBody>
           {sortedEntries.map((entry) => {
             const isActive = isActiveEntry(entry);
-            const duration = isActive ? calculateActiveDuration(entry.startTime) : entry.duration;
+            const duration = isActive ? calculateActiveDuration(entry) : entry.duration;
             
             return (
               <TableRow key={entry.id} className={isActive ? "bg-green-50 dark:bg-green-900/20" : ""}>
