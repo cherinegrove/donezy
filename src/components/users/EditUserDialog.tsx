@@ -157,15 +157,22 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose} modal={false}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
         className="sm:max-w-[425px]"
-        onOpenAutoFocus={(e) => {
-          console.log("🔍 Dialog auto focus event");
-          // Don't prevent default - let it focus naturally
-        }}
         onPointerDownOutside={(e) => {
-          console.log("🔍 Dialog pointer down outside");
+          // Prevent closing when clicking on select dropdowns
+          const target = e.target as HTMLElement;
+          if (target.closest('[data-radix-select-content]') || target.closest('[role="listbox"]')) {
+            e.preventDefault();
+          }
+        }}
+        onInteractOutside={(e) => {
+          // Prevent closing when interacting with select dropdowns
+          const target = e.target as HTMLElement;
+          if (target.closest('[data-radix-select-content]') || target.closest('[role="listbox"]')) {
+            e.preventDefault();
+          }
         }}
       >
         <DialogHeader>
