@@ -8,10 +8,11 @@ import { RiskSuccessWidget } from "@/components/analytics/RiskSuccessWidget";
 import { UserFeedbackWidget } from "@/components/analytics/UserFeedbackWidget";
 import { MetricsWidget } from "@/components/analytics/MetricsWidget";
 import { ChartWidget } from "@/components/analytics/ChartWidget";
+import { MultiLineChartWidget } from "@/components/analytics/MultiLineChartWidget";
 import { AddWidgetDialog, WidgetType } from "@/components/analytics/AddWidgetDialog";
 import { TimeFrameSelector, TimeFramePreset } from "@/components/analytics/TimeFrameSelector";
 import { toast } from "sonner";
-import { format, startOfToday, startOfWeek, startOfMonth, startOfQuarter, startOfYear, endOfToday, endOfWeek, endOfMonth, endOfQuarter, endOfYear } from "date-fns";
+import { format, startOfToday, startOfWeek, startOfMonth, startOfQuarter, startOfYear, endOfToday, endOfWeek, endOfMonth, endOfQuarter, endOfYear, eachDayOfInterval, eachMonthOfInterval, parseISO, isSameDay, isSameMonth } from "date-fns";
 import { DateRange } from "react-day-picker";
 
 interface Widget {
@@ -120,6 +121,48 @@ export default function Analytics() {
     userId: user.id,
     items: filteredTimeEntries.filter(e => e.userId === user.id)
   })).filter(u => u.hours > 0).slice(0, 5);
+
+  // Daily time tracking data - hours per day for each user
+  const dailyTimeData = (() => {
+    const days = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
+    return days.map(day => {
+      const dayData: Record<string, any> = {
+        date: format(day, 'MMM dd'),
+        fullDate: day
+      };
+      users.forEach(user => {
+        const userHours = filteredTimeEntries
+          .filter(e => e.userId === user.id && isSameDay(parseISO(e.startTime), day))
+          .reduce((sum, e) => sum + (e.duration || 0), 0) / 60;
+        dayData[user.name] = Math.round(userHours * 100) / 100;
+      });
+      return dayData;
+    });
+  })();
+
+  // Monthly time tracking data - hours per month for each user
+  const monthlyTimeData = (() => {
+    const months = eachMonthOfInterval({ start: dateRange.from, end: dateRange.to });
+    return months.map(month => {
+      const monthData: Record<string, any> = {
+        date: format(month, 'MMM yyyy'),
+        fullDate: month
+      };
+      users.forEach(user => {
+        const userHours = filteredTimeEntries
+          .filter(e => e.userId === user.id && isSameMonth(parseISO(e.startTime), month))
+          .reduce((sum, e) => sum + (e.duration || 0), 0) / 60;
+        monthData[user.name] = Math.round(userHours * 100) / 100;
+      });
+      return monthData;
+    });
+  })();
+
+  // Get users who have logged time for the line chart keys
+  const activeUserNames = users
+    .filter(user => filteredTimeEntries.some(e => e.userId === user.id))
+    .map(user => user.name)
+    .slice(0, 8); // Limit to 8 users for readability
 
   // Budget overview (using filtered data)
   const budgetData = filteredProjects.map(p => ({
@@ -245,6 +288,48 @@ export default function Analytics() {
           </WidgetContainer>
         );
 
+      case 'time-tracking-daily':
+        return (
+          <WidgetContainer
+            title="Daily Time by User"
+            onRemove={() => removeWidget(widget.id)}
+          >
+            {activeUserNames.length > 0 ? (
+              <MultiLineChartWidget
+                data={dailyTimeData}
+                lineKeys={activeUserNames}
+                xAxisKey="date"
+                yAxisLabel="Hours"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                No time entries in selected period
+              </div>
+            )}
+          </WidgetContainer>
+        );
+
+      case 'time-tracking-monthly':
+        return (
+          <WidgetContainer
+            title="Monthly Time by User"
+            onRemove={() => removeWidget(widget.id)}
+          >
+            {activeUserNames.length > 0 ? (
+              <MultiLineChartWidget
+                data={monthlyTimeData}
+                lineKeys={activeUserNames}
+                xAxisKey="date"
+                yAxisLabel="Hours"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                No time entries in selected period
+              </div>
+            )}
+          </WidgetContainer>
+        );
+
       case 'budget-overview':
         return (
           <WidgetContainer
@@ -310,7 +395,7 @@ export default function Analytics() {
                 {widgets
                   .sort((a, b) => a.position - b.position)
                   .map((widget, index) => {
-                    const isFullWidth = widget.type === 'metrics' || widget.type === 'risk-success';
+                    const isFullWidth = widget.type === 'metrics' || widget.type === 'risk-success' || widget.type === 'time-tracking-daily' || widget.type === 'time-tracking-monthly';
                     return (
                       <Draggable key={widget.id} draggableId={widget.id} index={index}>
                         {(provided, snapshot) => (

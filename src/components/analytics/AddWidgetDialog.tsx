@@ -19,6 +19,8 @@ export type WidgetType =
   | 'project-status'
   | 'task-distribution'
   | 'time-tracking'
+  | 'time-tracking-daily'
+  | 'time-tracking-monthly'
   | 'team-performance'
   | 'budget-overview'
   | 'completion-rate';
@@ -66,6 +68,18 @@ const widgetOptions: WidgetOption[] = [
     name: 'Time Tracking',
     description: 'Hours logged and time utilization',
     icon: <Clock className="h-5 w-5" />
+  },
+  {
+    id: 'time-tracking-daily',
+    name: 'Daily Time by User',
+    description: 'Daily hours logged per user (line graph)',
+    icon: <TrendingUp className="h-5 w-5" />
+  },
+  {
+    id: 'time-tracking-monthly',
+    name: 'Monthly Time by User',
+    description: 'Monthly hours logged per user (line graph)',
+    icon: <TrendingUp className="h-5 w-5" />
   },
   {
     id: 'team-performance',
