@@ -107,35 +107,49 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       const project = projects.find(p => p.id === task?.projectId);
       const client = clients.find(c => c.id === activeTimeEntry.clientId);
       
-      // Check if we already have this timer
-      const existingTimer = timers.find(t => t.id === activeTimeEntry.id);
-      
-      if (!existingTimer) {
-        console.log('➕ Adding new backend timer to UI');
-        const newTimer: TimerItem = {
-          id: activeTimeEntry.id,
-          taskId: activeTimeEntry.taskId || '',
-          taskTitle: task?.title || 'Unknown Task',
-          projectName: project?.name,
-          clientName: client?.name,
-          startTime: new Date(activeTimeEntry.startTime),
-          elapsed: 0,
-          isPaused: isTimerPaused,
-          pausedAt: isTimerPaused ? new Date() : undefined,
-          totalPausedTime: 0,
-          isActive: !isTimerPaused,
-          isLocalOnly: false
-        };
+      setTimers(prev => {
+        // Check if we already have this timer
+        const existingTimer = prev.find(t => t.id === activeTimeEntry.id);
         
-        setTimers(prev => [...prev, newTimer]);
-      } else {
-        // Update existing timer's pause state
-        setTimers(prev => prev.map(t => 
-          t.id === activeTimeEntry.id 
-            ? { ...t, isPaused: isTimerPaused, isActive: !isTimerPaused, isLocalOnly: false }
-            : t
-        ));
-      }
+        // Also check for duplicate timers for the same task (could happen during race conditions)
+        const duplicateTaskTimer = prev.find(t => 
+          t.id !== activeTimeEntry.id && 
+          t.taskId === activeTimeEntry.taskId && 
+          !t.isLocalOnly
+        );
+        
+        // Remove any duplicate task timers first
+        let filteredTimers = duplicateTaskTimer 
+          ? prev.filter(t => t.id !== duplicateTaskTimer.id)
+          : prev;
+        
+        if (!existingTimer) {
+          console.log('➕ Adding new backend timer to UI');
+          const newTimer: TimerItem = {
+            id: activeTimeEntry.id,
+            taskId: activeTimeEntry.taskId || '',
+            taskTitle: task?.title || 'Unknown Task',
+            projectName: project?.name,
+            clientName: client?.name,
+            startTime: new Date(activeTimeEntry.startTime),
+            elapsed: 0,
+            isPaused: isTimerPaused,
+            pausedAt: isTimerPaused ? new Date() : undefined,
+            totalPausedTime: 0,
+            isActive: !isTimerPaused,
+            isLocalOnly: false
+          };
+          
+          return [...filteredTimers, newTimer];
+        } else {
+          // Update existing timer's pause state
+          return filteredTimers.map(t => 
+            t.id === activeTimeEntry.id 
+              ? { ...t, isPaused: isTimerPaused, isActive: !isTimerPaused, isLocalOnly: false }
+              : t
+          );
+        }
+      });
     }
   }, [activeTimeEntry, isTimerPaused, tasks, projects, clients]);
 
