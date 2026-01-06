@@ -38,7 +38,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   const [notes, setNotes] = useState("");
   const [newlyCreatedTimerId, setNewlyCreatedTimerId] = useState<string | null>(null);
 
-  // Load timers from localStorage on mount - filter to current user only
+  // Load timers from localStorage on mount - filter to current user only and validate against backend
   useEffect(() => {
     const savedTimers = localStorage.getItem('activeTimers');
     if (savedTimers) {
@@ -46,11 +46,19 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         const parsed = JSON.parse(savedTimers);
         // Filter to only show current user's timers
         const userTimers = parsed.filter((t: any) => !t.userId || t.userId === currentUser?.id);
-        setTimers(userTimers.map((t: any) => ({
-          ...t,
-          startTime: new Date(t.startTime),
-          pausedAt: t.pausedAt ? new Date(t.pausedAt) : undefined
-        })));
+        
+        // Only load LOCAL-ONLY timers from localStorage
+        // Backend timers will be synced from activeTimeEntry
+        const localOnlyTimers = userTimers
+          .filter((t: any) => t.isLocalOnly === true)
+          .map((t: any) => ({
+            ...t,
+            startTime: new Date(t.startTime),
+            pausedAt: t.pausedAt ? new Date(t.pausedAt) : undefined
+          }));
+        
+        console.log('📂 Loading local-only timers from storage:', localOnlyTimers.length);
+        setTimers(localOnlyTimers);
       } catch (error) {
         console.error('Error loading timers:', error);
         localStorage.removeItem('activeTimers');

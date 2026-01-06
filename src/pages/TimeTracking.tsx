@@ -112,16 +112,20 @@ const TimeTracking = () => {
   // Local timers state
   const [localTimers, setLocalTimers] = useState<any[]>([]);
 
-  // Load local timers from localStorage - filter to current user only
+  // Load local timers from localStorage - only load LOCAL-ONLY timers (not backend timers)
   useEffect(() => {
     const loadLocalTimers = () => {
       const savedTimers = localStorage.getItem('activeTimers');
       if (savedTimers) {
         try {
           const parsed = JSON.parse(savedTimers);
-          // Filter to only show current user's timers
-          const userTimers = parsed.filter((t: any) => !t.userId || t.userId === currentUser?.id);
-          setLocalTimers(userTimers.map((t: any) => ({
+          // Filter to only show current user's LOCAL-ONLY timers
+          // Backend timers are synced from activeTimeEntry and should not persist across refresh
+          const userLocalTimers = parsed.filter((t: any) => 
+            (!t.userId || t.userId === currentUser?.id) && t.isLocalOnly === true
+          );
+          console.log('📂 TimeTracking: Loading local-only timers:', userLocalTimers.length);
+          setLocalTimers(userLocalTimers.map((t: any) => ({
             ...t,
             startTime: new Date(t.startTime),
             pausedAt: t.pausedAt ? new Date(t.pausedAt) : undefined
