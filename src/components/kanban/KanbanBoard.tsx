@@ -29,9 +29,10 @@ interface KanbanBoardProps {
   projectId?: string;
   viewMode?: ViewMode;
   onBulkEdit?: (taskIds: string[]) => void;
+  onTaskOpen?: (taskId: string) => void;
 }
 
-export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", onBulkEdit }: KanbanBoardProps) {
+export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", onBulkEdit, onTaskOpen }: KanbanBoardProps) {
   const { moveTask, reorderTasks, tasks: allTasks, deleteTask, taskStatuses } = useAppContext();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -229,7 +230,12 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     if (event?.ctrlKey || event?.metaKey || selectedTaskIds.length > 0) {
       handleTaskSelection(task.id);
     } else {
-      // Normal single task edit
+      // Normal single task edit - update URL if callback provided
+      if (onTaskOpen) {
+        onTaskOpen(task.id);
+        // Let parent handle the dialog via URL
+        return;
+      }
       setSelectedTask(task);
       setIsEditDialogOpen(true);
     }

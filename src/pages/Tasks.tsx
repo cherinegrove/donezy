@@ -1,10 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
 import { Task, TaskStatus } from "@/types";
 import { Button } from "@/components/ui/button";
 import { CheckSquare, Plus, Upload, Calendar, Users, User } from "lucide-react";
+import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { EditTaskTemplateDialog } from "@/components/tasks/EditTaskTemplateDialog";
@@ -40,6 +42,11 @@ type TaskViewMode = "list" | "kanban" | "timeline";
 
 export default function Tasks() {
   const { tasks, projects, users, clients, currentUser, taskStatuses } = useAppContext();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // URL-based task opening state
+  const [urlTaskId, setUrlTaskId] = useState<string | null>(null);
+  const [isUrlTaskDialogOpen, setIsUrlTaskDialogOpen] = useState(false);
   
   // Debug logging to help identify why tasks aren't showing
   React.useEffect(() => {
@@ -48,6 +55,31 @@ export default function Tasks() {
     console.log('Tasks:', tasks);
     console.log('Projects:', projects.length);
   }, [tasks, projects]);
+  
+  // Check URL for task ID on mount and when searchParams change
+  useEffect(() => {
+    const taskIdFromUrl = searchParams.get('task');
+    if (taskIdFromUrl) {
+      const task = tasks.find(t => t.id === taskIdFromUrl);
+      if (task) {
+        setUrlTaskId(taskIdFromUrl);
+        setIsUrlTaskDialogOpen(true);
+      }
+    }
+  }, [searchParams, tasks]);
+  
+  // Handle closing URL-based task dialog
+  const handleUrlTaskDialogClose = (open: boolean) => {
+    setIsUrlTaskDialogOpen(open);
+    if (!open) {
+      // Remove task param from URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('task');
+      setSearchParams(newParams, { replace: true });
+      setUrlTaskId(null);
+    }
+  };
+  
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
   const [isEditTemplateOpen, setIsEditTemplateOpen] = useState(false);
@@ -366,6 +398,11 @@ export default function Tasks() {
                 tasks={filteredTasks} 
                 viewMode={viewMode as "list" | "kanban"}
                 onBulkEdit={handleBulkEdit}
+                onTaskOpen={(taskId) => {
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.set('task', taskId);
+                  setSearchParams(newParams, { replace: true });
+                }}
               />
             )}
           </div>
@@ -412,6 +449,15 @@ export default function Tasks() {
         onOpenChange={setIsBulkEditOpen}
         taskIds={bulkEditTaskIds}
       />
+      
+      {/* URL-based task dialog for shareable links */}
+      {urlTaskId && (
+        <EditTaskDialog
+          task={tasks.find(t => t.id === urlTaskId)}
+          open={isUrlTaskDialogOpen}
+          onOpenChange={handleUrlTaskDialogClose}
+        />
+      )}
     </div>
   );
 }
