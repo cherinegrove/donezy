@@ -181,14 +181,14 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
     });
   };
 
-  const handleReopenTimeEntry = (entry: TimeEntry) => {
+  const handleResetToPending = (entry: TimeEntry) => {
     if (!currentUser) return;
     
     updateTimeEntryStatus(entry.id, "pending", currentUser.auth_user_id);
     
     toast({
-      title: "Time Entry Reopened",
-      description: "The time entry has been set back to pending for editing.",
+      title: "Status Reset",
+      description: "The time entry status has been reset to pending.",
     });
   };
 
@@ -313,11 +313,11 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
                           {canApproveTimeEntry() && entry.status !== 'pending' && (
                             <>
                               <DropdownMenuItem 
-                                onClick={() => handleReopenTimeEntry(entry)}
+                                onClick={() => handleResetToPending(entry)}
                                 className="text-orange-600 focus:text-orange-600"
                               >
                                 <RotateCcw className="mr-2 h-4 w-4" />
-                                <span>Reopen for Edit</span>
+                                <span>Reset to Pending</span>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                             </>
