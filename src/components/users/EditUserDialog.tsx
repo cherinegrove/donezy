@@ -157,7 +157,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose} modal={true}>
+    <Dialog open={isOpen} onOpenChange={onClose} modal={false}>
       <DialogContent 
         className="sm:max-w-[425px]"
         onOpenAutoFocus={(e) => {
@@ -254,24 +254,24 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                 <SelectTrigger>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
-                 <SelectContent>
-                   {availableRoles.map(role => (
-                     <SelectItem key={role.id} value={role.id}>
-                       <div className="flex items-center gap-2">
-                         {role.color && (
-                           <div 
-                             className="w-3 h-3 rounded-full" 
-                             style={{ backgroundColor: role.color }}
-                           />
-                         )}
-                         <span>{role.name}</span>
-                         {role.isBuiltIn && (
-                           <span className="text-xs text-muted-foreground">(Built-in)</span>
-                         )}
-                       </div>
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
+                <SelectContent position="popper" className="z-[200]">
+                  {availableRoles.map(role => (
+                    <SelectItem key={role.id} value={role.id}>
+                      <div className="flex items-center gap-2">
+                        {role.color && (
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: role.color }}
+                          />
+                        )}
+                        <span>{role.name}</span>
+                        {role.isBuiltIn && (
+                          <span className="text-xs text-muted-foreground">(Built-in)</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
 
@@ -281,7 +281,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[200]">
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                   <SelectItem value="deleted">Deleted</SelectItem>
