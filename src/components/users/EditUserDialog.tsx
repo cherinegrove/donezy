@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/contexts/AppContext";
 import { User } from "@/types";
 import { Checkbox } from "@/components/ui/checkbox";
-import { getUserRole } from "@/utils/roleUtils";
+
 
 interface EditUserDialogProps {
   user?: User;
@@ -19,15 +19,6 @@ interface EditUserDialogProps {
 export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   const { addUser, updateUser, teams, customRoles } = useAppContext();
   const { toast } = useToast();
-
-  // Debug logging
-  console.log("🔍 EditUserDialog Debug:", {
-    isOpen,
-    isEditing: !!user,
-    userName: user?.name || "No user (creating new)",
-    teamsCount: teams?.length || 0,
-    customRolesCount: customRoles?.length || 0
-  });
   
   // Fallback options when context data is empty
   const fallbackRoles = [
@@ -157,8 +148,8 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={isOpen} onOpenChange={onClose} modal={true}>
+      <DialogContent className="sm:max-w-[425px] pointer-events-auto" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Edit User" : "Add New User"}
@@ -172,29 +163,10 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
               <Input
                 id="name"
                 value={name}
-                onChange={(e) => {
-                  console.log("🔍 EditUserDialog Name input change:", e.target.value);
-                  console.log("🔍 Input event details:", {
-                    target: e.target,
-                    type: e.type,
-                    currentTarget: e.currentTarget,
-                    disabled: e.target.disabled,
-                    readOnly: e.target.readOnly,
-                    computedStyle: window.getComputedStyle(e.target),
-                    parentElement: e.target.parentElement?.tagName,
-                    inputValue: e.target.value,
-                    selectionStart: e.target.selectionStart,
-                    selectionEnd: e.target.selectionEnd
-                  });
-                  setName(e.target.value);
-                }}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="John Doe"
                 required
-                onFocus={() => console.log("🔍 EditUserDialog Name input focused")}
-                onBlur={() => console.log("🔍 EditUserDialog Name input blurred")}
-                onClick={() => console.log("🔍 EditUserDialog Name input clicked")}
-                onMouseEnter={() => console.log("🔍 EditUserDialog Name input mouse enter")}
-                onKeyDown={(e) => console.log("🔍 Key pressed:", e.key, "Input value:", e.currentTarget.value)}
+                autoComplete="off"
               />
             </div>
             <div>
@@ -203,16 +175,10 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => {
-                  console.log("🔍 EditUserDialog Email input change:", e.target.value);
-                  setEmail(e.target.value);
-                }}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="john@company.com"
                 required
-                onFocus={() => console.log("🔍 EditUserDialog Email input focused")}
-                onBlur={() => console.log("🔍 EditUserDialog Email input blurred")}
-                onClick={() => console.log("🔍 EditUserDialog Email input clicked")}
-                onMouseEnter={() => console.log("🔍 EditUserDialog Email input mouse enter")}
+                autoComplete="off"
               />
             </div>
           </div>
@@ -241,10 +207,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="role">Role *</Label>
-            <Select value={roleId} onValueChange={(value) => {
-              console.log("🔍 Role selected:", value);
-              setRoleId(value);
-            }}>
+            <Select value={roleId} onValueChange={setRoleId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
@@ -271,10 +234,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
 
             <div>
               <Label htmlFor="status">Status</Label>
-              <Select value={status} onValueChange={(value: 'active' | 'inactive' | 'deleted') => {
-                console.log("🔍 Status selected:", value);
-                setStatus(value);
-              }}>
+              <Select value={status} onValueChange={(value: 'active' | 'inactive' | 'deleted') => setStatus(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
