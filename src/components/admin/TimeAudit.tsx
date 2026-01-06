@@ -8,8 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, AlertTriangle, Clock, Play, Search, Download } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { RefreshCw, AlertTriangle, Clock, Play, Search, Download, History, Eye } from "lucide-react";
 import { format, formatDistanceToNow, differenceInHours } from "date-fns";
+import { 
+  fetchTimeEntryEvents, 
+  formatEventType, 
+  getEventIcon, 
+  TimeEntryEvent,
+  fetchAllRecentEvents
+} from "@/utils/timeEntryEventLogger";
 
 interface RawTimeEntry {
   id: string;
@@ -29,27 +38,37 @@ interface RawTimeEntry {
 export const TimeAudit = () => {
   const { users, projects, tasks, clients } = useAppContext();
   const [entries, setEntries] = useState<RawTimeEntry[]>([]);
+  const [allEvents, setAllEvents] = useState<TimeEntryEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [userFilter, setUserFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("all");
+  
+  // Event detail dialog state
+  const [selectedEntry, setSelectedEntry] = useState<RawTimeEntry | null>(null);
+  const [entryEvents, setEntryEvents] = useState<TimeEntryEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
 
   const fetchEntries = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('time_entries')
-        .select('*')
-        .order('start_time', { ascending: false })
-        .limit(500);
+      const [entriesResult, eventsResult] = await Promise.all([
+        supabase
+          .from('time_entries')
+          .select('*')
+          .order('start_time', { ascending: false })
+          .limit(500),
+        fetchAllRecentEvents(1000)
+      ]);
 
-      if (error) {
-        console.error('Error fetching time entries:', error);
-        return;
+      if (entriesResult.error) {
+        console.error('Error fetching time entries:', entriesResult.error);
+      } else {
+        setEntries(entriesResult.data || []);
       }
-
-      setEntries(data || []);
+      
+      setAllEvents(eventsResult);
     } catch (err) {
       console.error('Error:', err);
     } finally {
@@ -63,25 +82,25 @@ export const TimeAudit = () => {
 
   const getUserName = (userId: string) => {
     const user = users.find(u => u.id === userId || u.auth_user_id === userId);
-    return user?.name || userId;
+    return user?.name || userId?.slice(0, 8) + '...';
   };
 
   const getProjectName = (projectId: string | null) => {
     if (!projectId) return "-";
     const project = projects.find(p => p.id === projectId);
-    return project?.name || projectId;
+    return project?.name || projectId?.slice(0, 8) + '...';
   };
 
   const getTaskName = (taskId: string | null) => {
     if (!taskId) return "-";
     const task = tasks.find(t => t.id === taskId);
-    return task?.title || taskId;
+    return task?.title || taskId?.slice(0, 8) + '...';
   };
 
   const getClientName = (clientId: string | null) => {
     if (!clientId) return "-";
     const client = clients.find(c => c.id === clientId);
-    return client?.name || clientId;
+    return client?.name || clientId?.slice(0, 8) + '...';
   };
 
   const formatDuration = (minutes: number | null) => {
@@ -97,6 +116,26 @@ export const TimeAudit = () => {
     const diffMs = now.getTime() - start.getTime();
     const diffMins = Math.floor(diffMs / (1000 * 60));
     return formatDuration(diffMins);
+  };
+
+  // Get event count for an entry
+  const getEventCount = (entryId: string) => {
+    return allEvents.filter(e => e.time_entry_id === entryId).length;
+  };
+
+  // Open event details dialog
+  const openEventDetails = async (entry: RawTimeEntry) => {
+    setSelectedEntry(entry);
+    setLoadingEvents(true);
+    try {
+      const events = await fetchTimeEntryEvents(entry.id);
+      setEntryEvents(events);
+    } catch (err) {
+      console.error('Error fetching events:', err);
+      setEntryEvents([]);
+    } finally {
+      setLoadingEvents(false);
+    }
   };
 
   // Filter entries
@@ -118,6 +157,7 @@ export const TimeAudit = () => {
     // Tab filter
     if (activeTab === "active" && entry.end_time) return false;
     if (activeTab === "suspicious" && !suspiciousEntries.includes(entry)) return false;
+    if (activeTab === "events" && getEventCount(entry.id) === 0) return false;
 
     // User filter
     if (userFilter !== "all" && entry.user_id !== userFilter) return false;
@@ -145,7 +185,7 @@ export const TimeAudit = () => {
   });
 
   const exportToCSV = () => {
-    const headers = ["ID", "User", "Project", "Task", "Client", "Start Time", "End Time", "Duration (min)", "Status", "Notes"];
+    const headers = ["ID", "User", "Project", "Task", "Client", "Start Time", "End Time", "Duration (min)", "Status", "Notes", "Event Count"];
     const rows = filteredEntries.map(e => [
       e.id,
       getUserName(e.user_id),
@@ -156,7 +196,8 @@ export const TimeAudit = () => {
       e.end_time || "ACTIVE",
       e.duration?.toString() || "",
       e.status || "",
-      (e.notes || "").replace(/,/g, ";")
+      (e.notes || "").replace(/,/g, ";"),
+      getEventCount(e.id).toString()
     ]);
 
     const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
@@ -188,6 +229,9 @@ export const TimeAudit = () => {
 
   // Get unique users from entries
   const uniqueUserIds = [...new Set(entries.map(e => e.user_id))];
+  
+  // Count entries with events
+  const entriesWithEvents = entries.filter(e => getEventCount(e.id) > 0).length;
 
   return (
     <div className="space-y-6">
@@ -199,7 +243,7 @@ export const TimeAudit = () => {
                 <Clock className="h-5 w-5 text-primary" />
                 Time Entry Audit
               </CardTitle>
-              <CardDescription>View all raw time entry data from the database</CardDescription>
+              <CardDescription>View all raw time entry data with detailed event history</CardDescription>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={fetchEntries} disabled={loading}>
@@ -215,7 +259,7 @@ export const TimeAudit = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
@@ -253,8 +297,19 @@ export const TimeAudit = () => {
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Unique Users</p>
-                    <p className="text-2xl font-bold">{uniqueUserIds.length}</p>
+                    <p className="text-sm text-muted-foreground">With Events</p>
+                    <p className="text-2xl font-bold text-blue-600">{entriesWithEvents}</p>
+                  </div>
+                  <History className="h-8 w-8 text-blue-500/30" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Events</p>
+                    <p className="text-2xl font-bold">{allEvents.length}</p>
                   </div>
                   <Clock className="h-8 w-8 text-muted-foreground/20" />
                 </div>
@@ -271,6 +326,9 @@ export const TimeAudit = () => {
               </TabsTrigger>
               <TabsTrigger value="suspicious" className="text-amber-600">
                 Suspicious ({suspiciousEntries.length})
+              </TabsTrigger>
+              <TabsTrigger value="events" className="text-blue-600">
+                With Events ({entriesWithEvents})
               </TabsTrigger>
             </TabsList>
 
@@ -311,17 +369,131 @@ export const TimeAudit = () => {
             </div>
 
             <TabsContent value="all" className="mt-4">
-              <TimeEntryTable entries={filteredEntries} {...{ getUserName, getProjectName, getTaskName, getClientName, formatDuration, calculateLiveDuration, getStatusBadge }} />
+              <TimeEntryTable 
+                entries={filteredEntries} 
+                {...{ getUserName, getProjectName, getTaskName, getClientName, formatDuration, calculateLiveDuration, getStatusBadge, getEventCount, openEventDetails }} 
+              />
             </TabsContent>
             <TabsContent value="active" className="mt-4">
-              <TimeEntryTable entries={filteredEntries} {...{ getUserName, getProjectName, getTaskName, getClientName, formatDuration, calculateLiveDuration, getStatusBadge }} />
+              <TimeEntryTable 
+                entries={filteredEntries} 
+                {...{ getUserName, getProjectName, getTaskName, getClientName, formatDuration, calculateLiveDuration, getStatusBadge, getEventCount, openEventDetails }} 
+              />
             </TabsContent>
             <TabsContent value="suspicious" className="mt-4">
-              <TimeEntryTable entries={filteredEntries} {...{ getUserName, getProjectName, getTaskName, getClientName, formatDuration, calculateLiveDuration, getStatusBadge }} />
+              <TimeEntryTable 
+                entries={filteredEntries} 
+                {...{ getUserName, getProjectName, getTaskName, getClientName, formatDuration, calculateLiveDuration, getStatusBadge, getEventCount, openEventDetails }} 
+              />
+            </TabsContent>
+            <TabsContent value="events" className="mt-4">
+              <TimeEntryTable 
+                entries={filteredEntries} 
+                {...{ getUserName, getProjectName, getTaskName, getClientName, formatDuration, calculateLiveDuration, getStatusBadge, getEventCount, openEventDetails }} 
+              />
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Event Details Dialog */}
+      <Dialog open={!!selectedEntry} onOpenChange={() => setSelectedEntry(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Event History
+            </DialogTitle>
+            <DialogDescription>
+              {selectedEntry && (
+                <span>
+                  Timer for {getTaskName(selectedEntry.task_id) !== '-' ? getTaskName(selectedEntry.task_id) : getProjectName(selectedEntry.project_id)}
+                  {' • '}Started {format(new Date(selectedEntry.start_time), 'MMM d, yyyy HH:mm')}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ScrollArea className="max-h-[50vh]">
+            {loadingEvents ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : entryEvents.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <History className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                <p>No events recorded for this time entry yet.</p>
+                <p className="text-sm">Events will appear here when the timer is paused, resumed, or edited.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {entryEvents.map((event, index) => (
+                  <div key={event.id} className="flex gap-3 p-3 rounded-lg border bg-card">
+                    <div className="text-2xl">{getEventIcon(event.event_type as any)}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{formatEventType(event.event_type as any)}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(event.event_timestamp), 'MMM d, HH:mm:ss')}
+                        </span>
+                      </div>
+                      {event.details && (
+                        <div className="mt-1 text-sm text-muted-foreground space-y-1">
+                          {event.details.previousValue !== undefined && event.details.newValue !== undefined && (
+                            <p>
+                              Changed from <span className="font-mono bg-muted px-1 rounded">{String(event.details.previousValue)}</span>
+                              {' → '}
+                              <span className="font-mono bg-muted px-1 rounded">{String(event.details.newValue)}</span>
+                            </p>
+                          )}
+                          {event.details.pauseDuration !== undefined && (
+                            <p>Pause duration: <span className="font-medium">{Math.round(event.details.pauseDuration / 1000 / 60)} minutes</span></p>
+                          )}
+                          {event.details.reason && (
+                            <p>Reason: {event.details.reason}</p>
+                          )}
+                          {event.details.field && (
+                            <p>Field: <span className="font-mono">{event.details.field}</span></p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+          
+          {selectedEntry && (
+            <div className="border-t pt-4 mt-4">
+              <h4 className="text-sm font-medium mb-2">Entry Details</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">User:</span>{' '}
+                  <span className="font-medium">{getUserName(selectedEntry.user_id)}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Status:</span>{' '}
+                  {getStatusBadge(selectedEntry)}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Duration:</span>{' '}
+                  <span className="font-medium">
+                    {selectedEntry.end_time 
+                      ? formatDuration(selectedEntry.duration)
+                      : calculateLiveDuration(selectedEntry.start_time) + ' (running)'
+                    }
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Project:</span>{' '}
+                  <span className="font-medium">{getProjectName(selectedEntry.project_id)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -335,6 +507,8 @@ interface TimeEntryTableProps {
   formatDuration: (mins: number | null) => string;
   calculateLiveDuration: (startTime: string) => string;
   getStatusBadge: (entry: RawTimeEntry) => JSX.Element;
+  getEventCount: (entryId: string) => number;
+  openEventDetails: (entry: RawTimeEntry) => void;
 }
 
 const TimeEntryTable = ({ 
@@ -345,7 +519,9 @@ const TimeEntryTable = ({
   getClientName,
   formatDuration,
   calculateLiveDuration,
-  getStatusBadge 
+  getStatusBadge,
+  getEventCount,
+  openEventDetails
 }: TimeEntryTableProps) => {
   if (entries.length === 0) {
     return (
@@ -368,55 +544,73 @@ const TimeEntryTable = ({
             <TableHead>Start Time</TableHead>
             <TableHead>End Time</TableHead>
             <TableHead>Duration</TableHead>
+            <TableHead>Events</TableHead>
             <TableHead>Notes</TableHead>
-            <TableHead className="w-[100px]">Entry ID</TableHead>
+            <TableHead className="w-[80px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {entries.map((entry) => (
-            <TableRow key={entry.id} className={!entry.end_time ? "bg-green-500/5" : ""}>
-              <TableCell>{getStatusBadge(entry)}</TableCell>
-              <TableCell className="font-medium">{getUserName(entry.user_id)}</TableCell>
-              <TableCell>{getClientName(entry.client_id)}</TableCell>
-              <TableCell>{getProjectName(entry.project_id)}</TableCell>
-              <TableCell className="max-w-[200px] truncate">{getTaskName(entry.task_id)}</TableCell>
-              <TableCell>
-                <div className="text-sm">
-                  {format(new Date(entry.start_time), 'MMM d, yyyy')}
-                  <span className="text-muted-foreground ml-1">
-                    {format(new Date(entry.start_time), 'HH:mm')}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell>
-                {entry.end_time ? (
+          {entries.map((entry) => {
+            const eventCount = getEventCount(entry.id);
+            return (
+              <TableRow key={entry.id} className={!entry.end_time ? "bg-green-500/5" : ""}>
+                <TableCell>{getStatusBadge(entry)}</TableCell>
+                <TableCell className="font-medium">{getUserName(entry.user_id)}</TableCell>
+                <TableCell>{getClientName(entry.client_id)}</TableCell>
+                <TableCell>{getProjectName(entry.project_id)}</TableCell>
+                <TableCell className="max-w-[200px] truncate">{getTaskName(entry.task_id)}</TableCell>
+                <TableCell>
                   <div className="text-sm">
-                    {format(new Date(entry.end_time), 'MMM d, yyyy')}
+                    {format(new Date(entry.start_time), 'MMM d, yyyy')}
                     <span className="text-muted-foreground ml-1">
-                      {format(new Date(entry.end_time), 'HH:mm')}
+                      {format(new Date(entry.start_time), 'HH:mm')}
                     </span>
                   </div>
-                ) : (
-                  <span className="text-green-600 font-medium">Running...</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {!entry.end_time ? (
-                  <span className="text-green-600 font-medium">{calculateLiveDuration(entry.start_time)}</span>
-                ) : (
-                  formatDuration(entry.duration)
-                )}
-              </TableCell>
-              <TableCell className="max-w-[200px] truncate text-muted-foreground text-sm">
-                {entry.notes || "-"}
-              </TableCell>
-              <TableCell>
-                <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                  {entry.id.slice(0, 8)}...
-                </code>
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell>
+                  {entry.end_time ? (
+                    <div className="text-sm">
+                      {format(new Date(entry.end_time), 'MMM d, yyyy')}
+                      <span className="text-muted-foreground ml-1">
+                        {format(new Date(entry.end_time), 'HH:mm')}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-green-600 font-medium">Running...</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {!entry.end_time ? (
+                    <span className="text-green-600 font-medium">{calculateLiveDuration(entry.start_time)}</span>
+                  ) : (
+                    formatDuration(entry.duration)
+                  )}
+                </TableCell>
+                <TableCell>
+                  {eventCount > 0 ? (
+                    <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+                      {eventCount} events
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="max-w-[150px] truncate text-muted-foreground text-sm">
+                  {entry.notes || "-"}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openEventDetails(entry)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
