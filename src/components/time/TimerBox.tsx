@@ -22,6 +22,7 @@ interface TimerItem {
   totalPausedTime: number;
   isActive: boolean;
   isLocalOnly: boolean; // New flag to indicate if this is a local-only timer
+  userId?: string; // Track which user this timer belongs to
 }
 
 interface TimerBoxProps {
@@ -37,13 +38,15 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   const [notes, setNotes] = useState("");
   const [newlyCreatedTimerId, setNewlyCreatedTimerId] = useState<string | null>(null);
 
-  // Load timers from localStorage on mount
+  // Load timers from localStorage on mount - filter to current user only
   useEffect(() => {
     const savedTimers = localStorage.getItem('activeTimers');
     if (savedTimers) {
       try {
         const parsed = JSON.parse(savedTimers);
-        setTimers(parsed.map((t: any) => ({
+        // Filter to only show current user's timers
+        const userTimers = parsed.filter((t: any) => !t.userId || t.userId === currentUser?.id);
+        setTimers(userTimers.map((t: any) => ({
           ...t,
           startTime: new Date(t.startTime),
           pausedAt: t.pausedAt ? new Date(t.pausedAt) : undefined
@@ -53,7 +56,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         localStorage.removeItem('activeTimers');
       }
     }
-  }, []);
+  }, [currentUser?.id]);
 
   // Listen for pause events from AppContext
   useEffect(() => {
@@ -143,7 +146,8 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
             pausedAt: isTimerPaused ? new Date() : undefined,
             totalPausedTime: 0,
             isActive: !isTimerPaused,
-            isLocalOnly: false
+            isLocalOnly: false,
+            userId: currentUser?.id // Add userId to track ownership
           };
           
           return [...filteredTimers, newTimer];

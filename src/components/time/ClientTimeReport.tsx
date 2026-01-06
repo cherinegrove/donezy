@@ -21,11 +21,12 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { downloadCSV } from "@/utils/exportUtils";
+import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 
 type DatePreset = "this-week" | "last-week" | "this-month" | "last-month" | "last-3-months" | "custom";
 
 export function ClientTimeReport() {
-  const { timeEntries, projects, clients, tasks } = useAppContext();
+  const { timeEntries, projects, clients, tasks, currentUser, customRoles } = useAppContext();
   
   const [datePreset, setDatePreset] = useState<DatePreset>("this-month");
   const [customDateRange, setCustomDateRange] = useState<{
@@ -37,6 +38,44 @@ export function ClientTimeReport() {
   });
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
+
+  // Check if current user is admin
+  const isAdmin = () => {
+    if (!currentUser) return false;
+    if (currentUser.roleId === 'admin') return true;
+    const userRole = customRoles.find(r => r.id === currentUser.roleId);
+    return userRole?.name === 'Admin';
+  };
+
+  // Create filter options - only show user filter for admins
+  const filterOptions: FilterOption[] = useMemo(() => [
+    {
+      id: "client",
+      name: "Client",
+      options: clients.map(client => ({
+        id: client.id,
+        label: client.name
+      }))
+    },
+    {
+      id: "project",
+      name: "Project",
+      options: projects.map(project => ({
+        id: project.id,
+        label: project.name
+      }))
+    },
+    {
+      id: "status",
+      name: "Status",
+      options: [
+        { id: "pending", label: "Pending" },
+        { id: "approved", label: "Approved" },
+        { id: "declined", label: "Declined" }
+      ]
+    }
+  ], [clients, projects]);
 
   // Calculate date range based on preset
   const dateRange = useMemo(() => {
@@ -67,7 +106,50 @@ export function ClientTimeReport() {
 
     const filteredEntries = timeEntries.filter(entry => {
       const entryDate = new Date(entry.startTime);
-      return isWithinInterval(entryDate, { start: dateRange.from!, end: dateRange.to! });
+      const isInDateRange = isWithinInterval(entryDate, { start: dateRange.from!, end: dateRange.to! });
+      
+      if (!isInDateRange) return false;
+      
+      // For non-admins, always filter to only their own entries
+      if (!isAdmin() && entry.userId !== currentUser?.id) {
+        return false;
+      }
+
+      // Get task and project for filtering
+      const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
+      const project = task 
+        ? projects.find(p => p.id === task.projectId) 
+        : (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
+      const client = project 
+        ? clients.find(c => c.id === project.clientId) 
+        : (entry.clientId ? clients.find(c => c.id === entry.clientId) : null);
+
+      // Check client filter
+      if (selectedFilters.client?.length > 0) {
+        const clientId = client?.id || entry.clientId;
+        if (!clientId || !selectedFilters.client.includes(clientId)) {
+          return false;
+        }
+      }
+
+      // Check project filter
+      if (selectedFilters.project?.length > 0) {
+        const projectId = project?.id || entry.projectId;
+        if (!projectId || !selectedFilters.project.includes(projectId)) {
+          return false;
+        }
+      }
+
+      // Check status filter
+      if (selectedFilters.status?.length > 0) {
+        const entryStatus = entry.status || 'pending';
+        const normalizedStatus = entryStatus.startsWith('approved') ? 'approved' : entryStatus;
+        if (!selectedFilters.status.includes(normalizedStatus)) {
+          return false;
+        }
+      }
+
+      return true;
     });
 
     // Group by client
@@ -119,7 +201,7 @@ export function ClientTimeReport() {
     });
 
     return Object.values(byClient).sort((a, b) => b.totalMinutes - a.totalMinutes);
-  }, [timeEntries, projects, clients, tasks, dateRange]);
+  }, [timeEntries, projects, clients, tasks, dateRange, selectedFilters, currentUser, customRoles]);
 
   // Calculate totals
   const totalMinutes = useMemo(() => {
@@ -187,73 +269,81 @@ export function ClientTimeReport() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-4">
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-              <span className="text-sm text-muted-foreground">Period:</span>
-              <Select value={datePreset} onValueChange={(v) => setDatePreset(v as DatePreset)}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="this-week">This Week</SelectItem>
-                  <SelectItem value="last-week">Last Week</SelectItem>
-                  <SelectItem value="this-month">This Month</SelectItem>
-                  <SelectItem value="last-month">Last Month</SelectItem>
-                  <SelectItem value="last-3-months">Last 3 Months</SelectItem>
-                  <SelectItem value="custom">Custom Range</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+              <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                <span className="text-sm text-muted-foreground">Period:</span>
+                <Select value={datePreset} onValueChange={(v) => setDatePreset(v as DatePreset)}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="this-week">This Week</SelectItem>
+                    <SelectItem value="last-week">Last Week</SelectItem>
+                    <SelectItem value="this-month">This Month</SelectItem>
+                    <SelectItem value="last-month">Last Month</SelectItem>
+                    <SelectItem value="last-3-months">Last 3 Months</SelectItem>
+                    <SelectItem value="custom">Custom Range</SelectItem>
+                  </SelectContent>
+                </Select>
 
-              {datePreset === "custom" && (
-                <div className="flex gap-2 items-center">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="justify-start">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {customDateRange.from ? format(customDateRange.from, "PP") : "Start"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={customDateRange.from}
-                        onSelect={(date) => setCustomDateRange(prev => ({ ...prev, from: date }))}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <span className="text-muted-foreground">to</span>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="justify-start">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {customDateRange.to ? format(customDateRange.to, "PP") : "End"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={customDateRange.to}
-                        onSelect={(date) => setCustomDateRange(prev => ({ ...prev, to: date }))}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              )}
+                {datePreset === "custom" && (
+                  <div className="flex gap-2 items-center">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="justify-start">
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {customDateRange.from ? format(customDateRange.from, "PP") : "Start"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={customDateRange.from}
+                          onSelect={(date) => setCustomDateRange(prev => ({ ...prev, from: date }))}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <span className="text-muted-foreground">to</span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="justify-start">
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {customDateRange.to ? format(customDateRange.to, "PP") : "End"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={customDateRange.to}
+                          onSelect={(date) => setCustomDateRange(prev => ({ ...prev, to: date }))}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+              </div>
+
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
             </div>
+            
+            {/* Additional Filters */}
+            <FilterBar 
+              filters={filterOptions} 
+              onFilterChange={setSelectedFilters} 
+            />
 
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
+            {dateRange.from && dateRange.to && (
+              <div className="text-sm text-muted-foreground">
+                Showing data from {format(dateRange.from, "PP")} to {format(dateRange.to, "PP")}
+              </div>
+            )}
           </div>
-
-          {dateRange.from && dateRange.to && (
-            <div className="mt-3 text-sm text-muted-foreground">
-              Showing data from {format(dateRange.from, "PP")} to {format(dateRange.to, "PP")}
-            </div>
-          )}
         </CardContent>
       </Card>
 

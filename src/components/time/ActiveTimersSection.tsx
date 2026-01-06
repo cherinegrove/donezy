@@ -22,6 +22,7 @@ interface TimerItem {
   totalPausedTime: number;
   isActive: boolean;
   isLocalOnly: boolean;
+  userId?: string; // Track which user this timer belongs to
 }
 
 interface ActiveTimersSectionProps {
