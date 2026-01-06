@@ -260,10 +260,37 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     if (!selectedTimer || !currentUser) return;
 
     try {
-      // Calculate final duration in minutes
-      const durationMinutes = Math.floor(selectedTimer.elapsed / (1000 * 60));
       const endTime = new Date();
       const startTime = selectedTimer.startTime;
+      
+      // Calculate actual elapsed time at this moment (not from stale state)
+      let actualElapsedMs: number;
+      
+      if (selectedTimer.isPaused) {
+        // Timer is paused - use the elapsed time at pause
+        actualElapsedMs = selectedTimer.elapsed;
+      } else if (selectedTimer.isActive) {
+        // Timer is actively running - calculate from start time minus paused time
+        actualElapsedMs = endTime.getTime() - startTime.getTime() - (selectedTimer.totalPausedTime || 0);
+      } else {
+        // Timer is stopped/inactive - use the stored elapsed
+        actualElapsedMs = selectedTimer.elapsed;
+      }
+      
+      const durationMinutes = Math.floor(actualElapsedMs / (1000 * 60));
+      
+      console.log('💾 Saving timer:', {
+        taskTitle: selectedTimer.taskTitle,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        calculatedElapsedMs: actualElapsedMs,
+        storedElapsedMs: selectedTimer.elapsed,
+        durationMinutes,
+        isPaused: selectedTimer.isPaused,
+        isActive: selectedTimer.isActive,
+        isLocalOnly: selectedTimer.isLocalOnly,
+        totalPausedTime: selectedTimer.totalPausedTime
+      });
 
       if (selectedTimer.isLocalOnly) {
         // For local-only timers, create a completed time entry directly in the database
