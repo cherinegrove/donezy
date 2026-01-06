@@ -249,7 +249,14 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       console.log('⏸️ Pausing timer:', timerId);
       
       if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
-        // Pause backend timer
+        // Pause backend timer - update local state IMMEDIATELY to prevent flicker
+        setTimers(prev => prev.map(t => t.id === timerId ? {
+          ...t,
+          isPaused: true,
+          pausedAt: new Date(),
+          isActive: false
+        } : t));
+        // Then sync with backend (async)
         pauseTimeTracking();
       } else {
         // Pause local timer
