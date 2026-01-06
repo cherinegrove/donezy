@@ -76,11 +76,29 @@ const TimeTracking = () => {
     }
   }, [currentUser, selectedReportUserId]);
   
-  // Filter state
+  // Check if current user is admin (moved up for early use)
+  const isAdminUser = () => {
+    if (!currentUser) return false;
+    if (currentUser.roleId === 'admin') return true;
+    const userRole = customRoles.find(r => r.id === currentUser.roleId);
+    return userRole?.name === 'Admin';
+  };
+
+  // Filter state - default to current user's entries for non-admins
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
   const [selectedMonth, setSelectedMonth] = useState<string>(
     format(new Date(), "yyyy-MM")
   );
+
+  // Set default user filter when current user loads
+  useEffect(() => {
+    if (currentUser && !isAdminUser() && !selectedFilters.user?.length) {
+      setSelectedFilters(prev => ({
+        ...prev,
+        user: [currentUser.id]
+      }));
+    }
+  }, [currentUser]);
   
   // Date range filter for timesheet
   const [dateRange, setDateRange] = useState<{
@@ -94,14 +112,16 @@ const TimeTracking = () => {
   // Local timers state
   const [localTimers, setLocalTimers] = useState<any[]>([]);
 
-  // Load local timers from localStorage
+  // Load local timers from localStorage - filter to current user only
   useEffect(() => {
     const loadLocalTimers = () => {
       const savedTimers = localStorage.getItem('activeTimers');
       if (savedTimers) {
         try {
           const parsed = JSON.parse(savedTimers);
-          setLocalTimers(parsed.map((t: any) => ({
+          // Filter to only show current user's timers
+          const userTimers = parsed.filter((t: any) => !t.userId || t.userId === currentUser?.id);
+          setLocalTimers(userTimers.map((t: any) => ({
             ...t,
             startTime: new Date(t.startTime),
             pausedAt: t.pausedAt ? new Date(t.pausedAt) : undefined
@@ -131,16 +151,17 @@ const TimeTracking = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Create filter options
+  // Create filter options - only show user filter for admins
   const filterOptions: FilterOption[] = [
-    {
+    // Only show user filter for admins
+    ...(isAdminUser() ? [{
       id: "user",
       name: "User",
       options: users.map(user => ({
         id: user.id,
         label: user.name
       }))
-    },
+    }] : []),
     {
       id: "client",
       name: "Client",
@@ -175,9 +196,16 @@ const TimeTracking = () => {
     const project = task ? projects.find(p => p.id === task.projectId) : 
                    (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
     
-    // Check user filter
-    if (selectedFilters.user?.length > 0 && !selectedFilters.user.includes(entry.userId)) {
-      return false;
+    // For non-admins, always filter to only their own entries
+    if (!isAdminUser()) {
+      if (entry.userId !== currentUser?.id) {
+        return false;
+      }
+    } else {
+      // Check user filter (only for admins)
+      if (selectedFilters.user?.length > 0 && !selectedFilters.user.includes(entry.userId)) {
+        return false;
+      }
     }
     
     // Check project filter - only apply if we have projects and the filter is set
@@ -271,15 +299,8 @@ const TimeTracking = () => {
   // Active timer for the Active tab
   const activeTimer = getActiveTimer();
 
-  // Check if current user is admin
-  const isAdmin = () => {
-    if (!currentUser) return false;
-    // Check for direct admin role
-    if (currentUser.roleId === 'admin') return true;
-    // Check for custom role with Admin name
-    const userRole = customRoles.find(r => r.id === currentUser.roleId);
-    return userRole?.name === 'Admin';
-  };
+  // Use the isAdminUser function defined earlier
+  const isAdmin = isAdminUser;
   
   // Generate monthly report data grouped by client - only approved timers
   const getMonthlyDataByClient = () => {
@@ -293,10 +314,39 @@ const TimeTracking = () => {
       const isInMonth = entryDate >= startDate && entryDate <= endDate;
       const isApproved = entry.status === 'approved-billable' || entry.status === 'approved-non-billable';
       
-      // For non-admins, filter to only their own entries
-      const isOwnEntry = !isAdmin() || entry.userId === currentUser?.auth_user_id;
+      // For non-admins, always filter to only their own entries
+      if (!isAdmin()) {
+        if (entry.userId !== currentUser?.id) {
+          return false;
+        }
+      }
       
-      return isInMonth && isApproved && (isAdmin() || isOwnEntry);
+      if (!isInMonth || !isApproved) return false;
+      
+      // Apply selected filters
+      const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
+      const project = task ? projects.find(p => p.id === task.projectId) : 
+                     (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
+      const client = project ? clients.find(c => c.id === project.clientId) : 
+                    (entry.clientId ? clients.find(c => c.id === entry.clientId) : null);
+      
+      // Check client filter
+      if (selectedFilters.client?.length > 0) {
+        const clientId = client?.id || entry.clientId;
+        if (!clientId || !selectedFilters.client.includes(clientId)) {
+          return false;
+        }
+      }
+      
+      // Check project filter
+      if (selectedFilters.project?.length > 0) {
+        const projectId = project?.id || entry.projectId;
+        if (!projectId || !selectedFilters.project.includes(projectId)) {
+          return false;
+        }
+      }
+      
+      return true;
     });
     
     // Group entries by client first
@@ -458,10 +508,33 @@ const TimeTracking = () => {
       const isInMonth = entryDate >= startDate && entryDate <= endDate;
       const isDeclined = entry.status === 'declined';
       
-      // For non-admins, filter to only their own entries
-      const isOwnEntry = !isAdmin() || entry.userId === currentUser?.auth_user_id;
+      // For non-admins, always filter to only their own entries
+      if (!isAdmin()) {
+        if (entry.userId !== currentUser?.id) {
+          return false;
+        }
+      }
       
-      return isInMonth && isDeclined && (isAdmin() || isOwnEntry);
+      if (!isInMonth || !isDeclined) return false;
+      
+      // Apply selected filters
+      const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
+      const project = task ? projects.find(p => p.id === task.projectId) : 
+                     (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
+      const client = project ? clients.find(c => c.id === project.clientId) : 
+                    (entry.clientId ? clients.find(c => c.id === entry.clientId) : null);
+      
+      if (selectedFilters.client?.length > 0) {
+        const clientId = client?.id || entry.clientId;
+        if (!clientId || !selectedFilters.client.includes(clientId)) return false;
+      }
+      
+      if (selectedFilters.project?.length > 0) {
+        const projectId = project?.id || entry.projectId;
+        if (!projectId || !selectedFilters.project.includes(projectId)) return false;
+      }
+      
+      return true;
     });
     
     // Group entries by client first (same structure as approved)
@@ -996,6 +1069,14 @@ const TimeTracking = () => {
         </TabsContent>
         
         <TabsContent value="reports" className="space-y-6">
+          {/* Filter Bar for Monthly Summary */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-between">
+            <FilterBar 
+              filters={filterOptions} 
+              onFilterChange={setSelectedFilters} 
+            />
+          </div>
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <div className="space-y-2">
