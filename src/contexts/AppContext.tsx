@@ -1145,6 +1145,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const updateUser = async (userId: string, updates: Partial<User>) => {
     if (!session?.user) return;
     
+    console.log('📝 updateUser called with:', { userId, updates });
+    
     try {
       const dbUpdates: any = {};
       
@@ -1152,6 +1154,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.email !== undefined) dbUpdates.email = updates.email;
       if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
       if (updates.roleId !== undefined) dbUpdates.role = updates.roleId;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
       if (updates.teamIds !== undefined) dbUpdates.team_ids = updates.teamIds;
       if (updates.jobTitle !== undefined) dbUpdates.job_title = updates.jobTitle;
       if (updates.clientId !== undefined) dbUpdates.client_id = updates.clientId;
@@ -1170,21 +1173,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.guest_of_user_id !== undefined) dbUpdates.guest_of_user_id = updates.guest_of_user_id;
       if (updates.guest_permissions !== undefined) dbUpdates.guest_permissions = JSON.stringify(updates.guest_permissions);
 
-      const { error } = await supabase
+      console.log('📝 Database updates to apply:', dbUpdates);
+
+      const { data, error } = await supabase
         .from('users')
         .update(dbUpdates)
-        .eq('auth_user_id', userId);
+        .eq('auth_user_id', userId)
+        .select();
 
       if (error) {
-        console.error('Error updating user:', error);
+        console.error('❌ Error updating user:', error);
         return;
       }
+
+      console.log('✅ User updated successfully:', data);
 
       setUsers(prev => prev.map(user => 
         user.auth_user_id === userId ? { ...user, ...updates } : user
       ));
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.error('❌ Error updating user:', error);
     }
   };
 
