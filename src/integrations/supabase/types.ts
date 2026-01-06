@@ -1910,6 +1910,44 @@ export type Database = {
           },
         ]
       }
+      time_entry_events: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          details: Json | null
+          event_timestamp: string
+          event_type: string
+          id: string
+          time_entry_id: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          details?: Json | null
+          event_timestamp?: string
+          event_type: string
+          id?: string
+          time_entry_id: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          details?: Json | null
+          event_timestamp?: string
+          event_type?: string
+          id?: string
+          time_entry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entry_events_time_entry_id_fkey"
+            columns: ["time_entry_id"]
+            isOneToOne: false
+            referencedRelation: "time_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usage_tracking: {
         Row: {
           amount: number | null

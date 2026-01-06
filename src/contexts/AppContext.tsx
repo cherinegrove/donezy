@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { mockUsers, mockTeams, mockClients, mockProjects, mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockProjectTemplates, mockTaskTemplates, mockCustomRoles, mockCustomFields, mockDashboards } from "@/data/mockData";
 import { useToast } from '@/hooks/use-toast';
+import { logTimeEntryEvent } from '@/utils/timeEntryEventLogger';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -1924,6 +1925,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           rejectionReason: data.rejection_reason || undefined
         };
         setTimeEntries(prev => [...prev, newTimeEntry]);
+        
+        // Log the started event
+        if (!timeEntry.endTime) {
+          await logTimeEntryEvent(data.id, 'started', {
+            taskId: timeEntry.taskId,
+            projectId: timeEntry.projectId,
+            clientId: timeEntry.clientId
+          });
+        }
+        
         return newTimeEntry;
       }
     } catch (error) {
@@ -1935,19 +1946,53 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
-      const dbUpdates: any = {};
+      // Get the current entry for comparison (for logging changes)
+      const currentEntry = timeEntries.find(e => e.id === timeEntryId);
       
-      if (updates.userId !== undefined) dbUpdates.user_id = updates.userId;
-      if (updates.taskId !== undefined) dbUpdates.task_id = updates.taskId;
-      if (updates.projectId !== undefined) dbUpdates.project_id = updates.projectId;
-      if (updates.clientId !== undefined) dbUpdates.client_id = updates.clientId;
-      if (updates.startTime !== undefined) dbUpdates.start_time = updates.startTime;
-      if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
-      if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
-      if (updates.description !== undefined) dbUpdates.notes = updates.description;
-      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
-      if (updates.status !== undefined) dbUpdates.status = updates.status;
-      if (updates.rejectionReason !== undefined) dbUpdates.rejection_reason = updates.rejectionReason;
+      const dbUpdates: any = {};
+      const changedFields: string[] = [];
+      
+      if (updates.userId !== undefined) {
+        dbUpdates.user_id = updates.userId;
+      }
+      if (updates.taskId !== undefined) {
+        dbUpdates.task_id = updates.taskId;
+        if (currentEntry?.taskId !== updates.taskId) changedFields.push('task');
+      }
+      if (updates.projectId !== undefined) {
+        dbUpdates.project_id = updates.projectId;
+        if (currentEntry?.projectId !== updates.projectId) changedFields.push('project');
+      }
+      if (updates.clientId !== undefined) {
+        dbUpdates.client_id = updates.clientId;
+      }
+      if (updates.startTime !== undefined) {
+        dbUpdates.start_time = updates.startTime;
+        if (currentEntry?.startTime !== updates.startTime) changedFields.push('startTime');
+      }
+      if (updates.endTime !== undefined) {
+        dbUpdates.end_time = updates.endTime;
+        if (currentEntry?.endTime !== updates.endTime) changedFields.push('endTime');
+      }
+      if (updates.duration !== undefined) {
+        dbUpdates.duration = updates.duration;
+        if (currentEntry?.duration !== updates.duration) changedFields.push('duration');
+      }
+      if (updates.description !== undefined) {
+        dbUpdates.notes = updates.description;
+        if (currentEntry?.description !== updates.description) changedFields.push('notes');
+      }
+      if (updates.notes !== undefined) {
+        dbUpdates.notes = updates.notes;
+        if (currentEntry?.notes !== updates.notes) changedFields.push('notes');
+      }
+      if (updates.status !== undefined) {
+        dbUpdates.status = updates.status;
+        if (currentEntry?.status !== updates.status) changedFields.push('status');
+      }
+      if (updates.rejectionReason !== undefined) {
+        dbUpdates.rejection_reason = updates.rejectionReason;
+      }
 
       const { error } = await supabase
         .from('time_entries')
@@ -1957,6 +2002,46 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (error) {
         console.error('Error updating time entry:', error);
         return;
+      }
+
+      // Log manual edits if significant fields changed
+      if (changedFields.length > 0) {
+        // Determine event type
+        let eventType: 'manual_edit' | 'duration_changed' | 'notes_changed' | 'project_changed' | 'task_changed' | 'status_changed' | 'stopped' = 'manual_edit';
+        
+        if (changedFields.includes('endTime') && updates.endTime && !currentEntry?.endTime) {
+          eventType = 'stopped';
+        } else if (changedFields.length === 1) {
+          if (changedFields[0] === 'duration') eventType = 'duration_changed';
+          else if (changedFields[0] === 'notes') eventType = 'notes_changed';
+          else if (changedFields[0] === 'project') eventType = 'project_changed';
+          else if (changedFields[0] === 'task') eventType = 'task_changed';
+          else if (changedFields[0] === 'status') eventType = 'status_changed';
+        }
+        
+        await logTimeEntryEvent(timeEntryId, eventType, {
+          changedFields,
+          previousValue: changedFields.reduce((acc, field) => {
+            if (field === 'duration') acc[field] = currentEntry?.duration;
+            else if (field === 'notes') acc[field] = currentEntry?.notes || currentEntry?.description;
+            else if (field === 'project') acc[field] = currentEntry?.projectId;
+            else if (field === 'task') acc[field] = currentEntry?.taskId;
+            else if (field === 'status') acc[field] = currentEntry?.status;
+            else if (field === 'startTime') acc[field] = currentEntry?.startTime;
+            else if (field === 'endTime') acc[field] = currentEntry?.endTime;
+            return acc;
+          }, {} as any),
+          newValue: changedFields.reduce((acc, field) => {
+            if (field === 'duration') acc[field] = updates.duration;
+            else if (field === 'notes') acc[field] = updates.notes || updates.description;
+            else if (field === 'project') acc[field] = updates.projectId;
+            else if (field === 'task') acc[field] = updates.taskId;
+            else if (field === 'status') acc[field] = updates.status;
+            else if (field === 'startTime') acc[field] = updates.startTime;
+            else if (field === 'endTime') acc[field] = updates.endTime;
+            return acc;
+          }, {} as any)
+        });
       }
 
       setTimeEntries(prev => prev.map(entry => 
@@ -2103,12 +2188,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setTotalPausedTime(0);
   };
 
-  const pauseTimeTracking = () => {
+  const pauseTimeTracking = async () => {
     if (!activeTimeEntry || isTimerPaused) return;
     
     setIsTimerPaused(true);
     setPausedAt(new Date());
     console.log('⏸️ Timer paused in AppContext');
+    
+    // Log the pause event
+    await logTimeEntryEvent(activeTimeEntry.id, 'paused', {
+      pausedAt: new Date().toISOString()
+    });
   };
 
   const resumeTimeTracking = async () => {
@@ -2124,6 +2214,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setIsTimerPaused(false);
     setPausedAt(null);
     console.log('✅ Timer resumed successfully');
+    
+    // Log the resume event
+    await logTimeEntryEvent(activeTimeEntry.id, 'resumed', {
+      pauseDuration,
+      resumedAt: new Date().toISOString()
+    });
   };
 
   const getElapsedTime = (timeEntry: TimeEntry | null = activeTimeEntry, applyLocalPauseState: boolean = true): string => {
