@@ -146,14 +146,19 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
 
   // Checks if current user can approve/decline a time entry
   const canApproveTimeEntry = () => {
-    // Only admins can approve/decline time entries
-    const isAdmin = currentUser && (currentUser.roleId === 'admin' || customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin');
+    if (!currentUser) return false;
+    
+    // Check for admin role (case-insensitive)
+    const userRole = customRoles.find(r => r.id === currentUser.roleId);
+    const isAdmin = currentUser.roleId === 'admin' || 
+                    userRole?.name?.toLowerCase() === 'admin';
+    
     console.log("🔍 TimeEntryTable canApproveTimeEntry:", {
       currentUser: currentUser?.name,
-      currentUserRole: currentUser?.roleId,
+      currentUserRoleId: currentUser?.roleId,
+      userRoleFromCustomRoles: userRole?.name,
       customRoles: customRoles?.map(r => ({ id: r.id, name: r.name })),
-      isAdmin,
-      hasCurrentUser: !!currentUser
+      isAdmin
     });
     return isAdmin;
   };
