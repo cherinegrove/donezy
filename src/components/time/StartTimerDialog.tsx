@@ -25,6 +25,7 @@ interface StartTimerDialogProps {
   onOpenChange: (open: boolean) => void;
   onStartTimer: () => void;
   defaultProjectId?: string;
+  defaultTaskId?: string;
 }
 
 export function StartTimerDialog({
@@ -32,36 +33,47 @@ export function StartTimerDialog({
   onOpenChange,
   onStartTimer,
   defaultProjectId,
+  defaultTaskId,
 }: StartTimerDialogProps) {
   const { clients, projects, tasks, currentUser, startTimeTracking, projectStatuses } = useAppContext();
   
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>(defaultProjectId || "");
-  const [selectedTaskId, setSelectedTaskId] = useState<string>("");
+  const [selectedTaskId, setSelectedTaskId] = useState<string>(defaultTaskId || "");
   
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      setSelectedTaskId("");
-      
-      if (defaultProjectId) {
-        setSelectedProjectId(defaultProjectId);
+      // Set task if provided
+      if (defaultTaskId) {
+        setSelectedTaskId(defaultTaskId);
         
-        // If defaultProjectId is provided, auto-select the client
+        // Auto-select project from task
+        const task = tasks.find(t => t.id === defaultTaskId);
+        if (task) {
+          setSelectedProjectId(task.projectId);
+          // Auto-select client from project
+          const project = projects.find(p => p.id === task.projectId);
+          if (project) {
+            setSelectedClientId(project.clientId);
+          }
+        }
+      } else if (defaultProjectId) {
+        setSelectedProjectId(defaultProjectId);
+        setSelectedTaskId("");
+        
+        // Auto-select client from project
         const project = projects.find(p => p.id === defaultProjectId);
         if (project) {
           setSelectedClientId(project.clientId);
         }
       } else {
         setSelectedProjectId("");
-      }
-      
-      // If there was no project or we couldn't find the client, reset client selection
-      if (!selectedClientId) {
+        setSelectedTaskId("");
         setSelectedClientId("");
       }
     }
-  }, [open, defaultProjectId, projects]);
+  }, [open, defaultProjectId, defaultTaskId, projects, tasks]);
   
   // Filter projects by selected client and exclude completed projects
   const clientProjects = selectedClientId 

@@ -1,8 +1,9 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
-import { Clock } from "lucide-react";
+import { Clock, Play } from "lucide-react";
 import { TimeEntryTable } from "./TimeEntryTable";
+import { Button } from "@/components/ui/button";
+import { StartTimerDialog } from "@/components/time/StartTimerDialog";
 
 interface TimerSectionProps {
   taskId: string;
@@ -10,6 +11,7 @@ interface TimerSectionProps {
 
 export function TimerSection({ taskId }: TimerSectionProps) {
   const { tasks, timeEntries } = useAppContext();
+  const [showStartTimerDialog, setShowStartTimerDialog] = useState(false);
   
   // Add null check for tasks
   const task = tasks && Array.isArray(tasks) ? tasks.find(t => t && t.id === taskId) : null;
@@ -43,12 +45,27 @@ export function TimerSection({ taskId }: TimerSectionProps) {
             </div>
           )}
         </div>
+        <Button
+          size="sm"
+          onClick={() => setShowStartTimerDialog(true)}
+        >
+          <Play className="h-4 w-4 mr-1" />
+          Start Timer
+        </Button>
       </div>
       
       <div className="space-y-4">
         <h4 className="text-md font-medium">Time Entries Log</h4>
         <TimeEntryTable taskId={taskId} showAllDetails={true} />
       </div>
+      
+      <StartTimerDialog
+        open={showStartTimerDialog}
+        onOpenChange={setShowStartTimerDialog}
+        onStartTimer={() => setShowStartTimerDialog(false)}
+        defaultProjectId={task.projectId}
+        defaultTaskId={taskId}
+      />
     </div>
   );
 }
