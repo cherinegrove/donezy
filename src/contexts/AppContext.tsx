@@ -2118,29 +2118,33 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (fetchError) {
         console.error('Error fetching active timers:', fetchError);
       } else if (activeTimers && activeTimers.length > 0) {
-        console.log(`⏸️ Found ${activeTimers.length} active timer(s) to stop`);
+        console.log(`⏸️ Found ${activeTimers.length} active timer(s) to pause (not stop)`);
         
         for (const timer of activeTimers) {
-          const duration = Math.floor((Date.now() - new Date(timer.start_time).getTime()) / (1000 * 60));
+          // Calculate elapsed time for this timer
+          const elapsedMs = Date.now() - new Date(timer.start_time).getTime() - totalPausedTime;
           
-          // Broadcast event to TimerBox to convert to local-only
+          // Broadcast event to TimerBox to convert to local-only paused timer
+          // Include all the data needed to recreate the timer locally
           window.dispatchEvent(new CustomEvent('pauseActiveTimer', { 
-            detail: { timerId: timer.id } 
+            detail: { 
+              timerId: timer.id,
+              elapsed: elapsedMs,
+              totalPausedTime: totalPausedTime
+            } 
           }));
           
-          const { error: stopError } = await supabase
+          // DELETE the backend timer entry (don't set end_time - that creates a completed entry)
+          // The timer will continue to exist locally until the user saves or deletes it
+          const { error: deleteError } = await supabase
             .from('time_entries')
-            .update({
-              end_time: new Date().toISOString(),
-              duration: Math.max(1, duration),
-              notes: 'Auto-paused when starting new timer'
-            })
+            .delete()
             .eq('id', timer.id);
           
-          if (stopError) {
-            console.error('Error stopping timer:', timer.id, stopError);
+          if (deleteError) {
+            console.error('Error deleting timer to pause:', timer.id, deleteError);
           } else {
-            console.log('✅ Stopped timer:', timer.id);
+            console.log('✅ Deleted backend timer (now local-only paused):', timer.id);
           }
         }
         
