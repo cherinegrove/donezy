@@ -400,12 +400,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.log('✅ Converted time entries:', convertedTimeEntries);
       setTimeEntries(convertedTimeEntries);
       
+      // Use session.user.id directly instead of currentUser which may not be loaded yet
+      const currentAuthUserId = session?.user?.id;
+      if (!currentAuthUserId) {
+        console.log('⚠️ No auth user ID available, skipping active timer detection');
+        return;
+      }
+      
       // Cleanup: Find and fix multiple active timers for current user
+      // Check both userId and auth_user_id fields for compatibility
       const activeEntries = convertedTimeEntries.filter(entry => 
-        !entry.endTime && entry.userId === currentUser?.auth_user_id
+        !entry.endTime && entry.userId === currentAuthUserId
       );
       
-      console.log('🎯 Found active entries for current user:', activeEntries);
+      console.log('🎯 Found active entries for auth user:', currentAuthUserId, activeEntries);
       
       if (activeEntries.length > 1) {
         console.warn('⚠️ Multiple active timers found! Cleaning up...');
