@@ -16,13 +16,15 @@ interface TimerItem {
   projectName?: string;
   clientName?: string;
   startTime: Date;
-  elapsed: number;
+  elapsed: number; // Elapsed time at moment of pause (if paused)
   isPaused: boolean;
   pausedAt?: Date;
-  totalPausedTime: number;
+  totalPausedTime: number; // Accumulated paused time in milliseconds
   isActive: boolean;
   isLocalOnly: boolean; // New flag to indicate if this is a local-only timer
   userId?: string; // Track which user this timer belongs to
+  projectId?: string; // Store projectId for creating time entries
+  clientId?: string; // Store clientId for creating time entries
 }
 
 interface TimerBoxProps {
@@ -66,18 +68,33 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     }
   }, [currentUser?.id]);
 
-  // Listen for pause events from AppContext
+  // Listen for pause events from AppContext when starting a new timer
   useEffect(() => {
     const handlePauseActive = (event: CustomEvent) => {
-      const { timerId } = event.detail;
-      console.log('📢 Received pauseActiveTimer event for:', timerId);
+      const { timerId, elapsed, totalPausedTime: pausedTime } = event.detail;
+      console.log('📢 Received pauseActiveTimer event for:', timerId, 'elapsed:', elapsed);
       
-      // Convert the active backend timer to a local-only paused timer
-      setTimers(prev => prev.map(t => 
-        t.id === timerId 
-          ? { ...t, isActive: false, isPaused: true, pausedAt: new Date(), isLocalOnly: true }
-          : t
-      ));
+      // Find the timer in our list and convert it to a local-only paused timer
+      setTimers(prev => {
+        const existingTimer = prev.find(t => t.id === timerId);
+        if (existingTimer) {
+          // Update existing timer to be local-only and paused with correct elapsed time
+          return prev.map(t => 
+            t.id === timerId 
+              ? { 
+                  ...t, 
+                  isActive: false, 
+                  isPaused: true, 
+                  pausedAt: new Date(), 
+                  isLocalOnly: true,
+                  elapsed: elapsed || t.elapsed, // Use passed elapsed time
+                  totalPausedTime: pausedTime || t.totalPausedTime
+                }
+              : t
+          );
+        }
+        return prev;
+      });
     };
 
     window.addEventListener('pauseActiveTimer', handlePauseActive as EventListener);
@@ -148,6 +165,8 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
             taskTitle: task?.title || 'Unknown Task',
             projectName: project?.name,
             clientName: client?.name,
+            projectId: project?.id,
+            clientId: client?.id || activeTimeEntry.clientId,
             startTime: new Date(activeTimeEntry.startTime),
             elapsed: 0,
             isPaused: isTimerPaused,
@@ -245,8 +264,12 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       setTimers(prev => prev.filter(t => t.id !== timerId));
       
     } else if (timer.isActive && !timer.isPaused) {
-      // RULE: Pausing a timer
+      // RULE: Pausing a timer - MUST calculate and store elapsed time at this moment
       console.log('⏸️ Pausing timer:', timerId);
+      
+      // Calculate elapsed time right now before pausing
+      const now = Date.now();
+      const elapsedAtPause = now - timer.startTime.getTime() - (timer.totalPausedTime || 0);
       
       if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
         // Pause backend timer - update local state IMMEDIATELY to prevent flicker
@@ -254,7 +277,8 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           ...t,
           isPaused: true,
           pausedAt: new Date(),
-          isActive: false
+          isActive: false,
+          elapsed: elapsedAtPause // Store the elapsed time at pause
         } : t));
         // Then sync with backend (async)
         pauseTimeTracking();
@@ -264,7 +288,8 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           ...t,
           isPaused: true,
           pausedAt: new Date(),
-          isActive: false
+          isActive: false,
+          elapsed: elapsedAtPause // Store the elapsed time at pause
         } : t));
       }
     }

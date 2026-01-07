@@ -16,13 +16,15 @@ interface TimerItem {
   projectName?: string;
   clientName?: string;
   startTime: Date;
-  elapsed: number;
+  elapsed: number; // Elapsed time at moment of pause (if paused)
   isPaused: boolean;
   pausedAt?: Date;
-  totalPausedTime: number;
+  totalPausedTime: number; // Accumulated paused time in milliseconds
   isActive: boolean;
   isLocalOnly: boolean;
   userId?: string; // Track which user this timer belongs to
+  projectId?: string; // Store projectId for creating time entries
+  clientId?: string; // Store clientId for creating time entries
 }
 
 interface ActiveTimersSectionProps {
@@ -93,14 +95,25 @@ export function ActiveTimersSection({
         window.dispatchEvent(new CustomEvent('timersUpdated'));
       }
     } else {
-      // Pause: update in localStorage
+      // Pause: calculate elapsed time NOW and update in localStorage
       console.log('⏸️ Pausing local timer:', timer.id.slice(0, 8));
+      
+      // Calculate elapsed time at this moment
+      const now = Date.now();
+      const elapsedAtPause = now - new Date(timer.startTime).getTime() - (timer.totalPausedTime || 0);
+      
       const savedTimers = localStorage.getItem('activeTimers');
       if (savedTimers) {
         const parsed = JSON.parse(savedTimers);
         const updated = parsed.map((t: any) => 
           t.id === timer.id 
-            ? { ...t, isPaused: true, pausedAt: new Date().toISOString(), isActive: false }
+            ? { 
+                ...t, 
+                isPaused: true, 
+                pausedAt: new Date().toISOString(), 
+                isActive: false,
+                elapsed: elapsedAtPause // Store elapsed time at pause
+              }
             : t
         );
         localStorage.setItem('activeTimers', JSON.stringify(updated));
