@@ -145,17 +145,23 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
   };
 
   // Checks if current user can approve/decline a time entry
+  // Super admins (platform_admin) and regular admins can approve entries for all users
   const canApproveTimeEntry = () => {
     if (!currentUser) return false;
     
     // Check for admin role - roleId maps to 'role' from database (e.g., 'admin')
-    const isAdmin = currentUser.roleId?.toLowerCase() === 'admin';
+    const roleIdLower = currentUser.roleId?.toLowerCase();
+    const isAdmin = roleIdLower === 'admin';
     
-    // Also check customRoles if roleId references a custom role
+    // Check if roleId matches a custom role with admin-level permissions
     const userRole = customRoles.find(r => r.id === currentUser.roleId);
     const isCustomAdmin = userRole?.name?.toLowerCase() === 'admin';
     
-    return isAdmin || isCustomAdmin;
+    // Check for platform_admin or support_admin system roles
+    // System roles are stored on the user and grant elevated permissions
+    const isPlatformAdmin = roleIdLower === 'platform_admin' || roleIdLower === 'support_admin';
+    
+    return isAdmin || isCustomAdmin || isPlatformAdmin;
   };
 
   const handleApproveTimeEntry = (entry: TimeEntry, billable: boolean = true) => {
@@ -272,15 +278,18 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-background border z-50">
-                          {(() => {
+{(() => {
                             const canApprove = canApproveTimeEntry();
                             const isPending = entry.status === 'pending';
                             console.log("🔍 TimeEntryTable dropdown debug:", {
                               entryId: entry.id,
                               entryStatus: entry.status,
+                              currentUserName: currentUser?.name,
+                              currentUserRoleId: currentUser?.roleId,
                               canApprove,
                               isPending,
-                              showApproveOptions: canApprove && isPending
+                              showApproveOptions: canApprove && isPending,
+                              showChangeOptions: canApprove && !isPending
                             });
                             return null;
                           })()}
