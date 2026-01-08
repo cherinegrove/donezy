@@ -148,19 +148,14 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
   const canApproveTimeEntry = () => {
     if (!currentUser) return false;
     
-    // Check for admin role (case-insensitive)
-    const userRole = customRoles.find(r => r.id === currentUser.roleId);
-    const isAdmin = currentUser.roleId === 'admin' || 
-                    userRole?.name?.toLowerCase() === 'admin';
+    // Check for admin role - roleId maps to 'role' from database (e.g., 'admin')
+    const isAdmin = currentUser.roleId?.toLowerCase() === 'admin';
     
-    console.log("🔍 TimeEntryTable canApproveTimeEntry:", {
-      currentUser: currentUser?.name,
-      currentUserRoleId: currentUser?.roleId,
-      userRoleFromCustomRoles: userRole?.name,
-      customRoles: customRoles?.map(r => ({ id: r.id, name: r.name })),
-      isAdmin
-    });
-    return isAdmin;
+    // Also check customRoles if roleId references a custom role
+    const userRole = customRoles.find(r => r.id === currentUser.roleId);
+    const isCustomAdmin = userRole?.name?.toLowerCase() === 'admin';
+    
+    return isAdmin || isCustomAdmin;
   };
 
   const handleApproveTimeEntry = (entry: TimeEntry, billable: boolean = true) => {
