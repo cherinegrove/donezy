@@ -324,6 +324,33 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
                                 <RotateCcw className="mr-2 h-4 w-4" />
                                 <span>Reset to Pending</span>
                               </DropdownMenuItem>
+                              {entry.status !== 'approved-billable' && (
+                                <DropdownMenuItem 
+                                  onClick={() => handleApproveTimeEntry(entry, true)}
+                                  className="text-green-600 focus:text-green-600"
+                                >
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  <span>Approve (Billable)</span>
+                                </DropdownMenuItem>
+                              )}
+                              {entry.status !== 'approved-non-billable' && (
+                                <DropdownMenuItem 
+                                  onClick={() => handleApproveTimeEntry(entry, false)}
+                                  className="text-blue-600 focus:text-blue-600"
+                                >
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  <span>Approve (Non-billable)</span>
+                                </DropdownMenuItem>
+                              )}
+                              {entry.status !== 'declined' && (
+                                <DropdownMenuItem 
+                                  onClick={() => handleDeclineTimeEntry(entry)}
+                                  className="text-red-600 focus:text-red-600"
+                                >
+                                  <XCircle className="mr-2 h-4 w-4" />
+                                  <span>Decline</span>
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuSeparator />
                             </>
                           )}
