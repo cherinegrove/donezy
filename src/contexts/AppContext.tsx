@@ -2185,8 +2185,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const startTime = new Date(activeTimeEntry.startTime);
     let duration = Math.floor((new Date(endTime).getTime() - startTime.getTime()) / (1000 * 60)); // duration in minutes
     
+    // Calculate total time to subtract: accumulated paused time + current pause if active
+    let totalTimeToSubtract = totalPausedTime;
+    
+    // If timer is currently paused, add the current pause duration
+    if (isTimerPaused && pausedAt) {
+      const currentPauseDuration = Date.now() - pausedAt.getTime();
+      totalTimeToSubtract += currentPauseDuration;
+      console.log('⏱️ Timer stopped while paused. Current pause duration:', Math.floor(currentPauseDuration / 1000), 'seconds');
+    }
+    
     // Subtract total paused time from duration
-    duration = Math.max(0, duration - Math.floor(totalPausedTime / (1000 * 60)));
+    duration = Math.max(0, duration - Math.floor(totalTimeToSubtract / (1000 * 60)));
+    
+    console.log('⏹️ Stopping timer:', {
+      startTime: startTime.toISOString(),
+      endTime,
+      rawDurationMinutes: Math.floor((new Date(endTime).getTime() - startTime.getTime()) / (1000 * 60)),
+      totalPausedMinutes: Math.floor(totalTimeToSubtract / (1000 * 60)),
+      finalDurationMinutes: duration
+    });
     
     await updateTimeEntry(activeTimeEntry.id, {
       endTime,
