@@ -153,25 +153,27 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
     }
     
     // Check for admin role - roleId maps to 'role' from database (e.g., 'admin')
-    const roleIdLower = currentUser.roleId?.toLowerCase();
+    const roleIdLower = currentUser.roleId?.toLowerCase()?.trim();
+    
+    // Direct admin role check (from users.role field in database)
     const isAdmin = roleIdLower === 'admin';
     
-    // Check if roleId matches a custom role with admin-level permissions
+    // Platform/system admin roles
+    const isPlatformAdmin = roleIdLower === 'platform_admin' || roleIdLower === 'support_admin';
+    
+    // Check if roleId matches a custom role with admin-level permissions (fallback)
     const userRole = customRoles.find(r => r.id === currentUser.roleId);
     const isCustomAdmin = userRole?.name?.toLowerCase() === 'admin';
     
-    // Check for platform_admin or support_admin system roles
-    const isPlatformAdmin = roleIdLower === 'platform_admin' || roleIdLower === 'support_admin';
-    
-    const canApprove = isAdmin || isCustomAdmin || isPlatformAdmin;
+    const canApprove = isAdmin || isPlatformAdmin || isCustomAdmin;
     
     console.log("🔐 canApproveTimeEntry check:", {
       userName: currentUser.name,
       userRoleId: currentUser.roleId,
       roleIdLower,
       isAdmin,
-      isCustomAdmin,
       isPlatformAdmin,
+      isCustomAdmin,
       canApprove
     });
     
