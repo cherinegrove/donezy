@@ -640,12 +640,17 @@ const TimeTracking = () => {
   const canApproveTimeEntry = () => {
     if (!currentUser) return false;
     
-    // Check for direct admin role
-    if (currentUser.roleId === 'admin') return true;
+    const roleIdLower = currentUser.roleId?.toLowerCase()?.trim();
+    
+    // Check for direct admin role (case-insensitive)
+    if (roleIdLower === 'admin') return true;
+    
+    // Check for platform/system admin roles
+    if (roleIdLower === 'platform_admin' || roleIdLower === 'support_admin') return true;
     
     // Check for custom role with Admin name
     const userRole = customRoles.find(r => r.id === currentUser.roleId);
-    return userRole?.name === 'Admin';
+    return userRole?.name?.toLowerCase() === 'admin';
   };
   
   const handleEditTimeEntry = (entry: TimeEntry) => {
