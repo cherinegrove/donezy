@@ -147,7 +147,10 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
   // Checks if current user can approve/decline a time entry
   // Super admins (platform_admin) and regular admins can approve entries for all users
   const canApproveTimeEntry = () => {
-    if (!currentUser) return false;
+    if (!currentUser) {
+      console.log("❌ canApproveTimeEntry: No currentUser");
+      return false;
+    }
     
     // Check for admin role - roleId maps to 'role' from database (e.g., 'admin')
     const roleIdLower = currentUser.roleId?.toLowerCase();
@@ -158,10 +161,21 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
     const isCustomAdmin = userRole?.name?.toLowerCase() === 'admin';
     
     // Check for platform_admin or support_admin system roles
-    // System roles are stored on the user and grant elevated permissions
     const isPlatformAdmin = roleIdLower === 'platform_admin' || roleIdLower === 'support_admin';
     
-    return isAdmin || isCustomAdmin || isPlatformAdmin;
+    const canApprove = isAdmin || isCustomAdmin || isPlatformAdmin;
+    
+    console.log("🔐 canApproveTimeEntry check:", {
+      userName: currentUser.name,
+      userRoleId: currentUser.roleId,
+      roleIdLower,
+      isAdmin,
+      isCustomAdmin,
+      isPlatformAdmin,
+      canApprove
+    });
+    
+    return canApprove;
   };
 
   const handleApproveTimeEntry = (entry: TimeEntry, billable: boolean = true) => {
