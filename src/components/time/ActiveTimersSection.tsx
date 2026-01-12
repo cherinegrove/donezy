@@ -44,6 +44,7 @@ interface AllActiveTimer {
   userName?: string;
   isOtherUser?: boolean;
   rawEntry?: any;
+  cachedElapsed?: number; // Pre-computed elapsed time accounting for pauses
 }
 
 interface ActiveTimersSectionProps {
@@ -271,17 +272,19 @@ export function ActiveTimersSection({
     }
   });
 
-  // For super admins, add other users' active timers with pre-computed elapsed times
-  // This is memoized so the elapsed times don't update on every render
+  // For super admins, add other users' active timers
+  // These already have cachedElapsed pre-computed with pauses accounted for
   const otherUsersTimersWithElapsed = useMemo(() => {
     if (!isSuperAdmin) return [];
-    const now = Date.now();
     return allActiveTimers
       .filter(timer => timer.isOtherUser && !myTimers.find(t => t.id === timer.id))
       .map(timer => ({
         ...timer,
-        // Pre-compute elapsed time once - won't tick
-        cachedElapsed: now - new Date(timer.startTime).getTime()
+        // Use pre-computed cachedElapsed from fetchAllActiveTimers if available
+        // This already accounts for paused time
+        cachedElapsed: timer.cachedElapsed !== undefined 
+          ? timer.cachedElapsed 
+          : timer.elapsed || 0
       }));
   }, [isSuperAdmin, allActiveTimers, myTimers.map(t => t.id).join(',')]);
 
