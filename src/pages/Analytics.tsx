@@ -29,7 +29,7 @@ const defaultWidgets: Widget[] = [
 ];
 
 export default function Analytics() {
-  const { projects, tasks, timeEntries, users, clients, taskStatuses, currentUser } = useAppContext();
+  const { projects, tasks, timeEntries, users, clients, taskStatuses, projectStatuses, currentUser } = useAppContext();
   
   // Load widgets from localStorage on mount
   const [widgets, setWidgets] = useState<Widget[]>(() => {
@@ -93,42 +93,72 @@ export default function Analytics() {
     return entryDate >= dateRange.from && entryDate <= dateRange.to;
   });
 
-  // Calculate metrics (using filtered data)
-  const activeProjects = filteredProjects.filter(p => p.status !== 'done').length;
+  // Determine which statuses are "final" (completed) - use projectStatuses if available
+  const finalProjectStatuses = projectStatuses
+    .filter(s => s.isFinal)
+    .map(s => s.value?.toLowerCase() || s.label.toLowerCase());
+  
+  // Fallback: if no final statuses defined, use common completion status names
+  const completedStatusNames = finalProjectStatuses.length > 0 
+    ? finalProjectStatuses 
+    : ['done', 'completed', 'finished', 'closed'];
+  
+  // "In Progress" projects = projects with in-progress status (not planning, not completed)
+  const inProgressProjects = filteredProjects.filter(p => {
+    const status = p.status?.toLowerCase() || '';
+    return status === 'in-progress' || status === 'active' || status === 'in progress';
+  }).length;
+  
+  // "Open" projects = all non-completed projects
+  const openProjects = filteredProjects.filter(p => {
+    const status = p.status?.toLowerCase() || '';
+    return !completedStatusNames.includes(status);
+  }).length;
+
   const pendingTasks = filteredTasks.filter(t => t.status !== 'done').length;
   const teamMembers = users.length;
   const totalHours = filteredTimeEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60;
 
   const metricsData = [
-    { label: 'Active Projects', value: activeProjects, change: 12, progress: 65 },
+    { label: 'In Progress', value: inProgressProjects, change: 12, progress: 65 },
     { label: 'Pending Tasks', value: pendingTasks, change: -8, progress: 45 },
     { label: 'Team Members', value: teamMembers, change: 5 },
     { label: 'Hours Logged', value: Math.round(totalHours), suffix: 'hrs', change: 15 }
   ];
 
-  // Project status data (using filtered data)
-  const projectStatusData = [
-    { 
-      name: 'Active', 
-      value: filteredProjects.filter(p => p.status === 'active').length,
-      items: filteredProjects.filter(p => p.status === 'active')
-    },
-    { 
-      name: 'Planning', 
-      value: filteredProjects.filter(p => p.status === 'planning').length,
-      items: filteredProjects.filter(p => p.status === 'planning')
-    },
-    { 
-      name: 'On Hold', 
-      value: filteredProjects.filter(p => p.status === 'on-hold').length,
-      items: filteredProjects.filter(p => p.status === 'on-hold')
-    },
-    { 
-      name: 'Done', 
-      value: filteredProjects.filter(p => p.status === 'done').length,
-      items: filteredProjects.filter(p => p.status === 'done')
-    },
-  ];
+  // Project status data - use dynamic project statuses
+  const projectStatusData = projectStatuses.length > 0
+    ? projectStatuses.map(status => {
+        const statusValue = status.value?.toLowerCase() || status.label.toLowerCase();
+        const matchingProjects = filteredProjects.filter(p => {
+          const projectStatus = p.status?.toLowerCase() || '';
+          return projectStatus === statusValue || 
+                 projectStatus === status.label.toLowerCase() ||
+                 projectStatus.replace(/[- ]/g, '') === statusValue.replace(/[- ]/g, '');
+        });
+        return {
+          name: status.label,
+          value: matchingProjects.length,
+          items: matchingProjects
+        };
+      })
+    : [
+        { 
+          name: 'In Progress', 
+          value: filteredProjects.filter(p => p.status?.toLowerCase() === 'in-progress').length,
+          items: filteredProjects.filter(p => p.status?.toLowerCase() === 'in-progress')
+        },
+        { 
+          name: 'Planning', 
+          value: filteredProjects.filter(p => p.status?.toLowerCase() === 'planning').length,
+          items: filteredProjects.filter(p => p.status?.toLowerCase() === 'planning')
+        },
+        { 
+          name: 'Completed', 
+          value: filteredProjects.filter(p => p.status?.toLowerCase() === 'completed').length,
+          items: filteredProjects.filter(p => p.status?.toLowerCase() === 'completed')
+        },
+      ];
 
   // Task distribution data (using filtered data and dynamic statuses)
   const taskDistributionData = taskStatuses
