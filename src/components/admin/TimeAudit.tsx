@@ -226,6 +226,9 @@ export const TimeAudit = () => {
   // Filter entries
   const activeTimers = entries.filter(e => !e.end_time);
   const suspiciousEntries = entries.filter(e => {
+    // Exclude declined timers from suspicious activity
+    if (e.status === 'declined') return false;
+    
     // Check for back-to-back duplicate events (pause-pause, start-start, resume-resume)
     if (hasBackToBackDuplicateEvents(e.id)) return true;
     
