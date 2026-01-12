@@ -28,33 +28,47 @@ const defaultWidgets: Widget[] = [
   { id: 'risk-1', type: 'risk-success', position: 1 },
 ];
 
+// Helper to get storage key with user context
+const getStorageKey = (userId?: string) => {
+  return userId ? `${STORAGE_KEY}-${userId}` : STORAGE_KEY;
+};
+
 export default function Analytics() {
   const { projects, tasks, timeEntries, users, clients, taskStatuses, projectStatuses, currentUser } = useAppContext();
   
+  const storageKey = getStorageKey(currentUser?.auth_user_id);
+  
   // Load widgets from localStorage on mount
-  const [widgets, setWidgets] = useState<Widget[]>(() => {
+  const [widgets, setWidgets] = useState<Widget[]>(defaultWidgets);
+  const [isLoaded, setIsLoaded] = useState(false);
+  
+  // Load widgets when component mounts or user changes
+  useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(storageKey);
+      console.log('Loading analytics widgets from:', storageKey, 'Data:', saved);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          setWidgets(parsed);
         }
       }
     } catch (e) {
       console.error('Error loading saved widgets:', e);
     }
-    return defaultWidgets;
-  });
+    setIsLoaded(true);
+  }, [storageKey]);
   
-  // Save widgets to localStorage whenever they change
+  // Save widgets to localStorage whenever they change (only after initial load)
   useEffect(() => {
+    if (!isLoaded) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(widgets));
+      console.log('Saving analytics widgets to:', storageKey, 'Data:', JSON.stringify(widgets));
+      localStorage.setItem(storageKey, JSON.stringify(widgets));
     } catch (e) {
       console.error('Error saving widgets:', e);
     }
-  }, [widgets]);
+  }, [widgets, storageKey, isLoaded]);
   
   const [addWidgetOpen, setAddWidgetOpen] = useState(false);
   const [timeFrame, setTimeFrame] = useState<TimeFramePreset>('month');
