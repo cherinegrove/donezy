@@ -1033,11 +1033,43 @@ const TimeTracking = () => {
                                     {canApproveTimeEntry() && entry.status !== 'pending' && (
                                       <>
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem disabled>
-                                          Status: {entry.status === 'approved-billable' ? 'Approved (Billable)' : 
+                                        <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                                          Current: {entry.status === 'approved-billable' ? 'Approved (Billable)' : 
                                                   entry.status === 'approved-non-billable' ? 'Approved (Non-billable)' : 
                                                   entry.status === 'declined' ? 'Declined' : entry.status}
+                                        </div>
+                                        <DropdownMenuSeparator />
+                                        <div className="px-2 py-1 text-xs font-medium text-muted-foreground">Change Status:</div>
+                                        <DropdownMenuItem 
+                                          className="text-yellow-600 dark:text-yellow-400"
+                                          onClick={() => updateTimeEntryStatus(entry.id, 'pending')}
+                                        >
+                                          ↩ Set to Pending
                                         </DropdownMenuItem>
+                                        {entry.status !== 'approved-billable' && (
+                                          <DropdownMenuItem 
+                                            className="text-green-600 dark:text-green-400"
+                                            onClick={() => handleApproveTimeEntry(entry, true)}
+                                          >
+                                            ✓ Approve (Billable)
+                                          </DropdownMenuItem>
+                                        )}
+                                        {entry.status !== 'approved-non-billable' && (
+                                          <DropdownMenuItem 
+                                            className="text-blue-600 dark:text-blue-400"
+                                            onClick={() => handleApproveTimeEntry(entry, false)}
+                                          >
+                                            ✓ Approve (Non-billable)
+                                          </DropdownMenuItem>
+                                        )}
+                                        {entry.status !== 'declined' && (
+                                          <DropdownMenuItem 
+                                            className="text-red-600 dark:text-red-400"
+                                            onClick={() => handleDeclineTimeEntry(entry)}
+                                          >
+                                            ✗ Decline
+                                          </DropdownMenuItem>
+                                        )}
                                       </>
                                     )}
                                   </DropdownMenuContent>
