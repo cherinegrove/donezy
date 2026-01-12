@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -271,14 +271,22 @@ export function ActiveTimersSection({
     }
   });
 
-  // For super admins, add other users' active timers
-  const otherUsersTimers = isSuperAdmin ? allActiveTimers.filter(timer => {
-    // Don't duplicate current user's timers
-    return timer.isOtherUser && !myTimers.find(t => t.id === timer.id);
-  }) : [];
+  // For super admins, add other users' active timers with pre-computed elapsed times
+  // This is memoized so the elapsed times don't update on every render
+  const otherUsersTimersWithElapsed = useMemo(() => {
+    if (!isSuperAdmin) return [];
+    const now = Date.now();
+    return allActiveTimers
+      .filter(timer => timer.isOtherUser && !myTimers.find(t => t.id === timer.id))
+      .map(timer => ({
+        ...timer,
+        // Pre-compute elapsed time once - won't tick
+        cachedElapsed: now - new Date(timer.startTime).getTime()
+      }));
+  }, [isSuperAdmin, allActiveTimers, myTimers.map(t => t.id).join(',')]);
 
   // Combine my timers + other users' timers
-  const displayTimers = [...myTimers, ...otherUsersTimers];
+  const displayTimers = [...myTimers, ...otherUsersTimersWithElapsed];
 
   if (displayTimers.length === 0) {
     return (
@@ -293,15 +301,24 @@ export function ActiveTimersSection({
   return (
     <>
       <div className="space-y-3">
-        {displayTimers.map((timer) => {
+        {displayTimers.map((timer: any) => {
           const isBackendTimer = !timer.isLocalOnly && activeTimer && timer.id === activeTimer.timeEntry.id;
           const isOtherUserTimer = timer.isOtherUser;
           const now = Date.now();
-          const elapsed = timer.isActive && !timer.isPaused && timer.isLocalOnly
-            ? now - timer.startTime.getTime() - (timer.totalPausedTime || 0)
-            : timer.isActive && !timer.isPaused
-              ? now - new Date(timer.startTime).getTime() - (timer.totalPausedTime || 0)
-              : timer.elapsed;
+          
+          // For other users' timers, use the cached (static) elapsed time
+          // For current user's timers, calculate real-time
+          let elapsed: number;
+          if (isOtherUserTimer && timer.cachedElapsed !== undefined) {
+            // Use pre-computed cached elapsed time - won't tick on re-renders
+            elapsed = timer.cachedElapsed;
+          } else if (timer.isActive && !timer.isPaused && timer.isLocalOnly) {
+            elapsed = now - timer.startTime.getTime() - (timer.totalPausedTime || 0);
+          } else if (timer.isActive && !timer.isPaused) {
+            elapsed = now - new Date(timer.startTime).getTime() - (timer.totalPausedTime || 0);
+          } else {
+            elapsed = timer.elapsed;
+          }
           
           const displayTime = isBackendTimer ? activeTimer!.elapsedTime : formatTime(elapsed);
           
