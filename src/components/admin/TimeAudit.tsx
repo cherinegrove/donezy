@@ -202,8 +202,8 @@ export const TimeAudit = () => {
     // User filter
     if (userFilter !== "all" && entry.user_id !== userFilter) return false;
 
-    // Status filter
-    if (statusFilter !== "all" && entry.status !== statusFilter) return false;
+    // Status filter - don't apply to active timers (they should always show when on Active tab)
+    if (statusFilter !== "all" && entry.status !== statusFilter && activeTab !== "active") return false;
 
     // Search filter
     if (searchTerm) {
