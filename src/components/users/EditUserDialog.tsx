@@ -211,7 +211,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                 <SelectTrigger>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]" position="popper" sideOffset={4}>
                   {availableRoles.map(role => (
                     <SelectItem key={role.id} value={role.id}>
                       <div className="flex items-center gap-2">
@@ -238,7 +238,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]" position="popper" sideOffset={4}>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                   <SelectItem value="deleted">Deleted</SelectItem>
