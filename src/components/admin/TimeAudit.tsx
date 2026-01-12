@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { RefreshCw, AlertTriangle, Clock, Play, Search, Download, History, Eye } from "lucide-react";
+import { RefreshCw, AlertTriangle, Clock, Play, Search, Download, History, Eye, CheckCircle } from "lucide-react";
 import { format, formatDistanceToNow, differenceInHours } from "date-fns";
 import { 
   fetchTimeEntryEvents, 
@@ -33,6 +33,8 @@ interface RawTimeEntry {
   status: string | null;
   created_at: string;
   updated_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
 }
 
 export const TimeAudit = () => {
@@ -44,6 +46,7 @@ export const TimeAudit = () => {
   const [userFilter, setUserFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("all");
+  const [showReviewed, setShowReviewed] = useState(false);
   
   // Event detail dialog state
   const [selectedEntry, setSelectedEntry] = useState<RawTimeEntry | null>(null);
@@ -223,6 +226,30 @@ export const TimeAudit = () => {
     return false;
   };
 
+  // Mark entry as reviewed
+  const markAsReviewed = async (entryId: string) => {
+    try {
+      const { error } = await supabase
+        .from('time_entries')
+        .update({
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: currentUser?.name || 'Unknown'
+        })
+        .eq('id', entryId);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setEntries(prev => prev.map(e => 
+        e.id === entryId 
+          ? { ...e, reviewed_at: new Date().toISOString(), reviewed_by: currentUser?.name || 'Unknown' }
+          : e
+      ));
+    } catch (err) {
+      console.error('Error marking as reviewed:', err);
+    }
+  };
+
   // Filter entries
   const activeTimers = entries.filter(e => !e.end_time);
   const suspiciousEntries = entries.filter(e => {
@@ -243,11 +270,19 @@ export const TimeAudit = () => {
     if (e.duration && e.duration > 24 * 60) return true;
     return false;
   });
+  
+  // Separate unreviewed and reviewed suspicious entries
+  const unreviewedSuspicious = suspiciousEntries.filter(e => !e.reviewed_at);
+  const reviewedSuspicious = suspiciousEntries.filter(e => e.reviewed_at);
 
   const filteredEntries = entries.filter(entry => {
     // Tab filter
     if (activeTab === "active" && entry.end_time) return false;
-    if (activeTab === "suspicious" && !suspiciousEntries.includes(entry)) return false;
+    if (activeTab === "suspicious") {
+      if (!suspiciousEntries.includes(entry)) return false;
+      // Filter by reviewed status on suspicious tab
+      if (!showReviewed && entry.reviewed_at) return false;
+    }
     if (activeTab === "events" && getEventCount(entry.id) === 0) return false;
 
     // User filter
@@ -426,7 +461,7 @@ export const TimeAudit = () => {
                 Active ({activeTimers.length})
               </TabsTrigger>
               <TabsTrigger value="suspicious" className="text-amber-600">
-                Suspicious ({suspiciousEntries.length})
+                Suspicious ({unreviewedSuspicious.length}{reviewedSuspicious.length > 0 ? ` + ${reviewedSuspicious.length} reviewed` : ''})
               </TabsTrigger>
               <TabsTrigger value="events" className="text-blue-600">
                 With Events ({entriesWithEvents})
@@ -482,9 +517,20 @@ export const TimeAudit = () => {
               />
             </TabsContent>
             <TabsContent value="suspicious" className="mt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Button
+                  variant={showReviewed ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setShowReviewed(!showReviewed)}
+                >
+                  {showReviewed ? 'Hide Reviewed' : `Show Reviewed (${reviewedSuspicious.length})`}
+                </Button>
+              </div>
               <TimeEntryTable 
                 entries={filteredEntries} 
-                {...{ getUserName, getProjectName, getTaskName, getClientName, formatDuration, calculateLiveDuration, getStatusBadge, getEventCount, openEventDetails }} 
+                {...{ getUserName, getProjectName, getTaskName, getClientName, formatDuration, calculateLiveDuration, getStatusBadge, getEventCount, openEventDetails }}
+                showReviewButton={true}
+                onMarkReviewed={markAsReviewed}
               />
             </TabsContent>
             <TabsContent value="events" className="mt-4">
@@ -610,6 +656,8 @@ interface TimeEntryTableProps {
   getStatusBadge: (entry: RawTimeEntry) => JSX.Element;
   getEventCount: (entryId: string) => number;
   openEventDetails: (entry: RawTimeEntry) => void;
+  showReviewButton?: boolean;
+  onMarkReviewed?: (entryId: string) => void;
 }
 
 const TimeEntryTable = ({ 
@@ -622,7 +670,9 @@ const TimeEntryTable = ({
   calculateLiveDuration,
   getStatusBadge,
   getEventCount,
-  openEventDetails
+  openEventDetails,
+  showReviewButton = false,
+  onMarkReviewed
 }: TimeEntryTableProps) => {
   if (entries.length === 0) {
     return (
@@ -700,14 +750,33 @@ const TimeEntryTable = ({
                   {entry.notes || "-"}
                 </TableCell>
                 <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openEventDetails(entry)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEventDetails(entry)}
+                      className="h-8 w-8 p-0"
+                      title="View details"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    {showReviewButton && !entry.reviewed_at && onMarkReviewed && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onMarkReviewed(entry.id)}
+                        className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                        title="Mark as reviewed"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {showReviewButton && entry.reviewed_at && (
+                      <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
+                        Reviewed
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             );
