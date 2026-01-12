@@ -1860,6 +1860,8 @@ export type Database = {
           organization_id: string | null
           project_id: string | null
           rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           start_time: string
           status: string | null
           task_id: string | null
@@ -1877,6 +1879,8 @@ export type Database = {
           organization_id?: string | null
           project_id?: string | null
           rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           start_time: string
           status?: string | null
           task_id?: string | null
@@ -1894,6 +1898,8 @@ export type Database = {
           organization_id?: string | null
           project_id?: string | null
           rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           start_time?: string
           status?: string | null
           task_id?: string | null
