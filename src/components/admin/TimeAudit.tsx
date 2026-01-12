@@ -36,7 +36,7 @@ interface RawTimeEntry {
 }
 
 export const TimeAudit = () => {
-  const { users, projects, tasks, clients } = useAppContext();
+  const { users, projects, tasks, clients, currentUser } = useAppContext();
   const [entries, setEntries] = useState<RawTimeEntry[]>([]);
   const [allEvents, setAllEvents] = useState<TimeEntryEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,9 +50,16 @@ export const TimeAudit = () => {
   const [entryEvents, setEntryEvents] = useState<TimeEntryEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
 
+  // Check if current user is a super admin (platform_admin or support_admin)
+  const isSuperAdmin = currentUser?.systemRoles?.includes('platform_admin') || 
+                       currentUser?.systemRoles?.includes('support_admin') ||
+                       currentUser?.roleId === 'admin';
+
   const fetchEntries = async () => {
     setLoading(true);
     try {
+      console.log('🔍 TimeAudit: Fetching entries as user:', currentUser?.name, 'System roles:', currentUser?.systemRoles);
+      
       const [entriesResult, eventsResult] = await Promise.all([
         supabase
           .from('time_entries')
@@ -65,6 +72,13 @@ export const TimeAudit = () => {
       if (entriesResult.error) {
         console.error('Error fetching time entries:', entriesResult.error);
       } else {
+        console.log('📊 TimeAudit: Loaded', entriesResult.data?.length, 'entries');
+        console.log('⏱️ Active timers:', entriesResult.data?.filter(e => !e.end_time).length);
+        
+        // Get unique user IDs to verify we're seeing all users' entries
+        const uniqueUsers = new Set(entriesResult.data?.map(e => e.user_id));
+        console.log('👥 Unique users in entries:', uniqueUsers.size);
+        
         setEntries(entriesResult.data || []);
       }
       
@@ -268,8 +282,18 @@ export const TimeAudit = () => {
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" />
                 Time Entry Audit
+                {isSuperAdmin && (
+                  <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20 ml-2">
+                    Admin View - All Users
+                  </Badge>
+                )}
               </CardTitle>
-              <CardDescription>View all raw time entry data with detailed event history</CardDescription>
+              <CardDescription>
+                {isSuperAdmin 
+                  ? `Viewing all time entries across ${uniqueUserIds.length} users (Super Admin access)`
+                  : 'View all raw time entry data with detailed event history'
+                }
+              </CardDescription>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={fetchEntries} disabled={loading}>
