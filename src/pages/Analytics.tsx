@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
 import { Plus, Sparkles } from "lucide-react";
@@ -21,12 +21,41 @@ interface Widget {
   position: number;
 }
 
+const STORAGE_KEY = 'analytics-widgets';
+
+const defaultWidgets: Widget[] = [
+  { id: 'metrics-1', type: 'metrics', position: 0 },
+  { id: 'risk-1', type: 'risk-success', position: 1 },
+];
+
 export default function Analytics() {
-  const { projects, tasks, timeEntries, users, clients, taskStatuses } = useAppContext();
-  const [widgets, setWidgets] = useState<Widget[]>([
-    { id: 'metrics-1', type: 'metrics', position: 0 },
-    { id: 'risk-1', type: 'risk-success', position: 1 },
-  ]);
+  const { projects, tasks, timeEntries, users, clients, taskStatuses, currentUser } = useAppContext();
+  
+  // Load widgets from localStorage on mount
+  const [widgets, setWidgets] = useState<Widget[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Error loading saved widgets:', e);
+    }
+    return defaultWidgets;
+  });
+  
+  // Save widgets to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(widgets));
+    } catch (e) {
+      console.error('Error saving widgets:', e);
+    }
+  }, [widgets]);
+  
   const [addWidgetOpen, setAddWidgetOpen] = useState(false);
   const [timeFrame, setTimeFrame] = useState<TimeFramePreset>('month');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
