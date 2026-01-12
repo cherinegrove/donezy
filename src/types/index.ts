@@ -146,6 +146,8 @@ export interface Comment {
   timestamp: string;
   mentionedUserIds?: string[];
   images?: string[];
+  edited?: boolean;
+  editedAt?: string;
 }
 
 export interface TaskFile {
