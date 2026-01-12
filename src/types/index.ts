@@ -5,6 +5,7 @@ export interface User {
   email: string;
   avatar?: string;
   roleId: string; // References either built-in role or custom role
+  systemRoles?: string[]; // System roles like 'platform_admin', 'support_admin'
   status?: 'active' | 'inactive' | 'deleted';
   organizationId?: string;
   teamIds?: string[];
