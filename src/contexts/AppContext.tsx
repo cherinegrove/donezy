@@ -303,13 +303,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           if (!commentsByTask[comment.task_id]) {
             commentsByTask[comment.task_id] = [];
           }
+          // Determine if comment was edited by comparing created_at and updated_at
+          const isEdited = comment.updated_at && comment.created_at !== comment.updated_at;
           commentsByTask[comment.task_id].push({
             id: comment.id,
             userId: comment.user_id,
             content: comment.content,
             timestamp: comment.created_at,
             mentionedUserIds: comment.mentioned_user_ids || [],
-            images: comment.images || []
+            images: comment.images || [],
+            edited: isEdited,
+            editedAt: isEdited ? comment.updated_at : undefined
           });
         });
       }
@@ -3140,6 +3144,51 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  const updateComment = async (commentId: string, taskId: string, content: string): Promise<void> => {
+    if (!currentUser) throw new Error('No authenticated user');
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        console.error('No authenticated session found when updating comment');
+        throw new Error('No authenticated session');
+      }
+
+      const now = new Date().toISOString();
+      
+      const { error } = await supabase
+        .from('comments')
+        .update({
+          content,
+          updated_at: now
+        })
+        .eq('id', commentId)
+        .eq('auth_user_id', session.user.id); // Ensure user can only edit their own comments
+
+      if (error) {
+        console.error('Supabase error updating comment:', error);
+        throw error;
+      }
+
+      // Update local state
+      setTasks(prev => prev.map(task => 
+        task.id === taskId 
+          ? { 
+              ...task, 
+              comments: (task.comments || []).map(comment =>
+                comment.id === commentId
+                  ? { ...comment, content, edited: true, editedAt: now }
+                  : comment
+              )
+            }
+          : task
+      ));
+    } catch (error) {
+      console.error('Error updating comment:', error);
+      throw error;
+    }
+  };
+
   // Message functions
   const addMessage = async (message: Omit<Message, 'id'>) => {
     try {
@@ -3709,6 +3758,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     // Comment functions
     addComment,
+    updateComment,
     
     // Note functions
     addNote,

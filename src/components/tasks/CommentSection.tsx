@@ -6,21 +6,25 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { X, Image as ImageIcon, Loader2, Pencil, Check } from "lucide-react";
 import { CommentEditor, CommentEditorRef } from "./CommentEditor";
 import { MentionDropdown } from "@/components/messages/MentionDropdown";
+import { Textarea } from "@/components/ui/textarea";
 
 interface CommentSectionProps {
   taskId: string;
 }
 
 export function CommentSection({ taskId }: CommentSectionProps) {
-  const { tasks, users, currentUser, addComment, createMessage } = useAppContext();
+  const { tasks, users, currentUser, addComment, updateComment, createMessage } = useAppContext();
   const [comment, setComment] = useState("");
   const [pendingImages, setPendingImages] = useState<{ file: File; preview: string }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [showMentions, setShowMentions] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const { toast } = useToast();
   const editorRef = useRef<CommentEditorRef>(null);
 
@@ -268,6 +272,57 @@ export function CommentSection({ taskId }: CommentSectionProps) {
     return formattedContent;
   };
 
+  // Handle starting edit mode
+  const handleStartEdit = (commentItem: { id: string; content: string }) => {
+    setEditingCommentId(commentItem.id);
+    // Strip HTML for editing
+    const plainText = getPlainTextFromHtml(commentItem.content);
+    setEditingContent(plainText);
+  };
+
+  // Handle canceling edit
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditingContent("");
+  };
+
+  // Handle saving edited comment
+  const handleSaveEdit = async (commentId: string) => {
+    if (!editingContent.trim()) {
+      toast({
+        title: "Error",
+        description: "Comment cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      await updateComment(commentId, taskId, editingContent);
+      setEditingCommentId(null);
+      setEditingContent("");
+      toast({
+        title: "Comment Updated",
+        description: "Your comment has been edited",
+      });
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update comment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // Check if comment was edited (updated_at is different from created_at)
+  const isCommentEdited = (commentItem: { timestamp: string; edited?: boolean; editedAt?: string }) => {
+    return commentItem.edited === true;
+  };
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-medium">Comments</h3>
@@ -276,11 +331,14 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       <ScrollArea className="overflow-auto max-h-[400px] pr-4">
         <div className="space-y-4">
           {task.comments && task.comments.length > 0 ? (
-            task.comments.map((comment) => {
-              const commentUser = users.find((u) => u.auth_user_id === comment.userId);
-              const commentImages = comment.images || [];
+            task.comments.map((commentItem) => {
+              const commentUser = users.find((u) => u.auth_user_id === commentItem.userId);
+              const commentImages = commentItem.images || [];
+              const isOwnComment = currentUser?.auth_user_id === commentItem.userId;
+              const isEditing = editingCommentId === commentItem.id;
+              
               return (
-                <div key={comment.id} className="flex gap-3">
+                <div key={commentItem.id} className="flex gap-3 group">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={commentUser?.avatar} />
                     <AvatarFallback>{commentUser?.name?.substring(0, 2) || "UN"}</AvatarFallback>
@@ -290,36 +348,85 @@ export function CommentSection({ taskId }: CommentSectionProps) {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium">{commentUser?.name || "Unknown"}</span>
                       <span className="text-xs text-muted-foreground">
-                        {format(new Date(comment.timestamp), "MMM d, yyyy 'at' h:mm a")}
+                        {format(new Date(commentItem.timestamp), "MMM d, yyyy 'at' h:mm a")}
                       </span>
+                      {isCommentEdited(commentItem) && (
+                        <span className="text-xs text-muted-foreground italic">(edited)</span>
+                      )}
+                      {isOwnComment && !isEditing && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleStartEdit(commentItem)}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
-                    {comment.content && (
-                      <div
-                        className="text-sm whitespace-pre-wrap"
-                        dangerouslySetInnerHTML={{
-                          __html: formatCommentContent(comment.content, comment.mentionedUserIds),
-                        }}
-                      />
-                    )}
-                    {/* Display comment images */}
-                    {commentImages.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {commentImages.map((imageUrl: string, index: number) => (
-                          <a
-                            key={index}
-                            href={imageUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block"
+                    
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        <Textarea
+                          value={editingContent}
+                          onChange={(e) => setEditingContent(e.target.value)}
+                          className="min-h-[80px] text-sm"
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveEdit(commentItem.id)}
+                            disabled={isSavingEdit}
                           >
-                            <img
-                              src={imageUrl}
-                              alt={`Comment attachment ${index + 1}`}
-                              className="max-w-[300px] max-h-[200px] rounded-lg border object-cover hover:opacity-90 transition-opacity cursor-pointer"
-                            />
-                          </a>
-                        ))}
+                            {isSavingEdit ? (
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            ) : (
+                              <Check className="h-3 w-3 mr-1" />
+                            )}
+                            Save
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleCancelEdit}
+                            disabled={isSavingEdit}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
                       </div>
+                    ) : (
+                      <>
+                        {commentItem.content && (
+                          <div
+                            className="text-sm whitespace-pre-wrap"
+                            dangerouslySetInnerHTML={{
+                              __html: formatCommentContent(commentItem.content, commentItem.mentionedUserIds),
+                            }}
+                          />
+                        )}
+                        {/* Display comment images */}
+                        {commentImages.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {commentImages.map((imageUrl: string, index: number) => (
+                              <a
+                                key={index}
+                                href={imageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block"
+                              >
+                                <img
+                                  src={imageUrl}
+                                  alt={`Comment attachment ${index + 1}`}
+                                  className="max-w-[300px] max-h-[200px] rounded-lg border object-cover hover:opacity-90 transition-opacity cursor-pointer"
+                                />
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

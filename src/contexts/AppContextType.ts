@@ -110,6 +110,7 @@ export interface AppContextType {
   
   // Comment functions
   addComment: (taskId: string, userId: string, content: string, mentionedUserIds?: string[], images?: string[]) => Promise<string>;
+  updateComment: (commentId: string, taskId: string, content: string) => Promise<void>;
   
   // Note functions
   addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => void;
