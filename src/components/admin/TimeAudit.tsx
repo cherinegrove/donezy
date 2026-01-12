@@ -198,9 +198,37 @@ export const TimeAudit = () => {
     }
   };
 
+  // Check if an entry has back-to-back duplicate events (suspicious behavior)
+  const hasBackToBackDuplicateEvents = (entryId: string): boolean => {
+    const entryEvents = allEvents
+      .filter(e => e.time_entry_id === entryId)
+      .sort((a, b) => new Date(a.event_timestamp).getTime() - new Date(b.event_timestamp).getTime());
+    
+    if (entryEvents.length < 2) return false;
+    
+    // Check for back-to-back duplicate event types that shouldn't happen
+    const suspiciousEventTypes = ['paused', 'started', 'resumed'];
+    
+    for (let i = 1; i < entryEvents.length; i++) {
+      const prevEvent = entryEvents[i - 1];
+      const currEvent = entryEvents[i];
+      
+      // If two consecutive events are the same type and it's a suspicious type
+      if (prevEvent.event_type === currEvent.event_type && 
+          suspiciousEventTypes.includes(currEvent.event_type)) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
   // Filter entries
   const activeTimers = entries.filter(e => !e.end_time);
   const suspiciousEntries = entries.filter(e => {
+    // Check for back-to-back duplicate events (pause-pause, start-start, resume-resume)
+    if (hasBackToBackDuplicateEvents(e.id)) return true;
+    
     // Entries without duration but with end_time
     if (e.end_time && (e.duration === null || e.duration === 0)) return true;
     // Entries running for more than 12 hours
