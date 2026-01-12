@@ -484,8 +484,41 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       } else if (activeEntries.length === 1) {
         setActiveTimeEntry(activeEntries[0]);
         console.log('✅ Single active timer found:', activeEntries[0].id);
+        
+        // CRITICAL: Restore pause state from database events
+        // This prevents the bug where a paused timer appears active after page refresh
+        try {
+          const { data: lastEvent, error: eventError } = await supabase
+            .from('time_entry_events')
+            .select('event_type, details')
+            .eq('time_entry_id', activeEntries[0].id)
+            .order('event_timestamp', { ascending: false })
+            .limit(1)
+            .single();
+          
+          if (!eventError && lastEvent) {
+            console.log('📊 Last event for timer:', lastEvent.event_type);
+            if (lastEvent.event_type === 'paused') {
+              setIsTimerPaused(true);
+              // Restore pausedAt from the event details
+              const pausedAtStr = (lastEvent.details as any)?.pausedAt;
+              if (pausedAtStr) {
+                setPausedAt(new Date(pausedAtStr));
+              }
+              console.log('⏸️ Timer was paused, restoring pause state');
+            } else {
+              setIsTimerPaused(false);
+              setPausedAt(null);
+              console.log('▶️ Timer was not paused');
+            }
+          }
+        } catch (err) {
+          console.error('Error checking timer pause state:', err);
+        }
       } else {
         setActiveTimeEntry(null);
+        setIsTimerPaused(false);
+        setPausedAt(null);
         console.log('✅ No active timers found');
       }
     } catch (error) {
