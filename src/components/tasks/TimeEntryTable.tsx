@@ -145,7 +145,7 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
   };
 
   // Checks if current user can approve/decline a time entry
-  // Super admins (platform_admin) and regular admins can approve entries for all users
+  // Super admins (platform_admin, support_admin) and regular admins can approve entries for all users
   const canApproveTimeEntry = () => {
     if (!currentUser) {
       console.log("❌ canApproveTimeEntry: No currentUser");
@@ -158,8 +158,9 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
     // Direct admin role check (from users.role field in database)
     const isAdmin = roleIdLower === 'admin';
     
-    // Platform/system admin roles
-    const isPlatformAdmin = roleIdLower === 'platform_admin' || roleIdLower === 'support_admin';
+    // Check for system roles (platform_admin, support_admin) from user_system_roles table
+    const systemRoles = currentUser.systemRoles || [];
+    const isPlatformAdmin = systemRoles.includes('platform_admin') || systemRoles.includes('support_admin');
     
     // Check if roleId matches a custom role with admin-level permissions (fallback)
     const userRole = customRoles.find(r => r.id === currentUser.roleId);
@@ -171,6 +172,7 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
       userName: currentUser.name,
       userRoleId: currentUser.roleId,
       roleIdLower,
+      systemRoles,
       isAdmin,
       isPlatformAdmin,
       isCustomAdmin,

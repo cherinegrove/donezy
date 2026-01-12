@@ -149,17 +149,44 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       console.log('🔄 Loading users with session:', session.user.id);
       console.log('🔄 Session user email:', session.user.email);
-      const { data, error } = await supabase
-        .from('users')
-        .select('*');
       
-      if (error) {
-        console.error('Error loading users:', error);
+      // Load users and system roles in parallel
+      const [usersResult, systemRolesResult] = await Promise.all([
+        supabase.from('users').select('*'),
+        supabase.from('user_system_roles').select(`
+          user_id,
+          system_roles!inner (name)
+        `)
+      ]);
+      
+      if (usersResult.error) {
+        console.error('Error loading users:', usersResult.error);
         return;
       }
       
+      const data = usersResult.data;
+      
+      // Build a map of user_id -> system role names
+      const systemRolesMap: Record<string, string[]> = {};
+      if (systemRolesResult.data) {
+        systemRolesResult.data.forEach((usr: any) => {
+          const userId = usr.user_id;
+          const roleName = usr.system_roles?.name;
+          if (roleName) {
+            if (!systemRolesMap[userId]) {
+              systemRolesMap[userId] = [];
+            }
+            systemRolesMap[userId].push(roleName);
+          }
+        });
+      }
+      console.log('🔐 System roles map:', systemRolesMap);
+      
       console.log('🔍 Raw DB data:', data);
-      const convertedUsers = data?.map(convertDbUserToUser) || [];
+      const convertedUsers = data?.map((dbUser: any) => ({
+        ...convertDbUserToUser(dbUser),
+        systemRoles: systemRolesMap[dbUser.auth_user_id] || []
+      })) || [];
       console.log('🔍 Converted users:', convertedUsers.length);
       setUsers(convertedUsers);
       
@@ -174,8 +201,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.log('🔍 Found session user in DB:', sessionUserDb ? sessionUserDb.name : 'NOT FOUND');
       
       if (sessionUserDb) {
-        const sessionUser = convertDbUserToUser(sessionUserDb);
-        console.log('✅ Current user set:', sessionUser.name);
+        const sessionUser = {
+          ...convertDbUserToUser(sessionUserDb),
+          systemRoles: systemRolesMap[sessionUserDb.auth_user_id] || []
+        };
+        console.log('✅ Current user set:', sessionUser.name, 'System roles:', sessionUser.systemRoles);
         setCurrentUser(sessionUser);
       } else {
         console.warn('⚠️ User not found by auth_user_id - trying email fallback');

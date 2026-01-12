@@ -637,6 +637,7 @@ const TimeTracking = () => {
   };
 
   // Checks if current user can approve/decline a time entry
+  // Super admins (platform_admin, support_admin) can always change time entry status
   const canApproveTimeEntry = () => {
     if (!currentUser) return false;
     
@@ -645,8 +646,12 @@ const TimeTracking = () => {
     // Check for direct admin role (case-insensitive)
     if (roleIdLower === 'admin') return true;
     
-    // Check for platform/system admin roles
-    if (roleIdLower === 'platform_admin' || roleIdLower === 'support_admin') return true;
+    // Check for system roles (platform_admin, support_admin)
+    const systemRoles = currentUser.systemRoles || [];
+    if (systemRoles.includes('platform_admin') || systemRoles.includes('support_admin')) {
+      console.log('✅ User has system admin role:', systemRoles);
+      return true;
+    }
     
     // Check for custom role with Admin name
     const userRole = customRoles.find(r => r.id === currentUser.roleId);
