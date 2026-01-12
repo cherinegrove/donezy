@@ -304,7 +304,10 @@ export function ActiveTimersSection({
               : timer.elapsed;
           
           const displayTime = isBackendTimer ? activeTimer!.elapsedTime : formatTime(elapsed);
-          const isLive = isBackendTimer ? !isTimerPaused : (timer.isActive && !timer.isPaused);
+          
+          // For other users' timers, we can't determine pause state - show as "Active" not "Live"
+          // Only the current user's backend timer can show accurate Live/Paused state
+          const isLive = isBackendTimer ? !isTimerPaused : (!isOtherUserTimer && timer.isActive && !timer.isPaused);
           const showPlayButton = isBackendTimer ? isTimerPaused : timer.isPaused;
 
           return (
@@ -338,12 +341,15 @@ export function ActiveTimersSection({
                     {displayTime}
                   </div>
                   <div className="flex gap-1">
-                    {isLive && (
+                    {isOtherUserTimer ? (
+                      <Badge variant="outline" className="text-xs">
+                        Active
+                      </Badge>
+                    ) : isLive ? (
                       <Badge variant="default" className="text-xs">
                         Live
                       </Badge>
-                    )}
-                    {!isLive && (
+                    ) : (
                       <Badge variant="secondary" className="text-xs">
                         Paused
                       </Badge>
