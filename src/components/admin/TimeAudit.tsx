@@ -58,6 +58,16 @@ export const TimeAudit = () => {
   const fetchEntries = async () => {
     setLoading(true);
     try {
+      // First check auth status
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔐 TimeAudit: Auth session:', session?.user?.id, session?.user?.email);
+      
+      if (!session?.user) {
+        console.error('❌ TimeAudit: No authenticated user!');
+        setLoading(false);
+        return;
+      }
+      
       console.log('🔍 TimeAudit: Fetching entries as user:', currentUser?.name, 'System roles:', currentUser?.systemRoles);
       
       const [entriesResult, eventsResult] = await Promise.all([
@@ -69,15 +79,25 @@ export const TimeAudit = () => {
         fetchAllRecentEvents(1000)
       ]);
 
+      console.log('📊 TimeAudit: Query result:', { 
+        error: entriesResult.error, 
+        count: entriesResult.data?.length,
+        status: entriesResult.status,
+        statusText: entriesResult.statusText
+      });
+
       if (entriesResult.error) {
         console.error('Error fetching time entries:', entriesResult.error);
       } else {
         console.log('📊 TimeAudit: Loaded', entriesResult.data?.length, 'entries');
-        console.log('⏱️ Active timers:', entriesResult.data?.filter(e => !e.end_time).length);
+        
+        // Log active timers specifically
+        const active = entriesResult.data?.filter(e => !e.end_time) || [];
+        console.log('⏱️ Active timers found:', active.length, active.map(e => ({ id: e.id, user: e.user_id })));
         
         // Get unique user IDs to verify we're seeing all users' entries
         const uniqueUsers = new Set(entriesResult.data?.map(e => e.user_id));
-        console.log('👥 Unique users in entries:', uniqueUsers.size);
+        console.log('👥 Unique users in entries:', uniqueUsers.size, [...uniqueUsers]);
         
         setEntries(entriesResult.data || []);
       }
