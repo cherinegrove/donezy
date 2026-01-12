@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
-import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus, Pause, Save, Edit, Download, FileText, Building2, Timer } from "lucide-react";
+import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus, Pause, Save, Edit, Download, FileText, Building2, Timer, RefreshCw } from "lucide-react";
 import { ActiveTimersSection } from "@/components/time/ActiveTimersSection";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { TimeEntry, TimeEntryStatus } from "@/types";
 import { UserTimeTrackingReport } from "@/components/dashboard/cards/UserTimeTrackingReport";
@@ -84,6 +85,77 @@ const TimeTracking = () => {
     return userRole?.name === 'Admin';
   };
 
+  // Check if current user is a super admin (platform_admin or support_admin)
+  const isSuperAdmin = currentUser?.systemRoles?.includes('platform_admin') || 
+                       currentUser?.systemRoles?.includes('support_admin') ||
+                       currentUser?.roleId === 'admin';
+
+  // All active timers state (for super admins)
+  const [allActiveTimers, setAllActiveTimers] = useState<any[]>([]);
+  const [loadingAllTimers, setLoadingAllTimers] = useState(false);
+
+  // Fetch all active timers for super admins
+  const fetchAllActiveTimers = async () => {
+    if (!isSuperAdmin) return;
+    
+    setLoadingAllTimers(true);
+    try {
+      console.log('🔍 Fetching all active timers for super admin');
+      const { data, error } = await supabase
+        .from('time_entries')
+        .select('*')
+        .is('end_time', null)
+        .order('start_time', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching all active timers:', error);
+        return;
+      }
+      
+      console.log('⏱️ Found', data?.length, 'active timers across all users');
+      
+      // Convert to timer format with user info
+      const timersWithInfo = (data || []).map(entry => {
+        const user = users.find(u => u.auth_user_id === entry.user_id || u.id === entry.user_id);
+        const task = entry.task_id ? tasks.find(t => t.id === entry.task_id) : null;
+        const project = entry.project_id ? projects.find(p => p.id === entry.project_id) : null;
+        const client = project?.clientId ? clients.find(c => c.id === project.clientId) : null;
+        
+        return {
+          id: entry.id,
+          taskId: entry.task_id || '',
+          taskTitle: task?.title || 'Unknown Task',
+          projectName: project?.name,
+          clientName: client?.name,
+          startTime: new Date(entry.start_time),
+          elapsed: 0,
+          isPaused: entry.status === 'paused',
+          pausedAt: undefined,
+          totalPausedTime: 0,
+          isActive: entry.status !== 'paused',
+          isLocalOnly: false,
+          userId: entry.user_id,
+          userName: user?.name || 'Unknown User',
+          isOtherUser: entry.user_id !== currentUser?.auth_user_id,
+          rawEntry: entry
+        };
+      });
+      
+      setAllActiveTimers(timersWithInfo);
+    } catch (err) {
+      console.error('Error:', err);
+    } finally {
+      setLoadingAllTimers(false);
+    }
+  };
+
+  // Fetch all active timers when component mounts and user is super admin
+  useEffect(() => {
+    if (isSuperAdmin) {
+      fetchAllActiveTimers();
+    }
+  }, [isSuperAdmin, users, tasks, projects, clients]);
+
   // Filter state - default to current user's entries for non-admins
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
   const [selectedMonth, setSelectedMonth] = useState<string>(
@@ -111,6 +183,7 @@ const TimeTracking = () => {
 
   // Local timers state
   const [localTimers, setLocalTimers] = useState<any[]>([]);
+
 
   // Load local timers from localStorage - only load LOCAL-ONLY timers (not backend timers)
   useEffect(() => {
@@ -847,11 +920,31 @@ const TimeTracking = () => {
         <TabsContent value="active" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Timer className="h-5 w-5 text-primary" />
-                Active Timers
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">All unsaved timers (running and paused)</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Timer className="h-5 w-5 text-primary" />
+                    Active Timers
+                    {isSuperAdmin && (
+                      <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20 ml-2">
+                        Admin View - All Users
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {isSuperAdmin 
+                      ? `Viewing all active timers across all users (${allActiveTimers.length} active)`
+                      : 'All unsaved timers (running and paused)'
+                    }
+                  </p>
+                </div>
+                {isSuperAdmin && (
+                  <Button variant="outline" size="sm" onClick={fetchAllActiveTimers} disabled={loadingAllTimers}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${loadingAllTimers ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <ActiveTimersSection 
@@ -864,6 +957,8 @@ const TimeTracking = () => {
                   setSelectedTimeEntry(timeEntry);
                   setIsEditEntryDialogOpen(true);
                 }}
+                allActiveTimers={isSuperAdmin ? allActiveTimers : []}
+                isSuperAdmin={isSuperAdmin}
               />
             </CardContent>
           </Card>

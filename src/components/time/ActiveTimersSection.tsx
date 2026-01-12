@@ -27,6 +27,25 @@ interface TimerItem {
   clientId?: string; // Store clientId for creating time entries
 }
 
+interface AllActiveTimer {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  projectName?: string;
+  clientName?: string;
+  startTime: Date;
+  elapsed: number;
+  isPaused: boolean;
+  pausedAt?: Date;
+  totalPausedTime: number;
+  isActive: boolean;
+  isLocalOnly: boolean;
+  userId?: string;
+  userName?: string;
+  isOtherUser?: boolean;
+  rawEntry?: any;
+}
+
 interface ActiveTimersSectionProps {
   activeTimer: {
     task: any;
@@ -41,6 +60,8 @@ interface ActiveTimersSectionProps {
   onPauseTimer: () => void;
   onStopTimer: () => void;
   onEditTimer: (timeEntry: TimeEntry) => void;
+  allActiveTimers?: AllActiveTimer[];
+  isSuperAdmin?: boolean;
 }
 
 export function ActiveTimersSection({
@@ -50,6 +71,8 @@ export function ActiveTimersSection({
   onPauseTimer,
   onStopTimer,
   onEditTimer,
+  allActiveTimers = [],
+  isSuperAdmin = false,
 }: ActiveTimersSectionProps) {
   const { 
     stopTimeTracking, 
@@ -214,11 +237,11 @@ export function ActiveTimersSection({
   };
 
   // Combine all timers into a unified list matching TimerBox style
-  const allTimers: TimerItem[] = [];
+  const myTimers: (TimerItem & { userName?: string; isOtherUser?: boolean })[] = [];
 
-  // Add backend timer if exists
+  // Add backend timer if exists (current user's active timer)
   if (activeTimer) {
-    allTimers.push({
+    myTimers.push({
       id: activeTimer.timeEntry.id,
       taskId: activeTimer.timeEntry.taskId || '',
       taskTitle: activeTimer.task?.title || 'Unknown Task',
@@ -231,18 +254,33 @@ export function ActiveTimersSection({
       totalPausedTime: 0,
       isActive: !isTimerPaused,
       isLocalOnly: false,
+      userName: currentUser?.name,
+      isOtherUser: false,
     });
   }
 
   // Add local timers
   localTimers.forEach(timer => {
     // Don't duplicate if it's the same as backend timer
-    if (!allTimers.find(t => t.id === timer.id)) {
-      allTimers.push(timer);
+    if (!myTimers.find(t => t.id === timer.id)) {
+      myTimers.push({
+        ...timer,
+        userName: currentUser?.name,
+        isOtherUser: false,
+      });
     }
   });
 
-  if (allTimers.length === 0) {
+  // For super admins, add other users' active timers
+  const otherUsersTimers = isSuperAdmin ? allActiveTimers.filter(timer => {
+    // Don't duplicate current user's timers
+    return timer.isOtherUser && !myTimers.find(t => t.id === timer.id);
+  }) : [];
+
+  // Combine my timers + other users' timers
+  const displayTimers = [...myTimers, ...otherUsersTimers];
+
+  if (displayTimers.length === 0) {
     return (
       <div className="text-center py-8">
         <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
@@ -255,12 +293,15 @@ export function ActiveTimersSection({
   return (
     <>
       <div className="space-y-3">
-        {allTimers.map((timer) => {
+        {displayTimers.map((timer) => {
           const isBackendTimer = !timer.isLocalOnly && activeTimer && timer.id === activeTimer.timeEntry.id;
+          const isOtherUserTimer = timer.isOtherUser;
           const now = Date.now();
           const elapsed = timer.isActive && !timer.isPaused && timer.isLocalOnly
             ? now - timer.startTime.getTime() - (timer.totalPausedTime || 0)
-            : timer.elapsed;
+            : timer.isActive && !timer.isPaused
+              ? now - new Date(timer.startTime).getTime() - (timer.totalPausedTime || 0)
+              : timer.elapsed;
           
           const displayTime = isBackendTimer ? activeTimer!.elapsedTime : formatTime(elapsed);
           const isLive = isBackendTimer ? !isTimerPaused : (timer.isActive && !timer.isPaused);
@@ -269,9 +310,19 @@ export function ActiveTimersSection({
           return (
             <div 
               key={timer.id} 
-              className="flex items-start justify-between p-3 rounded-lg border bg-card"
+              className={cn(
+                "flex items-start justify-between p-3 rounded-lg border bg-card",
+                isOtherUserTimer && "border-muted-foreground/30"
+              )}
             >
               <div className="flex-1 min-w-0">
+                {isOtherUserTimer && timer.userName && (
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                      {timer.userName}
+                    </Badge>
+                  </div>
+                )}
                 <h4 className="font-medium text-sm truncate">{timer.taskTitle}</h4>
                 {timer.projectName && (
                   <p className="text-xs text-muted-foreground">{timer.projectName}</p>
@@ -280,7 +331,7 @@ export function ActiveTimersSection({
                   <p className="text-xs text-muted-foreground/80">Client: {timer.clientName}</p>
                 )}
                 <p className="text-xs text-muted-foreground/60 mt-1">
-                  Started: {format(timer.startTime, "HH:mm")}
+                  Started: {format(new Date(timer.startTime), "HH:mm")}
                 </p>
                 <div className="flex items-center gap-2 mt-2">
                   <div className="font-mono text-lg font-bold">
@@ -301,59 +352,62 @@ export function ActiveTimersSection({
                 </div>
               </div>
               
-              <div className="flex items-center gap-1 ml-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    if (isBackendTimer) {
-                      onPauseTimer();
-                    } else {
-                      handleLocalTimerPause(timer);
-                    }
-                  }}
-                  className={cn(
-                    "h-8 w-8 p-0",
-                    showPlayButton ? "text-green-600 hover:text-green-700" : "text-yellow-600 hover:text-yellow-700"
-                  )}
-                >
-                  {showPlayButton ? (
-                    <Play className="h-4 w-4" />
-                  ) : (
-                    <Pause className="h-4 w-4" />
-                  )}
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    if (isBackendTimer) {
-                      onStopTimer();
-                    } else {
-                      handleLocalTimerStop(timer);
-                    }
-                  }}
-                  className="h-8 w-8 p-0 text-primary hover:text-primary/80"
-                >
-                  <Save className="h-4 w-4" />
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    if (isBackendTimer) {
-                      handleDeleteBackendTimer();
-                    } else {
-                      handleDeleteLocalTimer(timer.id);
-                    }
-                  }}
-                  className="h-8 w-8 p-0 text-destructive hover:text-destructive/90"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
+              {/* Only show controls for own timers, not other users' */}
+              {!isOtherUserTimer && (
+                <div className="flex items-center gap-1 ml-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (isBackendTimer) {
+                        onPauseTimer();
+                      } else {
+                        handleLocalTimerPause(timer as TimerItem);
+                      }
+                    }}
+                    className={cn(
+                      "h-8 w-8 p-0",
+                      showPlayButton ? "text-green-600 hover:text-green-700" : "text-yellow-600 hover:text-yellow-700"
+                    )}
+                  >
+                    {showPlayButton ? (
+                      <Play className="h-4 w-4" />
+                    ) : (
+                      <Pause className="h-4 w-4" />
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (isBackendTimer) {
+                        onStopTimer();
+                      } else {
+                        handleLocalTimerStop(timer as TimerItem);
+                      }
+                    }}
+                    className="h-8 w-8 p-0 text-primary hover:text-primary/80"
+                  >
+                    <Save className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (isBackendTimer) {
+                        handleDeleteBackendTimer();
+                      } else {
+                        handleDeleteLocalTimer(timer.id);
+                      }
+                    }}
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive/90"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
             </div>
           );
         })}
