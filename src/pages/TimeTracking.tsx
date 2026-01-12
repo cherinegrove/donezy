@@ -101,25 +101,76 @@ const TimeTracking = () => {
     setLoadingAllTimers(true);
     try {
       console.log('🔍 Fetching all active timers for super admin');
-      const { data, error } = await supabase
-        .from('time_entries')
-        .select('*')
-        .is('end_time', null)
-        .order('start_time', { ascending: false });
       
-      if (error) {
-        console.error('Error fetching all active timers:', error);
+      // Fetch active timers and their events in parallel
+      const [entriesResult, eventsResult] = await Promise.all([
+        supabase
+          .from('time_entries')
+          .select('*')
+          .is('end_time', null)
+          .order('start_time', { ascending: false }),
+        supabase
+          .from('time_entry_events')
+          .select('*')
+          .order('event_timestamp', { ascending: true })
+      ]);
+      
+      if (entriesResult.error) {
+        console.error('Error fetching all active timers:', entriesResult.error);
         return;
       }
       
-      console.log('⏱️ Found', data?.length, 'active timers across all users');
+      const data = entriesResult.data || [];
+      const allEvents = eventsResult.data || [];
       
-      // Convert to timer format with user info
-      const timersWithInfo = (data || []).map(entry => {
+      console.log('⏱️ Found', data.length, 'active timers across all users');
+      
+      // Helper function to calculate actual elapsed time accounting for pauses
+      const calculateElapsedWithPauses = (entryId: string, startTime: Date): number => {
+        const now = Date.now();
+        const totalElapsedMs = now - startTime.getTime();
+        
+        // Get all pause/resume events for this entry
+        const entryEvents = allEvents.filter(e => e.time_entry_id === entryId);
+        let totalPausedMs = 0;
+        let lastPauseTime: Date | null = null;
+        
+        for (const event of entryEvents) {
+          if (event.event_type === 'paused') {
+            lastPauseTime = new Date(event.event_timestamp);
+          } else if (event.event_type === 'resumed' && lastPauseTime) {
+            const resumeTime = new Date(event.event_timestamp);
+            totalPausedMs += resumeTime.getTime() - lastPauseTime.getTime();
+            lastPauseTime = null;
+          }
+        }
+        
+        // If still paused (no matching resume), add time from last pause to now
+        if (lastPauseTime) {
+          totalPausedMs += now - lastPauseTime.getTime();
+        }
+        
+        return Math.max(0, totalElapsedMs - totalPausedMs);
+      };
+      
+      // Check if timer is currently paused by looking at last event
+      const isTimerPaused = (entryId: string): boolean => {
+        const entryEvents = allEvents.filter(e => e.time_entry_id === entryId);
+        if (entryEvents.length === 0) return false;
+        const lastEvent = entryEvents[entryEvents.length - 1];
+        return lastEvent.event_type === 'paused';
+      };
+      
+      // Convert to timer format with user info and correct elapsed time
+      const timersWithInfo = data.map(entry => {
         const user = users.find(u => u.auth_user_id === entry.user_id || u.id === entry.user_id);
         const task = entry.task_id ? tasks.find(t => t.id === entry.task_id) : null;
         const project = entry.project_id ? projects.find(p => p.id === entry.project_id) : null;
         const client = project?.clientId ? clients.find(c => c.id === project.clientId) : null;
+        
+        const startTime = new Date(entry.start_time);
+        const isPaused = isTimerPaused(entry.id);
+        const actualElapsed = calculateElapsedWithPauses(entry.id, startTime);
         
         return {
           id: entry.id,
@@ -127,17 +178,19 @@ const TimeTracking = () => {
           taskTitle: task?.title || 'Unknown Task',
           projectName: project?.name,
           clientName: client?.name,
-          startTime: new Date(entry.start_time),
-          elapsed: 0,
-          isPaused: entry.status === 'paused',
+          startTime: startTime,
+          elapsed: actualElapsed,
+          isPaused: isPaused,
           pausedAt: undefined,
-          totalPausedTime: 0,
-          isActive: entry.status !== 'paused',
+          totalPausedTime: 0, // Already factored into elapsed calculation
+          isActive: !isPaused,
           isLocalOnly: false,
           userId: entry.user_id,
           userName: user?.name || 'Unknown User',
           isOtherUser: entry.user_id !== currentUser?.auth_user_id,
-          rawEntry: entry
+          rawEntry: entry,
+          // Pre-computed elapsed that accounts for pauses - for display
+          cachedElapsed: actualElapsed
         };
       });
       
