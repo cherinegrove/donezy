@@ -110,12 +110,38 @@ export const TimeAudit = () => {
     return `${hours}h ${mins}m`;
   };
 
-  const calculateLiveDuration = (startTime: string) => {
+  // Calculate actual active duration by subtracting pause time
+  const calculateLiveDuration = (startTime: string, entryId: string) => {
     const start = new Date(startTime);
     const now = new Date();
-    const diffMs = now.getTime() - start.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    return formatDuration(diffMins);
+    const totalElapsedMs = now.getTime() - start.getTime();
+    
+    // Get all pause/resume events for this entry to calculate total pause time
+    const entryEvents = allEvents.filter(e => e.time_entry_id === entryId);
+    let totalPausedMs = 0;
+    let lastPauseTime: Date | null = null;
+    
+    for (const event of entryEvents.sort((a, b) => 
+      new Date(a.event_timestamp).getTime() - new Date(b.event_timestamp).getTime()
+    )) {
+      if (event.event_type === 'paused') {
+        lastPauseTime = new Date(event.event_timestamp);
+      } else if (event.event_type === 'resumed' && lastPauseTime) {
+        const resumeTime = new Date(event.event_timestamp);
+        totalPausedMs += resumeTime.getTime() - lastPauseTime.getTime();
+        lastPauseTime = null;
+      }
+    }
+    
+    // If still paused (no matching resume), add time from last pause to now
+    if (lastPauseTime) {
+      totalPausedMs += now.getTime() - lastPauseTime.getTime();
+    }
+    
+    const activeMs = totalElapsedMs - totalPausedMs;
+    const activeMinutes = Math.max(0, Math.floor(activeMs / (1000 * 60)));
+    
+    return formatDuration(activeMinutes);
   };
 
   // Get event count for an entry
@@ -481,7 +507,7 @@ export const TimeAudit = () => {
                   <span className="font-medium">
                     {selectedEntry.end_time 
                       ? formatDuration(selectedEntry.duration)
-                      : calculateLiveDuration(selectedEntry.start_time) + ' (running)'
+                      : calculateLiveDuration(selectedEntry.start_time, selectedEntry.id) + ' (running)'
                     }
                   </span>
                 </div>
@@ -505,7 +531,7 @@ interface TimeEntryTableProps {
   getTaskName: (id: string | null) => string;
   getClientName: (id: string | null) => string;
   formatDuration: (mins: number | null) => string;
-  calculateLiveDuration: (startTime: string) => string;
+  calculateLiveDuration: (startTime: string, entryId: string) => string;
   getStatusBadge: (entry: RawTimeEntry) => JSX.Element;
   getEventCount: (entryId: string) => number;
   openEventDetails: (entry: RawTimeEntry) => void;
@@ -581,7 +607,7 @@ const TimeEntryTable = ({
                 </TableCell>
                 <TableCell>
                   {!entry.end_time ? (
-                    <span className="text-green-600 font-medium">{calculateLiveDuration(entry.start_time)}</span>
+                    <span className="text-green-600 font-medium">{calculateLiveDuration(entry.start_time, entry.id)}</span>
                   ) : (
                     formatDuration(entry.duration)
                   )}
