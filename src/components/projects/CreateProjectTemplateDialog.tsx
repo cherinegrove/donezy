@@ -398,9 +398,9 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent 
-                    className="w-72 max-h-80 bg-background border shadow-lg z-[9999] overflow-hidden" 
+                    className="w-72 max-h-64 bg-background border shadow-lg z-[9999] overflow-y-auto" 
                     align="end"
-                    side="bottom"
+                    side="top"
                     sideOffset={4}
                     avoidCollisions={true}
                   >
@@ -427,7 +427,7 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
                             />
                           </div>
                         </div>
-                        <div className="max-h-48 overflow-y-auto">
+                        <div className="max-h-32 overflow-y-auto">
                           {taskTemplates
                             .filter((template) => 
                               template.name.toLowerCase().includes(taskTemplateSearch.toLowerCase()) ||
