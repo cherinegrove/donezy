@@ -485,22 +485,45 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setActiveTimeEntry(activeEntries[0]);
         console.log('✅ Single active timer found:', activeEntries[0].id);
         
-        // CRITICAL: Restore pause state from database events
-        // This prevents the bug where a paused timer appears active after page refresh
+        // CRITICAL: Restore pause state AND accumulated paused time from database events
+        // This prevents the bug where totalPausedTime is lost after page refresh
         try {
-          const { data: lastEvent, error: eventError } = await supabase
+          // Fetch ALL events for this timer to calculate total paused time
+          const { data: allEvents, error: eventsError } = await supabase
             .from('time_entry_events')
-            .select('event_type, details')
+            .select('event_type, details, event_timestamp')
             .eq('time_entry_id', activeEntries[0].id)
-            .order('event_timestamp', { ascending: false })
-            .limit(1)
-            .single();
+            .order('event_timestamp', { ascending: true });
           
-          if (!eventError && lastEvent) {
-            console.log('📊 Last event for timer:', lastEvent.event_type);
+          if (!eventsError && allEvents && allEvents.length > 0) {
+            // Calculate accumulated paused time from pause/resume pairs
+            let accumulatedPausedTime = 0;
+            let currentlyPaused = false;
+            let currentPausedAt: Date | null = null;
+            
+            for (const event of allEvents) {
+              if (event.event_type === 'paused') {
+                currentlyPaused = true;
+                const pausedAtStr = (event.details as any)?.pausedAt;
+                currentPausedAt = pausedAtStr ? new Date(pausedAtStr) : new Date(event.event_timestamp);
+              } else if (event.event_type === 'resumed' && currentlyPaused) {
+                // Add the paused duration from the resume event if available
+                const pauseDuration = (event.details as any)?.pauseDuration;
+                if (typeof pauseDuration === 'number' && pauseDuration > 0) {
+                  accumulatedPausedTime += pauseDuration;
+                }
+                currentlyPaused = false;
+                currentPausedAt = null;
+              }
+            }
+            
+            // Get the last event to determine current state
+            const lastEvent = allEvents[allEvents.length - 1];
+            console.log('📊 Last event for timer:', lastEvent.event_type, '| Total pause events:', allEvents.filter(e => e.event_type === 'paused').length);
+            console.log('📊 Calculated accumulated paused time:', Math.floor(accumulatedPausedTime / 1000), 'seconds');
+            
             if (lastEvent.event_type === 'paused') {
               setIsTimerPaused(true);
-              // Restore pausedAt from the event details
               const pausedAtStr = (lastEvent.details as any)?.pausedAt;
               if (pausedAtStr) {
                 setPausedAt(new Date(pausedAtStr));
@@ -511,14 +534,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
               setPausedAt(null);
               console.log('▶️ Timer was not paused');
             }
+            
+            // CRITICAL: Restore accumulated paused time
+            setTotalPausedTime(accumulatedPausedTime);
+            console.log('✅ Restored totalPausedTime:', accumulatedPausedTime, 'ms');
+          } else {
+            // No events found, reset pause state
+            setIsTimerPaused(false);
+            setPausedAt(null);
+            setTotalPausedTime(0);
           }
         } catch (err) {
           console.error('Error checking timer pause state:', err);
+          setIsTimerPaused(false);
+          setPausedAt(null);
+          setTotalPausedTime(0);
         }
       } else {
         setActiveTimeEntry(null);
         setIsTimerPaused(false);
         setPausedAt(null);
+        setTotalPausedTime(0);
         console.log('✅ No active timers found');
       }
     } catch (error) {
