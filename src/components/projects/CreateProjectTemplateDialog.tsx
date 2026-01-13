@@ -398,7 +398,7 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent 
-                    className="w-72 bg-background border shadow-lg z-[9999]" 
+                    className="w-72 max-h-80 bg-background border shadow-lg z-[9999] overflow-hidden" 
                     align="end"
                     side="bottom"
                     sideOffset={4}
@@ -427,7 +427,7 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
                             />
                           </div>
                         </div>
-                        <ScrollArea className="h-48 overflow-auto">
+                        <div className="max-h-48 overflow-y-auto">
                           {taskTemplates
                             .filter((template) => 
                               template.name.toLowerCase().includes(taskTemplateSearch.toLowerCase()) ||
@@ -456,7 +456,7 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
                               No templates found
                             </div>
                           )}
-                        </ScrollArea>
+                        </div>
                       </>
                     )}
                   </DropdownMenuContent>
