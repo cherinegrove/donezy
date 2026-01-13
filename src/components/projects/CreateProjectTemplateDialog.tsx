@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, ChevronDown, CheckSquare } from "lucide-react";
+import { Plus, Trash2, ChevronDown, CheckSquare, Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -41,6 +41,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const templateSchema = z.object({
   name: z.string().min(1, "Template name is required"),
@@ -80,6 +81,7 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
   const [saving, setSaving] = useState(false);
   const [taskTemplates, setTaskTemplates] = useState<any[]>([]);
   const [showTaskTemplateSelect, setShowTaskTemplateSelect] = useState(false);
+  const [taskTemplateSearch, setTaskTemplateSearch] = useState("");
 
   const form = useForm<TemplateFormData>({
     resolver: zodResolver(templateSchema),
@@ -384,7 +386,10 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium">Template Tasks</h3>
-                <DropdownMenu open={showTaskTemplateSelect} onOpenChange={setShowTaskTemplateSelect}>
+                <DropdownMenu open={showTaskTemplateSelect} onOpenChange={(open) => {
+                  setShowTaskTemplateSelect(open);
+                  if (!open) setTaskTemplateSearch("");
+                }}>
                   <DropdownMenuTrigger asChild>
                     <Button type="button" variant="outline" size="sm">
                       <Plus className="h-4 w-4 mr-2" />
@@ -392,7 +397,7 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
                       <ChevronDown className="h-4 w-4 ml-2" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 bg-background border shadow-lg z-50">
+                  <DropdownMenuContent className="w-72 bg-background border shadow-lg z-50" align="end">
                     <DropdownMenuItem onClick={() => addTask()}>
                       <Plus className="h-4 w-4 mr-2" />
                       Blank Task
@@ -403,21 +408,49 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
                         <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
                           From Templates
                         </div>
-                        {taskTemplates.map((template) => (
-                          <DropdownMenuItem 
-                            key={template.id}
-                            onClick={() => addTask(template.id)}
-                          >
-                            <div className="flex flex-col items-start">
-                              <span className="font-medium">{template.name}</span>
-                              {template.description && (
-                                <span className="text-xs text-muted-foreground truncate max-w-full">
-                                  {template.description}
-                                </span>
-                              )}
+                        <div className="px-2 py-1.5">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Search templates..."
+                              value={taskTemplateSearch}
+                              onChange={(e) => setTaskTemplateSearch(e.target.value)}
+                              className="h-8 pl-8"
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
+                        <ScrollArea className="max-h-48">
+                          {taskTemplates
+                            .filter((template) => 
+                              template.name.toLowerCase().includes(taskTemplateSearch.toLowerCase()) ||
+                              (template.description && template.description.toLowerCase().includes(taskTemplateSearch.toLowerCase()))
+                            )
+                            .map((template) => (
+                              <DropdownMenuItem 
+                                key={template.id}
+                                onClick={() => addTask(template.id)}
+                              >
+                                <div className="flex flex-col items-start">
+                                  <span className="font-medium">{template.name}</span>
+                                  {template.description && (
+                                    <span className="text-xs text-muted-foreground truncate max-w-full">
+                                      {template.description}
+                                    </span>
+                                  )}
+                                </div>
+                              </DropdownMenuItem>
+                            ))}
+                          {taskTemplates.filter((template) => 
+                            template.name.toLowerCase().includes(taskTemplateSearch.toLowerCase()) ||
+                            (template.description && template.description.toLowerCase().includes(taskTemplateSearch.toLowerCase()))
+                          ).length === 0 && (
+                            <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                              No templates found
                             </div>
-                          </DropdownMenuItem>
-                        ))}
+                          )}
+                        </ScrollArea>
                       </>
                     )}
                   </DropdownMenuContent>
