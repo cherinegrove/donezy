@@ -397,7 +397,13 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
                       <ChevronDown className="h-4 w-4 ml-2" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-72 bg-background border shadow-lg z-50" align="end">
+                  <DropdownMenuContent 
+                    className="w-72 bg-background border shadow-lg z-[9999]" 
+                    align="end"
+                    side="bottom"
+                    sideOffset={4}
+                    avoidCollisions={true}
+                  >
                     <DropdownMenuItem onClick={() => addTask()}>
                       <Plus className="h-4 w-4 mr-2" />
                       Blank Task
@@ -421,7 +427,7 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
                             />
                           </div>
                         </div>
-                        <ScrollArea className="max-h-48">
+                        <ScrollArea className="h-48 overflow-auto">
                           {taskTemplates
                             .filter((template) => 
                               template.name.toLowerCase().includes(taskTemplateSearch.toLowerCase()) ||
