@@ -610,7 +610,13 @@ export function CreateProjectTemplateDialog({ open, onOpenChange }: CreateProjec
                           <ChevronDown className="h-4 w-4 ml-2" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-56 bg-background border shadow-lg z-50">
+                      <DropdownMenuContent 
+                        className="w-72 max-h-64 bg-background border shadow-lg z-[9999] overflow-y-auto" 
+                        align="center"
+                        side="top"
+                        sideOffset={4}
+                        avoidCollisions={true}
+                      >
                         <DropdownMenuItem onClick={() => addTask()}>
                           <Plus className="h-4 w-4 mr-2" />
                           Blank Task
