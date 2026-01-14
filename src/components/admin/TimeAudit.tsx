@@ -330,11 +330,62 @@ export const TimeAudit = () => {
     return { found: false, storedDuration, calculatedDuration, totalPausedMs, totalElapsedMs };
   };
 
+  // Get manual adjustment info for an entry (total time added/removed via manual edits)
+  const getManualAdjustments = (entryId: string): { 
+    hasManualEdits: boolean; 
+    totalAdjustment: number; 
+    edits: Array<{ 
+      timestamp: Date; 
+      from: number; 
+      to: number; 
+      change: number;
+    }>;
+  } => {
+    const entryEvents = allEvents
+      .filter(e => e.time_entry_id === entryId && e.event_type === 'manual_edit')
+      .sort((a, b) => new Date(a.event_timestamp).getTime() - new Date(b.event_timestamp).getTime());
+    
+    const edits: Array<{ timestamp: Date; from: number; to: number; change: number }> = [];
+    let totalAdjustment = 0;
+    
+    for (const event of entryEvents) {
+      const prevDuration = event.details?.previousValue?.duration;
+      const newDuration = event.details?.newValue?.duration;
+      
+      if (prevDuration !== undefined && newDuration !== undefined) {
+        const change = newDuration - prevDuration;
+        totalAdjustment += change;
+        edits.push({
+          timestamp: new Date(event.event_timestamp),
+          from: prevDuration,
+          to: newDuration,
+          change
+        });
+      }
+    }
+    
+    return {
+      hasManualEdits: edits.length > 0,
+      totalAdjustment,
+      edits
+    };
+  };
+
   // Get suspicion reasons for an entry
   const getSuspicionReasons = (entryId: string): string[] => {
     const reasons: string[] = [];
     const entry = entries.find(e => e.id === entryId);
     if (!entry) return reasons;
+    
+    // Check for manual adjustments first (important for review)
+    const manualAdj = getManualAdjustments(entryId);
+    if (manualAdj.hasManualEdits) {
+      const sign = manualAdj.totalAdjustment >= 0 ? '+' : '';
+      const adjHrs = Math.floor(Math.abs(manualAdj.totalAdjustment) / 60);
+      const adjMins = Math.abs(manualAdj.totalAdjustment) % 60;
+      const adjustmentStr = adjHrs > 0 ? `${adjHrs}h ${adjMins}m` : `${adjMins}m`;
+      reasons.push(`✏️ Manual: ${sign}${manualAdj.totalAdjustment >= 0 ? '' : '-'}${adjustmentStr} (${manualAdj.edits.length} edit${manualAdj.edits.length > 1 ? 's' : ''})`);
+    }
     
     if (hasBackToBackDuplicateEvents(entryId)) {
       reasons.push('Duplicate consecutive events');
@@ -845,6 +896,53 @@ export const TimeAudit = () => {
                     <div className="text-xs text-muted-foreground mt-1">
                       Total paused: {formatDuration(Math.floor(totalPausedMs / (1000 * 60)))} | 
                       Total elapsed: {formatDuration(Math.floor(totalElapsedMs / (1000 * 60)))}
+                    </div>
+                  </div>
+                );
+              })()}
+              
+              {/* Manual adjustments card */}
+              {selectedEntry && (() => {
+                const manualAdj = getManualAdjustments(selectedEntry.id);
+                if (!manualAdj.hasManualEdits) return null;
+                
+                const sign = manualAdj.totalAdjustment >= 0 ? '+' : '-';
+                const totalAdjHrs = Math.floor(Math.abs(manualAdj.totalAdjustment) / 60);
+                const totalAdjMins = Math.abs(manualAdj.totalAdjustment) % 60;
+                const totalAdjStr = totalAdjHrs > 0 ? `${totalAdjHrs}h ${totalAdjMins}m` : `${totalAdjMins}m`;
+                
+                return (
+                  <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">✏️ Manual Adjustments</span>
+                        <Badge variant="outline" className={`${manualAdj.totalAdjustment >= 0 ? 'bg-green-500/10 text-green-700 border-green-500/20' : 'bg-red-500/10 text-red-700 border-red-500/20'}`}>
+                          {sign}{totalAdjStr} total
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{manualAdj.edits.length} edit{manualAdj.edits.length > 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="space-y-1">
+                      {manualAdj.edits.map((edit, idx) => {
+                        const changeSign = edit.change >= 0 ? '+' : '';
+                        const changeHrs = Math.floor(Math.abs(edit.change) / 60);
+                        const changeMins = Math.abs(edit.change) % 60;
+                        const changeStr = changeHrs > 0 ? `${changeHrs}h ${changeMins}m` : `${changeMins}m`;
+                        
+                        return (
+                          <div key={idx} className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">
+                              {format(edit.timestamp, 'MMM d, HH:mm')}
+                            </span>
+                            <span className="font-mono">
+                              {formatDuration(edit.from)} → {formatDuration(edit.to)}
+                              <span className={`ml-2 ${edit.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                ({changeSign}{edit.change >= 0 ? '' : '-'}{changeStr})
+                              </span>
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
