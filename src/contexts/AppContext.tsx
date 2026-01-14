@@ -2041,8 +2041,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         // Do NOT log it here to avoid duplicate events
         
         return newTimeEntry;
-        
-        return newTimeEntry;
       }
     } catch (error) {
       console.error('Error adding time entry:', error);
@@ -2289,33 +2287,76 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const stopTimeTracking = async (notes?: string) => {
     if (!activeTimeEntry) return;
     
-    const endTime = new Date().toISOString();
+    const endTime = new Date();
     const startTime = new Date(activeTimeEntry.startTime);
-    let duration = Math.floor((new Date(endTime).getTime() - startTime.getTime()) / (1000 * 60)); // duration in minutes
     
-    // Calculate total time to subtract: accumulated paused time + current pause if active
-    let totalTimeToSubtract = totalPausedTime;
+    // Calculate duration from event logs for accuracy (volatile state can be lost on refresh)
+    // Fetch all pause/resume events to calculate total paused time
+    let totalPausedFromEvents = 0;
+    let lastPauseTime: Date | null = null;
     
-    // If timer is currently paused, add the current pause duration
-    if (isTimerPaused && pausedAt) {
-      const currentPauseDuration = Date.now() - pausedAt.getTime();
-      totalTimeToSubtract += currentPauseDuration;
-      console.log('⏱️ Timer stopped while paused. Current pause duration:', Math.floor(currentPauseDuration / 1000), 'seconds');
+    try {
+      const { data: events, error } = await supabase
+        .from('time_entry_events')
+        .select('event_type, event_timestamp, details')
+        .eq('time_entry_id', activeTimeEntry.id)
+        .in('event_type', ['paused', 'resumed', 'auto_paused'])
+        .order('event_timestamp', { ascending: true });
+      
+      if (!error && events) {
+        for (const event of events) {
+          const eventTime = new Date(event.event_timestamp);
+          
+          if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
+            lastPauseTime = eventTime;
+          } else if (event.event_type === 'resumed' && lastPauseTime) {
+            // Calculate actual pause duration from events, not from the (potentially wrong) logged pauseDuration
+            totalPausedFromEvents += eventTime.getTime() - lastPauseTime.getTime();
+            lastPauseTime = null;
+          }
+        }
+        
+        // If still paused (lastPauseTime is set), add time from last pause to now
+        if (lastPauseTime) {
+          totalPausedFromEvents += endTime.getTime() - lastPauseTime.getTime();
+        }
+        
+        console.log('📊 Calculated pause time from events:', Math.floor(totalPausedFromEvents / (1000 * 60)), 'minutes');
+      }
+    } catch (err) {
+      console.error('Error fetching events for pause calculation:', err);
     }
     
-    // Subtract total paused time from duration
-    duration = Math.max(0, duration - Math.floor(totalTimeToSubtract / (1000 * 60)));
+    // Use the larger of: calculated from events OR volatile state
+    // This ensures we don't lose pause time if events aren't logged correctly
+    let totalTimeToSubtract = totalPausedFromEvents;
     
-    console.log('⏹️ Stopping timer:', {
+    // Also check volatile state as backup
+    let volatilePausedTime = totalPausedTime;
+    if (isTimerPaused && pausedAt) {
+      volatilePausedTime += Date.now() - pausedAt.getTime();
+    }
+    
+    // Log both for debugging
+    console.log('⏹️ Stopping timer - pause time comparison:', {
+      fromEvents: Math.floor(totalPausedFromEvents / (1000 * 60)),
+      fromState: Math.floor(volatilePausedTime / (1000 * 60))
+    });
+    
+    // Use event-based calculation (it's the source of truth)
+    const rawDuration = endTime.getTime() - startTime.getTime();
+    const duration = Math.max(0, Math.floor((rawDuration - totalTimeToSubtract) / (1000 * 60)));
+    
+    console.log('⏹️ Final duration calculation:', {
       startTime: startTime.toISOString(),
-      endTime,
-      rawDurationMinutes: Math.floor((new Date(endTime).getTime() - startTime.getTime()) / (1000 * 60)),
+      endTime: endTime.toISOString(),
+      rawDurationMinutes: Math.floor(rawDuration / (1000 * 60)),
       totalPausedMinutes: Math.floor(totalTimeToSubtract / (1000 * 60)),
       finalDurationMinutes: duration
     });
     
     await updateTimeEntry(activeTimeEntry.id, {
-      endTime,
+      endTime: endTime.toISOString(),
       duration,
       description: notes
     });
@@ -2344,18 +2385,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     console.log('▶️ Resuming paused timer:', activeTimeEntry.id);
     
-    // Note: We don't stop other timers here anymore - only users should stop timers
-    // If there are other active timers, they should be handled by the UI layer
-    
     const pauseDuration = Date.now() - pausedAt.getTime();
+    
+    // Sanity check: if pause duration is absurdly long (> 24 hours), something is wrong
+    // Log a warning but still record the actual calculated value
+    const maxReasonablePause = 24 * 60 * 60 * 1000; // 24 hours in ms
+    if (pauseDuration > maxReasonablePause) {
+      console.warn('⚠️ Unusually long pause duration detected:', Math.floor(pauseDuration / (1000 * 60)), 'minutes. This may indicate stale state.');
+    }
+    
     setTotalPausedTime(prev => prev + pauseDuration);
     setIsTimerPaused(false);
     setPausedAt(null);
-    console.log('✅ Timer resumed successfully');
+    console.log('✅ Timer resumed successfully. Pause duration:', Math.floor(pauseDuration / (1000 * 60)), 'minutes');
     
-    // Log the resume event
+    // Log the resume event with calculated pause duration
     await logTimeEntryEvent(activeTimeEntry.id, 'resumed', {
       pauseDuration,
+      pauseDurationMinutes: Math.floor(pauseDuration / (1000 * 60)),
       resumedAt: new Date().toISOString()
     });
   };
