@@ -226,6 +226,148 @@ export const TimeAudit = () => {
     return false;
   };
 
+  // Check for impossible pause durations (pause duration logged that doesn't match actual time)
+  const hasImpossiblePauseDuration = (entryId: string): { found: boolean; details?: string } => {
+    const entry = entries.find(e => e.id === entryId);
+    if (!entry) return { found: false };
+    
+    const entryEvents = allEvents
+      .filter(e => e.time_entry_id === entryId)
+      .sort((a, b) => new Date(a.event_timestamp).getTime() - new Date(b.event_timestamp).getTime());
+    
+    const entryStart = new Date(entry.start_time);
+    
+    for (let i = 0; i < entryEvents.length; i++) {
+      const event = entryEvents[i];
+      
+      // Check resumed events for impossible pause durations
+      if (event.event_type === 'resumed' && event.details?.pauseDuration) {
+        const pauseDurationMs = Number(event.details.pauseDuration);
+        const eventTime = new Date(event.event_timestamp);
+        const timeSinceStart = eventTime.getTime() - entryStart.getTime();
+        
+        // If pause duration is longer than time since start, it's impossible
+        if (pauseDurationMs > timeSinceStart) {
+          const pauseMinutes = Math.round(pauseDurationMs / 1000 / 60);
+          const sinceStartMinutes = Math.round(timeSinceStart / 1000 / 60);
+          return { 
+            found: true, 
+            details: `Pause of ${pauseMinutes}min logged, but only ${sinceStartMinutes}min since start` 
+          };
+        }
+        
+        // Also check: if resumed within 60 seconds of a start but pause duration > 1 hour
+        // This indicates stale pause state from a previous session
+        const startEvents = entryEvents.filter(e => e.event_type === 'started');
+        if (startEvents.length > 0) {
+          const lastStart = new Date(startEvents[startEvents.length - 1].event_timestamp);
+          const timeSinceLastStart = eventTime.getTime() - lastStart.getTime();
+          
+          // If resumed within 60 seconds of start but pause duration > 1 hour
+          if (timeSinceLastStart < 60000 && pauseDurationMs > 3600000) {
+            const pauseMinutes = Math.round(pauseDurationMs / 1000 / 60);
+            return { 
+              found: true, 
+              details: `Resumed ${Math.round(timeSinceLastStart/1000)}s after start, but logged ${pauseMinutes}min pause (stale state)` 
+            };
+          }
+        }
+      }
+    }
+    
+    return { found: false };
+  };
+
+  // Check if stored duration might be wrong based on event calculations
+  const hasDurationMismatch = (entryId: string): { found: boolean; storedDuration?: number; calculatedDuration?: number } => {
+    const entry = entries.find(e => e.id === entryId);
+    if (!entry || !entry.end_time || entry.duration === null) return { found: false };
+    
+    const entryEvents = allEvents
+      .filter(e => e.time_entry_id === entryId)
+      .sort((a, b) => new Date(a.event_timestamp).getTime() - new Date(b.event_timestamp).getTime());
+    
+    // Only check entries with pause/resume events
+    const hasRelevantEvents = entryEvents.some(e => 
+      ['paused', 'resumed', 'auto_paused'].includes(e.event_type)
+    );
+    if (!hasRelevantEvents) return { found: false };
+    
+    // Calculate what duration should be based on events
+    const startTime = new Date(entry.start_time);
+    const endTime = new Date(entry.end_time);
+    const totalElapsedMs = endTime.getTime() - startTime.getTime();
+    
+    let totalPausedMs = 0;
+    let lastPauseTime: Date | null = null;
+    
+    for (const event of entryEvents) {
+      if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
+        lastPauseTime = new Date(event.event_timestamp);
+      } else if (event.event_type === 'resumed' && lastPauseTime) {
+        const resumeTime = new Date(event.event_timestamp);
+        totalPausedMs += resumeTime.getTime() - lastPauseTime.getTime();
+        lastPauseTime = null;
+      }
+    }
+    
+    // If ended while paused, add that duration
+    if (lastPauseTime) {
+      totalPausedMs += endTime.getTime() - lastPauseTime.getTime();
+    }
+    
+    const calculatedDuration = Math.floor((totalElapsedMs - totalPausedMs) / (1000 * 60));
+    const storedDuration = entry.duration;
+    
+    // If difference is more than 10% or more than 30 minutes, flag it
+    const difference = Math.abs(storedDuration - calculatedDuration);
+    const percentDiff = (difference / Math.max(storedDuration, calculatedDuration, 1)) * 100;
+    
+    if (difference > 30 || (percentDiff > 10 && difference > 5)) {
+      return { found: true, storedDuration, calculatedDuration };
+    }
+    
+    return { found: false };
+  };
+
+  // Get suspicion reasons for an entry
+  const getSuspicionReasons = (entryId: string): string[] => {
+    const reasons: string[] = [];
+    const entry = entries.find(e => e.id === entryId);
+    if (!entry) return reasons;
+    
+    if (hasBackToBackDuplicateEvents(entryId)) {
+      reasons.push('Duplicate consecutive events');
+    }
+    
+    const impossiblePause = hasImpossiblePauseDuration(entryId);
+    if (impossiblePause.found) {
+      reasons.push(impossiblePause.details || 'Impossible pause duration');
+    }
+    
+    const durationMismatch = hasDurationMismatch(entryId);
+    if (durationMismatch.found) {
+      reasons.push(`Duration mismatch: stored ${durationMismatch.storedDuration}min vs calculated ${durationMismatch.calculatedDuration}min`);
+    }
+    
+    if (entry.end_time && (entry.duration === null || entry.duration === 0)) {
+      reasons.push('Zero or null duration with end time');
+    }
+    
+    if (!entry.end_time) {
+      const hours = differenceInHours(new Date(), new Date(entry.start_time));
+      if (hours > 12) {
+        reasons.push(`Active for ${hours}+ hours`);
+      }
+    }
+    
+    if (entry.duration && entry.duration > 24 * 60) {
+      reasons.push(`Very high duration: ${Math.round(entry.duration / 60)}h`);
+    }
+    
+    return reasons;
+  };
+
   // Mark entry as reviewed
   const markAsReviewed = async (entryId: string) => {
     try {
@@ -258,6 +400,12 @@ export const TimeAudit = () => {
     
     // Check for back-to-back duplicate events (pause-pause, start-start, resume-resume)
     if (hasBackToBackDuplicateEvents(e.id)) return true;
+    
+    // Check for impossible pause durations (stale state issues)
+    if (hasImpossiblePauseDuration(e.id).found) return true;
+    
+    // Check for duration mismatches between stored and calculated values
+    if (hasDurationMismatch(e.id).found) return true;
     
     // Entries without duration but with end_time
     if (e.end_time && (e.duration === null || e.duration === 0)) return true;
@@ -531,6 +679,7 @@ export const TimeAudit = () => {
                 {...{ getUserName, getProjectName, getTaskName, getClientName, formatDuration, calculateLiveDuration, getStatusBadge, getEventCount, openEventDetails }}
                 showReviewButton={true}
                 onMarkReviewed={markAsReviewed}
+                getSuspicionReasons={getSuspicionReasons}
               />
             </TabsContent>
             <TabsContent value="events" className="mt-4">
@@ -662,6 +811,7 @@ interface TimeEntryTableProps {
   openEventDetails: (entry: RawTimeEntry) => void;
   showReviewButton?: boolean;
   onMarkReviewed?: (entryId: string) => void;
+  getSuspicionReasons?: (entryId: string) => string[];
 }
 
 const TimeEntryTable = ({ 
@@ -676,7 +826,8 @@ const TimeEntryTable = ({
   getEventCount,
   openEventDetails,
   showReviewButton = false,
-  onMarkReviewed
+  onMarkReviewed,
+  getSuspicionReasons
 }: TimeEntryTableProps) => {
   if (entries.length === 0) {
     return (
@@ -693,6 +844,7 @@ const TimeEntryTable = ({
           <TableRow>
             <TableHead className="w-[80px]">Status</TableHead>
             <TableHead>User</TableHead>
+            {getSuspicionReasons && <TableHead className="text-amber-600">⚠️ Issues</TableHead>}
             <TableHead>Client</TableHead>
             <TableHead>Project</TableHead>
             <TableHead>Task</TableHead>
@@ -707,10 +859,30 @@ const TimeEntryTable = ({
         <TableBody>
           {entries.map((entry) => {
             const eventCount = getEventCount(entry.id);
+            const reasons = getSuspicionReasons ? getSuspicionReasons(entry.id) : [];
             return (
               <TableRow key={entry.id} className={!entry.end_time ? "bg-green-500/5" : ""}>
                 <TableCell>{getStatusBadge(entry)}</TableCell>
                 <TableCell className="font-medium">{getUserName(entry.user_id)}</TableCell>
+                {getSuspicionReasons && (
+                  <TableCell className="max-w-[250px]">
+                    {reasons.length > 0 ? (
+                      <div className="space-y-1">
+                        {reasons.map((reason, idx) => (
+                          <Badge 
+                            key={idx} 
+                            variant="outline" 
+                            className="bg-amber-500/10 text-amber-700 border-amber-500/20 text-xs block w-fit"
+                          >
+                            {reason}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                )}
                 <TableCell>{getClientName(entry.client_id)}</TableCell>
                 <TableCell>{getProjectName(entry.project_id)}</TableCell>
                 <TableCell className="max-w-[200px] truncate">{getTaskName(entry.task_id)}</TableCell>
