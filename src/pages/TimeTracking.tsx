@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
-import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus, Pause, Save, Edit, Download, FileText, Building2, Timer, RefreshCw } from "lucide-react";
+import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus, Pause, Save, Edit, Download, FileText, Building2, Timer, RefreshCw, Pencil } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ActiveTimersSection } from "@/components/time/ActiveTimersSection";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -66,6 +67,9 @@ const TimeTracking = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [stopNotes, setStopNotes] = useState("");
+  
+  // Manual adjustments state for time entries
+  const [manualAdjustments, setManualAdjustments] = useState<Record<string, { total: number; count: number }>>({});
   
   // User report state
   const [selectedReportUserId, setSelectedReportUserId] = useState<string>(currentUser?.auth_user_id || "");
@@ -281,7 +285,8 @@ const TimeTracking = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Create filter options - only show user filter for admins
+
+
   const filterOptions: FilterOption[] = [
     // Only show user filter for admins
     ...(isAdminUser() ? [{
@@ -387,7 +392,61 @@ const TimeTracking = () => {
     return true;
   });
   
-  // Get unique dates from filtered time entries
+  // Fetch manual adjustments for filtered time entries
+  useEffect(() => {
+    const fetchManualAdjustments = async () => {
+      if (filteredTimeEntries.length === 0) {
+        setManualAdjustments({});
+        return;
+      }
+      
+      const entryIds = filteredTimeEntries.map(e => e.id);
+      
+      const { data: events, error } = await supabase
+        .from('time_entry_events')
+        .select('*')
+        .in('time_entry_id', entryIds)
+        .eq('event_type', 'manual_edit')
+        .order('event_timestamp', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching manual adjustments:', error);
+        return;
+      }
+      
+      const adjustmentsMap: Record<string, { total: number; count: number }> = {};
+      
+      for (const event of events || []) {
+        const entryId = event.time_entry_id;
+        if (!adjustmentsMap[entryId]) {
+          adjustmentsMap[entryId] = { total: 0, count: 0 };
+        }
+        
+        const details = event.details as { 
+          previousValue?: { duration?: number }; 
+          newValue?: { duration?: number };
+          old_duration?: number; 
+          new_duration?: number;
+        } | null;
+        
+        // Handle both formats: nested (previousValue/newValue) and flat (old_duration/new_duration)
+        const oldDuration = details?.previousValue?.duration ?? details?.old_duration;
+        const newDuration = details?.newValue?.duration ?? details?.new_duration;
+        
+        if (oldDuration !== undefined && newDuration !== undefined) {
+          const diff = newDuration - oldDuration;
+          adjustmentsMap[entryId].total += diff;
+          adjustmentsMap[entryId].count += 1;
+        }
+      }
+      
+      setManualAdjustments(adjustmentsMap);
+    };
+    
+    fetchManualAdjustments();
+  }, [filteredTimeEntries]);
+
+  
   const dates = [...new Set(filteredTimeEntries.map(entry => 
     format(new Date(entry.startTime), "yyyy-MM-dd")
   ))].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
@@ -1118,11 +1177,35 @@ const TimeTracking = () => {
                           </div>
                           
                           <div className="flex items-center justify-between md:justify-end gap-3">
-                            <div className="flex items-center">
-                              <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-3 w-3 text-muted-foreground" />
                               <span className="font-mono">
                                 {Math.floor(entry.duration / 60)}h {entry.duration % 60}m
                               </span>
+                              {/* Show manual adjustment indicator */}
+                              {manualAdjustments[entry.id] && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className={cn(
+                                        "inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded",
+                                        manualAdjustments[entry.id].total >= 0 
+                                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" 
+                                          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                      )}>
+                                        <Pencil className="h-3 w-3" />
+                                        {manualAdjustments[entry.id].total >= 0 ? '+' : ''}
+                                        {Math.floor(Math.abs(manualAdjustments[entry.id].total) / 60) > 0 && 
+                                          `${Math.floor(Math.abs(manualAdjustments[entry.id].total) / 60)}h `}
+                                        {Math.abs(manualAdjustments[entry.id].total) % 60}m
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Manually edited ({manualAdjustments[entry.id].count} edit{manualAdjustments[entry.id].count > 1 ? 's' : ''})</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
                             </div>
                             
                             <div className="flex items-center gap-2">
