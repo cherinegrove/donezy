@@ -2037,14 +2037,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         };
         setTimeEntries(prev => [...prev, newTimeEntry]);
         
-        // Log the started event
-        if (!timeEntry.endTime) {
-          await logTimeEntryEvent(data.id, 'started', {
-            taskId: timeEntry.taskId,
-            projectId: timeEntry.projectId,
-            clientId: timeEntry.clientId
-          });
-        }
+        // NOTE: The 'started' event is logged by the database trigger auto_log_time_entry_started
+        // Do NOT log it here to avoid duplicate events
+        
+        return newTimeEntry;
         
         return newTimeEntry;
       }
@@ -2226,6 +2222,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         for (const timer of activeTimers) {
           // Calculate elapsed time for this timer
           const elapsedMs = Date.now() - new Date(timer.start_time).getTime() - totalPausedTime;
+          
+          // Log the auto-pause event BEFORE deleting the timer
+          // This creates a clear audit trail showing why the timer was paused
+          await logTimeEntryEvent(timer.id, 'auto_paused', {
+            reason: 'New timer started',
+            pausedAt: new Date().toISOString(),
+            elapsedMs: elapsedMs,
+            newTaskId: taskId
+          });
           
           // Broadcast event to TimerBox to convert to local-only paused timer
           // Include all the data needed to recreate the timer locally
