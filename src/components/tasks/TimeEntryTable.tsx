@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import {
   Table,
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Clock, MoreHorizontal, CheckCircle, XCircle, RotateCcw } from "lucide-react";
+import { Edit, Trash2, Clock, MoreHorizontal, CheckCircle, XCircle, RotateCcw, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { TimeEntry, TimeEntryStatus } from "@/types";
 import {
@@ -22,6 +22,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TimeEntryTableProps {
   taskId?: string;
@@ -30,9 +37,72 @@ interface TimeEntryTableProps {
   showAllDetails?: boolean;
 }
 
+interface ManualAdjustment {
+  total: number;
+  count: number;
+  edits: Array<{ oldDuration: number; newDuration: number; timestamp: string }>;
+}
+
 export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = false }: TimeEntryTableProps) {
   const { timeEntries, deleteTimeEntry, updateTimeEntryStatus, tasks, projects, clients, users, activeTimeEntry, currentUser, customRoles, getElapsedTime } = useAppContext();
   const { toast } = useToast();
+  const [manualAdjustments, setManualAdjustments] = useState<Record<string, ManualAdjustment>>({});
+
+  // Fetch manual edit events for all entries
+  useEffect(() => {
+    const fetchManualEdits = async () => {
+      const entryIds = timeEntries.map(e => e.id);
+      if (entryIds.length === 0) return;
+
+      const { data, error } = await supabase
+        .from('time_entry_events')
+        .select('*')
+        .in('time_entry_id', entryIds)
+        .eq('event_type', 'manual_edit')
+        .order('event_timestamp', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching manual edit events:', error);
+        return;
+      }
+
+      const adjustmentsMap: Record<string, ManualAdjustment> = {};
+      
+      (data || []).forEach((event: any) => {
+        const entryId = event.time_entry_id;
+        if (!adjustmentsMap[entryId]) {
+          adjustmentsMap[entryId] = { total: 0, count: 0, edits: [] };
+        }
+        
+        const details = event.details as { old_duration?: number; new_duration?: number } | null;
+        if (details?.old_duration !== undefined && details?.new_duration !== undefined) {
+          const diff = details.new_duration - details.old_duration;
+          adjustmentsMap[entryId].total += diff;
+          adjustmentsMap[entryId].count += 1;
+          adjustmentsMap[entryId].edits.push({
+            oldDuration: details.old_duration,
+            newDuration: details.new_duration,
+            timestamp: event.event_timestamp
+          });
+        }
+      });
+
+      setManualAdjustments(adjustmentsMap);
+    };
+
+    fetchManualEdits();
+  }, [timeEntries]);
+
+  const formatAdjustment = (minutes: number): string => {
+    const sign = minutes >= 0 ? '+' : '';
+    const absMinutes = Math.abs(minutes);
+    const hours = Math.floor(absMinutes / 60);
+    const mins = absMinutes % 60;
+    if (hours > 0) {
+      return `${sign}${hours}h ${mins}m`;
+    }
+    return `${sign}${mins}m`;
+  };
 
   let filteredEntries = timeEntries;
   
@@ -235,6 +305,7 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
             {showAllDetails && !projectId && <TableHead>Project</TableHead>}
             {showAllDetails && <TableHead>User</TableHead>}
             <TableHead>Description</TableHead>
+            <TableHead>Manual Adj.</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Billable</TableHead>
             <TableHead>Actions</TableHead>
@@ -274,6 +345,47 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
                   <div className="max-w-xs">
                     {entry.description || entry.notes || (isActive ? "Timer running..." : "-")}
                   </div>
+                </TableCell>
+                <TableCell>
+                  {(() => {
+                    const adjustment = manualAdjustments[entry.id];
+                    if (!adjustment || adjustment.count === 0) {
+                      return <span className="text-muted-foreground">-</span>;
+                    }
+                    return (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`flex items-center gap-1 cursor-help ${adjustment.total >= 0 ? 'text-orange-600' : 'text-blue-600'}`}>
+                              <Pencil className="h-3 w-3" />
+                              <span className="text-sm font-medium">
+                                {formatAdjustment(adjustment.total)}
+                              </span>
+                              {adjustment.count > 1 && (
+                                <span className="text-xs text-muted-foreground">({adjustment.count})</span>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <div className="space-y-1">
+                              <p className="font-medium">{adjustment.count} manual edit{adjustment.count > 1 ? 's' : ''}</p>
+                              {adjustment.edits.slice(-3).map((edit, idx) => (
+                                <p key={idx} className="text-xs">
+                                  {formatDuration(edit.oldDuration)} → {formatDuration(edit.newDuration)}
+                                  <span className="text-muted-foreground ml-1">
+                                    ({format(new Date(edit.timestamp), "MMM d")})
+                                  </span>
+                                </p>
+                              ))}
+                              {adjustment.edits.length > 3 && (
+                                <p className="text-xs text-muted-foreground">...and {adjustment.edits.length - 3} more</p>
+                              )}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell>
                   <Badge className={getStatusColor(entry.status || 'pending')}>
