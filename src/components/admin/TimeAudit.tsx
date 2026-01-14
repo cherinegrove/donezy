@@ -279,7 +279,7 @@ export const TimeAudit = () => {
   };
 
   // Check if stored duration might be wrong based on event calculations
-  const hasDurationMismatch = (entryId: string): { found: boolean; storedDuration?: number; calculatedDuration?: number } => {
+  const hasDurationMismatch = (entryId: string): { found: boolean; storedDuration?: number; calculatedDuration?: number; totalPausedMs?: number; totalElapsedMs?: number } => {
     const entry = entries.find(e => e.id === entryId);
     if (!entry || !entry.end_time || entry.duration === null) return { found: false };
     
@@ -324,10 +324,10 @@ export const TimeAudit = () => {
     const percentDiff = (difference / Math.max(storedDuration, calculatedDuration, 1)) * 100;
     
     if (difference > 30 || (percentDiff > 10 && difference > 5)) {
-      return { found: true, storedDuration, calculatedDuration };
+      return { found: true, storedDuration, calculatedDuration, totalPausedMs, totalElapsedMs };
     }
     
-    return { found: false };
+    return { found: false, storedDuration, calculatedDuration, totalPausedMs, totalElapsedMs };
   };
 
   // Get suspicion reasons for an entry
@@ -346,8 +346,12 @@ export const TimeAudit = () => {
     }
     
     const durationMismatch = hasDurationMismatch(entryId);
-    if (durationMismatch.found) {
-      reasons.push(`Duration mismatch: stored ${durationMismatch.storedDuration}min vs calculated ${durationMismatch.calculatedDuration}min`);
+    if (durationMismatch.found && durationMismatch.storedDuration !== undefined && durationMismatch.calculatedDuration !== undefined) {
+      const storedHrs = Math.floor(durationMismatch.storedDuration / 60);
+      const storedMins = durationMismatch.storedDuration % 60;
+      const calcHrs = Math.floor(durationMismatch.calculatedDuration / 60);
+      const calcMins = durationMismatch.calculatedDuration % 60;
+      reasons.push(`⏱️ Tool says: ${storedHrs}h ${storedMins}m → Should be: ${calcHrs}h ${calcMins}m`);
     }
     
     if (entry.end_time && (entry.duration === null || entry.duration === 0)) {
