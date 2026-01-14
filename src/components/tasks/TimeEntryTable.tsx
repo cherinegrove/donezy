@@ -74,14 +74,24 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
           adjustmentsMap[entryId] = { total: 0, count: 0, edits: [] };
         }
         
-        const details = event.details as { old_duration?: number; new_duration?: number } | null;
-        if (details?.old_duration !== undefined && details?.new_duration !== undefined) {
-          const diff = details.new_duration - details.old_duration;
+        const details = event.details as { 
+          previousValue?: { duration?: number }; 
+          newValue?: { duration?: number };
+          old_duration?: number; 
+          new_duration?: number;
+        } | null;
+        
+        // Handle both formats: nested (previousValue/newValue) and flat (old_duration/new_duration)
+        const oldDuration = details?.previousValue?.duration ?? details?.old_duration;
+        const newDuration = details?.newValue?.duration ?? details?.new_duration;
+        
+        if (oldDuration !== undefined && newDuration !== undefined) {
+          const diff = newDuration - oldDuration;
           adjustmentsMap[entryId].total += diff;
           adjustmentsMap[entryId].count += 1;
           adjustmentsMap[entryId].edits.push({
-            oldDuration: details.old_duration,
-            newDuration: details.new_duration,
+            oldDuration,
+            newDuration,
             timestamp: event.event_timestamp
           });
         }
