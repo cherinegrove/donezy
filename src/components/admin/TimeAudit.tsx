@@ -777,7 +777,7 @@ export const TimeAudit = () => {
                   {getStatusBadge(selectedEntry)}
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Duration:</span>{' '}
+                  <span className="text-muted-foreground">Stored Duration:</span>{' '}
                   <span className="font-medium">
                     {selectedEntry.end_time 
                       ? formatDuration(selectedEntry.duration)
@@ -789,6 +789,62 @@ export const TimeAudit = () => {
                   <span className="text-muted-foreground">Project:</span>{' '}
                   <span className="font-medium">{getProjectName(selectedEntry.project_id)}</span>
                 </div>
+                {/* Show calculated duration from events */}
+                {selectedEntry.end_time && entryEvents.length > 0 && (() => {
+                  // Calculate actual active time from events
+                  const startTime = new Date(selectedEntry.start_time);
+                  const endTime = new Date(selectedEntry.end_time);
+                  const totalElapsedMs = endTime.getTime() - startTime.getTime();
+                  
+                  let totalPausedMs = 0;
+                  let lastPauseTime: Date | null = null;
+                  
+                  const sortedEvents = [...entryEvents].sort((a, b) => 
+                    new Date(a.event_timestamp).getTime() - new Date(b.event_timestamp).getTime()
+                  );
+                  
+                  for (const event of sortedEvents) {
+                    if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
+                      lastPauseTime = new Date(event.event_timestamp);
+                    } else if (event.event_type === 'resumed' && lastPauseTime) {
+                      const resumeTime = new Date(event.event_timestamp);
+                      totalPausedMs += resumeTime.getTime() - lastPauseTime.getTime();
+                      lastPauseTime = null;
+                    }
+                  }
+                  
+                  // If ended while paused
+                  if (lastPauseTime) {
+                    totalPausedMs += endTime.getTime() - lastPauseTime.getTime();
+                  }
+                  
+                  const calculatedMinutes = Math.floor((totalElapsedMs - totalPausedMs) / (1000 * 60));
+                  const storedMinutes = selectedEntry.duration || 0;
+                  const difference = Math.abs(storedMinutes - calculatedMinutes);
+                  const hasMismatch = difference > 5;
+                  
+                  return (
+                    <div className="col-span-2 mt-2 p-3 rounded-lg bg-muted/50 border">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-muted-foreground">Calculated from Events:</span>{' '}
+                          <span className={`font-bold ${hasMismatch ? 'text-amber-600' : 'text-green-600'}`}>
+                            {formatDuration(calculatedMinutes)}
+                          </span>
+                        </div>
+                        {hasMismatch && (
+                          <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-500/20">
+                            ⚠️ Differs by {formatDuration(difference)}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Total paused: {formatDuration(Math.floor(totalPausedMs / (1000 * 60)))} | 
+                        Total elapsed: {formatDuration(Math.floor(totalElapsedMs / (1000 * 60)))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
