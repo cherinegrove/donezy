@@ -594,7 +594,11 @@ export const TimeAudit = () => {
                             </p>
                           )}
                           {event.details.pauseDuration !== undefined && (
-                            <p>Pause duration: <span className="font-medium">{Math.round(event.details.pauseDuration / 1000 / 60)} minutes</span></p>
+                            <p>Pause duration: <span className="font-medium">
+                              {event.details.pauseDurationMinutes !== undefined 
+                                ? event.details.pauseDurationMinutes 
+                                : Math.round(event.details.pauseDuration / 1000 / 60)} minutes
+                            </span></p>
                           )}
                           {event.details.reason && (
                             <p>Reason: {event.details.reason}</p>
