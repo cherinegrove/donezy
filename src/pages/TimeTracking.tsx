@@ -325,7 +325,13 @@ const TimeTracking = () => {
   ];
   
   // Filter time entries based on selected filters and date range
+  // Exclude active/unsaved timers (entries without endTime) - they belong in Active Timers section
   const filteredTimeEntries = timeEntries.filter(entry => {
+    // Skip entries without endTime - these are active/unsaved timers
+    if (!entry.endTime) {
+      return false;
+    }
+    
     // Get task and project (but don't filter out if missing)
     const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
     const project = task ? projects.find(p => p.id === task.projectId) : 
