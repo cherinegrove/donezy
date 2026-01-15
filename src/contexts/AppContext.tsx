@@ -1658,7 +1658,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             body: {
               taskId: data.id,
               projectId: data.project_id,
-              eventType: 'task_created'
+              eventType: 'task_created',
+              userId: session.user.id
             }
           }).then(({ error }) => {
             if (error) {
@@ -1874,6 +1875,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         task.id === taskId ? { ...task, ...updates } : task
       ));
       
+      // Build changes summary for notifications
+      const changesSummary: Record<string, string> = {};
+      if (updates.status && updates.status !== currentTask.status) {
+        changesSummary.status = updates.status;
+      }
+      if (updates.priority && updates.priority !== currentTask.priority) {
+        changesSummary.priority = updates.priority;
+      }
+      if (updates.assigneeId !== undefined && updates.assigneeId !== currentTask.assigneeId) {
+        const assignee = users.find(u => u.auth_user_id === updates.assigneeId);
+        changesSummary.assignee = assignee?.name || 'Unassigned';
+      }
+      if (updates.dueDate !== undefined && updates.dueDate !== currentTask.dueDate) {
+        changesSummary.due_date = updates.dueDate || 'No due date';
+      }
+
       // Send notification for task completion
       if (updates.status === 'done' && currentTask.status !== 'done' && currentTask.projectId) {
         console.log('🔔 Sending task_completed notification for task:', taskId);
@@ -1881,7 +1898,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           body: {
             taskId,
             projectId: currentTask.projectId,
-            eventType: 'task_completed'
+            eventType: 'task_completed',
+            userId: session.user.id,
+            changes: changesSummary
           }
         }).then(({ error }) => {
           if (error) {
@@ -1892,14 +1911,38 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         });
       }
       
-      // Send notification for task updates (when not status change to done)
-      if (currentTask.projectId && updates.status !== 'done') {
+      // Send notification for status changes (not to done)
+      if (updates.status && updates.status !== 'done' && updates.status !== currentTask.status && currentTask.projectId) {
+        console.log('🔔 Sending status_changed notification for task:', taskId);
+        supabase.functions.invoke('send-task-notification', {
+          body: {
+            taskId,
+            projectId: currentTask.projectId,
+            eventType: 'status_changed',
+            userId: session.user.id,
+            oldStatus: currentTask.status,
+            newStatus: updates.status,
+            changes: changesSummary
+          }
+        }).then(({ error }) => {
+          if (error) {
+            console.error('❌ Error sending status change notification:', error);
+          } else {
+            console.log('✅ Status change notification sent successfully');
+          }
+        });
+      }
+      
+      // Send notification for other task updates (when no status change)
+      if (currentTask.projectId && !updates.status && Object.keys(changesSummary).length > 0) {
         console.log('🔔 Sending task_updated notification for task:', taskId);
         supabase.functions.invoke('send-task-notification', {
           body: {
             taskId,
             projectId: currentTask.projectId,
-            eventType: 'task_updated'
+            eventType: 'task_updated',
+            userId: session.user.id,
+            changes: changesSummary
           }
         }).then(({ error }) => {
           if (error) {
@@ -2778,14 +2821,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
       
       // Send notification for task updates if status changed
-      if (newStatus && newStatus !== task.status && task.projectId) {
-        const eventType = newStatus === 'done' ? 'task_completed' : 'task_updated';
+      if (newStatus && newStatus !== task.status && task.projectId && session?.user?.id) {
+        const eventType = newStatus === 'done' ? 'task_completed' : 'status_changed';
         console.log(`🔔 Sending ${eventType} notification for task:`, taskId);
         supabase.functions.invoke('send-task-notification', {
           body: {
             taskId,
             projectId: task.projectId,
-            eventType
+            eventType,
+            userId: session.user.id,
+            oldStatus: task.status,
+            newStatus: newStatus,
+            changes: { status: newStatus }
           }
         }).then(({ error }) => {
           if (error) {
@@ -3289,6 +3336,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             }
           : task
       ));
+
+      // Send Google Chat notification for the comment
+      const task = tasks.find(t => t.id === taskId);
+      if (task?.projectId) {
+        console.log('🔔 Sending task_commented notification for task:', taskId);
+        supabase.functions.invoke('send-task-notification', {
+          body: {
+            taskId,
+            projectId: task.projectId,
+            eventType: 'task_commented',
+            userId: session.user.id,
+            commentContent: content
+          }
+        }).then(({ error }) => {
+          if (error) {
+            console.error('❌ Error sending comment notification:', error);
+          } else {
+            console.log('✅ Comment notification sent successfully');
+          }
+        });
+      }
 
       return data.id;
     } catch (error) {
