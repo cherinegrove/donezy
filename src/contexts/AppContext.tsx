@@ -2110,13 +2110,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       // Log manual edits if significant fields changed
-      if (changedFields.length > 0) {
-        // Determine event type
-        let eventType: 'manual_edit' | 'duration_changed' | 'notes_changed' | 'project_changed' | 'task_changed' | 'status_changed' | 'stopped' = 'manual_edit';
+      // NOTE: 'stopped' events are logged by the database trigger auto_log_time_entry_stopped
+      // Do NOT log 'stopped' here to avoid duplicate events
+      const isStoppingTimer = changedFields.includes('endTime') && updates.endTime && !currentEntry?.endTime;
+      
+      if (changedFields.length > 0 && !isStoppingTimer) {
+        // Determine event type (excluding 'stopped' which is handled by DB trigger)
+        let eventType: 'manual_edit' | 'duration_changed' | 'notes_changed' | 'project_changed' | 'task_changed' | 'status_changed' = 'manual_edit';
         
-        if (changedFields.includes('endTime') && updates.endTime && !currentEntry?.endTime) {
-          eventType = 'stopped';
-        } else if (changedFields.length === 1) {
+        if (changedFields.length === 1) {
           if (changedFields[0] === 'duration') eventType = 'duration_changed';
           else if (changedFields[0] === 'notes') eventType = 'notes_changed';
           else if (changedFields[0] === 'project') eventType = 'project_changed';
