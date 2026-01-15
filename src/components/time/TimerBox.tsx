@@ -234,31 +234,50 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
 
     // RULE: Resuming a timer pauses all other timers
     if (timer.isPaused) {
-      console.log('▶️ Resuming timer:', timerId);
+      console.log('▶️ Resuming timer:', timerId, 'with elapsed:', timer.elapsed, 'ms');
       
       // First, pause/stop the currently active backend timer if exists
       if (activeTimeEntry && !isTimerPaused) {
         console.log('⏸️ Pausing current backend timer');
+        
+        // Calculate elapsed time for the currently active timer before stopping
+        const activeElapsed = Date.now() - new Date(activeTimeEntry.startTime).getTime();
+        
         await stopTimeTracking('Auto-paused when resuming another timer');
         
-        // Convert it to a local paused timer
+        // Convert it to a local paused timer with preserved elapsed time
         setTimers(prev => prev.map(t => 
           t.id === activeTimeEntry.id 
-            ? { ...t, isActive: false, isPaused: true, pausedAt: new Date(), isLocalOnly: true }
+            ? { 
+                ...t, 
+                isActive: false, 
+                isPaused: true, 
+                pausedAt: new Date(), 
+                isLocalOnly: true,
+                elapsed: activeElapsed // Preserve the elapsed time
+              }
             : t
         ));
       }
       
-      // Pause all other active local timers
+      // Pause all other active local timers and capture their elapsed time
       setTimers(prev => prev.map(t => {
         if (t.id !== timerId && t.isActive && !t.isPaused) {
-          return { ...t, isPaused: true, pausedAt: new Date(), isActive: false };
+          const elapsedNow = Date.now() - t.startTime.getTime() - (t.totalPausedTime || 0);
+          return { 
+            ...t, 
+            isPaused: true, 
+            pausedAt: new Date(), 
+            isActive: false,
+            elapsed: elapsedNow // Capture elapsed time when pausing
+          };
         }
         return t;
       }));
       
-      // Start this timer as a new backend timer
-      await startTimeTracking(timer.taskId);
+      // Start this timer as a new backend timer, passing the preserved elapsed time
+      // This will set the start_time in the past so the timer continues from where it left off
+      await startTimeTracking(timer.taskId, timer.projectId, timer.clientId, timer.elapsed);
       
       // Remove the old local timer entry (it will be recreated by the activeTimeEntry effect)
       setTimers(prev => prev.filter(t => t.id !== timerId));

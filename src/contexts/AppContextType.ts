@@ -93,7 +93,7 @@ export interface AppContextType {
   addTimeEntry: (timeEntry: Omit<TimeEntry, 'id'>) => void;
   updateTimeEntry: (timeEntryId: string, updates: Partial<TimeEntry>) => void;
   deleteTimeEntry: (timeEntryId: string) => void;
-  startTimeTracking: (taskId: string, projectId?: string, clientId?: string) => void;
+  startTimeTracking: (taskId: string, projectId?: string, clientId?: string, resumeFromElapsedMs?: number) => void;
   stopTimeTracking: (notes?: string) => void;
   pauseTimeTracking: () => void;
   resumeTimeTracking: () => Promise<void>;
