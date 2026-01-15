@@ -65,6 +65,9 @@ verify_jwt = false
 [functions.send-task-notification]
 verify_jwt = false
 
+[functions.generate-recurring-tasks]
+verify_jwt = false
+
 [storage]
 enabled = true
 image = "supabase/storage-api:v1.0.6"
