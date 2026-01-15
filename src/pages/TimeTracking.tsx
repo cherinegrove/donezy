@@ -89,10 +89,10 @@ const TimeTracking = () => {
     return userRole?.name === 'Admin';
   };
 
-  // Check if current user is a super admin (platform_admin or support_admin)
+  // Check if current user is a super admin (platform_admin or support_admin or Admin role)
   const isSuperAdmin = currentUser?.systemRoles?.includes('platform_admin') || 
                        currentUser?.systemRoles?.includes('support_admin') ||
-                       currentUser?.roleId === 'admin';
+                       isAdminUser();
 
   // All active timers state (for super admins)
   const [allActiveTimers, setAllActiveTimers] = useState<any[]>([]);
