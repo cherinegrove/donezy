@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
 import { Task, TaskStatus } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
+
 import { Button } from "@/components/ui/button";
 import { CheckSquare, Plus, Upload, Calendar, Users, User } from "lucide-react";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
@@ -82,6 +82,7 @@ export default function Tasks() {
     const fetchTask = async () => {
       setIsLoadingUrlTask(true);
       try {
+        const { supabase } = await import("@/integrations/supabase/client");
         const { data, error } = await supabase
           .from('tasks')
           .select('*')
