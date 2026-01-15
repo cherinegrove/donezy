@@ -1593,7 +1593,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       console.log('🟢 Attempting to insert task into database...');
       
-      const insertData = {
+      const insertData: any = {
         auth_user_id: session.user.id,
         title: task.title,
         description: task.description,
@@ -1602,11 +1602,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         status: task.status,
         priority: task.priority,
         due_date: task.dueDate || null,
+        reminder_date: task.reminderDate || null,
         estimated_hours: task.estimatedHours,
         actual_hours: task.actualHours,
         watcher_ids: task.watcherIds || [],
         collaborator_ids: task.collaboratorIds || [],
-        related_task_ids: task.relatedTaskIds || []
+        related_task_ids: task.relatedTaskIds || [],
+        checklist: task.checklist || []
       };
       
       console.log('🟢 Insert data:', insertData);
