@@ -749,7 +749,7 @@ export const TimeAudit = () => {
 
       {/* Event Details Dialog */}
       <Dialog open={!!selectedEntry} onOpenChange={() => setSelectedEntry(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="h-5 w-5" />
@@ -765,7 +765,7 @@ export const TimeAudit = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="max-h-[50vh]">
+          <ScrollArea className="max-h-[60vh]">
             {loadingEvents ? (
               <div className="flex items-center justify-center py-8">
                 <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
