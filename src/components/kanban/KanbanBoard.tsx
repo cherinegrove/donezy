@@ -129,11 +129,22 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
       title: status.label
     }));
   
-  // Prepare tasks by status and sort by order_index
+  // Helper function to sort tasks by due date (soonest first, null dates at the end)
+  const sortByDueDate = (a: Task, b: Task) => {
+    // If neither has a due date, maintain original order
+    if (!a.dueDate && !b.dueDate) return 0;
+    // Tasks without due dates go to the end
+    if (!a.dueDate) return 1;
+    if (!b.dueDate) return -1;
+    // Sort by due date ascending (soonest first)
+    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+  };
+
+  // Prepare tasks by status and sort by due date (soonest first)
   const tasksByStatus = columns.reduce((acc, column) => {
     acc[column.id] = tasks
       .filter(task => task.status === column.id)
-      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+      .sort(sortByDueDate);
     return acc;
   }, {} as Record<TaskStatus, Task[]>);
   
@@ -420,8 +431,8 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   
   // Render list view with drag-and-drop
   if (viewMode === "list") {
-    // Sort tasks by order_index
-    const sortedTasks = [...tasks].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+    // Sort tasks by due date (soonest first)
+    const sortedTasks = [...tasks].sort(sortByDueDate);
     
     return (
       <div className="w-full">
