@@ -11,6 +11,8 @@ interface ProjectsGridProps {
   onDelete: (projectId: string) => void;
   onCardClick: (projectId: string) => void;
   onCreateProject: () => void;
+  onToggleFavorite?: (projectId: string) => void;
+  isFavorite?: (projectId: string) => boolean;
 }
 
 export function ProjectsGrid({
@@ -20,7 +22,9 @@ export function ProjectsGrid({
   onEdit,
   onDelete,
   onCardClick,
-  onCreateProject
+  onCreateProject,
+  onToggleFavorite,
+  isFavorite
 }: ProjectsGridProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mt-4">
@@ -33,6 +37,8 @@ export function ProjectsGrid({
           onEdit={onEdit}
           onDelete={onDelete}
           onClick={onCardClick}
+          onToggleFavorite={onToggleFavorite}
+          isFavorite={isFavorite?.(project.id) ?? false}
         />
       ))}
 

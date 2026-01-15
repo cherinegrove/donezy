@@ -4,6 +4,8 @@ import { RecordActions } from "@/components/common/RecordActions";
 import { format } from "date-fns";
 import type { Project } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
+import { Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ProjectsListProps {
   projects: Project[];
@@ -12,6 +14,8 @@ interface ProjectsListProps {
   onEdit: (projectId: string) => void;
   onDelete: (projectId: string) => void;
   onCardClick: (projectId: string) => void;
+  onToggleFavorite?: (projectId: string) => void;
+  isFavorite?: (projectId: string) => boolean;
 }
 
 export function ProjectsList({
@@ -20,7 +24,9 @@ export function ProjectsList({
   getClientName,
   onEdit,
   onDelete,
-  onCardClick
+  onCardClick,
+  onToggleFavorite,
+  isFavorite
 }: ProjectsListProps) {
   const { projectStatuses } = useAppContext();
   
@@ -79,7 +85,22 @@ export function ProjectsList({
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center ml-4">
+                <div className="flex items-center ml-4 gap-1">
+                  {onToggleFavorite && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(project.id);
+                      }}
+                    >
+                      <Star 
+                        className={`h-4 w-4 ${isFavorite?.(project.id) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} 
+                      />
+                    </Button>
+                  )}
                   <RecordActions
                     recordId={project.id}
                     recordType="Project"

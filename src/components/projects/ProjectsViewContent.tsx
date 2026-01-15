@@ -3,9 +3,10 @@ import { ProjectsList } from "./ProjectsList";
 import { ProjectsTimeline } from "./ProjectsTimeline";
 import type { Project } from "@/types";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, FolderOpen } from "lucide-react";
+import { ChevronDown, ChevronRight, FolderOpen, Star } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
+import { useProjectFavorites } from "@/hooks/useProjectFavorites";
 
 interface ProjectsViewContentProps {
   currentView: "list" | "kanban" | "timeline";
@@ -40,16 +41,28 @@ export function ProjectsViewContent({
   onCardClick,
   onCreateProject
 }: ProjectsViewContentProps) {
+  const { favorites, toggleFavorite, isFavorite } = useProjectFavorites();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    "favorites": true,
     "in-progress": true,
     "not-started": true,
   });
 
-  // Group projects by status
+  // Get favorite projects
+  const favoriteProjects = useMemo(() => {
+    return projects.filter(p => favorites.includes(p.id));
+  }, [projects, favorites]);
+
+  // Get non-favorite projects for regular grouping
+  const nonFavoriteProjects = useMemo(() => {
+    return projects.filter(p => !favorites.includes(p.id));
+  }, [projects, favorites]);
+
+  // Group non-favorite projects by status
   const projectsByStatus = useMemo(() => {
     const grouped: Record<string, Project[]> = {};
     
-    projects.forEach(project => {
+    nonFavoriteProjects.forEach(project => {
       const status = project.status || "not-started";
       if (!grouped[status]) {
         grouped[status] = [];
@@ -58,7 +71,7 @@ export function ProjectsViewContent({
     });
     
     return grouped;
-  }, [projects]);
+  }, [nonFavoriteProjects]);
 
   // Get ordered list of statuses that have projects
   const orderedStatuses = useMemo(() => {
@@ -74,7 +87,7 @@ export function ProjectsViewContent({
     }));
   };
 
-  const renderProjects = (projectList: Project[]) => {
+  const renderProjects = (projectList: Project[], showFavoriteButton: boolean = true) => {
     if (currentView === "kanban") {
       return (
         <ProjectsGrid
@@ -85,6 +98,8 @@ export function ProjectsViewContent({
           onDelete={onDelete}
           onCardClick={onCardClick}
           onCreateProject={onCreateProject}
+          onToggleFavorite={showFavoriteButton ? toggleFavorite : undefined}
+          isFavorite={isFavorite}
         />
       );
     }
@@ -98,6 +113,8 @@ export function ProjectsViewContent({
           onEdit={onEdit}
           onDelete={onDelete}
           onCardClick={onCardClick}
+          onToggleFavorite={showFavoriteButton ? toggleFavorite : undefined}
+          isFavorite={isFavorite}
         />
       );
     }
@@ -108,6 +125,8 @@ export function ProjectsViewContent({
           projects={projectList}
           getClientName={getClientName}
           onCardClick={onCardClick}
+          onToggleFavorite={showFavoriteButton ? toggleFavorite : undefined}
+          isFavorite={isFavorite}
         />
       );
     }
@@ -121,6 +140,28 @@ export function ProjectsViewContent({
 
   return (
     <div className="space-y-4">
+      {/* Favorites Section - Only show if there are favorites */}
+      {favoriteProjects.length > 0 && (
+        <Collapsible open={openSections["favorites"] ?? true} onOpenChange={() => toggleSection("favorites")}>
+          <CollapsibleTrigger className="flex items-center gap-2 w-full py-3 px-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg hover:bg-yellow-500/20 transition-colors">
+            {openSections["favorites"] ? (
+              <ChevronDown className="h-4 w-4 text-yellow-600" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-yellow-600" />
+            )}
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+            <span className="font-medium text-yellow-700 dark:text-yellow-400">Favorites</span>
+            <Badge variant="secondary" className="ml-2 bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">
+              {favoriteProjects.length}
+            </Badge>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-4">
+            {renderProjects(favoriteProjects, true)}
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {/* Regular status-grouped projects */}
       {orderedStatuses.map(status => {
         const statusProjects = projectsByStatus[status];
         const config = getStatusConfig(status);
@@ -141,13 +182,13 @@ export function ProjectsViewContent({
               </Badge>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-4">
-              {renderProjects(statusProjects)}
+              {renderProjects(statusProjects, true)}
             </CollapsibleContent>
           </Collapsible>
         );
       })}
 
-      {orderedStatuses.length === 0 && (
+      {orderedStatuses.length === 0 && favoriteProjects.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
           <FolderOpen className="h-12 w-12 mb-4" />
           <p>No projects found</p>

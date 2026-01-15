@@ -4,6 +4,8 @@ import { RecordActions } from "@/components/common/RecordActions";
 import { format } from "date-fns";
 import type { Project } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
+import { Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ProjectGridCardProps {
   project: Project;
@@ -12,6 +14,8 @@ interface ProjectGridCardProps {
   onEdit: (projectId: string) => void;
   onDelete: (projectId: string) => void;
   onClick: (projectId: string) => void;
+  onToggleFavorite?: (projectId: string) => void;
+  isFavorite?: boolean;
 }
 
 export function ProjectGridCard({ 
@@ -20,7 +24,9 @@ export function ProjectGridCard({
   clientName, 
   onEdit, 
   onDelete, 
-  onClick 
+  onClick,
+  onToggleFavorite,
+  isFavorite = false
 }: ProjectGridCardProps) {
   const { projectStatuses } = useAppContext();
   
@@ -55,7 +61,22 @@ export function ProjectGridCard({
           <CardTitle className="text-sm truncate">{project.name}</CardTitle>
           <CardDescription className="text-xs line-clamp-1">{project.description}</CardDescription>
         </div>
-        <div className="flex items-center ml-1">
+        <div className="flex items-center ml-1 gap-0.5">
+          {onToggleFavorite && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(project.id);
+              }}
+            >
+              <Star 
+                className={`h-3.5 w-3.5 ${isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`} 
+              />
+            </Button>
+          )}
           <RecordActions
             recordId={project.id}
             recordType="Project"
