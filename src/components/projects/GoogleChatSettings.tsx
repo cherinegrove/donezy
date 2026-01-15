@@ -72,17 +72,34 @@ export function GoogleChatSettings({ project }: GoogleChatSettingsProps) {
   const { updateProject } = useAppContext();
   const { toast } = useToast();
   
-  const currentConfig = (project as any).google_chat_settings || defaultConfig;
+  // Merge saved config with defaults to handle new notification types
+  const savedConfig = (project as any).google_chat_settings;
+  const mergedConfig: GoogleChatConfig = savedConfig ? {
+    ...defaultConfig,
+    ...savedConfig,
+    notifications: {
+      ...defaultConfig.notifications,
+      ...(savedConfig.notifications || {})
+    }
+  } : defaultConfig;
   
-  const [config, setConfig] = useState<GoogleChatConfig>(currentConfig);
+  const [config, setConfig] = useState<GoogleChatConfig>(mergedConfig);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
 
   // Sync state with project prop changes only when project ID changes
   // Don't sync when google_chat_settings changes to avoid overwriting user edits
   useEffect(() => {
-    const updatedConfig = (project as any).google_chat_settings || defaultConfig;
-    setConfig(updatedConfig);
+    const savedConfig = (project as any).google_chat_settings;
+    const mergedConfig: GoogleChatConfig = savedConfig ? {
+      ...defaultConfig,
+      ...savedConfig,
+      notifications: {
+        ...defaultConfig.notifications,
+        ...(savedConfig.notifications || {})
+      }
+    } : defaultConfig;
+    setConfig(mergedConfig);
   }, [project.id]);
 
   const handleSave = async () => {
