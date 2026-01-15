@@ -146,6 +146,9 @@ serve(async (req) => {
       }
     }
 
+    // Build task URL
+    const taskUrl = `https://donezy.lovable.app/tasks?task=${taskId}`;
+
     // Build message from template
     let message = notificationConfig.message_template || getDefaultTemplate(eventType);
     
@@ -161,7 +164,8 @@ serve(async (req) => {
       .replace(/{comment}/g, commentContent || '')
       .replace(/{old_status}/g, oldStatus || '')
       .replace(/{new_status}/g, newStatus || task.status || '')
-      .replace(/{changes}/g, changesSummary);
+      .replace(/{changes}/g, changesSummary)
+      .replace(/{task_link}/g, taskUrl);
 
     console.log('Sending message to Google Chat:', message);
 
@@ -203,12 +207,12 @@ serve(async (req) => {
 
 function getDefaultTemplate(eventType: string): string {
   const templates: Record<string, string> = {
-    task_created: '🆕 *New Task Created*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Created by:* {changed_by}\n*Assigned to:* {assignee}\n*Priority:* {priority}',
-    task_completed: '✅ *Task Completed*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Completed by:* {changed_by}',
-    task_updated: '✏️ *Task Updated*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Updated by:* {changed_by}\n*Changes:*\n{changes}',
-    task_commented: '💬 *New Comment*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Comment by:* {changed_by}\n*Comment:* {comment}',
-    status_changed: '🔄 *Status Changed*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Changed by:* {changed_by}\n*Status:* {old_status} → {new_status}',
+    task_created: '🆕 *New Task Created*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Created by:* {changed_by}\n*Assigned to:* {assignee}\n*Priority:* {priority}\n\n🔗 {task_link}',
+    task_completed: '✅ *Task Completed*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Completed by:* {changed_by}\n\n🔗 {task_link}',
+    task_updated: '✏️ *Task Updated*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Updated by:* {changed_by}\n*Changes:*\n{changes}\n\n🔗 {task_link}',
+    task_commented: '💬 *New Comment*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Comment by:* {changed_by}\n*Comment:* {comment}\n\n🔗 {task_link}',
+    status_changed: '🔄 *Status Changed*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Changed by:* {changed_by}\n*Status:* {old_status} → {new_status}\n\n🔗 {task_link}',
   };
   
-  return templates[eventType] || 'Task notification: {task_title}';
+  return templates[eventType] || 'Task notification: {task_title}\n\n🔗 {task_link}';
 }
