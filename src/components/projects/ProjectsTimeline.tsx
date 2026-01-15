@@ -17,6 +17,8 @@ interface ProjectsTimelineProps {
   projects: Project[];
   getClientName: (clientId: string) => string;
   onCardClick: (projectId: string) => void;
+  onToggleFavorite?: (projectId: string) => void;
+  isFavorite?: (projectId: string) => boolean;
 }
 
 interface OwnerCapacity {
@@ -36,7 +38,7 @@ const STATUS_COLORS: Record<string, string> = {
   "todo": "bg-slate-500",
 };
 
-export function ProjectsTimeline({ projects, getClientName, onCardClick }: ProjectsTimelineProps) {
+export function ProjectsTimeline({ projects, getClientName, onCardClick, onToggleFavorite, isFavorite }: ProjectsTimelineProps) {
   const { users } = useAppContext();
   const [viewMode, setViewMode] = useState<"visual" | "text">("visual");
   const [viewRangeStart, setViewRangeStart] = useState<Date>(() => {
