@@ -146,6 +146,9 @@ serve(async (req) => {
     
     console.log('Final changedByName:', changedByName);
     console.log('Comment content received:', commentContent);
+    
+    // Strip HTML tags from comment content
+    const cleanComment = commentContent ? commentContent.replace(/<[^>]*>/g, '').trim() : '';
 
     // Build changes summary for task_updated
     let changesSummary = '';
@@ -182,7 +185,7 @@ serve(async (req) => {
       .replace(/{status}/g, task.status || 'backlog')
       .replace(/{due_date}/g, task.due_date || 'No due date')
       .replace(/{changed_by}/g, changedByName)
-      .replace(/{comment}/g, commentContent || '')
+      .replace(/{comment}/g, cleanComment)
       .replace(/{old_status}/g, oldStatus || '')
       .replace(/{new_status}/g, newStatus || task.status || '')
       .replace(/{changes}/g, changesSummary)
