@@ -3338,13 +3338,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       ));
 
       // Send Google Chat notification for the comment
-      const task = tasks.find(t => t.id === taskId);
-      if (task?.projectId) {
-        console.log('🔔 Sending task_commented notification for task:', taskId);
+      // Fetch the task's project_id directly from DB to avoid stale state issues
+      const { data: taskData } = await supabase
+        .from('tasks')
+        .select('project_id')
+        .eq('id', taskId)
+        .single();
+      
+      if (taskData?.project_id) {
+        console.log('🔔 Sending task_commented notification for task:', taskId, 'project:', taskData.project_id);
         supabase.functions.invoke('send-task-notification', {
           body: {
             taskId,
-            projectId: task.projectId,
+            projectId: taskData.project_id,
             eventType: 'task_commented',
             userId: session.user.id,
             commentContent: content
@@ -3356,6 +3362,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             console.log('✅ Comment notification sent successfully');
           }
         });
+      } else {
+        console.log('⚠️ Could not find project for task:', taskId);
       }
 
       return data.id;
