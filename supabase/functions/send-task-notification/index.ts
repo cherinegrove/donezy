@@ -115,16 +115,37 @@ serve(async (req) => {
     // Get the user who made the change
     let changedByName = 'Someone';
     if (userId) {
-      const { data: changedBy } = await supabase
+      console.log('Looking up user name for userId:', userId);
+      
+      // Try users table first
+      const { data: changedBy, error: userError } = await supabase
         .from('users')
-        .select('name')
+        .select('name, email')
         .eq('auth_user_id', userId)
         .single();
       
-      if (changedBy) {
+      if (changedBy && changedBy.name) {
         changedByName = changedBy.name;
+        console.log('Found user name from users table:', changedByName);
+      } else {
+        // Fallback to profiles table
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name, email')
+          .eq('id', userId)
+          .single();
+        
+        if (profile) {
+          changedByName = profile.display_name || profile.email || 'Someone';
+          console.log('Found user name from profiles table:', changedByName);
+        } else {
+          console.log('Could not find user name, using default. UserError:', userError);
+        }
       }
     }
+    
+    console.log('Final changedByName:', changedByName);
+    console.log('Comment content received:', commentContent);
 
     // Build changes summary for task_updated
     let changesSummary = '';
