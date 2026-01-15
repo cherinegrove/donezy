@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -46,6 +46,7 @@ const ProtectedRoute = ({
 }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
   
   useEffect(() => {
     const checkSession = async () => {
@@ -81,7 +82,12 @@ const ProtectedRoute = ({
   }
   
   if (!session) {
-    return <Navigate to="/login" replace />;
+    // Preserve the original URL (including query params) for post-login redirect
+    const currentPath = location.pathname + location.search;
+    const loginUrl = currentPath !== '/' 
+      ? `/login?redirect=${encodeURIComponent(currentPath)}`
+      : '/login';
+    return <Navigate to={loginUrl} replace />;
   }
   
   return <>{element}</>;
