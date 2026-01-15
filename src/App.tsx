@@ -105,6 +105,16 @@ const PublicRoute = ({ element }: { element: React.ReactNode }) => {
     };
 
     checkSession();
+    
+    // Listen for auth state changes like ProtectedRoute does
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
   
   if (loading) {
