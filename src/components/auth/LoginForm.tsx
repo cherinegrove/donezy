@@ -48,6 +48,9 @@ export function LoginForm() {
   const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
 
+  // Get redirect URL from query params (for post-login redirect)
+  const redirectTo = searchParams.get('redirect') || '/';
+
   // Check if user just confirmed their email
   useEffect(() => {
     const confirmed = searchParams.get('confirmed');
@@ -86,12 +89,12 @@ export function LoginForm() {
       const success = await login(values.email, values.password);
       
       if (success) {
-        console.log("Login successful, redirecting...");
+        console.log("Login successful, redirecting to:", redirectTo);
         toast({
           title: "Login successful",
           description: "Welcome back!",
         });
-        navigate("/", { replace: true });
+        navigate(redirectTo, { replace: true });
       } else {
         throw new Error("Login failed - invalid credentials");
       }
