@@ -51,6 +51,26 @@ export default function Tasks() {
   const [isUrlTaskDialogOpen, setIsUrlTaskDialogOpen] = useState(false);
   const [isLoadingUrlTask, setIsLoadingUrlTask] = useState(false);
   
+  // Auto-generate recurring tasks on page load
+  useEffect(() => {
+    const generateRecurringTasks = async () => {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data, error } = await supabase.functions.invoke('generate-recurring-tasks');
+        if (data?.processed > 0) {
+          console.log('Generated recurring tasks:', data);
+        }
+      } catch (err) {
+        // Silent fail - don't show errors for background task
+        console.error('Error generating recurring tasks:', err);
+      }
+    };
+    
+    // Run on mount with a small delay to not block initial render
+    const timer = setTimeout(generateRecurringTasks, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+  
   // Debug logging to help identify why tasks aren't showing
   React.useEffect(() => {
     console.log('=== TASKS DEBUG ===');
