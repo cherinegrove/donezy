@@ -99,16 +99,17 @@ export function ActiveTimersSection({
 
   const handleLocalTimerPause = async (timer: TimerItem) => {
     if (timer.isPaused) {
-      // Resume: start as new backend timer
-      console.log('▶️ Resuming local timer:', timer.id.slice(0, 8));
+      // Resume: start as new backend timer, preserving elapsed time
+      console.log('▶️ Resuming local timer:', timer.id.slice(0, 8), 'with elapsed:', timer.elapsed, 'ms');
       
       // Stop current backend timer if running
       if (activeTimeEntry && !isTimerPaused) {
         await stopTimeTracking('Auto-paused when resuming another timer');
       }
       
-      // Start this timer
-      await startTimeTracking(timer.taskId);
+      // Start this timer with preserved elapsed time
+      // Pass elapsed time so the start_time is set in the past to preserve duration
+      await startTimeTracking(timer.taskId, timer.projectId, timer.clientId, timer.elapsed);
       
       // Remove from localStorage
       const savedTimers = localStorage.getItem('activeTimers');

@@ -2235,7 +2235,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Mutex to prevent race conditions when starting timers
   const isStartingTimer = React.useRef(false);
 
-  const startTimeTracking = async (taskId?: string, projectId?: string, clientId?: string) => {
+  const startTimeTracking = async (taskId?: string, projectId?: string, clientId?: string, resumeFromElapsedMs?: number) => {
     if (!session?.user || !currentUser) return;
     
     // Prevent race conditions - if already starting a timer, ignore this call
@@ -2307,12 +2307,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
       
       // Create new time entry
+      // If resuming from elapsed time, calculate start time to preserve the elapsed duration
+      let startTime: string;
+      if (resumeFromElapsedMs && resumeFromElapsedMs > 0) {
+        // Set start time in the past so elapsed time is preserved
+        startTime = new Date(Date.now() - resumeFromElapsedMs).toISOString();
+        console.log('🔄 Resuming timer with preserved elapsed time:', Math.floor(resumeFromElapsedMs / 1000), 'seconds');
+      } else {
+        startTime = new Date().toISOString();
+      }
+      
       const newTimeEntry: Omit<TimeEntry, 'id'> = {
         userId: currentUser.id,
         taskId: taskId || null,
         projectId: projectId || null,
         clientId: clientId || null,
-        startTime: new Date().toISOString(),
+        startTime: startTime,
         endTime: null,
         duration: null,
         description: null,
