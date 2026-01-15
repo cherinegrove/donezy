@@ -406,6 +406,9 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                 currentDueDate={task.dueDate}
                 currentDueDateChangeReason={task.dueDateChangeReason}
                 currentAwaitingFeedbackDetails={task.awaitingFeedbackDetails}
+                onStatusInfoUpdated={() => {
+                  // Status info was updated - the task will be refreshed by AppContext
+                }}
               />
             </TabsContent>
             
