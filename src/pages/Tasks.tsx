@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
 import { Task, TaskStatus } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { CheckSquare, Plus, Upload, Calendar, Users, User } from "lucide-react";
 import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
@@ -46,7 +47,9 @@ export default function Tasks() {
   
   // URL-based task opening state
   const [urlTaskId, setUrlTaskId] = useState<string | null>(null);
+  const [urlTask, setUrlTask] = useState<Task | null>(null);
   const [isUrlTaskDialogOpen, setIsUrlTaskDialogOpen] = useState(false);
+  const [isLoadingUrlTask, setIsLoadingUrlTask] = useState(false);
   
   // Debug logging to help identify why tasks aren't showing
   React.useEffect(() => {
@@ -57,15 +60,74 @@ export default function Tasks() {
   }, [tasks, projects]);
   
   // Check URL for task ID on mount and when searchParams change
+  // Immediately fetch the task from Supabase for faster loading
   useEffect(() => {
     const taskIdFromUrl = searchParams.get('task');
-    if (taskIdFromUrl) {
-      const task = tasks.find(t => t.id === taskIdFromUrl);
-      if (task) {
-        setUrlTaskId(taskIdFromUrl);
-        setIsUrlTaskDialogOpen(true);
-      }
+    if (!taskIdFromUrl) {
+      setUrlTaskId(null);
+      setUrlTask(null);
+      return;
     }
+    
+    // First check if task is already in local state
+    const existingTask = tasks.find(t => t.id === taskIdFromUrl);
+    if (existingTask) {
+      setUrlTaskId(taskIdFromUrl);
+      setUrlTask(existingTask);
+      setIsUrlTaskDialogOpen(true);
+      return;
+    }
+    
+    // If not found locally, fetch directly from Supabase for faster opening
+    const fetchTask = async () => {
+      setIsLoadingUrlTask(true);
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('id', taskIdFromUrl)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching task from URL:', error);
+          return;
+        }
+        
+        if (data) {
+          const task: Task = {
+            id: data.id,
+            title: data.title,
+            description: data.description || '',
+            status: data.status as any,
+            priority: data.priority as any,
+            projectId: data.project_id,
+            assigneeId: data.assignee_id || undefined,
+            collaboratorIds: data.collaborator_ids || [],
+            dueDate: data.due_date || undefined,
+            reminderDate: data.reminder_date || undefined,
+            createdAt: data.created_at,
+            estimatedHours: data.estimated_hours || undefined,
+            actualHours: data.actual_hours || undefined,
+            relatedTaskIds: data.related_task_ids || [],
+            backlogReason: data.backlog_reason || undefined,
+            awaitingFeedbackDetails: data.awaiting_feedback_details || undefined,
+            dueDateChangeReason: data.due_date_change_reason || undefined,
+            watcherIds: data.watcher_ids || [],
+            checklist: Array.isArray(data.checklist) ? data.checklist as any : [],
+            orderIndex: data.order_index || 0,
+          };
+          setUrlTaskId(taskIdFromUrl);
+          setUrlTask(task);
+          setIsUrlTaskDialogOpen(true);
+        }
+      } catch (err) {
+        console.error('Error fetching task:', err);
+      } finally {
+        setIsLoadingUrlTask(false);
+      }
+    };
+    
+    fetchTask();
   }, [searchParams, tasks]);
   
   // Handle closing URL-based task dialog
@@ -77,6 +139,7 @@ export default function Tasks() {
       newParams.delete('task');
       setSearchParams(newParams, { replace: true });
       setUrlTaskId(null);
+      setUrlTask(null);
     }
   };
   
@@ -451,9 +514,9 @@ export default function Tasks() {
       />
       
       {/* URL-based task dialog for shareable links */}
-      {urlTaskId && (
+      {urlTask && (
         <EditTaskDialog
-          task={tasks.find(t => t.id === urlTaskId)}
+          task={urlTask}
           open={isUrlTaskDialogOpen}
           onOpenChange={handleUrlTaskDialogClose}
         />
