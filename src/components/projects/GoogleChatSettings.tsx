@@ -28,6 +28,8 @@ interface GoogleChatConfig {
     task_created: NotificationSetting;
     task_completed: NotificationSetting;
     task_updated: NotificationSetting;
+    task_commented: NotificationSetting;
+    status_changed: NotificationSetting;
   };
 }
 
@@ -37,15 +39,23 @@ const defaultConfig: GoogleChatConfig = {
   notifications: {
     task_created: {
       enabled: true,
-      message_template: "🆕 New task created: {task_title} in project {project_name}"
+      message_template: "🆕 New task created: {task_title} in {project_name} by {changed_by}"
     },
     task_completed: {
       enabled: true,
-      message_template: "✅ Task completed: {task_title} in project {project_name}"
+      message_template: "✅ Task completed: {task_title} in {project_name} by {changed_by}"
     },
     task_updated: {
       enabled: true,
-      message_template: "📝 Task updated: {task_title} in project {project_name}"
+      message_template: "📝 Task updated: {task_title} in {project_name} by {changed_by}\nChanges: {changes}"
+    },
+    task_commented: {
+      enabled: true,
+      message_template: "💬 Comment on {task_title} by {changed_by}: {comment}"
+    },
+    status_changed: {
+      enabled: true,
+      message_template: "🔄 Status changed: {task_title} ({old_status} → {new_status}) by {changed_by}"
     }
   }
 };
@@ -53,7 +63,9 @@ const defaultConfig: GoogleChatConfig = {
 const notificationTypes = [
   { key: 'task_created', label: 'Task Created', description: 'When a new task is created' },
   { key: 'task_completed', label: 'Task Completed', description: 'When a task is marked as complete' },
-  { key: 'task_updated', label: 'Task Updated', description: 'When a task is modified' }
+  { key: 'task_updated', label: 'Task Updated', description: 'When a task is modified' },
+  { key: 'task_commented', label: 'New Comment', description: 'When someone comments on a task' },
+  { key: 'status_changed', label: 'Status Changed', description: 'When a task status changes' }
 ];
 
 export function GoogleChatSettings({ project }: GoogleChatSettingsProps) {
@@ -262,7 +274,7 @@ export function GoogleChatSettings({ project }: GoogleChatSettingsProps) {
                       className="text-sm"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Available variables: {'{'}task_title{'}'}, {'{'}project_name{'}'}, {'{'}due_date{'}'}, {'{'}assignee{'}'}
+                      Available: {'{'}task_title{'}'}, {'{'}project_name{'}'}, {'{'}changed_by{'}'}, {'{'}assignee{'}'}, {'{'}comment{'}'}, {'{'}old_status{'}'}, {'{'}new_status{'}'}, {'{'}changes{'}'}
                     </p>
                   </div>
                 )}

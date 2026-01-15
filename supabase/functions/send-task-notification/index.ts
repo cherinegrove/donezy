@@ -6,22 +6,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface NotificationSetting {
+  enabled: boolean;
+  message_template: string;
+}
+
 interface GoogleChatConfig {
   enabled: boolean;
   webhook_url: string;
   notifications: {
-    task_created: {
-      enabled: boolean;
-      message_template: string;
-    };
-    task_completed: {
-      enabled: boolean;
-      message_template: string;
-    };
-    task_updated: {
-      enabled: boolean;
-      message_template: string;
-    };
+    task_created: NotificationSetting;
+    task_completed: NotificationSetting;
+    task_updated: NotificationSetting;
+    task_commented: NotificationSetting;
+    status_changed: NotificationSetting;
   };
 }
 
@@ -31,7 +29,17 @@ serve(async (req) => {
   }
 
   try {
-    const { taskId, projectId, eventType, oldTask } = await req.json();
+    const { 
+      taskId, 
+      projectId, 
+      eventType, 
+      oldTask, 
+      userId, 
+      commentContent,
+      oldStatus,
+      newStatus,
+      changes 
+    } = await req.json();
     
     console.log(`Processing ${eventType} notification for task ${taskId} in project ${projectId}`);
 
@@ -104,17 +112,56 @@ serve(async (req) => {
       }
     }
 
+    // Get the user who made the change
+    let changedByName = 'Someone';
+    if (userId) {
+      const { data: changedBy } = await supabase
+        .from('users')
+        .select('name')
+        .eq('auth_user_id', userId)
+        .single();
+      
+      if (changedBy) {
+        changedByName = changedBy.name;
+      }
+    }
+
+    // Build changes summary for task_updated
+    let changesSummary = '';
+    if (changes && typeof changes === 'object') {
+      const changesList: string[] = [];
+      for (const [field, value] of Object.entries(changes)) {
+        if (field === 'status' && oldStatus && newStatus) {
+          changesList.push(`Status: ${oldStatus} → ${newStatus}`);
+        } else if (field === 'priority') {
+          changesList.push(`Priority: ${value}`);
+        } else if (field === 'assignee') {
+          changesList.push(`Assignee: ${value}`);
+        } else if (field === 'due_date') {
+          changesList.push(`Due date: ${value}`);
+        }
+      }
+      if (changesList.length > 0) {
+        changesSummary = changesList.join('\n');
+      }
+    }
+
     // Build message from template
     let message = notificationConfig.message_template || getDefaultTemplate(eventType);
     
     // Replace placeholders
     message = message
-      .replace('{task_title}', task.title || 'Untitled')
-      .replace('{project_name}', project.name || 'Unknown Project')
-      .replace('{assignee}', assigneeName)
-      .replace('{priority}', task.priority || 'medium')
-      .replace('{status}', task.status || 'backlog')
-      .replace('{due_date}', task.due_date || 'No due date');
+      .replace(/{task_title}/g, task.title || 'Untitled')
+      .replace(/{project_name}/g, project.name || 'Unknown Project')
+      .replace(/{assignee}/g, assigneeName)
+      .replace(/{priority}/g, task.priority || 'medium')
+      .replace(/{status}/g, task.status || 'backlog')
+      .replace(/{due_date}/g, task.due_date || 'No due date')
+      .replace(/{changed_by}/g, changedByName)
+      .replace(/{comment}/g, commentContent || '')
+      .replace(/{old_status}/g, oldStatus || '')
+      .replace(/{new_status}/g, newStatus || task.status || '')
+      .replace(/{changes}/g, changesSummary);
 
     console.log('Sending message to Google Chat:', message);
 
@@ -156,9 +203,11 @@ serve(async (req) => {
 
 function getDefaultTemplate(eventType: string): string {
   const templates: Record<string, string> = {
-    task_created: '🆕 *New Task Created*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Assigned to:* {assignee}\n*Priority:* {priority}',
-    task_completed: '✅ *Task Completed*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Completed by:* {assignee}',
-    task_updated: '✏️ *Task Updated*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Status:* {status}\n*Priority:* {priority}',
+    task_created: '🆕 *New Task Created*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Created by:* {changed_by}\n*Assigned to:* {assignee}\n*Priority:* {priority}',
+    task_completed: '✅ *Task Completed*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Completed by:* {changed_by}',
+    task_updated: '✏️ *Task Updated*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Updated by:* {changed_by}\n*Changes:*\n{changes}',
+    task_commented: '💬 *New Comment*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Comment by:* {changed_by}\n*Comment:* {comment}',
+    status_changed: '🔄 *Status Changed*\n\n*Task:* {task_title}\n*Project:* {project_name}\n*Changed by:* {changed_by}\n*Status:* {old_status} → {new_status}',
   };
   
   return templates[eventType] || 'Task notification: {task_title}';
