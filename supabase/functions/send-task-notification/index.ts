@@ -170,8 +170,9 @@ serve(async (req) => {
       }
     }
 
-    // Build task URL
-    const taskUrl = `https://donezy.lovable.app/tasks?task=${taskId}`;
+    // Build task URL - use APP_URL env var if set, otherwise fallback
+    const appUrl = Deno.env.get('APP_URL') || 'https://donezy.lovable.app';
+    const taskUrl = `${appUrl}/tasks?task=${taskId}`;
 
     // Build message from template
     let message = notificationConfig.message_template || getDefaultTemplate(eventType);
