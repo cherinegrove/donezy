@@ -171,7 +171,7 @@ serve(async (req) => {
     }
 
     // Build task URL - use APP_URL env var if set, otherwise fallback
-    const appUrl = Deno.env.get('APP_URL') || 'https://donezy.lovable.app';
+    const appUrl = (Deno.env.get('APP_URL') || 'https://donezy.lovable.app').replace(/\/$/, '');
     const taskUrl = `${appUrl}/tasks?task=${taskId}`;
 
     // Build message from template
