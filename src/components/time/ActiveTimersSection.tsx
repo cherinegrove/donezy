@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { cn } from "@/lib/utils";
 import { TimeEntry } from "@/types";
 import { format } from "date-fns";
+import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 
 interface TimerItem {
   id: string;
@@ -83,12 +84,62 @@ export function ActiveTimersSection({
     addTimeEntry, 
     currentUser,
     tasks,
-    projects 
+    projects,
+    users,
+    clients,
+    customRoles
   } = useAppContext();
   
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [selectedLocalTimer, setSelectedLocalTimer] = useState<TimerItem | null>(null);
   const [notes, setNotes] = useState("");
+  const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
+
+  // Check if current user is admin
+  const isAdminUser = () => {
+    if (!currentUser) return false;
+    if (currentUser.roleId === 'admin') return true;
+    const userRole = customRoles.find(r => r.id === currentUser.roleId);
+    return userRole?.name === 'Admin';
+  };
+
+  // Set default filter to current user on mount
+  useEffect(() => {
+    if (currentUser && !selectedFilters.user?.length) {
+      setSelectedFilters(prev => ({
+        ...prev,
+        user: [currentUser.id]
+      }));
+    }
+  }, [currentUser]);
+
+  const filterOptions: FilterOption[] = [
+    // Only show user filter for admins/super admins
+    ...(isAdminUser() || isSuperAdmin ? [{
+      id: "user",
+      name: "User",
+      options: users.map(user => ({
+        id: user.id,
+        label: user.name
+      }))
+    }] : []),
+    {
+      id: "client",
+      name: "Client",
+      options: clients.map(client => ({
+        id: client.id,
+        label: client.name
+      }))
+    },
+    {
+      id: "project",
+      name: "Project",
+      options: projects.map(project => ({
+        id: project.id,
+        label: project.name
+      }))
+    }
+  ];
 
   const formatTime = (milliseconds: number): string => {
     const seconds = Math.floor((milliseconds / 1000) % 60);
@@ -238,6 +289,74 @@ export function ActiveTimersSection({
     }
   };
 
+  // Helper to get project ID from a timer
+  const getTimerProjectId = (timer: any): string | undefined => {
+    if (timer.projectId) return timer.projectId;
+    if (timer.taskId) {
+      const task = tasks.find(t => t.id === timer.taskId);
+      return task?.projectId;
+    }
+    return undefined;
+  };
+
+  // Helper to get client ID from a timer
+  const getTimerClientId = (timer: any): string | undefined => {
+    if (timer.clientId) return timer.clientId;
+    const projectId = getTimerProjectId(timer);
+    if (projectId) {
+      const project = projects.find(p => p.id === projectId);
+      return project?.clientId;
+    }
+    return undefined;
+  };
+
+  // Helper to get user ID from a timer
+  const getTimerUserId = (timer: any): string | undefined => {
+    if (timer.userId) {
+      // Check if it matches a user.id or user.auth_user_id
+      const userById = users.find(u => u.id === timer.userId);
+      if (userById) return userById.id;
+      const userByAuthId = users.find(u => u.auth_user_id === timer.userId);
+      if (userByAuthId) return userByAuthId.id;
+    }
+    return currentUser?.id;
+  };
+
+  // Filter function for timers
+  const matchesFilters = (timer: any): boolean => {
+    // User filter
+    if (selectedFilters.user?.length > 0) {
+      const timerId = getTimerUserId(timer);
+      if (!timerId || !selectedFilters.user.includes(timerId)) {
+        return false;
+      }
+    } else if (!isAdminUser() && !isSuperAdmin) {
+      // Non-admins always filter to their own timers
+      const timerId = getTimerUserId(timer);
+      if (timerId !== currentUser?.id) {
+        return false;
+      }
+    }
+
+    // Project filter
+    if (selectedFilters.project?.length > 0) {
+      const projectId = getTimerProjectId(timer);
+      if (!projectId || !selectedFilters.project.includes(projectId)) {
+        return false;
+      }
+    }
+
+    // Client filter
+    if (selectedFilters.client?.length > 0) {
+      const clientId = getTimerClientId(timer);
+      if (!clientId || !selectedFilters.client.includes(clientId)) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   // Combine all timers into a unified list matching TimerBox style
   const myTimers: (TimerItem & { userName?: string; isOtherUser?: boolean })[] = [];
 
@@ -258,6 +377,8 @@ export function ActiveTimersSection({
       isLocalOnly: false,
       userName: currentUser?.name,
       isOtherUser: false,
+      projectId: activeTimer.project?.id,
+      clientId: activeTimer.client?.id,
     });
   }
 
@@ -289,21 +410,41 @@ export function ActiveTimersSection({
       }));
   }, [isSuperAdmin, allActiveTimers, myTimers.map(t => t.id).join(',')]);
 
-  // Combine my timers + other users' timers
-  const displayTimers = [...myTimers, ...otherUsersTimersWithElapsed];
+  // Combine my timers + other users' timers and apply filters
+  const allTimers = [...myTimers, ...otherUsersTimersWithElapsed];
+  const displayTimers = allTimers.filter(matchesFilters);
+
+  // Show filter bar and empty state
+  const showFilters = filterOptions.length > 0;
 
   if (displayTimers.length === 0) {
     return (
-      <div className="text-center py-8">
-        <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-        <p className="text-muted-foreground">No active timers</p>
-        <p className="text-sm text-muted-foreground">Start a timer from the + menu or from a task</p>
+      <div className="space-y-4">
+        {showFilters && (
+          <FilterBar
+            filters={filterOptions}
+            selectedFilters={selectedFilters}
+            onFilterChange={setSelectedFilters}
+          />
+        )}
+        <div className="text-center py-8">
+          <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+          <p className="text-muted-foreground">No active timers</p>
+          <p className="text-sm text-muted-foreground">Start a timer from the + menu or from a task</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <>
+    <div className="space-y-4">
+      {showFilters && (
+        <FilterBar
+          filters={filterOptions}
+          selectedFilters={selectedFilters}
+          onFilterChange={setSelectedFilters}
+        />
+      )}
       <div className="space-y-3">
         {displayTimers.map((timer: any) => {
           const isBackendTimer = !timer.isLocalOnly && activeTimer && timer.id === activeTimer.timeEntry.id;
@@ -486,6 +627,6 @@ export function ActiveTimersSection({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

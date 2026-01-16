@@ -22,10 +22,21 @@ export interface FilterOption {
 interface FilterBarProps {
   filters: FilterOption[];
   onFilterChange: (filters: Record<string, string[]>) => void;
+  selectedFilters?: Record<string, string[]>; // Optional controlled mode
 }
 
-export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+export function FilterBar({ filters, onFilterChange, selectedFilters: externalFilters }: FilterBarProps) {
+  const [internalFilters, setInternalFilters] = useState<Record<string, string[]>>({});
+  
+  // Use external filters if provided (controlled mode), otherwise use internal state
+  const activeFilters = externalFilters ?? internalFilters;
+  
+  const setActiveFilters = (newFilters: Record<string, string[]>) => {
+    if (!externalFilters) {
+      setInternalFilters(newFilters);
+    }
+    onFilterChange(newFilters);
+  };
   
   const handleFilterChange = (filterId: string, value: string) => {
     const newActiveFilters = { ...activeFilters };
@@ -39,7 +50,6 @@ export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
     }
     
     setActiveFilters(newActiveFilters);
-    onFilterChange(newActiveFilters);
   };
   
   const removeFilter = (filterId: string, value: string) => {
@@ -54,12 +64,10 @@ export function FilterBar({ filters, onFilterChange }: FilterBarProps) {
     }
     
     setActiveFilters(newActiveFilters);
-    onFilterChange(newActiveFilters);
   };
   
   const clearAllFilters = () => {
     setActiveFilters({});
-    onFilterChange({});
   };
   
   const getActiveBadges = () => {
