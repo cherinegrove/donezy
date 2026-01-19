@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -36,7 +36,7 @@ import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 import ConfirmInvite from "./pages/ConfirmInvite";
 import { AuthVerify } from '@/components/auth/AuthVerify';
 
-// Simplified Protected route component
+// Simplified Protected route component - avoid useLocation to prevent initialization errors
 const ProtectedRoute = ({ 
   element, 
   allowedRoles = ['admin', 'manager', 'developer', 'client']
@@ -46,9 +46,16 @@ const ProtectedRoute = ({
 }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-  const location = useLocation();
+  const [loginRedirectUrl, setLoginRedirectUrl] = useState<string>('/login');
   
   useEffect(() => {
+    // Capture current path for redirect BEFORE any async operations
+    const currentPath = window.location.pathname + window.location.search;
+    const redirectUrl = currentPath !== '/' 
+      ? `/login?redirect=${encodeURIComponent(currentPath)}`
+      : '/login';
+    setLoginRedirectUrl(redirectUrl);
+
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -82,12 +89,7 @@ const ProtectedRoute = ({
   }
   
   if (!session) {
-    // Preserve the original URL (including query params) for post-login redirect
-    const currentPath = location.pathname + location.search;
-    const loginUrl = currentPath !== '/' 
-      ? `/login?redirect=${encodeURIComponent(currentPath)}`
-      : '/login';
-    return <Navigate to={loginUrl} replace />;
+    return <Navigate to={loginRedirectUrl} replace />;
   }
   
   return <>{element}</>;
