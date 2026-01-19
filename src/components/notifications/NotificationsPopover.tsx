@@ -50,9 +50,9 @@ export function NotificationsPopover({ children }: { children?: React.ReactNode 
             <div className="space-y-1">
               {unreadNotifications.map(notification => (
                 <div key={notification.id} className="p-4 border-b last:border-0 hover:bg-muted/50">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <p className="text-sm">{notification.content}</p>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <p className="text-sm break-words whitespace-pre-wrap">{notification.content}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
                       </p>
@@ -61,7 +61,7 @@ export function NotificationsPopover({ children }: { children?: React.ReactNode 
                       variant="ghost" 
                       size="sm"
                       onClick={(e) => handleMarkAsRead(notification.id, e)}
-                      className="ml-2 h-8"
+                      className="ml-2 h-8 shrink-0"
                     >
                       <Check className="h-4 w-4 mr-1" />
                       <span>Read</span>
