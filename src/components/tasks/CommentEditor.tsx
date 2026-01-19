@@ -50,7 +50,8 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
       },
       editorProps: {
         attributes: {
-          class: 'prose prose-sm max-w-none min-h-[80px] p-3 focus:outline-none',
+          class: 'prose prose-sm max-w-none min-h-[80px] p-3 focus:outline-none break-words overflow-hidden [&_*]:break-words',
+          style: 'word-break: break-word; overflow-wrap: anywhere;',
         },
         handlePaste: (view, event) => {
           // Check for images in clipboard

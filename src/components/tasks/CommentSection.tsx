@@ -400,7 +400,8 @@ export function CommentSection({ taskId }: CommentSectionProps) {
                       <>
                         {commentItem.content && (
                           <div
-                            className="text-sm whitespace-pre-wrap"
+                            className="text-sm whitespace-pre-wrap break-words overflow-hidden max-w-full [&_*]:break-words [&_*]:overflow-wrap-anywhere"
+                            style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             dangerouslySetInnerHTML={{
                               __html: formatCommentContent(commentItem.content, commentItem.mentionedUserIds),
                             }}
