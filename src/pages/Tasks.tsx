@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAppContext } from "@/contexts/AppContext";
 import { Task, TaskStatus } from "@/types";
 
@@ -83,14 +84,20 @@ export default function Tasks() {
   // Immediately fetch the task from Supabase for faster loading
   useEffect(() => {
     const taskIdFromUrl = searchParams.get('task');
+    console.log('=== URL Task Check ===');
+    console.log('Task ID from URL:', taskIdFromUrl);
+    
     if (!taskIdFromUrl) {
       setUrlTaskId(null);
       setUrlTask(null);
+      setIsUrlTaskDialogOpen(false);
       return;
     }
     
     // First check if task is already in local state
     const existingTask = tasks.find(t => t.id === taskIdFromUrl);
+    console.log('Existing task found in local state:', !!existingTask);
+    
     if (existingTask) {
       setUrlTaskId(taskIdFromUrl);
       setUrlTask(existingTask);
@@ -98,8 +105,14 @@ export default function Tasks() {
       return;
     }
     
+    // If already loading or we have the task, skip fetching
+    if (isLoadingUrlTask || (urlTask && urlTask.id === taskIdFromUrl)) {
+      return;
+    }
+    
     // If not found locally, fetch directly from Supabase for faster opening
     const fetchTask = async () => {
+      console.log('Fetching task from Supabase...');
       setIsLoadingUrlTask(true);
       try {
         const { supabase } = await import("@/integrations/supabase/client");
@@ -113,6 +126,8 @@ export default function Tasks() {
           console.error('Error fetching task from URL:', error);
           return;
         }
+        
+        console.log('Task fetched successfully:', data?.title);
         
         if (data) {
           const task: Task = {
@@ -137,6 +152,7 @@ export default function Tasks() {
             checklist: Array.isArray(data.checklist) ? data.checklist as any : [],
             orderIndex: data.order_index || 0,
           };
+          console.log('Opening dialog for task:', task.title);
           setUrlTaskId(taskIdFromUrl);
           setUrlTask(task);
           setIsUrlTaskDialogOpen(true);
@@ -149,7 +165,7 @@ export default function Tasks() {
     };
     
     fetchTask();
-  }, [searchParams, tasks]);
+  }, [searchParams, tasks, isLoadingUrlTask, urlTask]);
   
   // Handle closing URL-based task dialog
   const handleUrlTaskDialogClose = (open: boolean) => {
@@ -533,6 +549,20 @@ export default function Tasks() {
         onOpenChange={setIsBulkEditOpen}
         taskIds={bulkEditTaskIds}
       />
+      
+      {/* URL-based task loading indicator */}
+      {isLoadingUrlTask && (
+        <Dialog open={true}>
+          <DialogContent className="sm:max-w-[400px]">
+            <div className="flex items-center justify-center py-8">
+              <div className="flex flex-col items-center gap-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                <p className="text-muted-foreground">Loading task...</p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
       
       {/* URL-based task dialog for shareable links */}
       {urlTask && (
