@@ -97,6 +97,7 @@ const ProtectedRoute = ({
 const PublicRoute = ({ element }: { element: React.ReactNode }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
   
   useEffect(() => {
     const checkSession = async () => {
@@ -132,7 +133,10 @@ const PublicRoute = ({ element }: { element: React.ReactNode }) => {
   }
   
   if (session) {
-    return <Navigate to="/" replace />;
+    // Check for redirect parameter and honor it for logged-in users
+    const searchParams = new URLSearchParams(location.search);
+    const redirectTo = searchParams.get('redirect') || '/';
+    return <Navigate to={redirectTo} replace />;
   }
   
   return <>{element}</>;
