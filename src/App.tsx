@@ -97,13 +97,20 @@ const ProtectedRoute = ({
 const PublicRoute = ({ element }: { element: React.ReactNode }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-  const location = useLocation();
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
   
   useEffect(() => {
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
+        
+        // Parse redirect from URL if session exists
+        if (session) {
+          const searchParams = new URLSearchParams(window.location.search);
+          const redirect = searchParams.get('redirect') || '/';
+          setRedirectPath(redirect);
+        }
       } catch (error) {
         setSession(null);
       } finally {
@@ -116,6 +123,11 @@ const PublicRoute = ({ element }: { element: React.ReactNode }) => {
     // Listen for auth state changes like ProtectedRoute does
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
+      if (session) {
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirect = searchParams.get('redirect') || '/';
+        setRedirectPath(redirect);
+      }
       setLoading(false);
     });
 
@@ -132,11 +144,12 @@ const PublicRoute = ({ element }: { element: React.ReactNode }) => {
     );
   }
   
+  if (session && redirectPath) {
+    return <Navigate to={redirectPath} replace />;
+  }
+  
   if (session) {
-    // Check for redirect parameter and honor it for logged-in users
-    const searchParams = new URLSearchParams(location.search);
-    const redirectTo = searchParams.get('redirect') || '/';
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to="/" replace />;
   }
   
   return <>{element}</>;
