@@ -1,13 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { File, Trash2, Link as LinkIcon, ExternalLink, Download } from "lucide-react";
+import { File, Trash2, Link as LinkIcon, ExternalLink, Download, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TaskFile } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,17 +21,55 @@ interface FileSectionProps {
 }
 
 export function FileSection({ taskId }: FileSectionProps) {
-  const { tasks, addTaskExternalLink, deleteTaskFile } = useAppContext();
+  const { addTaskExternalLink, deleteTaskFile } = useAppContext();
   const { toast } = useToast();
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [linkName, setLinkName] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [files, setFiles] = useState<TaskFile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const task = tasks.find(t => t.id === taskId);
-  const files = task?.files || [];
-  
+  // Fetch files directly from Supabase to handle both context tasks and URL-loaded tasks
+  useEffect(() => {
+    const fetchFiles = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('task_files')
+          .select('*')
+          .eq('task_id', taskId);
+        
+        if (error) {
+          console.error('Error fetching task files:', error);
+          return;
+        }
+        
+        const loadedFiles: TaskFile[] = (data || []).map(file => ({
+          id: file.id,
+          name: file.name,
+          url: file.file_path || file.external_url || '',
+          size: file.file_size || 0,
+          sizeKb: (file.file_size || 0) / 1024,
+          uploadedAt: file.uploaded_at || new Date().toISOString(),
+          isExternalLink: file.is_external_link || false,
+          externalUrl: file.external_url || undefined,
+        }));
+        
+        console.log('🔍 FileSection - fetched files:', loadedFiles.length);
+        setFiles(loadedFiles);
+      } catch (err) {
+        console.error('Error fetching files:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (taskId) {
+      fetchFiles();
+    }
+  }, [taskId]);
+
   console.log('🔍 FileSection - taskId:', taskId);
-  console.log('🔍 FileSection - task found:', !!task);
   console.log('🔍 FileSection - files:', files);
   console.log('🔍 FileSection - files length:', files.length);
 
@@ -49,6 +88,27 @@ export function FileSection({ taskId }: FileSectionProps) {
     try {
       await addTaskExternalLink(taskId, linkName, linkUrl);
       console.log('✅ Link added successfully');
+      
+      // Refresh files list after adding
+      const { data } = await supabase
+        .from('task_files')
+        .select('*')
+        .eq('task_id', taskId);
+      
+      if (data) {
+        const loadedFiles: TaskFile[] = data.map(file => ({
+          id: file.id,
+          name: file.name,
+          url: file.file_path || file.external_url || '',
+          size: file.file_size || 0,
+          sizeKb: (file.file_size || 0) / 1024,
+          uploadedAt: file.uploaded_at || new Date().toISOString(),
+          isExternalLink: file.is_external_link || false,
+          externalUrl: file.external_url || undefined,
+        }));
+        setFiles(loadedFiles);
+      }
+      
       toast({
         title: "Link added",
         description: `${linkName} has been added successfully.`,
@@ -66,8 +126,10 @@ export function FileSection({ taskId }: FileSectionProps) {
     }
   };
 
-  const handleDeleteFile = (fileId: string) => {
-    deleteTaskFile(taskId, fileId);
+  const handleDeleteFile = async (fileId: string) => {
+    await deleteTaskFile(taskId, fileId);
+    // Update local state immediately
+    setFiles(prev => prev.filter(f => f.id !== fileId));
     toast({
       title: "File deleted",
       description: "The file has been removed from the task.",
@@ -141,7 +203,12 @@ export function FileSection({ taskId }: FileSectionProps) {
           </Dialog>
         </div>
 
-        {files.length > 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-sm text-muted-foreground">Loading files...</span>
+          </div>
+        ) : files.length > 0 ? (
           <div className="space-y-2">
             {files.map((file: TaskFile) => (
               <div 
