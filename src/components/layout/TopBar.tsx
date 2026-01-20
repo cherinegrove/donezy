@@ -4,6 +4,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Menu, Moon, Plus, Search, Sun, Timer } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StartTimerDialog } from "@/components/time/StartTimerDialog";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { EditTimeEntryDialog } from "@/components/time/EditTimeEntryDialog";
@@ -161,15 +162,16 @@ export function TopBar() {
                 <p className="text-xs text-muted-foreground">{getRoleName(currentUser, customRoles)}</p>
               </div>
               
-              <Button
-                variant="outline"
-                size="icon"
-                title="Open Profile Settings"
+              <Avatar 
+                className="h-9 w-9 sm:h-10 sm:w-10 border-2 border-primary hover:scale-110 transition-all duration-200 cursor-pointer"
                 onClick={handleAvatarClick}
-                className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-primary text-primary-foreground border-2 border-primary hover:scale-110 text-base sm:text-lg font-bold transition-all duration-200 cursor-pointer"
+                title="Open Profile Settings"
               >
-                {currentUser.name.charAt(0)}
-              </Button>
+                <AvatarImage src={currentUser.avatar || undefined} alt={currentUser.name} />
+                <AvatarFallback className="bg-primary text-primary-foreground text-base sm:text-lg font-bold">
+                  {currentUser.name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
             </div>
           ) : (
             <div className="text-xs sm:text-sm text-destructive bg-destructive/10 p-1 sm:p-2 rounded">
