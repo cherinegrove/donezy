@@ -53,10 +53,9 @@ export const TimeAudit = () => {
   const [entryEvents, setEntryEvents] = useState<TimeEntryEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
 
-  // Check if current user is a super admin (platform_admin or support_admin)
+  // Check if current user is admin using systemRoles (consolidated role system)
   const isSuperAdmin = currentUser?.systemRoles?.includes('platform_admin') || 
-                       currentUser?.systemRoles?.includes('support_admin') ||
-                       currentUser?.roleId === 'admin';
+                       currentUser?.systemRoles?.includes('support_admin');
 
   const fetchEntries = async () => {
     setLoading(true);

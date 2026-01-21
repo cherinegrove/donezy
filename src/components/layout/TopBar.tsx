@@ -24,7 +24,7 @@ import { TimerBox } from "@/components/time/TimerBox";
 import { getRoleName } from "@/utils/roleUtils";
 
 export function TopBar() {
-  const { currentUser, customRoles } = useAppContext();
+  const { currentUser } = useAppContext();
   const { theme, setTheme } = useTheme();
   const { toggleSidebar, isMobile } = useSidebar();
   const [isTimerDialogOpen, setIsTimerDialogOpen] = useState(false);
@@ -159,7 +159,7 @@ export function TopBar() {
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="hidden md:block text-right">
                 <p className="text-sm font-medium leading-none">{currentUser.name}</p>
-                <p className="text-xs text-muted-foreground">{getRoleName(currentUser, customRoles)}</p>
+                <p className="text-xs text-muted-foreground">{getRoleName(currentUser)}</p>
               </div>
               
               <Avatar 

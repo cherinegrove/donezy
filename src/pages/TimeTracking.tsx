@@ -81,18 +81,15 @@ const TimeTracking = () => {
     }
   }, [currentUser, selectedReportUserId]);
   
-  // Check if current user is admin (moved up for early use)
+  // Check if current user is admin using systemRoles (consolidated role system)
   const isAdminUser = () => {
     if (!currentUser) return false;
-    if (currentUser.roleId === 'admin') return true;
-    const userRole = customRoles.find(r => r.id === currentUser.roleId);
-    return userRole?.name === 'Admin';
+    return currentUser.systemRoles?.includes('platform_admin') || 
+           currentUser.systemRoles?.includes('support_admin');
   };
 
-  // Check if current user is a super admin (platform_admin or support_admin or Admin role)
-  const isSuperAdmin = currentUser?.systemRoles?.includes('platform_admin') || 
-                       currentUser?.systemRoles?.includes('support_admin') ||
-                       isAdminUser();
+  // isSuperAdmin is same as isAdminUser now (consolidated)
+  const isSuperAdmin = isAdminUser();
 
   // All active timers state (for super admins)
   const [allActiveTimers, setAllActiveTimers] = useState<any[]>([]);

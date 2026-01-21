@@ -37,7 +37,7 @@ import {
 import { getRoleName, isAdmin } from "@/utils/roleUtils";
 
 export default function AdminUsers() {
-  const { users, clients, updateUser, deleteUser, customRoles, currentUser } = useAppContext();
+  const { users, clients, updateUser, deleteUser, currentUser } = useAppContext();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -48,7 +48,7 @@ export default function AdminUsers() {
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getRoleName(user, customRoles).toLowerCase().includes(searchTerm.toLowerCase())
+    getRoleName(user).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   console.log('🔍 AdminUsers Debug - Total users:', users.length);
@@ -174,7 +174,7 @@ export default function AdminUsers() {
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">
-                    {getRoleName(user, customRoles)}
+                    {getRoleName(user)}
                   </Badge>
                 </TableCell>
                 <TableCell>
