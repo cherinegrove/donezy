@@ -4,7 +4,6 @@ import { useAppContext } from "@/contexts/AppContext";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminActivity from "@/components/admin/AdminActivity";
 import AdminTeams from "@/components/admin/AdminTeams";
-import AdminRoles from "@/components/admin/AdminRoles";
 import { TaskStatusManager } from "@/components/admin/TaskStatusManager";
 import { ProjectStatusManager } from "@/components/admin/ProjectStatusManager";
 import { CustomFieldsManager } from "@/components/admin/CustomFieldsManager";
@@ -66,7 +65,6 @@ const Admin = () => {
           <TabsTrigger value="data-import">Data Import</TabsTrigger>
           <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
-          <TabsTrigger value="account-roles">Account Roles</TabsTrigger>
           <TabsTrigger value="activity">Activity Log</TabsTrigger>
           <TabsTrigger value="account-settings">Account Settings</TabsTrigger>
         </TabsList>
@@ -185,9 +183,6 @@ const Admin = () => {
           <AdminTeams />
         </TabsContent>
 
-        <TabsContent value="account-roles" className="space-y-6">
-          <AdminRoles />
-        </TabsContent>
 
         <TabsContent value="activity" className="space-y-6">
           <AdminActivity />
