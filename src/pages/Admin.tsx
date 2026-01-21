@@ -20,16 +20,19 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { SystemPreferences } from "@/components/admin/SystemPreferences";
 import { DefaultNotificationSettings } from "@/components/admin/DefaultNotificationSettings";
 import { EmailTemplatesManager } from "@/components/admin/EmailTemplatesManager";
-import { isAdmin } from "@/utils/roleUtils";
+
+// Helper to check if user has admin system role
+const hasAdminRole = (user: any) => {
+  return user?.systemRoles?.includes('platform_admin') || 
+         user?.systemRoles?.includes('support_admin');
+};
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("overview");
-  const { currentUser, users, customRoles } = useAppContext();
+  const { currentUser, users } = useAppContext();
 
-  // Allow admin access for demo purposes - remove this in production
-  const allowAdminAccess = true; // Set to false in production
-  
-  if (!allowAdminAccess && !isAdmin(currentUser, customRoles)) {
+  // Check admin access using systemRoles
+  if (!hasAdminRole(currentUser)) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">

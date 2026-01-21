@@ -16,14 +16,12 @@ import {
 
 function SidebarContent() {
   const location = useLocation();
-  const { currentUser, customRoles } = useAppContext();
+  const { currentUser } = useAppContext();
   const { setMobileOpen, isMobile } = useSidebar();
   
-  // Check if user is admin
-  const userRole = currentUser && customRoles.find(r => r.id === currentUser.roleId);
-  const directRoleCheck = currentUser?.roleId?.toLowerCase().includes('admin');
-  const customRoleCheck = userRole?.name?.toLowerCase().includes('admin');
-  const isAdmin = directRoleCheck || customRoleCheck;
+  // Check if user is admin using systemRoles (consolidated role system)
+  const isAdmin = currentUser?.systemRoles?.includes('platform_admin') || 
+                  currentUser?.systemRoles?.includes('support_admin');
 
   const handleNavClick = () => {
     if (isMobile) {

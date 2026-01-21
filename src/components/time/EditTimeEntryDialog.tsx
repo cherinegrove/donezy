@@ -27,16 +27,19 @@ interface EditTimeEntryDialogProps {
 
 export function EditTimeEntryDialog({ isOpen, onClose, timeEntry, isNewEntry = false }: EditTimeEntryDialogProps) {
   const { toast } = useToast();
-  const { 
+const { 
     projects, 
     tasks, 
     clients, 
     currentUser, 
     addTimeEntry, 
     updateTimeEntry,
-    getTaskById,
-    customRoles
+    getTaskById
   } = useAppContext();
+  
+  // Check admin using systemRoles
+  const isAdmin = currentUser?.systemRoles?.includes('platform_admin') || 
+                  currentUser?.systemRoles?.includes('support_admin');
   
   // Form state
   const [projectId, setProjectId] = useState<string>("");
@@ -379,7 +382,7 @@ export function EditTimeEntryDialog({ isOpen, onClose, timeEntry, isNewEntry = f
               />
             </div>
             
-            {currentUser && customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin' && (
+            {isAdmin && (
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select value={status} onValueChange={(value) => setStatus(value as TimeEntryStatus)}>
