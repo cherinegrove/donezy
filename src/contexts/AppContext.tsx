@@ -419,6 +419,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const convertedTimeEntries = data?.map((entry: any) => ({
         id: entry.id,
         userId: entry.user_id,
+        authUserId: entry.auth_user_id, // Also track auth_user_id for robust matching
         taskId: entry.task_id || '',
         projectId: entry.project_id || undefined,
         clientId: entry.client_id || undefined,
@@ -442,10 +443,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
       
       // Cleanup: Find and fix multiple active timers for current user
-      // Check both userId and auth_user_id fields for compatibility
+      // Check both userId (text) and authUserId (uuid) fields for robust matching
       const activeEntries = convertedTimeEntries.filter(entry => 
-        !entry.endTime && entry.userId === currentAuthUserId
+        !entry.endTime && (
+          entry.userId === currentAuthUserId || 
+          entry.authUserId === currentAuthUserId ||
+          entry.userId === currentAuthUserId.toString()
+        )
       );
+      
+      console.log('🔍 Active timer detection:', { currentAuthUserId, totalEntries: convertedTimeEntries.length, activeFound: activeEntries.length });
       
       console.log('🎯 Found active entries for auth user:', currentAuthUserId, activeEntries);
       
