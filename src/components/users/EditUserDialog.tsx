@@ -8,7 +8,15 @@ import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/contexts/AppContext";
 import { User } from "@/types";
 import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
+import { Shield, ShieldAlert } from "lucide-react";
 
+interface SystemRole {
+  id: string;
+  name: 'platform_admin' | 'support_admin';
+  description: string | null;
+}
 
 interface EditUserDialogProps {
   user?: User;
@@ -17,15 +25,8 @@ interface EditUserDialogProps {
 }
 
 export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
-  const { addUser, updateUser, teams, customRoles } = useAppContext();
+  const { addUser, updateUser, teams, currentUser } = useAppContext();
   const { toast } = useToast();
-  
-  // Fallback options when context data is empty
-  const fallbackRoles = [
-    { id: "admin", name: "Admin", color: "#ef4444", isBuiltIn: true },
-    { id: "manager", name: "Manager", color: "#f59e0b", isBuiltIn: true },
-    { id: "user", name: "User", color: "#10b981", isBuiltIn: true }
-  ];
   
   const fallbackTeams = [
     { id: "development", name: "Development" },
@@ -33,17 +34,71 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
     { id: "marketing", name: "Marketing" }
   ];
   
-  const availableRoles = customRoles.length > 0 ? customRoles : fallbackRoles;
   const availableTeams = teams.length > 0 ? teams : fallbackTeams;
+  
+  // Form state
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [phone, setPhone] = useState("");
-  const [roleId, setRoleId] = useState("");
   const [status, setStatus] = useState<'active' | 'inactive' | 'deleted'>('active');
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
+  
+  // System roles state
+  const [systemRoles, setSystemRoles] = useState<SystemRole[]>([]);
+  const [selectedSystemRole, setSelectedSystemRole] = useState<string>("none");
+  const [currentUserSystemRoleId, setCurrentUserSystemRoleId] = useState<string | null>(null);
+  const [loadingRoles, setLoadingRoles] = useState(false);
 
   const isEditing = !!user;
+  
+  // Check if current user can assign system roles
+  const canAssignRoles = currentUser?.systemRoles?.includes('platform_admin');
+
+  // Load system roles and user's current role assignment
+  useEffect(() => {
+    const loadSystemRoles = async () => {
+      if (!isOpen) return;
+      
+      setLoadingRoles(true);
+      try {
+        // Fetch available system roles
+        const { data: roles, error: rolesError } = await supabase
+          .from('system_roles')
+          .select('*');
+        
+        if (rolesError) throw rolesError;
+        setSystemRoles(roles || []);
+        
+        // If editing, fetch user's current system role
+        if (user) {
+          const { data: userRoles, error: userRolesError } = await supabase
+            .from('user_system_roles')
+            .select('id, system_role_id')
+            .eq('user_id', user.auth_user_id)
+            .maybeSingle();
+          
+          if (userRolesError && userRolesError.code !== 'PGRST116') {
+            console.error('Error fetching user system role:', userRolesError);
+          }
+          
+          if (userRoles) {
+            setSelectedSystemRole(userRoles.system_role_id);
+            setCurrentUserSystemRoleId(userRoles.id);
+          } else {
+            setSelectedSystemRole("none");
+            setCurrentUserSystemRoleId(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading system roles:', error);
+      } finally {
+        setLoadingRoles(false);
+      }
+    };
+    
+    loadSystemRoles();
+  }, [isOpen, user]);
 
   useEffect(() => {
     if (user) {
@@ -51,7 +106,6 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
       setEmail(user.email);
       setJobTitle(user.jobTitle || "");
       setPhone(user.phone || "");
-      setRoleId(user.roleId);
       setStatus(user.status || 'active');
       setSelectedTeamIds(user.teamIds || []);
     } else {
@@ -59,11 +113,12 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
       setEmail("");
       setJobTitle("");
       setPhone("");
-      setRoleId(availableRoles.find(r => r.name === 'User')?.id || "");
       setStatus('active');
       setSelectedTeamIds([]);
+      setSelectedSystemRole("none");
+      setCurrentUserSystemRoleId(null);
     }
-  }, [user, availableRoles, isOpen]);
+  }, [user, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,26 +132,48 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
       return;
     }
 
-    if (!roleId) {
-      toast({
-        title: "Error", 
-        description: "Please select a role",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       if (isEditing && user) {
+        // Update user basic info
         updateUser(user.auth_user_id, {
           name,
           email,
           jobTitle,
           phone,
-          roleId,
           status,
           teamIds: selectedTeamIds
         });
+        
+        // Handle system role changes if user can assign roles
+        if (canAssignRoles) {
+          // Remove existing role if changing to none or different role
+          if (currentUserSystemRoleId && selectedSystemRole !== currentUserSystemRoleId) {
+            await supabase
+              .from('user_system_roles')
+              .delete()
+              .eq('id', currentUserSystemRoleId);
+          }
+          
+          // Add new role if selected
+          if (selectedSystemRole !== "none" && selectedSystemRole !== currentUserSystemRoleId) {
+            const { error: insertError } = await supabase
+              .from('user_system_roles')
+              .insert({
+                user_id: user.auth_user_id,
+                system_role_id: selectedSystemRole,
+                assigned_by: currentUser?.auth_user_id
+              });
+            
+            if (insertError) {
+              console.error('Error assigning system role:', insertError);
+              toast({
+                title: "Warning",
+                description: "User updated but system role assignment failed",
+                variant: "destructive",
+              });
+            }
+          }
+        }
         
         toast({
           title: "User updated",
@@ -108,7 +185,7 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
           email,
           jobTitle,
           phone,
-          roleId,
+          roleId: "user", // Default roleId for backwards compatibility
           status,
           avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${name}`,
           teamIds: selectedTeamIds,
@@ -117,17 +194,19 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
         
         toast({
           title: "User created",
-          description: "The user has been created successfully.",
+          description: "The user has been created successfully. System role can be assigned after creation.",
         });
       }
 
+      // Reset form
       setName("");
       setEmail("");
       setJobTitle("");
       setPhone("");
-      setRoleId(availableRoles.find(r => r.name === 'User')?.id || "");
       setStatus('active');
       setSelectedTeamIds([]);
+      setSelectedSystemRole("none");
+      setCurrentUserSystemRoleId(null);
       onClose();
     } catch (error) {
       console.error("Error saving user:", error);
@@ -147,9 +226,20 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
     );
   };
 
+  const getSystemRoleLabel = (roleName: string) => {
+    switch (roleName) {
+      case 'platform_admin':
+        return 'Platform Admin';
+      case 'support_admin':
+        return 'Support Admin';
+      default:
+        return roleName;
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose} modal={true}>
-      <DialogContent className="sm:max-w-[425px] pointer-events-auto" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-[500px] pointer-events-auto" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Edit User" : "Add New User"}
@@ -205,31 +295,47 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
+            {/* System Role Selector */}
             <div>
-              <Label htmlFor="role">Role *</Label>
-            <Select value={roleId} onValueChange={setRoleId}>
+              <Label htmlFor="systemRole" className="flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4" />
+                System Role
+              </Label>
+              <Select 
+                value={selectedSystemRole} 
+                onValueChange={setSelectedSystemRole}
+                disabled={!canAssignRoles || loadingRoles || !isEditing}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a role" />
+                  <SelectValue placeholder={loadingRoles ? "Loading..." : "Select role"} />
                 </SelectTrigger>
                 <SelectContent className="z-[9999]" position="popper" sideOffset={4}>
-                  {availableRoles.map(role => (
+                  <SelectItem value="none">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-muted" />
+                      <span>Regular User</span>
+                    </div>
+                  </SelectItem>
+                  {systemRoles.map(role => (
                     <SelectItem key={role.id} value={role.id}>
                       <div className="flex items-center gap-2">
-                        {role.color && (
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: role.color }}
-                          />
-                        )}
-                        <span>{role.name}</span>
-                        {role.isBuiltIn && (
-                          <span className="text-xs text-muted-foreground">(Built-in)</span>
-                        )}
+                        <Shield className="h-3 w-3 text-primary" />
+                        <span>{getSystemRoleLabel(role.name)}</span>
                       </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {!canAssignRoles && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Only Platform Admins can assign system roles
+                </p>
+              )}
+              {!isEditing && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  System role can be assigned after user is created
+                </p>
+              )}
             </div>
 
             <div>
@@ -246,6 +352,19 @@ export function EditUserDialog({ user, isOpen, onClose }: EditUserDialogProps) {
               </Select>
             </div>
           </div>
+
+          {/* Current role display */}
+          {isEditing && user?.systemRoles && user.systemRoles.length > 0 && (
+            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+              <Shield className="h-4 w-4 text-primary" />
+              <span className="text-sm">Current roles:</span>
+              {user.systemRoles.map(role => (
+                <Badge key={role} variant="secondary" className="bg-primary/10 text-primary">
+                  {getSystemRoleLabel(role)}
+                </Badge>
+              ))}
+            </div>
+          )}
 
            <div>
              <Label>Teams</Label>
