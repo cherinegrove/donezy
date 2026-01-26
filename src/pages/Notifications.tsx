@@ -12,6 +12,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { NotificationReplySection } from "@/components/notifications/NotificationReplySection";
 
 export default function Notifications() {
   const { messages, users, projects, tasks, currentUser, markMessageAsRead, clients, taskStatuses } = useAppContext();
@@ -219,6 +220,7 @@ export default function Notifications() {
               const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done';
 
               return (
+                <>
                 <Card>
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -364,6 +366,10 @@ export default function Notifications() {
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Reply Section */}
+                <NotificationReplySection taskId={task.id} />
+              </>
               );
             })()}
 
