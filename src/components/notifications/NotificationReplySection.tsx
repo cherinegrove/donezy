@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Send, Loader2, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { MentionDropdown } from "@/components/messages/MentionDropdown";
+import { User } from "@/types";
 
 interface NotificationReplySectionProps {
   taskId: string;
@@ -19,6 +21,9 @@ export function NotificationReplySection({ taskId }: NotificationReplySectionPro
   const { tasks, users, currentUser, addComment, createMessage } = useAppContext();
   const [replyContent, setReplyContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [cursorPosition, setCursorPosition] = useState(0);
   const { toast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -26,6 +31,90 @@ export function NotificationReplySection({ taskId }: NotificationReplySectionPro
   if (!task) return null;
 
   const recentComments = (task.comments || []).slice(-3);
+  const otherUsers = users.filter(user => user.auth_user_id !== currentUser?.auth_user_id);
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const text = e.target.value;
+    const cursorPos = e.target.selectionStart || 0;
+    
+    setReplyContent(text);
+    setCursorPosition(cursorPos);
+    
+    // Check for @ mentions
+    if (cursorPos > 0) {
+      const textBeforeCursor = text.substring(0, cursorPos);
+      const atIndex = textBeforeCursor.lastIndexOf('@');
+      
+      if (atIndex !== -1) {
+        // Check if @ is at start or preceded by whitespace
+        const charBeforeAt = atIndex > 0 ? textBeforeCursor[atIndex - 1] : ' ';
+        const isValidMentionStart = atIndex === 0 || /\s/.test(charBeforeAt);
+        
+        if (isValidMentionStart) {
+          const query = textBeforeCursor.substring(atIndex + 1);
+          
+          // Only show mentions if there's no space in the query (still typing the mention)
+          if (!query.includes(' ') && query.length <= 20) {
+            setMentionQuery(query);
+            setMentionOpen(true);
+            return;
+          }
+        }
+      }
+    }
+    
+    // Close mentions if not in a valid mention context
+    if (mentionOpen) {
+      setMentionOpen(false);
+      setMentionQuery("");
+    }
+  };
+
+  const handleSelectUser = (user: User) => {
+    if (!textareaRef.current) return;
+    
+    const text = replyContent;
+    const beforeCursor = text.substring(0, cursorPosition);
+    const afterCursor = text.substring(cursorPosition);
+    
+    const atIndex = beforeCursor.lastIndexOf('@');
+    
+    if (atIndex !== -1) {
+      const newText = 
+        beforeCursor.substring(0, atIndex) + 
+        `@${user.name} ` + 
+        afterCursor;
+      
+      setReplyContent(newText);
+      
+      // Focus and set cursor position after the mention
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          const newCursorPos = atIndex + user.name.length + 2;
+          textareaRef.current.selectionStart = newCursorPos;
+          textareaRef.current.selectionEnd = newCursorPos;
+        }
+      }, 0);
+    }
+    
+    setMentionOpen(false);
+    setMentionQuery("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Close mentions on Escape
+    if (e.key === 'Escape' && mentionOpen) {
+      setMentionOpen(false);
+      setMentionQuery("");
+    }
+    
+    // Submit on Ctrl+Enter
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSubmitReply(e as unknown as React.FormEvent);
+    }
+  };
 
   const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,14 +124,15 @@ export function NotificationReplySection({ taskId }: NotificationReplySectionPro
 
     try {
       // Extract mentioned users from the content
-      const mentionRegex = /@(\w+)/g;
+      const mentionRegex = /@(\w+(?:\s+\w+)?)/g;
       const mentionMatches = [...replyContent.matchAll(mentionRegex)];
 
       const mentionedUserIds: string[] = [];
       mentionMatches.forEach((match) => {
-        const firstName = match[1];
+        const mentionName = match[1];
         const mentionedUser = users.find((u) => 
-          u.name.toLowerCase().startsWith(firstName.toLowerCase())
+          u.name.toLowerCase() === mentionName.toLowerCase() ||
+          u.name.toLowerCase().startsWith(mentionName.toLowerCase())
         );
         if (mentionedUser && !mentionedUserIds.includes(mentionedUser.auth_user_id)) {
           mentionedUserIds.push(mentionedUser.auth_user_id);
@@ -60,7 +150,9 @@ export function NotificationReplySection({ taskId }: NotificationReplySectionPro
       
       toast({
         title: "Reply Sent",
-        description: "Your reply has been added to the task",
+        description: mentionedUserIds.length > 0 
+          ? "Your reply has been added and mentioned users were notified"
+          : "Your reply has been added to the task",
       });
 
       // Send notifications in background
@@ -201,20 +293,28 @@ export function NotificationReplySection({ taskId }: NotificationReplySectionPro
                 <AvatarImage src={currentUser.avatar} />
                 <AvatarFallback>{currentUser.name?.substring(0, 2)}</AvatarFallback>
               </Avatar>
-              <div className="flex-1">
+              <div className="flex-1 relative">
                 <Textarea
                   ref={textareaRef}
                   value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder="Write a reply... Use @name to mention someone"
+                  onChange={handleTextareaChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Write a reply... Type @ to mention someone"
                   className="min-h-[60px] resize-none text-sm"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                      e.preventDefault();
-                      handleSubmitReply(e);
-                    }
-                  }}
                 />
+                
+                {/* Mention Dropdown */}
+                {mentionOpen && (
+                  <div className="absolute bottom-full mb-1 left-0 z-50">
+                    <MentionDropdown
+                      users={otherUsers}
+                      onSelect={handleSelectUser}
+                      isOpen={mentionOpen}
+                      searchQuery={mentionQuery}
+                      className="shadow-lg border"
+                    />
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex justify-end">
