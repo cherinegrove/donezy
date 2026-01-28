@@ -2262,7 +2262,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // First, stop ALL active timers for this user in the database (belt and suspenders)
       const { data: activeTimers, error: fetchError } = await supabase
         .from('time_entries')
-        .select('id, start_time')
+        .select('id, start_time, task_id, project_id, client_id')
         .eq('user_id', currentUser.id)
         .is('end_time', null);
       
@@ -2284,8 +2284,50 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             newTaskId: taskId
           });
           
-          // Broadcast event to TimerBox to convert to local-only paused timer
-          // Include all the data needed to recreate the timer locally
+          // CRITICAL FIX: Save the paused timer DIRECTLY to localStorage here
+          // Don't rely on TimerBox event listener which may not be mounted
+          // Get task/project/client info for the local timer
+          const pausedTask = tasks.find(t => t.id === timer.task_id);
+          const pausedProject = projects.find(p => p.id === pausedTask?.projectId);
+          const pausedClient = clients.find(c => c.id === pausedProject?.clientId);
+          
+          const localTimer = {
+            id: timer.id,
+            taskId: timer.task_id || '',
+            taskTitle: pausedTask?.title || 'Unknown Task',
+            projectName: pausedProject?.name,
+            clientName: pausedClient?.name,
+            projectId: pausedProject?.id,
+            clientId: pausedClient?.id,
+            startTime: new Date(timer.start_time).toISOString(),
+            elapsed: elapsedMs,
+            isPaused: true,
+            pausedAt: new Date().toISOString(),
+            totalPausedTime: totalPausedTime,
+            isActive: false,
+            isLocalOnly: true,
+            userId: currentUser.id
+          };
+          
+          // Read existing timers, add this one, and save
+          try {
+            const existingTimersJson = localStorage.getItem('activeTimers');
+            const existingTimers = existingTimersJson ? JSON.parse(existingTimersJson) : [];
+            
+            // Remove any existing timer with same ID to avoid duplicates
+            const filteredTimers = existingTimers.filter((t: any) => t.id !== timer.id);
+            filteredTimers.push(localTimer);
+            
+            localStorage.setItem('activeTimers', JSON.stringify(filteredTimers));
+            console.log('💾 Saved paused timer to localStorage:', timer.id.slice(0, 8), localTimer.taskTitle);
+            
+            // Notify other components that timers have been updated
+            window.dispatchEvent(new CustomEvent('timersUpdated'));
+          } catch (err) {
+            console.error('Error saving paused timer to localStorage:', err);
+          }
+          
+          // Also broadcast event for TimerBox UI update (if mounted)
           window.dispatchEvent(new CustomEvent('pauseActiveTimer', { 
             detail: { 
               timerId: timer.id,
