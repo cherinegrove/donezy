@@ -2031,7 +2031,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           .from('time_entries')
           .select('id, start_time')
           .eq('user_id', currentUser.id)
-          .is('end_time', null);
+          .in('timer_status', ['active', 'paused']);
         
         if (!fetchError && activeTimers && activeTimers.length > 0) {
           console.log(`⚠️ Found ${activeTimers.length} active timer(s) that should have been stopped - stopping now`);
@@ -2264,7 +2264,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .from('time_entries')
         .select('id, start_time, task_id, project_id, client_id')
         .eq('user_id', currentUser.id)
-        .is('end_time', null);
+        .in('timer_status', ['active', 'paused']);
       
       if (fetchError) {
         console.error('Error fetching active timers:', fetchError);
@@ -2610,6 +2610,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setPausedAt(new Date());
     console.log('⏸️ Timer paused in AppContext');
     
+    // Update timer_status in database
+    await supabase
+      .from('time_entries')
+      .update({ timer_status: 'paused' })
+      .eq('id', activeTimeEntry.id);
+    
     // Log the pause event
     await logTimeEntryEvent(activeTimeEntry.id, 'paused', {
       pausedAt: new Date().toISOString()
@@ -2634,6 +2640,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setIsTimerPaused(false);
     setPausedAt(null);
     console.log('✅ Timer resumed successfully. Pause duration:', Math.floor(pauseDuration / (1000 * 60)), 'minutes');
+    
+    // Update timer_status in database
+    await supabase
+      .from('time_entries')
+      .update({ timer_status: 'active' })
+      .eq('id', activeTimeEntry.id);
     
     // Log the resume event with calculated pause duration
     await logTimeEntryEvent(activeTimeEntry.id, 'resumed', {

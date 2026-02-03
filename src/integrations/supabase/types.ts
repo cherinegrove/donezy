@@ -1865,6 +1865,7 @@ export type Database = {
           start_time: string
           status: string | null
           task_id: string | null
+          timer_status: string | null
           updated_at: string
           user_id: string
         }
@@ -1884,6 +1885,7 @@ export type Database = {
           start_time: string
           status?: string | null
           task_id?: string | null
+          timer_status?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1903,6 +1905,7 @@ export type Database = {
           start_time?: string
           status?: string | null
           task_id?: string | null
+          timer_status?: string | null
           updated_at?: string
           user_id?: string
         }
