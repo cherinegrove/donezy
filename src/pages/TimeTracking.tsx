@@ -108,7 +108,7 @@ const TimeTracking = () => {
         supabase
           .from('time_entries')
           .select('*')
-          .is('end_time', null)
+          .in('timer_status', ['active', 'paused'])
           .order('start_time', { ascending: false }),
         supabase
           .from('time_entry_events')

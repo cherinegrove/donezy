@@ -434,7 +434,7 @@ async function startTimer() {
   // Stop any existing active timer before starting a new one
   try {
     const existingResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/time_entries?auth_user_id=eq.${currentSession.user.id}&end_time=is.null`,
+      `${SUPABASE_URL}/rest/v1/time_entries?auth_user_id=eq.${currentSession.user.id}&timer_status=in.(active,paused)`,
       {
         headers: {
           'apikey': SUPABASE_ANON_KEY,
@@ -580,7 +580,7 @@ function updateTimerDisplay() {
 async function checkActiveTimer() {
   try {
     const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/time_entries?auth_user_id=eq.${currentSession.user.id}&end_time=is.null&order=created_at.desc&limit=1`,
+      `${SUPABASE_URL}/rest/v1/time_entries?auth_user_id=eq.${currentSession.user.id}&timer_status=in.(active,paused)&order=created_at.desc&limit=1`,
       {
         headers: {
           'apikey': SUPABASE_ANON_KEY,
