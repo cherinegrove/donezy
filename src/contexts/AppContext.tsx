@@ -2272,8 +2272,55 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         console.log(`⏸️ Found ${activeTimers.length} active timer(s) to pause (not stop)`);
         
         for (const timer of activeTimers) {
-          // Calculate elapsed time for this timer
-          const elapsedMs = Date.now() - new Date(timer.start_time).getTime() - totalPausedTime;
+          // FIX: Calculate elapsed time using THIS TIMER's specific pause events
+          // NOT the global totalPausedTime which may belong to a different timer
+          let timerPausedTime = 0;
+          
+          try {
+            // Fetch pause/resume events specifically for this timer
+            const { data: timerEvents, error: eventsError } = await supabase
+              .from('time_entry_events')
+              .select('event_type, event_timestamp')
+              .eq('time_entry_id', timer.id)
+              .in('event_type', ['paused', 'resumed', 'auto_paused'])
+              .order('event_timestamp', { ascending: true });
+            
+            if (!eventsError && timerEvents && timerEvents.length > 0) {
+              let lastPauseTime: Date | null = null;
+              
+              for (const event of timerEvents) {
+                const eventTime = new Date(event.event_timestamp);
+                
+                if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
+                  lastPauseTime = eventTime;
+                } else if (event.event_type === 'resumed' && lastPauseTime) {
+                  timerPausedTime += eventTime.getTime() - lastPauseTime.getTime();
+                  lastPauseTime = null;
+                }
+              }
+              
+              // If timer is currently paused (lastPauseTime set but no resume), add time to now
+              if (lastPauseTime) {
+                timerPausedTime += Date.now() - lastPauseTime.getTime();
+              }
+              
+              console.log(`📊 Timer ${timer.id.slice(0, 8)} pause time from events: ${Math.floor(timerPausedTime / (1000 * 60))} minutes`);
+            }
+          } catch (err) {
+            console.warn('Error fetching timer events, using raw elapsed:', err);
+            // Fallback: use 0 paused time (raw elapsed)
+          }
+          
+          // Calculate elapsed time using the timer's own pause history
+          const rawElapsed = Date.now() - new Date(timer.start_time).getTime();
+          const elapsedMs = Math.max(0, rawElapsed - timerPausedTime);
+          
+          console.log(`⏱️ Timer ${timer.id.slice(0, 8)} elapsed calculation:`, {
+            rawElapsedMs: rawElapsed,
+            timerPausedTimeMs: timerPausedTime,
+            finalElapsedMs: elapsedMs,
+            finalElapsedMin: Math.floor(elapsedMs / (1000 * 60))
+          });
           
           // Log the auto-pause event BEFORE deleting the timer
           // This creates a clear audit trail showing why the timer was paused
@@ -2281,6 +2328,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             reason: 'New timer started',
             pausedAt: new Date().toISOString(),
             elapsedMs: elapsedMs,
+            timerPausedTime: timerPausedTime,
             newTaskId: taskId
           });
           
@@ -2303,7 +2351,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             elapsed: elapsedMs,
             isPaused: true,
             pausedAt: new Date().toISOString(),
-            totalPausedTime: totalPausedTime,
+            totalPausedTime: timerPausedTime, // Use the timer's OWN paused time, not global state
             isActive: false,
             isLocalOnly: true,
             userId: currentUser.id
@@ -2332,7 +2380,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             detail: { 
               timerId: timer.id,
               elapsed: elapsedMs,
-              totalPausedTime: totalPausedTime
+              totalPausedTime: timerPausedTime // Use timer's OWN paused time
             } 
           }));
           
