@@ -2443,11 +2443,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     const endTime = new Date();
     const startTime = new Date(activeTimeEntry.startTime);
+    const rawDurationMs = endTime.getTime() - startTime.getTime();
     
-    // Calculate duration from event logs for accuracy (volatile state can be lost on refresh)
-    // Fetch all pause/resume events to calculate total paused time
+    // FIX 4: Event validation for duration calculation
+    // Calculate duration from event logs with validation and fallback
     let totalPausedFromEvents = 0;
-    let lastPauseTime: Date | null = null;
+    let eventsValid = true;
+    let eventValidationWarnings: string[] = [];
     
     try {
       const { data: events, error } = await supabase
@@ -2457,33 +2459,94 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .in('event_type', ['paused', 'resumed', 'auto_paused'])
         .order('event_timestamp', { ascending: true });
       
-      if (!error && events) {
-        for (const event of events) {
+      if (error) {
+        eventsValid = false;
+        eventValidationWarnings.push(`DB error fetching events: ${error.message}`);
+      } else if (events && events.length > 0) {
+        let lastPauseTime: Date | null = null;
+        let expectingResume = false;
+        
+        for (let i = 0; i < events.length; i++) {
+          const event = events[i];
           const eventTime = new Date(event.event_timestamp);
           
+          // Validation: Check event timestamp is within timer bounds
+          if (eventTime < startTime) {
+            eventValidationWarnings.push(`Event ${event.event_type} at ${event.event_timestamp} is before timer start`);
+            eventsValid = false;
+            continue;
+          }
+          if (eventTime > endTime) {
+            eventValidationWarnings.push(`Event ${event.event_type} at ${event.event_timestamp} is after timer end`);
+            eventsValid = false;
+            continue;
+          }
+          
           if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
+            // Validation: Check for double-pause without resume
+            if (expectingResume && lastPauseTime) {
+              eventValidationWarnings.push(`Double pause detected: paused at ${lastPauseTime.toISOString()} then ${event.event_type} at ${eventTime.toISOString()} without resume`);
+              // Still process it - use the new pause time (overwrite)
+            }
             lastPauseTime = eventTime;
-          } else if (event.event_type === 'resumed' && lastPauseTime) {
-            // Calculate actual pause duration from events, not from the (potentially wrong) logged pauseDuration
-            totalPausedFromEvents += eventTime.getTime() - lastPauseTime.getTime();
+            expectingResume = true;
+          } else if (event.event_type === 'resumed') {
+            if (!lastPauseTime) {
+              // Resume without pause - skip this event
+              eventValidationWarnings.push(`Resume at ${eventTime.toISOString()} without prior pause - skipping`);
+              continue;
+            }
+            const pauseDuration = eventTime.getTime() - lastPauseTime.getTime();
+            
+            // Validation: Check for negative or impossibly long pauses
+            if (pauseDuration < 0) {
+              eventValidationWarnings.push(`Negative pause duration: ${pauseDuration}ms`);
+              eventsValid = false;
+            } else if (pauseDuration > rawDurationMs) {
+              eventValidationWarnings.push(`Pause duration (${pauseDuration}ms) exceeds total timer duration (${rawDurationMs}ms)`);
+              eventsValid = false;
+            } else {
+              totalPausedFromEvents += pauseDuration;
+            }
             lastPauseTime = null;
+            expectingResume = false;
           }
         }
         
         // If still paused (lastPauseTime is set), add time from last pause to now
         if (lastPauseTime) {
-          totalPausedFromEvents += endTime.getTime() - lastPauseTime.getTime();
+          const finalPauseDuration = endTime.getTime() - lastPauseTime.getTime();
+          if (finalPauseDuration >= 0 && finalPauseDuration <= rawDurationMs) {
+            totalPausedFromEvents += finalPauseDuration;
+          } else {
+            eventValidationWarnings.push(`Final pause duration invalid: ${finalPauseDuration}ms`);
+            eventsValid = false;
+          }
         }
         
-        console.log('📊 Calculated pause time from events:', Math.floor(totalPausedFromEvents / (1000 * 60)), 'minutes');
+        // Final validation: total paused time shouldn't exceed raw duration
+        if (totalPausedFromEvents > rawDurationMs) {
+          eventValidationWarnings.push(`Total paused time (${totalPausedFromEvents}ms) exceeds raw duration (${rawDurationMs}ms)`);
+          eventsValid = false;
+        }
+        
+        console.log('📊 Event-based pause calculation:', {
+          totalPausedMs: totalPausedFromEvents,
+          totalPausedMinutes: Math.floor(totalPausedFromEvents / (1000 * 60)),
+          eventsValid,
+          eventCount: events.length
+        });
       }
     } catch (err) {
       console.error('Error fetching events for pause calculation:', err);
+      eventsValid = false;
+      eventValidationWarnings.push(`Exception: ${err}`);
     }
     
-    // Use the larger of: calculated from events OR volatile state
-    // This ensures we don't lose pause time if events aren't logged correctly
-    let totalTimeToSubtract = totalPausedFromEvents;
+    // Log any validation warnings
+    if (eventValidationWarnings.length > 0) {
+      console.warn('⚠️ Event validation warnings:', eventValidationWarnings);
+    }
     
     // Also check volatile state as backup
     let volatilePausedTime = totalPausedTime;
@@ -2491,22 +2554,41 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       volatilePausedTime += Date.now() - pausedAt.getTime();
     }
     
-    // Log both for debugging
-    console.log('⏹️ Stopping timer - pause time comparison:', {
-      fromEvents: Math.floor(totalPausedFromEvents / (1000 * 60)),
-      fromState: Math.floor(volatilePausedTime / (1000 * 60))
-    });
+    // Determine which pause time to use
+    let totalTimeToSubtract: number;
+    let durationSource: string;
     
-    // Use event-based calculation (it's the source of truth)
-    const rawDuration = endTime.getTime() - startTime.getTime();
-    const duration = Math.max(0, Math.floor((rawDuration - totalTimeToSubtract) / (1000 * 60)));
+    if (eventsValid && totalPausedFromEvents > 0) {
+      // Events are valid - use event-based calculation
+      totalTimeToSubtract = totalPausedFromEvents;
+      durationSource = 'events';
+    } else if (!eventsValid && volatilePausedTime > 0 && volatilePausedTime < rawDurationMs) {
+      // Events invalid but volatile state looks reasonable - use it
+      totalTimeToSubtract = volatilePausedTime;
+      durationSource = 'volatile_state_fallback';
+      console.warn('⚠️ Using volatile state as fallback due to invalid events');
+    } else if (eventsValid && totalPausedFromEvents === 0) {
+      // No pause events and that's valid (timer never paused)
+      totalTimeToSubtract = 0;
+      durationSource = 'no_pauses';
+    } else {
+      // Fallback: use raw duration (no pause deduction)
+      totalTimeToSubtract = 0;
+      durationSource = 'raw_fallback';
+      console.warn('⚠️ Using raw duration - could not reliably calculate pause time');
+    }
+    
+    const duration = Math.max(0, Math.floor((rawDurationMs - totalTimeToSubtract) / (1000 * 60)));
     
     console.log('⏹️ Final duration calculation:', {
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
-      rawDurationMinutes: Math.floor(rawDuration / (1000 * 60)),
+      rawDurationMinutes: Math.floor(rawDurationMs / (1000 * 60)),
       totalPausedMinutes: Math.floor(totalTimeToSubtract / (1000 * 60)),
-      finalDurationMinutes: duration
+      finalDurationMinutes: duration,
+      durationSource,
+      eventsValid,
+      warningCount: eventValidationWarnings.length
     });
     
     await updateTimeEntry(activeTimeEntry.id, {
