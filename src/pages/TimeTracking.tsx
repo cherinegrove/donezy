@@ -2,7 +2,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { format, startOfMonth, endOfMonth, isWithinInterval, endOfDay, startOfDay } from "date-fns";
 import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus, Pause, Save, Edit, Download, FileText, Building2, Timer, RefreshCw, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ActiveTimersSection } from "@/components/time/ActiveTimersSection";
@@ -377,16 +377,20 @@ const TimeTracking = () => {
       const entryDate = new Date(entry.startTime);
       
       if (dateRange.from && dateRange.to) {
-        const inRange = isWithinInterval(entryDate, { start: dateRange.from, end: dateRange.to });
+        // Use startOfDay for from and endOfDay for to to include the entire day
+        const inRange = isWithinInterval(entryDate, { 
+          start: startOfDay(dateRange.from), 
+          end: endOfDay(dateRange.to) 
+        });
         if (!inRange) {
           return false;
         }
       } else if (dateRange.from) {
-        if (entryDate < dateRange.from) {
+        if (entryDate < startOfDay(dateRange.from)) {
           return false;
         }
       } else if (dateRange.to) {
-        if (entryDate > dateRange.to) {
+        if (entryDate > endOfDay(dateRange.to)) {
           return false;
         }
       }
