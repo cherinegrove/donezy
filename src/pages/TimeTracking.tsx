@@ -52,6 +52,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { EditTimeEntryDialog } from "@/components/time/EditTimeEntryDialog";
+import { StartTimerDialog } from "@/components/time/StartTimerDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -67,7 +68,7 @@ const TimeTracking = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [stopNotes, setStopNotes] = useState("");
-  
+  const [isStartTimerDialogOpen, setIsStartTimerDialogOpen] = useState(false);
   // Manual adjustments state for time entries
   const [manualAdjustments, setManualAdjustments] = useState<Record<string, { total: number; count: number }>>({});
   
@@ -1093,14 +1094,24 @@ const TimeTracking = () => {
             Track time spent on tasks and projects
           </p>
         </div>
-        <Button size="sm" className="w-full sm:w-auto" onClick={() => {
-          console.log('🟢 ADD MANUAL ENTRY BUTTON CLICKED');
-          handleAddNewEntry();
-        }}>
-          <Plus className="h-4 w-4 mr-1 sm:mr-2" />
-          <span className="hidden sm:inline">Add Manual Entry</span>
-          <span className="sm:hidden">Add Entry</span>
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => {
+            console.log('🟢 START TIMER BUTTON CLICKED');
+            setIsStartTimerDialogOpen(true);
+          }}>
+            <Play className="h-4 w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Start Timer</span>
+            <span className="sm:hidden">Start</span>
+          </Button>
+          <Button size="sm" className="w-full sm:w-auto" onClick={() => {
+            console.log('🟢 ADD MANUAL ENTRY BUTTON CLICKED');
+            handleAddNewEntry();
+          }}>
+            <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Add Manual Entry</span>
+            <span className="sm:hidden">Add Entry</span>
+          </Button>
+        </div>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -1783,6 +1794,19 @@ const TimeTracking = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Start Timer Dialog */}
+      <StartTimerDialog
+        open={isStartTimerDialogOpen}
+        onOpenChange={setIsStartTimerDialogOpen}
+        onStartTimer={() => {
+          // Timer started, dialog will close automatically
+          toast({
+            title: "Timer Started",
+            description: "Your timer is now running",
+          });
+        }}
+      />
     </div>
   );
 };
