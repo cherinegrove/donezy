@@ -258,9 +258,12 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
   const userTimeEntries = useMemo(() => {
     if (!targetUserId) return [];
     
+    // Find the user's record ID - targetUserId may be auth_user_id, so we need to resolve to record id
+    const userRecordId = targetUser?.id;
+    
     return timeEntries.filter(entry => {
-      // Filter by user
-      if (entry.userId !== targetUserId) return false;
+      // Filter by user - entry.userId stores the user record id, not auth_user_id
+      if (entry.userId !== userRecordId) return false;
 
       // Get task and project for filtering
       const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
@@ -298,7 +301,7 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
 
       return true;
     });
-  }, [timeEntries, targetUserId, selectedFilters, tasks, projects, clients]);
+  }, [timeEntries, targetUserId, targetUser, selectedFilters, tasks, projects, clients]);
 
   const calculatePeriodData = (startDate: Date, endDate: Date): PeriodData => {
     const entries = userTimeEntries.filter(entry => {
