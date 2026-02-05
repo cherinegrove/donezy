@@ -515,6 +515,13 @@ const TimeTracking = () => {
       
       if (!isInMonth || !isApproved) return false;
       
+      // Check user filter (admin only)
+      if (selectedFilters.user?.length > 0) {
+        if (!selectedFilters.user.includes(entry.userId)) {
+          return false;
+        }
+      }
+      
       // Apply selected filters
       const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
       const project = task ? projects.find(p => p.id === task.projectId) : 
@@ -534,6 +541,14 @@ const TimeTracking = () => {
       if (selectedFilters.project?.length > 0) {
         const projectId = project?.id || entry.projectId;
         if (!projectId || !selectedFilters.project.includes(projectId)) {
+          return false;
+        }
+      }
+      
+      // Check status filter - if "approved" is selected, this is already an approved entry
+      // If another status is selected but not approved, this entry should be excluded
+      if (selectedFilters.status?.length > 0) {
+        if (!selectedFilters.status.includes('approved')) {
           return false;
         }
       }
@@ -709,6 +724,13 @@ const TimeTracking = () => {
       
       if (!isInMonth || !isDeclined) return false;
       
+      // Check user filter (admin only)
+      if (selectedFilters.user?.length > 0) {
+        if (!selectedFilters.user.includes(entry.userId)) {
+          return false;
+        }
+      }
+      
       // Apply selected filters
       const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
       const project = task ? projects.find(p => p.id === task.projectId) : 
@@ -724,6 +746,14 @@ const TimeTracking = () => {
       if (selectedFilters.project?.length > 0) {
         const projectId = project?.id || entry.projectId;
         if (!projectId || !selectedFilters.project.includes(projectId)) return false;
+      }
+      
+      // Check status filter - if "declined" is selected, this is already a declined entry
+      // If another status is selected but not declined, this entry should be excluded
+      if (selectedFilters.status?.length > 0) {
+        if (!selectedFilters.status.includes('declined')) {
+          return false;
+        }
       }
       
       return true;
@@ -813,6 +843,11 @@ const TimeTracking = () => {
       // For non-admins, filter to only their own entries
       if (!isAdmin() && entry.userId !== currentUser?.id) return;
 
+      // Check user filter (admin only)
+      if (selectedFilters.user?.length > 0) {
+        if (!selectedFilters.user.includes(entry.userId)) return;
+      }
+
       // Apply selected filters
       const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
       const project = task ? projects.find(p => p.id === task.projectId) : 
@@ -828,6 +863,13 @@ const TimeTracking = () => {
       if (selectedFilters.project?.length > 0) {
         const projectId = project?.id || entry.projectId;
         if (!projectId || !selectedFilters.project.includes(projectId)) return;
+      }
+
+      // Check status filter
+      if (selectedFilters.status?.length > 0) {
+        const entryStatus = entry.status || 'pending';
+        const normalizedStatus = entryStatus.startsWith('approved') ? 'approved' : entryStatus;
+        if (!selectedFilters.status.includes(normalizedStatus)) return;
       }
 
       total += entry.duration;
