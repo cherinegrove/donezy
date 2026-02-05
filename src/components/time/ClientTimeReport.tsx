@@ -26,7 +26,7 @@ import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 type DatePreset = "this-week" | "last-week" | "this-month" | "last-month" | "last-3-months" | "custom";
 
 export function ClientTimeReport() {
-  const { timeEntries, projects, clients, tasks, currentUser, customRoles } = useAppContext();
+  const { timeEntries, projects, clients, tasks, currentUser, customRoles, users } = useAppContext();
   
   const [datePreset, setDatePreset] = useState<DatePreset>("this-month");
   const [customDateRange, setCustomDateRange] = useState<{
@@ -43,13 +43,23 @@ export function ClientTimeReport() {
   // Check if current user is admin
   const isAdmin = () => {
     if (!currentUser) return false;
-    if (currentUser.roleId === 'admin') return true;
-    const userRole = customRoles.find(r => r.id === currentUser.roleId);
-    return userRole?.name === 'Admin';
+    return currentUser.systemRoles?.includes('platform_admin') || 
+           currentUser.systemRoles?.includes('support_admin') ||
+           currentUser.roleId === 'admin' ||
+           customRoles.find(r => r.id === currentUser.roleId)?.name === 'Admin';
   };
 
-  // Create filter options - only show user filter for admins
+  // Create filter options - show user filter for admins
   const filterOptions: FilterOption[] = useMemo(() => [
+    // Only show user filter for admins
+    ...(isAdmin() ? [{
+      id: "user",
+      name: "User",
+      options: users.map(user => ({
+        id: user.id,
+        label: user.name
+      }))
+    }] : []),
     {
       id: "client",
       name: "Client",
@@ -75,7 +85,7 @@ export function ClientTimeReport() {
         { id: "declined", label: "Declined" }
       ]
     }
-  ], [clients, projects]);
+  ], [clients, projects, users, currentUser, customRoles]);
 
   // Calculate date range based on preset
   const dateRange = useMemo(() => {
@@ -113,6 +123,13 @@ export function ClientTimeReport() {
       // For non-admins, always filter to only their own entries
       if (!isAdmin() && entry.userId !== currentUser?.id) {
         return false;
+      }
+
+      // Check user filter (admin only)
+      if (selectedFilters.user?.length > 0) {
+        if (!selectedFilters.user.includes(entry.userId)) {
+          return false;
+        }
       }
 
       // Get task and project for filtering
