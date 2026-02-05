@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, TrendingUp, ChevronDown, ChevronRight, LucideIcon } from "lucide-react";
+import { Clock, Calendar, TrendingUp, ChevronDown, ChevronRight, LucideIcon, CheckCircle, FileText, XCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, parseISO, format } from "date-fns";
@@ -324,6 +324,35 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
   const lastMonthEnd = endOfMonth(subMonths(now, 1));
   const lastMonthData = calculatePeriodData(lastMonthStart, lastMonthEnd);
 
+  // Calculate overall totals for summary cards
+  const overallTotals = useMemo(() => {
+    let total = 0;
+    let approvedBillable = 0;
+    let approvedNonBillable = 0;
+    let declined = 0;
+
+    userTimeEntries.forEach(entry => {
+      total += entry.duration || 0;
+      const status = entry.status || 'pending';
+      if (status === 'approved-billable') {
+        approvedBillable += entry.duration || 0;
+      } else if (status === 'approved-non-billable') {
+        approvedNonBillable += entry.duration || 0;
+      } else if (status === 'declined') {
+        declined += entry.duration || 0;
+      }
+    });
+
+    return { total, approvedBillable, approvedNonBillable, declined };
+  }, [userTimeEntries]);
+
+  const formatDurationMinutes = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = Math.round(minutes % 60);
+    if (hours === 0) return `${mins}m`;
+    return `${hours}h ${mins}m`;
+  };
+
   if (!targetUserId) {
     return (
       <Card>
@@ -345,6 +374,54 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
         </CardHeader>
       )}
       <CardContent className={showTitle ? "" : "pt-6"}>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="p-4 rounded-lg bg-muted/50 border">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Clock className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Time</p>
+                <p className="text-xl font-bold">{formatDurationMinutes(overallTotals.total)}</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 rounded-lg bg-muted/50 border">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-500/10 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Approved Billable</p>
+                <p className="text-xl font-bold">{formatDurationMinutes(overallTotals.approvedBillable)}</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 rounded-lg bg-muted/50 border">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <FileText className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Approved Non-Billable</p>
+                <p className="text-xl font-bold">{formatDurationMinutes(overallTotals.approvedNonBillable)}</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 rounded-lg bg-muted/50 border">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-500/10 rounded-lg">
+                <XCircle className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Declined</p>
+                <p className="text-xl font-bold">{formatDurationMinutes(overallTotals.declined)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <Tabs defaultValue="current" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="current">Current Periods</TabsTrigger>
