@@ -249,10 +249,11 @@ export function NotificationReplySection({ taskId }: NotificationReplySectionPro
       <CardContent className="space-y-4">
         {/* Recent Comments */}
         {recentComments.length > 0 ? (
-          <ScrollArea className="max-h-[200px]">
-            <div className="space-y-3">
+          <ScrollArea className="max-h-[350px]">
+            <div className="space-y-3 pr-4">
               {recentComments.map((commentItem) => {
                 const commentUser = users.find((u) => u.auth_user_id === commentItem.userId);
+                const commentImages = commentItem.images || [];
                 return (
                   <div key={commentItem.id} className="flex gap-2">
                     <Avatar className="h-6 w-6 flex-shrink-0">
@@ -269,12 +270,34 @@ export function NotificationReplySection({ taskId }: NotificationReplySectionPro
                         </span>
                         <CommentAcknowledge commentId={commentItem.id} />
                       </div>
-                      <div
-                        className="text-sm text-muted-foreground break-words"
-                        dangerouslySetInnerHTML={{
-                          __html: formatCommentContent(commentItem.content, commentItem.mentionedUserIds),
-                        }}
-                      />
+                      {commentItem.content && (
+                        <div
+                          className="text-sm text-muted-foreground break-words"
+                          dangerouslySetInnerHTML={{
+                            __html: formatCommentContent(commentItem.content, commentItem.mentionedUserIds),
+                          }}
+                        />
+                      )}
+                      {/* Display comment images */}
+                      {commentImages.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {commentImages.map((imageUrl: string, index: number) => (
+                            <a
+                              key={index}
+                              href={imageUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block"
+                            >
+                              <img
+                                src={imageUrl}
+                                alt={`Comment attachment ${index + 1}`}
+                                className="max-w-[200px] max-h-[150px] rounded-lg border object-cover hover:opacity-90 transition-opacity cursor-pointer"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
