@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { NotificationReplySection } from "@/components/notifications/NotificationReplySection";
+import { NotificationAcknowledge } from "@/components/notifications/NotificationAcknowledge";
 
 export default function Notifications() {
   const { messages, users, projects, tasks, currentUser, markMessageAsRead, clients, taskStatuses } = useAppContext();
@@ -108,6 +109,7 @@ export default function Notifications() {
                       {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
                     </span>
                     {!notification.read && <Badge variant="destructive" className="text-xs">New</Badge>}
+                    <NotificationAcknowledge messageId={notification.id} compact />
                   </div>
                   <p className="text-xs text-muted-foreground mb-1">
                     {getNotificationContext(notification)}
@@ -196,7 +198,10 @@ export default function Notifications() {
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline">{getNotificationContext(selectedNotification)}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{getNotificationContext(selectedNotification)}</Badge>
+                    <NotificationAcknowledge messageId={selectedNotification.id} />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
