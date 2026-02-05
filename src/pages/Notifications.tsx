@@ -169,9 +169,9 @@ export default function Notifications() {
       </div>
 
       {/* Notification Content */}
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         {selectedNotification ? (
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto p-6 pb-12">
             {/* Notification Header */}
             <Card className="mb-6">
               <CardHeader>
