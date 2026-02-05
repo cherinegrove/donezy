@@ -6,6 +6,7 @@ import { Clock, Calendar, TrendingUp, ChevronDown, ChevronRight, LucideIcon, Che
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, parseISO, format } from "date-fns";
+import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 
 interface PeriodData {
   totalHours: string;
@@ -209,18 +210,95 @@ interface UserTimeTrackingReportProps {
 }
 
 export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTrackingReportProps) => {
-  const { timeEntries, currentUser, clients, projects, tasks, users } = useAppContext();
+  const { timeEntries, currentUser, clients, projects, tasks, users, customRoles } = useAppContext();
   const [expandedPeriod, setExpandedPeriod] = useState<string | null>(null);
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
   const [openProjects, setOpenProjects] = useState<Record<string, boolean>>({});
+  const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
 
   const targetUserId = userId || currentUser?.auth_user_id;
   const targetUser = users.find(u => u.auth_user_id === targetUserId);
 
+  // Check if current user is admin
+  const isAdmin = () => {
+    if (!currentUser) return false;
+    return currentUser.systemRoles?.includes('platform_admin') || 
+           currentUser.systemRoles?.includes('support_admin');
+  };
+
+  // Filter options
+  const filterOptions: FilterOption[] = useMemo(() => [
+    {
+      id: "client",
+      name: "Client",
+      options: clients.map(client => ({
+        id: client.id,
+        label: client.name
+      }))
+    },
+    {
+      id: "project",
+      name: "Project",
+      options: projects.map(project => ({
+        id: project.id,
+        label: project.name
+      }))
+    },
+    {
+      id: "status",
+      name: "Status",
+      options: [
+        { id: "pending", label: "Pending" },
+        { id: "approved", label: "Approved" },
+        { id: "declined", label: "Declined" }
+      ]
+    }
+  ], [clients, projects]);
+
   const userTimeEntries = useMemo(() => {
     if (!targetUserId) return [];
-    return timeEntries.filter(entry => entry.userId === targetUserId);
-  }, [timeEntries, targetUserId]);
+    
+    return timeEntries.filter(entry => {
+      // Filter by user
+      if (entry.userId !== targetUserId) return false;
+
+      // Get task and project for filtering
+      const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
+      const project = task 
+        ? projects.find(p => p.id === task.projectId) 
+        : (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
+      const client = project 
+        ? clients.find(c => c.id === project.clientId) 
+        : (entry.clientId ? clients.find(c => c.id === entry.clientId) : null);
+
+      // Check client filter
+      if (selectedFilters.client?.length > 0) {
+        const clientId = client?.id || entry.clientId;
+        if (!clientId || !selectedFilters.client.includes(clientId)) {
+          return false;
+        }
+      }
+
+      // Check project filter
+      if (selectedFilters.project?.length > 0) {
+        const projectId = project?.id || entry.projectId;
+        if (!projectId || !selectedFilters.project.includes(projectId)) {
+          return false;
+        }
+      }
+
+      // Check status filter
+      if (selectedFilters.status?.length > 0) {
+        const entryStatus = entry.status || 'pending';
+        const normalizedStatus = entryStatus.startsWith('approved') ? 'approved' : entryStatus;
+        if (!selectedFilters.status.includes(normalizedStatus)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [timeEntries, targetUserId, selectedFilters, tasks, projects, clients]);
 
   const calculatePeriodData = (startDate: Date, endDate: Date): PeriodData => {
     const entries = userTimeEntries.filter(entry => {
@@ -374,6 +452,14 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
         </CardHeader>
       )}
       <CardContent className={showTitle ? "" : "pt-6"}>
+        {/* Filters */}
+        <div className="mb-6">
+          <FilterBar 
+            filters={filterOptions} 
+            onFilterChange={setSelectedFilters} 
+          />
+        </div>
+
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="p-4 rounded-lg bg-muted/50 border">
