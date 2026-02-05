@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon, ChevronDown, ChevronRight, Download, Building2, Briefcase, Clock } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronDown, ChevronRight, Download, Building2, Briefcase, Clock, CheckCircle, XCircle, FileText } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths, isWithinInterval } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
@@ -203,10 +203,33 @@ export function ClientTimeReport() {
     return Object.values(byClient).sort((a, b) => b.totalMinutes - a.totalMinutes);
   }, [timeEntries, projects, clients, tasks, dateRange, selectedFilters, currentUser, customRoles]);
 
-  // Calculate totals
-  const totalMinutes = useMemo(() => {
-    return clientData.reduce((sum, c) => sum + c.totalMinutes, 0);
+  // Calculate totals by status
+  const totals = useMemo(() => {
+    let total = 0;
+    let approvedBillable = 0;
+    let approvedNonBillable = 0;
+    let declined = 0;
+
+    clientData.forEach(({ projects: projectsData }) => {
+      Object.values(projectsData).forEach(({ entries }) => {
+        entries.forEach(entry => {
+          total += entry.duration;
+          const status = entry.status || 'pending';
+          if (status === 'approved-billable') {
+            approvedBillable += entry.duration;
+          } else if (status === 'approved-non-billable') {
+            approvedNonBillable += entry.duration;
+          } else if (status === 'declined') {
+            declined += entry.duration;
+          }
+        });
+      });
+    });
+
+    return { total, approvedBillable, approvedNonBillable, declined };
   }, [clientData]);
+
+  const totalMinutes = totals.total;
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -347,8 +370,8 @@ export function ClientTimeReport() {
         </CardContent>
       </Card>
 
-      {/* Summary Card */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
@@ -357,20 +380,7 @@ export function ClientTimeReport() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Time</p>
-                <p className="text-2xl font-bold">{formatDuration(totalMinutes)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Building2 className="h-5 w-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Clients</p>
-                <p className="text-2xl font-bold">{clientData.length}</p>
+                <p className="text-2xl font-bold">{formatDuration(totals.total)}</p>
               </div>
             </div>
           </CardContent>
@@ -379,13 +389,37 @@ export function ClientTimeReport() {
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-500/10 rounded-lg">
-                <Briefcase className="h-5 w-5 text-green-500" />
+                <CheckCircle className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Projects</p>
-                <p className="text-2xl font-bold">
-                  {clientData.reduce((sum, c) => sum + Object.keys(c.projects).length, 0)}
-                </p>
+                <p className="text-sm text-muted-foreground">Approved Billable</p>
+                <p className="text-2xl font-bold">{formatDuration(totals.approvedBillable)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <FileText className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Approved Non-Billable</p>
+                <p className="text-2xl font-bold">{formatDuration(totals.approvedNonBillable)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-500/10 rounded-lg">
+                <XCircle className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Declined</p>
+                <p className="text-2xl font-bold">{formatDuration(totals.declined)}</p>
               </div>
             </div>
           </CardContent>
