@@ -794,6 +794,57 @@ const TimeTracking = () => {
   const monthlyDataByClient = getMonthlyDataByClient();
   const monthlyDataByUser = getMonthlyDataByUser();
   const monthlyDeclinedDataByClient = getMonthlyDeclinedDataByClient();
+
+  // Calculate monthly totals for summary cards
+  const getMonthlyTotals = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const startDate = startOfMonth(new Date(year, month - 1));
+    const endDate = endOfMonth(new Date(year, month - 1));
+    
+    let total = 0;
+    let approvedBillable = 0;
+    let approvedNonBillable = 0;
+    let declined = 0;
+
+    timeEntries.forEach(entry => {
+      const entryDate = new Date(entry.startTime);
+      if (entryDate < startDate || entryDate > endDate) return;
+      
+      // For non-admins, filter to only their own entries
+      if (!isAdmin() && entry.userId !== currentUser?.id) return;
+
+      // Apply selected filters
+      const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
+      const project = task ? projects.find(p => p.id === task.projectId) : 
+                     (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
+      const client = project ? clients.find(c => c.id === project.clientId) : 
+                    (entry.clientId ? clients.find(c => c.id === entry.clientId) : null);
+      
+      if (selectedFilters.client?.length > 0) {
+        const clientId = client?.id || entry.clientId;
+        if (!clientId || !selectedFilters.client.includes(clientId)) return;
+      }
+      
+      if (selectedFilters.project?.length > 0) {
+        const projectId = project?.id || entry.projectId;
+        if (!projectId || !selectedFilters.project.includes(projectId)) return;
+      }
+
+      total += entry.duration;
+      const status = entry.status || 'pending';
+      if (status === 'approved-billable') {
+        approvedBillable += entry.duration;
+      } else if (status === 'approved-non-billable') {
+        approvedNonBillable += entry.duration;
+      } else if (status === 'declined') {
+        declined += entry.duration;
+      }
+    });
+
+    return { total, approvedBillable, approvedNonBillable, declined };
+  };
+
+  const monthlyTotals = getMonthlyTotals();
   
   // Get available months for the selector
   const getAvailableMonths = () => {
@@ -1357,21 +1408,67 @@ const TimeTracking = () => {
             />
           </div>
           
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Clock className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Time</p>
+                    <p className="text-2xl font-bold">{formatDuration(monthlyTotals.total)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-500/10 rounded-lg">
+                    <Clock className="h-5 w-5 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Approved Billable</p>
+                    <p className="text-2xl font-bold">{formatDuration(monthlyTotals.approvedBillable)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <Clock className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Approved Non-Billable</p>
+                    <p className="text-2xl font-bold">{formatDuration(monthlyTotals.approvedNonBillable)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-red-500/10 rounded-lg">
+                    <Clock className="h-5 w-5 text-red-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Declined</p>
+                    <p className="text-2xl font-bold">{formatDuration(monthlyTotals.declined)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <div className="space-y-2">
                 <CardTitle>Monthly Summary</CardTitle>
                 <p className="text-sm text-muted-foreground">Breakdown of approved and declined time entries</p>
-                <div className="flex items-center gap-3 pt-2">
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
-                    Approved: {formatDuration(monthlyDataByClient.reduce((sum, c) => sum + c.totalMinutes, 0))}
-                  </Badge>
-                  {monthlyDeclinedDataByClient.length > 0 && (
-                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
-                      Declined: {formatDuration(monthlyDeclinedDataByClient.reduce((sum, c) => sum + c.totalMinutes, 0))}
-                    </Badge>
-                  )}
-                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Select
