@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { MentionDropdown } from "@/components/messages/MentionDropdown";
 import { User } from "@/types";
+import { CommentAcknowledge } from "@/components/comments/CommentAcknowledge";
 
 interface NotificationReplySectionProps {
   taskId: string;
@@ -266,6 +267,7 @@ export function NotificationReplySection({ taskId }: NotificationReplySectionPro
                         <span className="text-xs text-muted-foreground">
                           {format(new Date(commentItem.timestamp), "MMM d 'at' h:mm a")}
                         </span>
+                        <CommentAcknowledge commentId={commentItem.id} />
                       </div>
                       <div
                         className="text-sm text-muted-foreground break-words"
