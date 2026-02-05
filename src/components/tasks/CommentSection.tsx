@@ -10,6 +10,7 @@ import { X, Image as ImageIcon, Loader2, Pencil, Check } from "lucide-react";
 import { CommentEditor, CommentEditorRef } from "./CommentEditor";
 import { MentionDropdown } from "@/components/messages/MentionDropdown";
 import { Textarea } from "@/components/ui/textarea";
+import { CommentAcknowledge } from "@/components/comments/CommentAcknowledge";
 
 interface CommentSectionProps {
   taskId: string;
@@ -363,6 +364,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
                           <Pencil className="h-3 w-3" />
                         </Button>
                       )}
+                      <CommentAcknowledge commentId={commentItem.id} />
                     </div>
                     
                     {isEditing ? (
