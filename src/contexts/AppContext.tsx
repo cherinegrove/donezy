@@ -2203,13 +2203,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         });
       }
 
+      // Sync notes and description fields when updating local state
+      const syncedUpdates = { ...updates };
+      if (updates.description !== undefined) {
+        syncedUpdates.notes = updates.description;
+      }
+      if (updates.notes !== undefined) {
+        syncedUpdates.description = updates.notes;
+      }
+      
       setTimeEntries(prev => prev.map(entry => 
-        entry.id === timeEntryId ? { ...entry, ...updates } : entry
+        entry.id === timeEntryId ? { ...entry, ...syncedUpdates } : entry
       ));
 
       // Update active time entry if it's the one being updated
       if (activeTimeEntry?.id === timeEntryId) {
-        setActiveTimeEntry(prev => prev ? { ...prev, ...updates } : null);
+        setActiveTimeEntry(prev => prev ? { ...prev, ...syncedUpdates } : null);
       }
     } catch (error) {
       console.error('Error updating time entry:', error);
