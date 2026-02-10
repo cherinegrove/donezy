@@ -74,11 +74,11 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       const { timerId, elapsed, totalPausedTime: pausedTime } = event.detail;
       console.log('📢 Received pauseActiveTimer event for:', timerId, 'elapsed:', elapsed);
       
-      // Find the timer in our list and convert it to a local-only paused timer
+      // Timer is already paused in DB - just update UI state
+      // Do NOT convert to isLocalOnly - keep it as DB-backed
       setTimers(prev => {
         const existingTimer = prev.find(t => t.id === timerId);
         if (existingTimer) {
-          // Update existing timer to be local-only and paused with correct elapsed time
           return prev.map(t => 
             t.id === timerId 
               ? { 
@@ -86,8 +86,8 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                   isActive: false, 
                   isPaused: true, 
                   pausedAt: new Date(), 
-                  isLocalOnly: true,
-                  elapsed: elapsed || t.elapsed, // Use passed elapsed time
+                  isLocalOnly: false, // KEEP as DB-backed
+                  elapsed: elapsed || t.elapsed,
                   totalPausedTime: pausedTime || t.totalPausedTime
                 }
               : t
@@ -273,51 +273,58 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     if (timer.isPaused) {
       console.log('▶️ Resuming timer:', timerId, 'with elapsed:', timer.elapsed, 'ms');
       
-      // First, pause/stop the currently active backend timer if exists
-      if (activeTimeEntry && !isTimerPaused) {
-        console.log('⏸️ Pausing current backend timer');
-        
-        // Calculate elapsed time for the currently active timer before stopping
-        const activeElapsed = Date.now() - new Date(activeTimeEntry.startTime).getTime();
-        
-        await stopTimeTracking('Auto-paused when resuming another timer');
-        
-        // Convert it to a local paused timer with preserved elapsed time
-        setTimers(prev => prev.map(t => 
-          t.id === activeTimeEntry.id 
-            ? { 
-                ...t, 
-                isActive: false, 
-                isPaused: true, 
-                pausedAt: new Date(), 
-                isLocalOnly: true,
-                elapsed: activeElapsed // Preserve the elapsed time
-              }
-            : t
-        ));
-      }
-      
-      // Pause all other active local timers and capture their elapsed time
-      setTimers(prev => prev.map(t => {
-        if (t.id !== timerId && t.isActive && !t.isPaused) {
-          const elapsedNow = Date.now() - t.startTime.getTime() - (t.totalPausedTime || 0);
-          return { 
-            ...t, 
-            isPaused: true, 
-            pausedAt: new Date(), 
-            isActive: false,
-            elapsed: elapsedNow // Capture elapsed time when pausing
-          };
+      // First, the currently active backend timer will be auto-paused by startTimeTracking
+      // But for DB-backed paused timers, we should reactivate in DB instead of delete+recreate
+      if (!timer.isLocalOnly) {
+        // DB-backed paused timer - reactivate it directly
+        try {
+          const { supabase } = await import('@/integrations/supabase/client');
+          
+          // Pause current active timer if exists
+          if (activeTimeEntry && !isTimerPaused) {
+            await supabase
+              .from('time_entries')
+              .update({ timer_status: 'paused' })
+              .eq('id', activeTimeEntry.id);
+            
+            await supabase.from('time_entry_events').insert({
+              time_entry_id: activeTimeEntry.id,
+              auth_user_id: currentUser?.auth_user_id || currentUser?.id || '',
+              event_type: 'auto_paused',
+              event_timestamp: new Date().toISOString(),
+              details: { reason: 'Another timer resumed', pausedAt: new Date().toISOString() }
+            });
+          }
+          
+          // Reactivate this paused timer
+          await supabase
+            .from('time_entries')
+            .update({ timer_status: 'active' })
+            .eq('id', timer.id);
+          
+          await supabase.from('time_entry_events').insert({
+            time_entry_id: timer.id,
+            auth_user_id: currentUser?.auth_user_id || currentUser?.id || '',
+            event_type: 'resumed',
+            event_timestamp: new Date().toISOString(),
+            details: { resumedAt: new Date().toISOString() }
+          });
+          
+          console.log('✅ Timer resumed in DB (no delete):', timer.id);
+          window.dispatchEvent(new CustomEvent('timersUpdated'));
+          window.location.reload();
+        } catch (err) {
+          console.error('Error resuming DB timer:', err);
         }
-        return t;
-      }));
-      
-      // Start this timer as a new backend timer, passing the preserved elapsed time
-      // This will set the start_time in the past so the timer continues from where it left off
-      await startTimeTracking(timer.taskId, timer.projectId, timer.clientId, timer.elapsed);
-      
-      // Remove the old local timer entry (it will be recreated by the activeTimeEntry effect)
-      setTimers(prev => prev.filter(t => t.id !== timerId));
+      } else {
+        // Legacy local-only timer - use the old flow
+        if (activeTimeEntry && !isTimerPaused) {
+          await stopTimeTracking('Auto-paused when resuming another timer');
+        }
+        
+        await startTimeTracking(timer.taskId, timer.projectId, timer.clientId, timer.elapsed);
+        setTimers(prev => prev.filter(t => t.id !== timerId));
+      }
       
     } else if (timer.isActive && !timer.isPaused) {
       // RULE: Pausing a timer - MUST calculate and store elapsed time at this moment
@@ -431,14 +438,25 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     const timer = timers.find(t => t.id === timerId);
     if (!timer) return;
     
-    console.log('🗑️ Deleting timer:', timerId);
+    console.log('🗑️ Cancelling timer:', timerId);
     
     // If this is the active backend timer, stop it properly
     if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
-      await stopTimeTracking('Timer deleted');
+      await stopTimeTracking('Timer cancelled');
+    } else if (!timer.isLocalOnly) {
+      // DB-backed paused timer - soft-delete
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        await supabase
+          .from('time_entries')
+          .update({ timer_status: 'cancelled', end_time: new Date().toISOString() })
+          .eq('id', timerId);
+      } catch (err) {
+        console.error('Error cancelling DB timer:', err);
+      }
     }
     
-    // Remove from local state
+    // Remove from local UI state
     setTimers(prev => prev.filter(t => t.id !== timerId));
   };
 

@@ -366,20 +366,33 @@ export function ActiveTimersSection({
   };
 
   const handleDeleteLocalTimer = async (timerId: string, isLocalOnly: boolean = true) => {
-    console.log('🗑️ Deleting timer:', timerId.slice(0, 8), 'isLocalOnly:', isLocalOnly);
+    console.log('🗑️ Cancelling timer:', timerId.slice(0, 8), 'isLocalOnly:', isLocalOnly);
     
     if (!isLocalOnly) {
-      // DB-backed timer - delete from database
+      // DB-backed timer - soft-delete by marking as cancelled (never hard-delete)
       try {
         const { supabase } = await import('@/integrations/supabase/client');
-        await supabase.from('time_entries').delete().eq('id', timerId);
-        console.log('✅ Deleted paused timer from database');
+        await supabase
+          .from('time_entries')
+          .update({ timer_status: 'cancelled', end_time: new Date().toISOString() })
+          .eq('id', timerId);
+        
+        // Log cancellation event
+        await supabase.from('time_entry_events').insert({
+          time_entry_id: timerId,
+          auth_user_id: session?.user?.id || '',
+          event_type: 'cancelled',
+          event_timestamp: new Date().toISOString(),
+          details: { cancelledAt: new Date().toISOString() }
+        });
+        
+        console.log('✅ Timer cancelled in database (soft-delete):', timerId.slice(0, 8));
       } catch (err) {
-        console.error('Error deleting DB timer:', err);
+        console.error('Error cancelling DB timer:', err);
       }
     }
     
-    // Also remove from localStorage if present
+    // Also remove from localStorage if present (legacy cleanup)
     const savedTimers = localStorage.getItem('activeTimers');
     if (savedTimers) {
       const parsed = JSON.parse(savedTimers);

@@ -12,7 +12,8 @@ export type TimeEntryEventType =
   | 'task_changed'
   | 'status_changed'
   | 'auto_stopped'
-  | 'auto_paused';
+  | 'auto_paused'
+  | 'cancelled';
 
 export interface TimeEntryEventDetails {
   previousValue?: any;
@@ -118,7 +119,8 @@ export function formatEventType(eventType: TimeEntryEventType): string {
     task_changed: 'Task Changed',
     status_changed: 'Status Changed',
     auto_stopped: 'Auto-Stopped',
-    auto_paused: 'Auto-Paused (New Timer Started)'
+    auto_paused: 'Auto-Paused (New Timer Started)',
+    cancelled: 'Timer Cancelled'
   };
   return labels[eventType] || eventType;
 }
@@ -136,7 +138,8 @@ export function getEventIcon(eventType: TimeEntryEventType): string {
     task_changed: '📋',
     status_changed: '🔄',
     auto_stopped: '⚠️',
-    auto_paused: '⏸️'
+    auto_paused: '⏸️',
+    cancelled: '❌'
   };
   return icons[eventType] || '📌';
 }

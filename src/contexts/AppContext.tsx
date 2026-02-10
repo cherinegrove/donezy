@@ -2241,24 +2241,36 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
+      // Soft-delete: mark as cancelled instead of hard-deleting
+      // This preserves the audit trail for financial tracking
       const { error } = await supabase
         .from('time_entries')
-        .delete()
+        .update({ 
+          timer_status: 'cancelled',
+          end_time: new Date().toISOString()
+        })
         .eq('id', timeEntryId);
 
       if (error) {
-        console.error('Error deleting time entry:', error);
+        console.error('Error cancelling time entry:', error);
         return;
       }
 
+      // Log the cancellation event
+      await logTimeEntryEvent(timeEntryId, 'cancelled', {
+        cancelledAt: new Date().toISOString(),
+        cancelledBy: session.user.id
+      });
+
+      // Remove from active UI lists (but it stays in DB)
       setTimeEntries(prev => prev.filter(entry => entry.id !== timeEntryId));
       
-      // Clear active time entry if it was deleted
+      // Clear active time entry if it was cancelled
       if (activeTimeEntry?.id === timeEntryId) {
         setActiveTimeEntry(null);
       }
     } catch (error) {
-      console.error('Error deleting time entry:', error);
+      console.error('Error cancelling time entry:', error);
     }
   };
 
