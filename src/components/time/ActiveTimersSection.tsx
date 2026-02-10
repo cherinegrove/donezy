@@ -83,6 +83,7 @@ export function ActiveTimersSection({
     activeTimeEntry, 
     addTimeEntry, 
     currentUser,
+    session,
     tasks,
     projects,
     users,
@@ -150,57 +151,74 @@ export function ActiveTimersSection({
 
   const handleLocalTimerPause = async (timer: TimerItem) => {
     if (timer.isPaused) {
-      // Resume: start as new backend timer, preserving elapsed time
+      // Resume: reactivate the existing DB entry instead of delete+recreate
       console.log('▶️ Resuming paused timer:', timer.id.slice(0, 8), 'isLocalOnly:', timer.isLocalOnly);
       
-      // For DB-backed paused timers, calculate elapsed from events
-      let elapsedMs = timer.elapsed;
       if (!timer.isLocalOnly) {
         try {
-          const { data: events } = await (await import('@/integrations/supabase/client')).supabase
-            .from('time_entry_events')
-            .select('event_type, event_timestamp')
-            .eq('time_entry_id', timer.id)
-            .in('event_type', ['paused', 'resumed', 'auto_paused'])
-            .order('event_timestamp', { ascending: true });
+          const { supabase } = await import('@/integrations/supabase/client');
           
-          let totalPausedMs = 0;
-          let lastPauseTime: Date | null = null;
-          if (events) {
-            for (const event of events) {
-              const eventTime = new Date(event.event_timestamp);
-              if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
-                lastPauseTime = eventTime;
-              } else if (event.event_type === 'resumed' && lastPauseTime) {
-                totalPausedMs += eventTime.getTime() - lastPauseTime.getTime();
-                lastPauseTime = null;
-              }
-            }
-            if (lastPauseTime) {
-              totalPausedMs += Date.now() - lastPauseTime.getTime();
+          // First, pause any currently active timers (single-active-timer rule)
+          const { data: activeTimers } = await supabase
+            .from('time_entries')
+            .select('id')
+            .eq('user_id', currentUser?.id || '')
+            .eq('timer_status', 'active');
+          
+          if (activeTimers && activeTimers.length > 0) {
+            for (const active of activeTimers) {
+              await supabase
+                .from('time_entries')
+                .update({ timer_status: 'paused' })
+                .eq('id', active.id);
+              
+              // Log auto-pause event
+              await supabase.from('time_entry_events').insert({
+                time_entry_id: active.id,
+                auth_user_id: session?.user?.id || '',
+                event_type: 'auto_paused',
+                event_timestamp: new Date().toISOString(),
+                details: { reason: 'Another timer resumed', pausedAt: new Date().toISOString() }
+              });
+              console.log('⏸️ Auto-paused active timer:', active.id.slice(0, 8));
             }
           }
-          elapsedMs = Math.max(0, Date.now() - new Date(timer.startTime).getTime() - totalPausedMs);
-          console.log('📊 Calculated elapsed from DB events:', Math.floor(elapsedMs / 1000), 'seconds');
+          
+          // Reactivate the paused timer by updating its status
+          const { error: resumeError } = await supabase
+            .from('time_entries')
+            .update({ timer_status: 'active' })
+            .eq('id', timer.id);
+          
+          if (resumeError) {
+            console.error('Error resuming timer in DB:', resumeError);
+            return;
+          }
+          
+          // Log resumed event
+          await supabase.from('time_entry_events').insert({
+            time_entry_id: timer.id,
+            auth_user_id: session?.user?.id || '',
+            event_type: 'resumed',
+            event_timestamp: new Date().toISOString(),
+            details: { resumedAt: new Date().toISOString() }
+          });
+          
+          console.log('✅ Timer resumed in DB (no delete):', timer.id.slice(0, 8));
+          
+          // Reload time entries to pick up the change
+          window.dispatchEvent(new CustomEvent('timersUpdated'));
+          // Force a reload of context state
+          window.location.reload();
         } catch (err) {
-          console.warn('Error fetching events for resume, using fallback:', err);
+          console.error('Error resuming DB timer:', err);
         }
+      } else {
+        // Legacy local-only timer - use the old startTimeTracking flow
+        let elapsedMs = timer.elapsed;
+        await startTimeTracking(timer.taskId, timer.projectId, timer.clientId, elapsedMs);
         
-        // Delete the paused DB entry before starting fresh
-        try {
-          const { supabase } = await import('@/integrations/supabase/client');
-          await supabase.from('time_entries').delete().eq('id', timer.id);
-          console.log('🗑️ Deleted paused DB entry:', timer.id.slice(0, 8));
-        } catch (err) {
-          console.error('Error deleting paused DB entry:', err);
-        }
-      }
-      
-      // Start this timer with preserved elapsed time
-      await startTimeTracking(timer.taskId, timer.projectId, timer.clientId, elapsedMs);
-      
-      // Remove from localStorage (for legacy local-only timers)
-      if (timer.isLocalOnly) {
+        // Remove from localStorage
         const savedTimers = localStorage.getItem('activeTimers');
         if (savedTimers) {
           const parsed = JSON.parse(savedTimers);
