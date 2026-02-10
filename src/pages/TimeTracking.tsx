@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ActiveTimersSection } from "@/components/time/ActiveTimersSection";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { TimeEntry, TimeEntryStatus } from "@/types";
@@ -59,7 +59,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { generateClientMonthlyReportCSV, generateClientDetailedReportCSV, downloadCSV } from "@/utils/exportUtils";
 
 const TimeTracking = () => {
-  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser, updateTimeEntryStatus, stopTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, getElapsedTime, customRoles } = useAppContext();
+  const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser, updateTimeEntryStatus, stopTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, getElapsedTime, customRoles, pausedTimeEntries } = useAppContext();
   const [activeTab, setActiveTab] = useState("active");
   const [isAddEntryDialogOpen, setIsAddEntryDialogOpen] = useState(false);
   const [selectedTimeEntry, setSelectedTimeEntry] = useState<TimeEntry | undefined>(undefined);
@@ -236,24 +236,54 @@ const TimeTracking = () => {
     to: undefined
   });
 
-  // Local timers state
-  const [localTimers, setLocalTimers] = useState<any[]>([]);
+  // Local timers state (legacy localStorage + DB-backed paused timers)
+  const [localStorageTimers, setLocalStorageTimers] = useState<any[]>([]);
 
+  // Convert DB-backed paused timers to the timer format
+  const dbPausedTimers = useMemo(() => {
+    return pausedTimeEntries.map(entry => {
+      const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
+      const project = entry.projectId ? projects.find(p => p.id === entry.projectId) : null;
+      const client = project?.clientId ? clients.find(c => c.id === project.clientId) : null;
+      return {
+        id: entry.id,
+        taskId: entry.taskId || '',
+        taskTitle: task?.title || 'Unknown Task',
+        projectName: project?.name,
+        clientName: client?.name,
+        projectId: entry.projectId,
+        clientId: entry.clientId || project?.clientId,
+        startTime: new Date(entry.startTime),
+        elapsed: 0, // Will be calculated in ActiveTimersSection
+        isPaused: true,
+        pausedAt: undefined,
+        totalPausedTime: 0,
+        isActive: false,
+        isLocalOnly: false, // DB-backed
+        userId: entry.userId,
+      };
+    });
+  }, [pausedTimeEntries, tasks, projects, clients]);
 
-  // Load local timers from localStorage - only load LOCAL-ONLY timers (not backend timers)
+  // Merge DB paused timers with any legacy localStorage timers
+  const localTimers = useMemo(() => {
+    const dbIds = new Set(dbPausedTimers.map(t => t.id));
+    // Only include localStorage timers that aren't already in DB
+    const uniqueLocalTimers = localStorageTimers.filter(t => !dbIds.has(t.id));
+    return [...dbPausedTimers, ...uniqueLocalTimers];
+  }, [dbPausedTimers, localStorageTimers]);
+
+  // Load local timers from localStorage - legacy support for any remaining local-only timers
   useEffect(() => {
     const loadLocalTimers = () => {
       const savedTimers = localStorage.getItem('activeTimers');
       if (savedTimers) {
         try {
           const parsed = JSON.parse(savedTimers);
-          // Filter to only show current user's LOCAL-ONLY timers
-          // Backend timers are synced from activeTimeEntry and should not persist across refresh
           const userLocalTimers = parsed.filter((t: any) => 
             (!t.userId || t.userId === currentUser?.id) && t.isLocalOnly === true
           );
-          console.log('📂 TimeTracking: Loading local-only timers:', userLocalTimers.length);
-          setLocalTimers(userLocalTimers.map((t: any) => ({
+          setLocalStorageTimers(userLocalTimers.map((t: any) => ({
             ...t,
             startTime: new Date(t.startTime),
             pausedAt: t.pausedAt ? new Date(t.pausedAt) : undefined
@@ -264,7 +294,6 @@ const TimeTracking = () => {
       }
     };
 
-    // Load initially
     loadLocalTimers();
 
     // Listen for timer updates

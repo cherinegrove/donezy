@@ -204,6 +204,7 @@ export type TimeEntryStatus = 'pending' | 'approved' | 'rejected' | 'approved-bi
 export interface TimeEntry {
   id: string;
   userId: string;
+  authUserId?: string;
   taskId: string;
   projectId?: string;
   clientId?: string;
@@ -218,6 +219,7 @@ export interface TimeEntry {
   declineReason?: string;
   edited?: boolean;
   rejectionReason?: string;
+  timerStatus?: string;
 }
 
 export interface Message {

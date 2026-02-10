@@ -21,6 +21,7 @@ export interface AppContextType {
   notes: Note[];
   customFields: CustomField[];
   activeTimeEntry: TimeEntry | null;
+  pausedTimeEntries: TimeEntry[];
   isTimerPaused: boolean;
   pausedAt: Date | null;
   totalPausedTime: number;
