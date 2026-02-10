@@ -151,30 +151,68 @@ export function ActiveTimersSection({
   const handleLocalTimerPause = async (timer: TimerItem) => {
     if (timer.isPaused) {
       // Resume: start as new backend timer, preserving elapsed time
-      console.log('▶️ Resuming local timer:', timer.id.slice(0, 8), 'with elapsed:', timer.elapsed, 'ms');
+      console.log('▶️ Resuming paused timer:', timer.id.slice(0, 8), 'isLocalOnly:', timer.isLocalOnly);
       
-      // Stop current backend timer if running
-      if (activeTimeEntry && !isTimerPaused) {
-        await stopTimeTracking('Auto-paused when resuming another timer');
+      // For DB-backed paused timers, calculate elapsed from events
+      let elapsedMs = timer.elapsed;
+      if (!timer.isLocalOnly) {
+        try {
+          const { data: events } = await (await import('@/integrations/supabase/client')).supabase
+            .from('time_entry_events')
+            .select('event_type, event_timestamp')
+            .eq('time_entry_id', timer.id)
+            .in('event_type', ['paused', 'resumed', 'auto_paused'])
+            .order('event_timestamp', { ascending: true });
+          
+          let totalPausedMs = 0;
+          let lastPauseTime: Date | null = null;
+          if (events) {
+            for (const event of events) {
+              const eventTime = new Date(event.event_timestamp);
+              if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
+                lastPauseTime = eventTime;
+              } else if (event.event_type === 'resumed' && lastPauseTime) {
+                totalPausedMs += eventTime.getTime() - lastPauseTime.getTime();
+                lastPauseTime = null;
+              }
+            }
+            if (lastPauseTime) {
+              totalPausedMs += Date.now() - lastPauseTime.getTime();
+            }
+          }
+          elapsedMs = Math.max(0, Date.now() - new Date(timer.startTime).getTime() - totalPausedMs);
+          console.log('📊 Calculated elapsed from DB events:', Math.floor(elapsedMs / 1000), 'seconds');
+        } catch (err) {
+          console.warn('Error fetching events for resume, using fallback:', err);
+        }
+        
+        // Delete the paused DB entry before starting fresh
+        try {
+          const { supabase } = await import('@/integrations/supabase/client');
+          await supabase.from('time_entries').delete().eq('id', timer.id);
+          console.log('🗑️ Deleted paused DB entry:', timer.id.slice(0, 8));
+        } catch (err) {
+          console.error('Error deleting paused DB entry:', err);
+        }
       }
       
       // Start this timer with preserved elapsed time
-      // Pass elapsed time so the start_time is set in the past to preserve duration
-      await startTimeTracking(timer.taskId, timer.projectId, timer.clientId, timer.elapsed);
+      await startTimeTracking(timer.taskId, timer.projectId, timer.clientId, elapsedMs);
       
-      // Remove from localStorage
-      const savedTimers = localStorage.getItem('activeTimers');
-      if (savedTimers) {
-        const parsed = JSON.parse(savedTimers);
-        const filtered = parsed.filter((t: any) => t.id !== timer.id);
-        localStorage.setItem('activeTimers', JSON.stringify(filtered));
-        window.dispatchEvent(new CustomEvent('timersUpdated'));
+      // Remove from localStorage (for legacy local-only timers)
+      if (timer.isLocalOnly) {
+        const savedTimers = localStorage.getItem('activeTimers');
+        if (savedTimers) {
+          const parsed = JSON.parse(savedTimers);
+          const filtered = parsed.filter((t: any) => t.id !== timer.id);
+          localStorage.setItem('activeTimers', JSON.stringify(filtered));
+          window.dispatchEvent(new CustomEvent('timersUpdated'));
+        }
       }
     } else {
       // Pause: calculate elapsed time NOW and update in localStorage
       console.log('⏸️ Pausing local timer:', timer.id.slice(0, 8));
       
-      // Calculate elapsed time at this moment
       const now = Date.now();
       const elapsedAtPause = now - new Date(timer.startTime).getTime() - (timer.totalPausedTime || 0);
       
@@ -188,7 +226,7 @@ export function ActiveTimersSection({
                 isPaused: true, 
                 pausedAt: new Date().toISOString(), 
                 isActive: false,
-                elapsed: elapsedAtPause // Store elapsed time at pause
+                elapsed: elapsedAtPause
               }
             : t
         );
@@ -210,17 +248,46 @@ export function ActiveTimersSection({
       const endTime = new Date();
       const startTime = new Date(selectedLocalTimer.startTime);
       
-      // Calculate actual elapsed time at this moment (not from stale state)
+      // For DB-backed paused timers, calculate elapsed from events
       let actualElapsedMs: number;
       
-      if (selectedLocalTimer.isPaused) {
-        // Timer is paused - use the elapsed time at pause
+      if (!selectedLocalTimer.isLocalOnly) {
+        // DB-backed timer - fetch events to calculate accurate elapsed
+        try {
+          const { supabase } = await import('@/integrations/supabase/client');
+          const { data: events } = await supabase
+            .from('time_entry_events')
+            .select('event_type, event_timestamp')
+            .eq('time_entry_id', selectedLocalTimer.id)
+            .in('event_type', ['paused', 'resumed', 'auto_paused'])
+            .order('event_timestamp', { ascending: true });
+          
+          let totalPausedMs = 0;
+          let lastPauseTime: Date | null = null;
+          if (events) {
+            for (const event of events) {
+              const eventTime = new Date(event.event_timestamp);
+              if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
+                lastPauseTime = eventTime;
+              } else if (event.event_type === 'resumed' && lastPauseTime) {
+                totalPausedMs += eventTime.getTime() - lastPauseTime.getTime();
+                lastPauseTime = null;
+              }
+            }
+            if (lastPauseTime) {
+              totalPausedMs += endTime.getTime() - lastPauseTime.getTime();
+            }
+          }
+          actualElapsedMs = Math.max(0, endTime.getTime() - startTime.getTime() - totalPausedMs);
+        } catch (err) {
+          console.warn('Error fetching events, using raw elapsed:', err);
+          actualElapsedMs = endTime.getTime() - startTime.getTime();
+        }
+      } else if (selectedLocalTimer.isPaused) {
         actualElapsedMs = selectedLocalTimer.elapsed;
       } else if (selectedLocalTimer.isActive) {
-        // Timer is actively running - calculate from start time minus paused time
         actualElapsedMs = endTime.getTime() - startTime.getTime() - (selectedLocalTimer.totalPausedTime || 0);
       } else {
-        // Timer is stopped/inactive - use the stored elapsed
         actualElapsedMs = selectedLocalTimer.elapsed;
       }
       
@@ -229,50 +296,72 @@ export function ActiveTimersSection({
       const task = tasks.find(t => t.id === selectedLocalTimer.taskId);
       const project = projects.find(p => p.id === task?.projectId);
       
-      console.log('💾 Saving local timer as completed time entry:', {
+      console.log('💾 Saving timer as completed time entry:', {
         taskTitle: selectedLocalTimer.taskTitle,
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-        calculatedElapsedMs: actualElapsedMs,
-        storedElapsedMs: selectedLocalTimer.elapsed,
         durationMinutes,
-        isPaused: selectedLocalTimer.isPaused,
-        isActive: selectedLocalTimer.isActive,
-        totalPausedTime: selectedLocalTimer.totalPausedTime
+        isLocalOnly: selectedLocalTimer.isLocalOnly,
       });
       
-      await addTimeEntry({
-        userId: currentUser.id,
-        taskId: selectedLocalTimer.taskId,
-        projectId: project?.id || null,
-        clientId: project?.clientId || null,
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-        duration: durationMinutes,
-        description: notes || null,
-        billable: true,
-        status: 'pending',
-      });
-
-      // Remove from localStorage
-      const savedTimers = localStorage.getItem('activeTimers');
-      if (savedTimers) {
-        const parsed = JSON.parse(savedTimers);
-        const filtered = parsed.filter((t: any) => t.id !== selectedLocalTimer.id);
-        localStorage.setItem('activeTimers', JSON.stringify(filtered));
-        window.dispatchEvent(new CustomEvent('timersUpdated'));
+      if (!selectedLocalTimer.isLocalOnly) {
+        // DB-backed timer - update existing entry with end_time
+        const { supabase } = await import('@/integrations/supabase/client');
+        await supabase
+          .from('time_entries')
+          .update({
+            end_time: endTime.toISOString(),
+            duration: Math.max(1, durationMinutes),
+            notes: notes || null,
+            timer_status: 'completed'
+          })
+          .eq('id', selectedLocalTimer.id);
+      } else {
+        // Local-only timer - create new entry
+        await addTimeEntry({
+          userId: currentUser.id,
+          taskId: selectedLocalTimer.taskId,
+          projectId: project?.id || null,
+          clientId: project?.clientId || null,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          duration: durationMinutes,
+          description: notes || null,
+          billable: true,
+          status: 'pending',
+        });
+        
+        // Remove from localStorage
+        const savedTimers = localStorage.getItem('activeTimers');
+        if (savedTimers) {
+          const parsed = JSON.parse(savedTimers);
+          const filtered = parsed.filter((t: any) => t.id !== selectedLocalTimer.id);
+          localStorage.setItem('activeTimers', JSON.stringify(filtered));
+          window.dispatchEvent(new CustomEvent('timersUpdated'));
+        }
       }
       
       setStopDialogOpen(false);
       setSelectedLocalTimer(null);
       setNotes("");
     } catch (error) {
-      console.error('Error stopping local timer:', error);
+      console.error('Error stopping timer:', error);
     }
   };
 
-  const handleDeleteLocalTimer = (timerId: string) => {
-    console.log('🗑️ Deleting local timer:', timerId.slice(0, 8));
+  const handleDeleteLocalTimer = async (timerId: string, isLocalOnly: boolean = true) => {
+    console.log('🗑️ Deleting timer:', timerId.slice(0, 8), 'isLocalOnly:', isLocalOnly);
+    
+    if (!isLocalOnly) {
+      // DB-backed timer - delete from database
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        await supabase.from('time_entries').delete().eq('id', timerId);
+        console.log('✅ Deleted paused timer from database');
+      } catch (err) {
+        console.error('Error deleting DB timer:', err);
+      }
+    }
+    
+    // Also remove from localStorage if present
     const savedTimers = localStorage.getItem('activeTimers');
     if (savedTimers) {
       const parsed = JSON.parse(savedTimers);
@@ -567,7 +656,7 @@ export function ActiveTimersSection({
                       if (isBackendTimer) {
                         handleDeleteBackendTimer();
                       } else {
-                        handleDeleteLocalTimer(timer.id);
+                        handleDeleteLocalTimer(timer.id, timer.isLocalOnly ?? true);
                       }
                     }}
                     className="h-8 w-8 p-0 text-destructive hover:text-destructive/90"

@@ -33,7 +33,7 @@ interface TimerBoxProps {
 }
 
 export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
-  const { activeTimeEntry, tasks, projects, clients, stopTimeTracking, startTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, getElapsedTime, addTimeEntry, currentUser } = useAppContext();
+  const { activeTimeEntry, tasks, projects, clients, stopTimeTracking, startTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, getElapsedTime, addTimeEntry, currentUser, pausedTimeEntries } = useAppContext();
   const [timers, setTimers] = useState<TimerItem[]>([]);
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [selectedTimer, setSelectedTimer] = useState<TimerItem | null>(null);
@@ -194,6 +194,43 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       setLastActiveEntryId(null);
     }
   }, [activeTimeEntry, isTimerPaused, tasks, projects, clients, lastActiveEntryId]);
+
+  // Sync DB-backed paused timers into the timer list
+  useEffect(() => {
+    if (!pausedTimeEntries || pausedTimeEntries.length === 0) return;
+    
+    setTimers(prev => {
+      let updated = [...prev];
+      for (const entry of pausedTimeEntries) {
+        if (!updated.find(t => t.id === entry.id)) {
+          const task = tasks.find(t => t.id === entry.taskId);
+          const project = entry.projectId ? projects.find(p => p.id === entry.projectId) : null;
+          const client = project?.clientId ? clients.find(c => c.id === project.clientId) : null;
+          updated.push({
+            id: entry.id,
+            taskId: entry.taskId || '',
+            taskTitle: task?.title || 'Unknown Task',
+            projectName: project?.name,
+            clientName: client?.name,
+            projectId: entry.projectId,
+            clientId: entry.clientId || project?.clientId,
+            startTime: new Date(entry.startTime),
+            elapsed: 0,
+            isPaused: true,
+            pausedAt: undefined,
+            totalPausedTime: 0,
+            isActive: false,
+            isLocalOnly: false,
+            userId: currentUser?.id,
+          });
+        }
+      }
+      // Remove timers that are no longer in pausedTimeEntries (they were resumed/stopped)
+      const pausedIds = new Set(pausedTimeEntries.map(e => e.id));
+      updated = updated.filter(t => t.isLocalOnly || !t.isPaused || t.id === activeTimeEntry?.id || pausedIds.has(t.id));
+      return updated;
+    });
+  }, [pausedTimeEntries, tasks, projects, clients]);
 
   // Update elapsed time for active timers (both local and backend)
   useEffect(() => {

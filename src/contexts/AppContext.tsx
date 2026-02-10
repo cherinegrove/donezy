@@ -42,6 +42,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
+  const [pausedTimeEntries, setPausedTimeEntries] = useState<TimeEntry[]>([]);
   const [isTimerPaused, setIsTimerPaused] = useState<boolean>(false);
   const [pausedAt, setPausedAt] = useState<Date | null>(null);
   const [totalPausedTime, setTotalPausedTime] = useState<number>(0);
@@ -429,7 +430,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         description: entry.notes || undefined,
         status: (entry.status as TimeEntryStatus) || 'pending',
         notes: entry.notes || undefined,
-        rejectionReason: entry.rejection_reason || undefined
+        rejectionReason: entry.rejection_reason || undefined,
+        timerStatus: entry.timer_status || undefined
       })) || [];
       
       console.log('✅ Converted time entries:', convertedTimeEntries);
@@ -442,10 +444,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
       
-      // Cleanup: Find and fix multiple active timers for current user
-      // Check both userId (text) and authUserId (uuid) fields for robust matching
+      // Only detect ACTIVE timers (not paused ones) for the main activeTimeEntry
       const activeEntries = convertedTimeEntries.filter(entry => 
-        !entry.endTime && (
+        !entry.endTime && (entry as any).timerStatus === 'active' && (
           entry.userId === currentAuthUserId || 
           entry.authUserId === currentAuthUserId ||
           entry.userId === currentAuthUserId.toString()
@@ -564,6 +565,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setTotalPausedTime(0);
         console.log('✅ No active timers found');
       }
+      
+      // Detect paused timers for current user (DB-backed paused timers)
+      const pausedEntries = convertedTimeEntries.filter(entry => 
+        !entry.endTime && (entry as any).timerStatus === 'paused' && (
+          entry.userId === currentAuthUserId || 
+          entry.authUserId === currentAuthUserId ||
+          entry.userId === currentAuthUserId.toString()
+        )
+      );
+      setPausedTimeEntries(pausedEntries);
+      console.log('⏸️ Found', pausedEntries.length, 'paused timers in database');
     } catch (error) {
       console.error('Error loading time entries:', error);
     }
@@ -2031,7 +2043,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           .from('time_entries')
           .select('id, start_time')
           .eq('user_id', currentUser.id)
-          .in('timer_status', ['active', 'paused']);
+          .eq('timer_status', 'active');
         
         if (!fetchError && activeTimers && activeTimers.length > 0) {
           console.log(`⚠️ Found ${activeTimers.length} active timer(s) that should have been stopped - stopping now`);
@@ -2273,7 +2285,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .from('time_entries')
         .select('id, start_time, task_id, project_id, client_id')
         .eq('user_id', currentUser.id)
-        .in('timer_status', ['active', 'paused']);
+        .eq('timer_status', 'active');
       
       if (fetchError) {
         console.error('Error fetching active timers:', fetchError);
@@ -2341,48 +2353,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             newTaskId: taskId
           });
           
-          // CRITICAL FIX: Save the paused timer DIRECTLY to localStorage here
-          // Don't rely on TimerBox event listener which may not be mounted
-          // Get task/project/client info for the local timer
-          const pausedTask = tasks.find(t => t.id === timer.task_id);
-          const pausedProject = projects.find(p => p.id === pausedTask?.projectId);
-          const pausedClient = clients.find(c => c.id === pausedProject?.clientId);
-          
-          const localTimer = {
-            id: timer.id,
-            taskId: timer.task_id || '',
-            taskTitle: pausedTask?.title || 'Unknown Task',
-            projectName: pausedProject?.name,
-            clientName: pausedClient?.name,
-            projectId: pausedProject?.id,
-            clientId: pausedClient?.id,
-            startTime: new Date(timer.start_time).toISOString(),
-            elapsed: elapsedMs,
-            isPaused: true,
-            pausedAt: new Date().toISOString(),
-            totalPausedTime: timerPausedTime, // Use the timer's OWN paused time, not global state
-            isActive: false,
-            isLocalOnly: true,
-            userId: currentUser.id
-          };
-          
-          // Read existing timers, add this one, and save
-          try {
-            const existingTimersJson = localStorage.getItem('activeTimers');
-            const existingTimers = existingTimersJson ? JSON.parse(existingTimersJson) : [];
-            
-            // Remove any existing timer with same ID to avoid duplicates
-            const filteredTimers = existingTimers.filter((t: any) => t.id !== timer.id);
-            filteredTimers.push(localTimer);
-            
-            localStorage.setItem('activeTimers', JSON.stringify(filteredTimers));
-            console.log('💾 Saved paused timer to localStorage:', timer.id.slice(0, 8), localTimer.taskTitle);
-            
-            // Notify other components that timers have been updated
-            window.dispatchEvent(new CustomEvent('timersUpdated'));
-          } catch (err) {
-            console.error('Error saving paused timer to localStorage:', err);
-          }
+          // Timer is now kept in DB with 'paused' status - no need for localStorage
+          // Just notify UI components to refresh
+          window.dispatchEvent(new CustomEvent('timersUpdated'));
           
           // Also broadcast event for TimerBox UI update (if mounted)
           window.dispatchEvent(new CustomEvent('pauseActiveTimer', { 
@@ -2393,17 +2366,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             } 
           }));
           
-          // DELETE the backend timer entry (don't set end_time - that creates a completed entry)
-          // The timer will continue to exist locally until the user saves or deletes it
-          const { error: deleteError } = await supabase
+          // KEEP the timer in the database with paused status instead of deleting
+          // This ensures paused timers persist across browser sessions and devices
+          const { error: pauseError } = await supabase
             .from('time_entries')
-            .delete()
+            .update({ timer_status: 'paused' })
             .eq('id', timer.id);
           
-          if (deleteError) {
-            console.error('Error deleting timer to pause:', timer.id, deleteError);
+          if (pauseError) {
+            console.error('Error pausing timer in DB:', timer.id, pauseError);
           } else {
-            console.log('✅ Deleted backend timer (now local-only paused):', timer.id);
+            console.log('✅ Timer paused in database:', timer.id);
           }
         }
         
@@ -4111,6 +4084,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     notes,
     customFields,
     activeTimeEntry,
+    pausedTimeEntries,
     isTimerPaused,
     pausedAt,
     totalPausedTime,
