@@ -1,30 +1,41 @@
 // Timer System Rules
 // ===================
 // 
-// RULE 1: Only ONE timer can be actively running at a time (the "backend timer")
-//         - This timer is synced to the database via activeTimeEntry in AppContext
-//         - All other timers are "local-only" and tracked only in the browser
+// RULE 1: Only ONE timer can be actively running at a time
+//         - This timer has timer_status='active' in the database
+//         - ALL timers are ALWAYS stored in the database (never local-only)
 //
 // RULE 2: When a new timer starts, the currently active timer is PAUSED
-//         - The active timer is converted to a local-only paused timer
-//         - The new timer becomes the active backend timer
+//         - The active timer's status is updated to 'paused' in the database
+//         - The new timer becomes the active timer
 //
-// RULE 3: Paused timers remain visible and can be resumed
-//         - When resumed, they become the new active backend timer
+// RULE 3: Paused timers remain in the database and can be resumed
+//         - When resumed, they are updated to 'active' status (NOT deleted and recreated)
 //         - The previously active timer (if any) is paused
 //
 // RULE 4: Users can have multiple paused timers
 //         - There's no limit on paused timers
-//         - Each tracks its own elapsed time and paused duration
+//         - Each tracks its own elapsed time via time_entry_events
 //
-// RULE 5: Stopping a timer removes it from the list
-//         - The time is saved to the database
-//         - The timer is deleted from local storage
+// RULE 5: Stopping a timer marks it as 'completed' with an end_time
+//         - The time entry is NEVER deleted from the database
+//         - Users must explicitly decline/cancel a timer
+//
+// RULE 6: NO HARD DELETES - timers are NEVER deleted from the database
+//         - Cancelled timers get timer_status='cancelled'
+//         - This preserves the full audit trail for financial tracking
+//         - Only users can explicitly cancel their own timers
+//
+// RULE 7: NO LOCAL-ONLY TIMERS
+//         - Every timer must be persisted to the database immediately on creation
+//         - localStorage is only used for legacy compatibility, not as primary storage
 
 export const TIMER_RULES = {
   MAX_ACTIVE_TIMERS: 1,
   AUTO_PAUSE_ON_NEW: true,
-  PERSIST_PAUSED_TIMERS: true,
+  PERSIST_ALL_TIMERS_TO_DB: true,
+  NEVER_HARD_DELETE: true,
+  NO_LOCAL_ONLY_TIMERS: true,
 } as const;
 
 export const getTimerRuleSummary = () => {
@@ -32,8 +43,10 @@ export const getTimerRuleSummary = () => {
 Timer System Rules:
 • Only 1 timer can run at a time (synced to backend)
 • Starting a new timer pauses the current one
-• Paused timers remain visible and can be resumed
-• Resuming a timer pauses the currently active one
+• ALL timers are saved to the database (no local-only timers)
+• Paused timers persist in the database and can be resumed
+• Resuming updates the existing DB entry (no delete+recreate)
+• Timers are NEVER hard-deleted (soft-delete with 'cancelled' status)
 • No limit on paused timers
   `.trim();
 };
