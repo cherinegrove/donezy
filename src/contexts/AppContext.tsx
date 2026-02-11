@@ -510,7 +510,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             let currentPausedAt: Date | null = null;
             
             for (const event of allEvents) {
-              if (event.event_type === 'paused') {
+              if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
                 currentlyPaused = true;
                 const pausedAtStr = (event.details as any)?.pausedAt;
                 currentPausedAt = pausedAtStr ? new Date(pausedAtStr) : new Date(event.event_timestamp);
@@ -519,6 +519,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                 const pauseDuration = (event.details as any)?.pauseDuration;
                 if (typeof pauseDuration === 'number' && pauseDuration > 0) {
                   accumulatedPausedTime += pauseDuration;
+                } else if (currentPausedAt) {
+                  // Fallback: calculate from timestamps when pauseDuration not in details
+                  const resumedAt = new Date(event.event_timestamp);
+                  accumulatedPausedTime += resumedAt.getTime() - currentPausedAt.getTime();
                 }
                 currentlyPaused = false;
                 currentPausedAt = null;
