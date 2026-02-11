@@ -302,12 +302,21 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
             .update({ timer_status: 'active' })
             .eq('id', timer.id);
           
+          // Calculate pause duration so restore logic can reconstruct totalPausedTime
+          const pauseDuration = timer.pausedAt 
+            ? Date.now() - timer.pausedAt.getTime() 
+            : 0;
+          
           await supabase.from('time_entry_events').insert({
             time_entry_id: timer.id,
             auth_user_id: currentUser?.auth_user_id || currentUser?.id || '',
             event_type: 'resumed',
             event_timestamp: new Date().toISOString(),
-            details: { resumedAt: new Date().toISOString() }
+            details: { 
+              resumedAt: new Date().toISOString(),
+              pauseDuration,
+              pauseDurationMinutes: Math.floor(pauseDuration / (1000 * 60))
+            }
           });
           
           console.log('✅ Timer resumed in DB (no delete):', timer.id);
