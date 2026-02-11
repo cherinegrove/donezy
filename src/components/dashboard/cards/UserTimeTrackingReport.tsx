@@ -2,12 +2,15 @@ import { useMemo, useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, TrendingUp, ChevronDown, ChevronRight, LucideIcon, CheckCircle, FileText, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Clock, Calendar, TrendingUp, ChevronDown, ChevronRight, LucideIcon, CheckCircle, FileText, XCircle, CalendarIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, parseISO, format } from "date-fns";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
-
+import { cn } from "@/lib/utils";
 interface PeriodData {
   totalHours: string;
   approvedHours: string;
@@ -215,6 +218,8 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
   const [openProjects, setOpenProjects] = useState<Record<string, boolean>>({});
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
+  const [summaryDateFrom, setSummaryDateFrom] = useState<Date | undefined>(startOfMonth(new Date()));
+  const [summaryDateTo, setSummaryDateTo] = useState<Date | undefined>(endOfDay(new Date()));
 
   const targetUserId = userId || currentUser?.auth_user_id;
   const targetUser = users.find(u => u.auth_user_id === targetUserId);
@@ -405,7 +410,7 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
   const lastMonthEnd = endOfMonth(subMonths(now, 1));
   const lastMonthData = calculatePeriodData(lastMonthStart, lastMonthEnd);
 
-  // Calculate overall totals for summary cards
+  // Calculate overall totals for summary cards - filtered by date range
   const overallTotals = useMemo(() => {
     let total = 0;
     let approvedBillable = 0;
@@ -413,6 +418,13 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
     let declined = 0;
 
     userTimeEntries.forEach(entry => {
+      // Apply date range filter
+      if (summaryDateFrom || summaryDateTo) {
+        const entryDate = parseISO(entry.startTime);
+        if (summaryDateFrom && entryDate < startOfDay(summaryDateFrom)) return;
+        if (summaryDateTo && entryDate > endOfDay(summaryDateTo)) return;
+      }
+
       total += entry.duration || 0;
       const status = entry.status || 'pending';
       if (status === 'approved-billable') {
@@ -425,7 +437,7 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
     });
 
     return { total, approvedBillable, approvedNonBillable, declined };
-  }, [userTimeEntries]);
+  }, [userTimeEntries, summaryDateFrom, summaryDateTo]);
 
   const formatDurationMinutes = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -461,6 +473,57 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
             filters={filterOptions} 
             onFilterChange={setSelectedFilters} 
           />
+        </div>
+
+        {/* Date Range Filter for Summary */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="text-sm font-medium text-muted-foreground">Summary period:</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal", !summaryDateFrom && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {summaryDateFrom ? format(summaryDateFrom, "MMM d, yyyy") : "Start date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={summaryDateFrom}
+                onSelect={setSummaryDateFrom}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <span className="text-sm text-muted-foreground">to</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal", !summaryDateTo && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {summaryDateTo ? format(summaryDateTo, "MMM d, yyyy") : "End date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={summaryDateTo}
+                onSelect={setSummaryDateTo}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSummaryDateFrom(undefined);
+              setSummaryDateTo(undefined);
+            }}
+            className="text-xs"
+          >
+            All Time
+          </Button>
         </div>
 
         {/* Summary Cards */}
