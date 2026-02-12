@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Clock, Calendar, TrendingUp, ChevronDown, ChevronRight, LucideIcon, CheckCircle, FileText, XCircle, CalendarIcon } from "lucide-react";
+import { Clock, Calendar, TrendingUp, ChevronDown, ChevronRight, LucideIcon, CheckCircle, FileText, XCircle, CalendarIcon, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, parseISO, format } from "date-fns";
@@ -416,6 +416,7 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
     let approvedBillable = 0;
     let approvedNonBillable = 0;
     let declined = 0;
+    let pending = 0;
 
     userTimeEntries.forEach(entry => {
       // Apply date range filter
@@ -433,10 +434,12 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
         approvedNonBillable += entry.duration || 0;
       } else if (status === 'declined') {
         declined += entry.duration || 0;
+      } else {
+        pending += entry.duration || 0;
       }
     });
 
-    return { total, approvedBillable, approvedNonBillable, declined };
+    return { total, approvedBillable, approvedNonBillable, declined, pending };
   }, [userTimeEntries, summaryDateFrom, summaryDateTo]);
 
   const formatDurationMinutes = (minutes: number) => {
@@ -527,7 +530,7 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <div className="p-4 rounded-lg bg-muted/50 border">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
@@ -558,6 +561,17 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
               <div>
                 <p className="text-sm text-muted-foreground">Approved Non-Billable</p>
                 <p className="text-xl font-bold">{formatDurationMinutes(overallTotals.approvedNonBillable)}</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 rounded-lg bg-muted/50 border">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-yellow-500/10 rounded-lg">
+                <AlertCircle className="h-5 w-5 text-yellow-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Pending</p>
+                <p className="text-xl font-bold">{formatDurationMinutes(overallTotals.pending)}</p>
               </div>
             </div>
           </div>
