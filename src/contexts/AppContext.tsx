@@ -2287,6 +2287,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Mutex to prevent race conditions when starting timers
   const isStartingTimer = React.useRef(false);
+  const isPausingTimer = React.useRef(false);
 
   const startTimeTracking = async (taskId?: string, projectId?: string, clientId?: string, resumeFromElapsedMs?: number) => {
     if (!session?.user || !currentUser) return;
@@ -2366,15 +2367,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             finalElapsedMin: Math.floor(elapsedMs / (1000 * 60))
           });
           
-          // Log the auto-pause event BEFORE deleting the timer
-          // This creates a clear audit trail showing why the timer was paused
-          await logTimeEntryEvent(timer.id, 'auto_paused', {
-            reason: 'New timer started',
-            pausedAt: new Date().toISOString(),
-            elapsedMs: elapsedMs,
-            timerPausedTime: timerPausedTime,
-            newTaskId: taskId
-          });
+          // Check if there's already a recent pause/auto_paused event to prevent duplicates
+          const { data: recentPauseEvents } = await supabase
+            .from('time_entry_events')
+            .select('id, event_type, event_timestamp')
+            .eq('time_entry_id', timer.id)
+            .in('event_type', ['paused', 'auto_paused'])
+            .order('event_timestamp', { ascending: false })
+            .limit(1);
+          
+          const lastPauseEvent = recentPauseEvents?.[0];
+          const lastPauseAge = lastPauseEvent 
+            ? Date.now() - new Date(lastPauseEvent.event_timestamp).getTime() 
+            : Infinity;
+          
+          // Only log if no pause event in the last 5 seconds (prevents duplicates)
+          if (lastPauseAge > 5000) {
+            await logTimeEntryEvent(timer.id, 'auto_paused', {
+              reason: 'New timer started',
+              pausedAt: new Date().toISOString(),
+              elapsedMs: elapsedMs,
+              timerPausedTime: timerPausedTime,
+              newTaskId: taskId
+            });
+          } else {
+            console.log(`⚠️ Skipping duplicate auto_paused event for timer ${timer.id.slice(0, 8)} (last pause was ${Math.floor(lastPauseAge / 1000)}s ago)`);
+          }
           
           // Timer is now kept in DB with 'paused' status - no need for localStorage
           // Just notify UI components to refresh
@@ -2611,20 +2629,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const pauseTimeTracking = async () => {
     if (!activeTimeEntry || isTimerPaused) return;
     
-    setIsTimerPaused(true);
-    setPausedAt(new Date());
-    console.log('⏸️ Timer paused in AppContext');
+    // Prevent duplicate pause calls (race condition guard)
+    if (isPausingTimer.current) {
+      console.log('⚠️ Already pausing timer, ignoring duplicate call');
+      return;
+    }
+    isPausingTimer.current = true;
     
-    // Update timer_status in database
-    await supabase
-      .from('time_entries')
-      .update({ timer_status: 'paused' })
-      .eq('id', activeTimeEntry.id);
-    
-    // Log the pause event
-    await logTimeEntryEvent(activeTimeEntry.id, 'paused', {
-      pausedAt: new Date().toISOString()
-    });
+    try {
+      const pausedAtTime = new Date();
+      setIsTimerPaused(true);
+      setPausedAt(pausedAtTime);
+      console.log('⏸️ Timer paused in AppContext');
+      
+      // Update timer_status in database
+      await supabase
+        .from('time_entries')
+        .update({ timer_status: 'paused' })
+        .eq('id', activeTimeEntry.id);
+      
+      // Log the pause event
+      await logTimeEntryEvent(activeTimeEntry.id, 'paused', {
+        pausedAt: pausedAtTime.toISOString()
+      });
+    } finally {
+      isPausingTimer.current = false;
+    }
   };
 
   const resumeTimeTracking = async () => {
