@@ -230,7 +230,7 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
   const [openProjects, setOpenProjects] = useState<Record<string, boolean>>({});
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
   const [summaryDateFrom, setSummaryDateFrom] = useState<Date | undefined>(startOfMonth(new Date()));
-  const [summaryDateTo, setSummaryDateTo] = useState<Date | undefined>(endOfDay(new Date()));
+  const [summaryDateTo, setSummaryDateTo] = useState<Date | undefined>(endOfMonth(new Date()));
 
   const targetUserId = userId || currentUser?.auth_user_id;
   const targetUser = users.find(u => u.auth_user_id === targetUserId);
