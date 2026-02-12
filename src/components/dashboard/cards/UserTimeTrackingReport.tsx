@@ -11,7 +11,18 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, parseISO, format } from "date-fns";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { cn } from "@/lib/utils";
+const formatDurationHM = (minutes: number) => {
+  const hours = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+  if (hours === 0) return `${mins}m`;
+  return `${hours}h ${mins}m`;
+};
+
 interface PeriodData {
+  totalMinutes: number;
+  approvedMinutes: number;
+  declinedMinutes: number;
+  pendingMinutes: number;
   totalHours: string;
   approvedHours: string;
   declinedHours: string;
@@ -72,7 +83,7 @@ const PeriodDisplay = ({
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="font-mono">
-                {data.totalHours}h
+                {formatDurationHM(data.totalMinutes)}
               </Badge>
               {isExpanded ? (
                 <ChevronDown className="h-4 w-4" />
@@ -87,17 +98,17 @@ const PeriodDisplay = ({
           <div className="flex items-center gap-2 mb-3 text-xs flex-wrap">
             {data.approvedCount > 0 && (
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
-                ✓ {data.approvedHours}h approved ({data.approvedCount})
+                ✓ {formatDurationHM(data.approvedMinutes)} approved ({data.approvedCount})
               </Badge>
             )}
             {data.pendingCount > 0 && (
               <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
-                ⏱ {data.pendingHours}h pending ({data.pendingCount})
+                ⏱ {formatDurationHM(data.pendingMinutes)} pending ({data.pendingCount})
               </Badge>
             )}
             {data.declinedCount > 0 && (
               <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
-                ✗ {data.declinedHours}h declined ({data.declinedCount})
+                ✗ {formatDurationHM(data.declinedMinutes)} declined ({data.declinedCount})
               </Badge>
             )}
           </div>
@@ -384,6 +395,10 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
     }, {} as Record<string, any>);
 
     return {
+      totalMinutes: totalHours,
+      approvedMinutes: approvedHours,
+      declinedMinutes: declinedHours,
+      pendingMinutes: pendingHours,
       totalHours: (totalHours / 60).toFixed(2),
       approvedHours: (approvedHours / 60).toFixed(2),
       declinedHours: (declinedHours / 60).toFixed(2),
