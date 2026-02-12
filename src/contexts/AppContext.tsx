@@ -2065,6 +2065,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         }
       }
       
+      // CRITICAL: Set timer_status based on whether the entry has an endTime
+      // Manual entries (with endTime) must be 'completed' to prevent the active timer
+      // cleanup logic from treating them as orphaned active timers and overwriting them
+      const timerStatus = timeEntry.endTime ? 'completed' : 'active';
+      
       const { data, error } = await supabase
         .from('time_entries')
         .insert({
@@ -2078,7 +2083,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           duration: timeEntry.duration,
           notes: timeEntry.description,
           status: timeEntry.status || 'pending',
-          rejection_reason: timeEntry.rejectionReason
+          rejection_reason: timeEntry.rejectionReason,
+          timer_status: timerStatus
         })
         .select()
         .single();
@@ -2101,7 +2107,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           description: data.notes || undefined,
           status: (data.status as TimeEntryStatus) || 'pending',
           notes: data.notes || undefined,
-          rejectionReason: data.rejection_reason || undefined
+          rejectionReason: data.rejection_reason || undefined,
+          timerStatus: data.timer_status || undefined
         };
         setTimeEntries(prev => [...prev, newTimeEntry]);
         
