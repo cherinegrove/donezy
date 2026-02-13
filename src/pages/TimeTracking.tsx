@@ -216,30 +216,68 @@ const TimeTracking = () => {
     }
   }, [isSuperAdmin, users, tasks, projects, clients]);
 
-  // Fetch cancelled/deleted time entries
+  // Fetch all abnormal time entries: cancelled, orphaned, lost, or otherwise non-standard
   const fetchCancelledEntries = async () => {
     setLoadingCancelled(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      let query = supabase
+      // Fetch cancelled/soft-deleted entries
+      let cancelledQuery = supabase
         .from('time_entries')
         .select('*')
-        .eq('timer_status', 'cancelled')
-        .order('end_time', { ascending: false });
-
-      // Non-admins only see their own
+        .eq('timer_status', 'cancelled');
       if (!isAdminUser()) {
-        query = query.eq('user_id', session.user.id);
+        cancelledQuery = cancelledQuery.eq('user_id', session.user.id);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
+      // Fetch orphaned entries: no end_time AND not actively running or paused
+      // These are timers that were "lost" (e.g. browser closed, app crashed)
+      let orphanedQuery = supabase
+        .from('time_entries')
+        .select('*')
+        .is('end_time', null)
+        .not('timer_status', 'in', '("active","paused")');
+      if (!isAdminUser()) {
+        orphanedQuery = orphanedQuery.eq('user_id', session.user.id);
+      }
 
-      setCancelledEntries(data || []);
+      // Fetch entries with unknown/null timer_status (legacy or corrupted)
+      let unknownStatusQuery = supabase
+        .from('time_entries')
+        .select('*')
+        .is('timer_status', null);
+      if (!isAdminUser()) {
+        unknownStatusQuery = unknownStatusQuery.eq('user_id', session.user.id);
+      }
+
+      const [cancelledRes, orphanedRes, unknownRes] = await Promise.all([
+        cancelledQuery,
+        orphanedQuery,
+        unknownStatusQuery,
+      ]);
+
+      if (cancelledRes.error) throw cancelledRes.error;
+      if (orphanedRes.error) throw orphanedRes.error;
+      if (unknownRes.error) throw unknownRes.error;
+
+      // Merge and deduplicate by id
+      const allEntries = [
+        ...(cancelledRes.data || []),
+        ...(orphanedRes.data || []),
+        ...(unknownRes.data || []),
+      ];
+      const uniqueMap = new Map(allEntries.map(e => [e.id, e]));
+      const merged = Array.from(uniqueMap.values()).sort((a, b) => {
+        const dateA = a.end_time || a.start_time || a.created_at;
+        const dateB = b.end_time || b.start_time || b.created_at;
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      });
+
+      setCancelledEntries(merged);
     } catch (err) {
-      console.error('Error fetching cancelled entries:', err);
+      console.error('Error fetching deleted/orphaned entries:', err);
     } finally {
       setLoadingCancelled(false);
     }
@@ -1840,7 +1878,7 @@ const TimeTracking = () => {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Trash2 className="h-5 w-5 text-destructive" />
-                  Deleted Timers
+                  Deleted &amp; Lost Timers
                 </CardTitle>
                 <Button variant="outline" size="sm" onClick={fetchCancelledEntries}>
                   <RefreshCw className="h-4 w-4 mr-1" />
@@ -1848,7 +1886,7 @@ const TimeTracking = () => {
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground">
-                Timers that were discarded or cancelled. These entries are preserved for audit purposes.
+                Catch-all for timers that were cancelled, orphaned (lost due to browser crash or app error), or have an unknown status. Preserved for audit purposes.
               </p>
             </CardHeader>
             <CardContent>
@@ -1859,8 +1897,8 @@ const TimeTracking = () => {
               ) : cancelledEntries.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground">
                   <Trash2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                  <p className="text-lg">No deleted timers</p>
-                  <p className="text-sm">Timers you discard will appear here.</p>
+                  <p className="text-lg">No deleted or lost timers</p>
+                  <p className="text-sm">Discarded, orphaned, or otherwise abnormal timers will appear here.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -1906,7 +1944,9 @@ const TimeTracking = () => {
                           <div className="flex flex-col text-sm md:text-center">
                             <p className="text-muted-foreground">{entry.notes || "No description"}</p>
                             <div className="mt-2">
-                              <Badge variant="destructive" className="text-xs">Deleted</Badge>
+                              <Badge variant="destructive" className="text-xs">
+                                {entry.timer_status === 'cancelled' ? 'Deleted' : !entry.end_time ? 'Orphaned' : entry.timer_status ? entry.timer_status : 'Unknown'}
+                              </Badge>
                             </div>
                           </div>
                           
