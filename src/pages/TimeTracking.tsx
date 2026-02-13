@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfMonth, endOfMonth, isWithinInterval, endOfDay, startOfDay } from "date-fns";
-import { Play, Clock, Calendar, ChevronDown, ChevronRight, Plus, Pause, Save, Edit, Download, FileText, Building2, Timer, RefreshCw, Pencil } from "lucide-react";
+import { Play, Clock, Calendar, ChevronDown, ChevronRight, ChevronUp, Plus, Pause, Save, Edit, Download, FileText, Building2, Timer, RefreshCw, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ActiveTimersSection } from "@/components/time/ActiveTimersSection";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -57,6 +57,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { generateClientMonthlyReportCSV, generateClientDetailedReportCSV, downloadCSV } from "@/utils/exportUtils";
+import { TimeEntryEventLog } from "@/components/time/TimeEntryEventLog";
 
 const TimeTracking = () => {
   const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser, updateTimeEntryStatus, stopTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, getElapsedTime, customRoles, pausedTimeEntries } = useAppContext();
@@ -71,6 +72,7 @@ const TimeTracking = () => {
   const [isStartTimerDialogOpen, setIsStartTimerDialogOpen] = useState(false);
   // Manual adjustments state for time entries
   const [manualAdjustments, setManualAdjustments] = useState<Record<string, { total: number; count: number }>>({});
+  const [expandedLogEntryId, setExpandedLogEntryId] = useState<string | null>(null);
   
   // User report state
   const [selectedReportUserId, setSelectedReportUserId] = useState<string>(currentUser?.auth_user_id || "");
@@ -1281,14 +1283,21 @@ const TimeTracking = () => {
                       const user = users.find(u => u.id === entry.userId);
                       
                       return (
+                        <div key={entry.id}>
                         <div 
-                          key={entry.id} 
                           className={cn(
-                            "grid grid-cols-1 md:grid-cols-3 gap-3 p-3 rounded-md",
-                            entry.manuallyAdded || entry.edited ? "bg-yellow-50/50 dark:bg-yellow-900/10" : "bg-muted/20"
+                            "grid grid-cols-1 md:grid-cols-3 gap-3 p-3 rounded-md cursor-pointer",
+                            entry.manuallyAdded || entry.edited ? "bg-yellow-50/50 dark:bg-yellow-900/10" : "bg-muted/20",
+                            expandedLogEntryId === entry.id && "ring-1 ring-primary/30"
                           )}
+                          onClick={() => setExpandedLogEntryId(expandedLogEntryId === entry.id ? null : entry.id)}
                         >
                           <div className="flex items-center gap-3">
+                            {expandedLogEntryId === entry.id ? (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            )}
                             <Avatar className="h-8 w-8">
                               <AvatarImage src={user?.avatar} />
                               <AvatarFallback>{user?.name.slice(0, 2) || "U"}</AvatarFallback>
@@ -1362,6 +1371,7 @@ const TimeTracking = () => {
                                       variant="ghost" 
                                       size="sm"
                                       className="h-8 w-8 p-0 bg-background border border-border hover:bg-accent"
+                                      onClick={(e) => e.stopPropagation()}
                                     >
                                       <ChevronDown className="h-4 w-4" />
                                     </Button>
@@ -1448,6 +1458,13 @@ const TimeTracking = () => {
                               )}
                             </div>
                           </div>
+                        </div>
+                        
+                        {expandedLogEntryId === entry.id && (
+                          <div className="border border-border rounded-b-md bg-muted/30 max-h-64 overflow-y-auto -mt-1">
+                            <TimeEntryEventLog timeEntryId={entry.id} />
+                          </div>
+                        )}
                         </div>
                       );
                     })}
