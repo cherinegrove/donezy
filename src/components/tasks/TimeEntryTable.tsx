@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Clock, MoreHorizontal, CheckCircle, XCircle, RotateCcw, Pencil } from "lucide-react";
+import { Edit, Trash2, Clock, MoreHorizontal, CheckCircle, XCircle, RotateCcw, Pencil, ChevronDown, ChevronRight } from "lucide-react";
+import { TimeEntryEventLog } from "@/components/time/TimeEntryEventLog";
 import { format } from "date-fns";
 import { TimeEntry, TimeEntryStatus } from "@/types";
 import {
@@ -47,6 +48,19 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
   const { timeEntries, deleteTimeEntry, updateTimeEntryStatus, tasks, projects, clients, users, activeTimeEntry, currentUser, customRoles, getElapsedTime } = useAppContext();
   const { toast } = useToast();
   const [manualAdjustments, setManualAdjustments] = useState<Record<string, ManualAdjustment>>({});
+  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (entryId: string) => {
+    setExpandedEntries(prev => {
+      const next = new Set(prev);
+      if (next.has(entryId)) {
+        next.delete(entryId);
+      } else {
+        next.add(entryId);
+      }
+      return next;
+    });
+  };
 
   // Fetch manual edit events for all entries
   useEffect(() => {
@@ -328,10 +342,20 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
             const isOtherUserUnsaved = isUnsaved && !isActive;
             const duration = isUnsaved ? calculateActiveDuration(entry) : entry.duration;
             
+            const isExpanded = expandedEntries.has(entry.id);
+            const colCount = 7 + (showAllDetails && !taskId ? 1 : 0) + (showAllDetails && !projectId ? 1 : 0) + (showAllDetails ? 1 : 0);
+            
             return (
-              <TableRow key={entry.id} className={isActive ? "bg-green-50 dark:bg-green-900/20" : isOtherUserUnsaved ? "bg-orange-50 dark:bg-orange-900/20" : ""}>
+              <React.Fragment key={entry.id}>
+              <TableRow 
+                className={`cursor-pointer ${isActive ? "bg-green-50 dark:bg-green-900/20" : isOtherUserUnsaved ? "bg-orange-50 dark:bg-orange-900/20" : "hover:bg-muted/50"}`}
+                onClick={() => toggleExpanded(entry.id)}
+              >
                 <TableCell className="font-mono text-sm">
-                  {formatTime(entry.startTime)}
+                  <div className="flex items-center gap-1">
+                    {isExpanded ? <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />}
+                    {formatTime(entry.startTime)}
+                  </div>
                 </TableCell>
                 <TableCell className="font-mono">
                   <div className="flex items-center gap-2">
@@ -522,6 +546,14 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
                   </div>
                 </TableCell>
               </TableRow>
+              {isExpanded && (
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableCell colSpan={colCount} className="p-0">
+                    <TimeEntryEventLog timeEntryId={entry.id} />
+                  </TableCell>
+                </TableRow>
+              )}
+              </React.Fragment>
             );
           })}
         </TableBody>
