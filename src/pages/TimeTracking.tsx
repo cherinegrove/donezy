@@ -1878,7 +1878,7 @@ const TimeTracking = () => {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Trash2 className="h-5 w-5 text-destructive" />
-                  Deleted &amp; Lost Timers
+                  Deleted Timers
                 </CardTitle>
                 <Button variant="outline" size="sm" onClick={fetchCancelledEntries}>
                   <RefreshCw className="h-4 w-4 mr-1" />
