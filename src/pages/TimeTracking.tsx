@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfMonth, endOfMonth, isWithinInterval, endOfDay, startOfDay } from "date-fns";
-import { Play, Clock, Calendar, ChevronDown, ChevronRight, ChevronUp, Plus, Pause, Save, Edit, Download, FileText, Building2, Timer, RefreshCw, Pencil } from "lucide-react";
+import { Play, Clock, Calendar, ChevronDown, ChevronRight, ChevronUp, Plus, Pause, Save, Edit, Download, FileText, Building2, Timer, RefreshCw, Pencil, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ActiveTimersSection } from "@/components/time/ActiveTimersSection";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -73,6 +73,9 @@ const TimeTracking = () => {
   // Manual adjustments state for time entries
   const [manualAdjustments, setManualAdjustments] = useState<Record<string, { total: number; count: number }>>({});
   const [expandedLogEntryId, setExpandedLogEntryId] = useState<string | null>(null);
+  const [cancelledEntries, setCancelledEntries] = useState<any[]>([]);
+  const [loadingCancelled, setLoadingCancelled] = useState(false);
+  const [expandedCancelledId, setExpandedCancelledId] = useState<string | null>(null);
   
   // User report state
   const [selectedReportUserId, setSelectedReportUserId] = useState<string>(currentUser?.auth_user_id || "");
@@ -212,6 +215,41 @@ const TimeTracking = () => {
       fetchAllActiveTimers();
     }
   }, [isSuperAdmin, users, tasks, projects, clients]);
+
+  // Fetch cancelled/deleted time entries
+  const fetchCancelledEntries = async () => {
+    setLoadingCancelled(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      let query = supabase
+        .from('time_entries')
+        .select('*')
+        .eq('timer_status', 'cancelled')
+        .order('end_time', { ascending: false });
+
+      // Non-admins only see their own
+      if (!isAdminUser()) {
+        query = query.eq('user_id', session.user.id);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      setCancelledEntries(data || []);
+    } catch (err) {
+      console.error('Error fetching cancelled entries:', err);
+    } finally {
+      setLoadingCancelled(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'deleted') {
+      fetchCancelledEntries();
+    }
+  }, [activeTab]);
 
   // Filter state - default to current user's entries for non-admins
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
@@ -1169,6 +1207,10 @@ const TimeTracking = () => {
               <span className="sm:hidden">Users</span>
             </TabsTrigger>
           )}
+          <TabsTrigger value="deleted" className="text-xs sm:text-sm">
+            <Trash2 className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Deleted</span>
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="active" className="space-y-6">
@@ -1790,6 +1832,111 @@ const TimeTracking = () => {
             )}
           </TabsContent>
         )}
+
+        {/* Deleted/Cancelled Timers Tab */}
+        <TabsContent value="deleted" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Trash2 className="h-5 w-5 text-destructive" />
+                  Deleted Timers
+                </CardTitle>
+                <Button variant="outline" size="sm" onClick={fetchCancelledEntries}>
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Refresh
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Timers that were discarded or cancelled. These entries are preserved for audit purposes.
+              </p>
+            </CardHeader>
+            <CardContent>
+              {loadingCancelled ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                </div>
+              ) : cancelledEntries.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  <Trash2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-lg">No deleted timers</p>
+                  <p className="text-sm">Timers you discard will appear here.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {cancelledEntries.map(entry => {
+                    const user = users.find(u => u.auth_user_id === entry.user_id);
+                    const task = entry.task_id ? tasks.find(t => t.id === entry.task_id) : null;
+                    const project = entry.project_id ? projects.find(p => p.id === entry.project_id) : 
+                                   (task ? projects.find(p => p.id === task.projectId) : null);
+                    const client = project ? clients.find(c => c.id === project.clientId) : null;
+                    
+                    const startTime = entry.start_time ? new Date(entry.start_time) : null;
+                    const endTime = entry.end_time ? new Date(entry.end_time) : null;
+                    const durationMinutes = entry.duration || 0;
+
+                    return (
+                      <div key={entry.id}>
+                        <div
+                          className={cn(
+                            "grid grid-cols-1 md:grid-cols-3 gap-3 p-3 rounded-md cursor-pointer bg-destructive/5 border border-destructive/10",
+                            expandedCancelledId === entry.id && "ring-1 ring-destructive/30"
+                          )}
+                          onClick={() => setExpandedCancelledId(expandedCancelledId === entry.id ? null : entry.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            {expandedCancelledId === entry.id ? (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            )}
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={user?.avatar} />
+                              <AvatarFallback>{user?.name?.slice(0, 2) || "U"}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium line-through opacity-70">{task?.title || "Unknown Task"}</p>
+                              <div className="flex flex-col text-xs text-muted-foreground">
+                                <span>{project?.name || "No project"}</span>
+                                <span>{client?.name || "No client"}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col text-sm md:text-center">
+                            <p className="text-muted-foreground">{entry.notes || "No description"}</p>
+                            <div className="mt-2">
+                              <Badge variant="destructive" className="text-xs">Deleted</Badge>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between md:justify-end gap-3">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-3 w-3 text-muted-foreground" />
+                              <span className="font-mono">
+                                {Math.floor(durationMinutes / 60)}h {durationMinutes % 60}m
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {startTime && format(startTime, "MMM d, HH:mm")}
+                              {endTime && ` - ${format(endTime, "HH:mm")}`}
+                            </div>
+                          </div>
+                        </div>
+
+                        {expandedCancelledId === entry.id && (
+                          <div className="border border-border rounded-b-md bg-muted/30 max-h-64 overflow-y-auto -mt-1">
+                            <TimeEntryEventLog timeEntryId={entry.id} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
       
       {/* Add Time Entry Dialog */}
