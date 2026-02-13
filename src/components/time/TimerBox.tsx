@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Play, Pause, Save, Timer, Trash2 } from "lucide-react";
+import { Clock, Play, Pause, Save, Timer, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { TimeEntryEventLog } from "@/components/time/TimeEntryEventLog";
 
 interface TimerItem {
   id: string;
@@ -39,6 +40,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   const [selectedTimer, setSelectedTimer] = useState<TimerItem | null>(null);
   const [notes, setNotes] = useState("");
   const [newlyCreatedTimerId, setNewlyCreatedTimerId] = useState<string | null>(null);
+  const [expandedTimerId, setExpandedTimerId] = useState<string | null>(null);
 
   // Load timers from localStorage on mount - filter to current user only and validate against backend
   useEffect(() => {
@@ -579,6 +581,21 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                       </Button>
                     </div>
                   </div>
+                  
+                  {/* Event Log Toggle */}
+                  <button
+                    onClick={() => setExpandedTimerId(expandedTimerId === timer.id ? null : timer.id)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-full px-3 pb-2"
+                  >
+                    {expandedTimerId === timer.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    Event Log
+                  </button>
+                  
+                  {expandedTimerId === timer.id && (
+                    <div className="border-t bg-muted/30 rounded-b-lg max-h-48 overflow-y-auto">
+                      <TimeEntryEventLog timeEntryId={timer.id} />
+                    </div>
+                  )}
                 </div>
                 );
               })
