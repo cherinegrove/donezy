@@ -52,25 +52,26 @@ export function TemplatesList({ onCreateTemplate, onUseTemplate }: TemplatesList
       const { data: templatesData, error: templatesError } = await supabase
         .from('project_templates')
         .select('*')
-        .eq('auth_user_id', user.id) // Use actual Supabase user ID
         .order('created_at', { ascending: false });
 
       if (templatesError) throw templatesError;
 
       // Fetch tasks for all templates
+      const templateIds = templatesData.map(t => t.id);
       const { data: tasksData, error: tasksError } = await supabase
         .from('project_template_tasks')
         .select('*')
-        .eq('auth_user_id', user.id) // Use actual Supabase user ID
+        .in('template_id', templateIds)
         .order('order_index');
 
       if (tasksError) throw tasksError;
 
       // Fetch subtasks for all tasks
+      const taskIds = (tasksData || []).map(t => t.id);
       const { data: subtasksData, error: subtasksError } = await supabase
         .from('project_template_subtasks')
         .select('*')
-        .eq('auth_user_id', user.id) // Use actual Supabase user ID
+        .in('template_task_id', taskIds.length > 0 ? taskIds : ['__none__'])
         .order('order_index');
 
       if (subtasksError) throw subtasksError;

@@ -2985,8 +2985,134 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log('Unwatch project not yet implemented');
   };
 
-  const createProjectFromTemplate = (templateId: string, projectData: any) => {
-    console.log('Create project from template not yet implemented');
+  const createProjectFromTemplate = async (templateId: string, projectData: any) => {
+    if (!session?.user) return;
+
+    try {
+      // 1. Fetch the template
+      const { data: templateData, error: templateError } = await supabase
+        .from('project_templates')
+        .select('*')
+        .eq('id', templateId)
+        .single();
+
+      if (templateError || !templateData) {
+        console.error('Error fetching template:', templateError);
+        toast({ title: "Error", description: "Template not found", variant: "destructive" });
+        return;
+      }
+
+      // 2. Create the project
+      const { data: projectRow, error: projectError } = await supabase
+        .from('projects')
+        .insert({
+          auth_user_id: session.user.id,
+          name: projectData.name,
+          description: templateData.description || '',
+          client_id: projectData.clientId,
+          status: 'todo',
+          service_type: templateData.service_type || 'project',
+          start_date: projectData.startDate || null,
+          due_date: projectData.dueDate || null,
+          allocated_hours: templateData.allocated_hours || 0,
+          used_hours: 0,
+          team_ids: templateData.team_ids || [],
+          collaborator_ids: projectData.memberIds || [],
+        })
+        .select()
+        .single();
+
+      if (projectError || !projectRow) {
+        console.error('Error creating project from template:', projectError);
+        toast({ title: "Error", description: "Failed to create project", variant: "destructive" });
+        return;
+      }
+
+      // Add to local state
+      const newProject: Project = {
+        id: projectRow.id,
+        name: projectRow.name,
+        description: projectRow.description,
+        clientId: projectRow.client_id,
+        status: (projectRow.status as 'todo' | 'in-progress' | 'done') || 'todo',
+        serviceType: (projectRow.service_type as 'project' | 'bank-hours' | 'pay-as-you-go') || 'project',
+        startDate: projectRow.start_date || undefined,
+        dueDate: projectRow.due_date || undefined,
+        allocatedHours: projectRow.allocated_hours || undefined,
+        usedHours: projectRow.used_hours || 0,
+        teamIds: projectRow.team_ids || [],
+        watcherIds: projectRow.watcher_ids || [],
+        ownerId: projectRow.owner_id || undefined,
+        collaboratorIds: projectRow.collaborator_ids || [],
+      };
+      setProjects(prev => [...prev, newProject]);
+
+      // 3. Fetch template tasks
+      const { data: templateTasks, error: tasksError } = await supabase
+        .from('project_template_tasks')
+        .select('*')
+        .eq('template_id', templateId)
+        .order('order_index');
+
+      if (tasksError) {
+        console.error('Error fetching template tasks:', tasksError);
+      }
+
+      // 4. Create tasks from template tasks
+      if (templateTasks && templateTasks.length > 0) {
+        for (const templateTask of templateTasks) {
+          // Fetch subtasks for this template task
+          const { data: templateSubtasks } = await supabase
+            .from('project_template_subtasks')
+            .select('*')
+            .eq('template_task_id', templateTask.id)
+            .order('order_index');
+
+          // Build checklist from subtasks
+          const checklist = (templateSubtasks || []).map((subtask, index) => ({
+            id: crypto.randomUUID(),
+            text: subtask.name,
+            completed: false,
+          }));
+
+          const { error: taskError } = await supabase
+            .from('tasks')
+            .insert({
+              auth_user_id: session.user.id,
+              title: templateTask.name,
+              description: templateTask.description || '',
+              project_id: projectRow.id,
+              status: 'backlog',
+              priority: templateTask.priority || 'medium',
+              estimated_hours: templateTask.estimated_hours || null,
+              checklist: checklist.length > 0 ? checklist : [],
+              order_index: templateTask.order_index,
+            });
+
+          if (taskError) {
+            console.error('Error creating task from template:', taskError);
+          }
+        }
+
+        // Refresh tasks
+        await loadTasks();
+      }
+
+      // 5. Increment usage count
+      await supabase
+        .from('project_templates')
+        .update({ usage_count: (templateData.usage_count || 0) + 1 })
+        .eq('id', templateId);
+
+      toast({
+        title: "Project created",
+        description: `Project "${projectData.name}" created from template with ${templateTasks?.length || 0} tasks.`,
+      });
+
+    } catch (error) {
+      console.error('Error creating project from template:', error);
+      toast({ title: "Error", description: "Failed to create project from template", variant: "destructive" });
+    }
   };
 
   const moveTask = async (taskId: string, newStatus: string) => {
