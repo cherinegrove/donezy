@@ -3060,38 +3060,57 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       // 4. Create tasks from template tasks
       if (templateTasks && templateTasks.length > 0) {
-        for (const templateTask of templateTasks) {
-          // Fetch subtasks for this template task
-          const { data: templateSubtasks } = await supabase
-            .from('project_template_subtasks')
-            .select('*')
-            .eq('template_task_id', templateTask.id)
-            .order('order_index');
+        // Fetch all subtasks for all template tasks at once
+        const taskIds = templateTasks.map(t => t.id);
+        const { data: allSubtasks } = await supabase
+          .from('project_template_subtasks')
+          .select('*')
+          .in('template_task_id', taskIds)
+          .order('order_index');
 
-          // Build checklist from subtasks
-          const checklist = (templateSubtasks || []).map((subtask, index) => ({
+        // Group subtasks by template_task_id
+        const subtasksByTaskId: Record<string, any[]> = {};
+        (allSubtasks || []).forEach(subtask => {
+          if (!subtasksByTaskId[subtask.template_task_id]) {
+            subtasksByTaskId[subtask.template_task_id] = [];
+          }
+          subtasksByTaskId[subtask.template_task_id].push(subtask);
+        });
+
+        // Build all task inserts
+        const taskInserts = templateTasks.map(templateTask => {
+          const subtasks = subtasksByTaskId[templateTask.id] || [];
+          const checklist = subtasks.map(subtask => ({
             id: crypto.randomUUID(),
             text: subtask.name,
             completed: false,
           }));
 
-          const { error: taskError } = await supabase
-            .from('tasks')
-            .insert({
-              auth_user_id: session.user.id,
-              title: templateTask.name,
-              description: templateTask.description || '',
-              project_id: projectRow.id,
-              status: 'backlog',
-              priority: templateTask.priority || 'medium',
-              estimated_hours: templateTask.estimated_hours || null,
-              checklist: checklist.length > 0 ? checklist : [],
-              order_index: templateTask.order_index,
-            });
+          return {
+            auth_user_id: session.user.id,
+            title: templateTask.name,
+            description: templateTask.description || '',
+            project_id: projectRow.id,
+            status: 'backlog',
+            priority: templateTask.priority || 'medium',
+            estimated_hours: templateTask.estimated_hours || null,
+            checklist: checklist.length > 0 ? checklist : [],
+            order_index: templateTask.order_index,
+          };
+        });
 
-          if (taskError) {
-            console.error('Error creating task from template:', taskError);
-          }
+        console.log('Inserting tasks from template:', taskInserts.length, taskInserts);
+
+        const { data: createdTasks, error: batchError } = await supabase
+          .from('tasks')
+          .insert(taskInserts)
+          .select();
+
+        if (batchError) {
+          console.error('Error batch creating tasks from template:', batchError);
+          toast({ title: "Error", description: `Failed to create tasks: ${batchError.message}`, variant: "destructive" });
+        } else {
+          console.log('Successfully created tasks:', createdTasks?.length);
         }
 
         // Refresh tasks
