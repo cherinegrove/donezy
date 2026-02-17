@@ -487,8 +487,39 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           status: 'pending',
         });
       } else {
-        // For backend timers, just stop the existing one
-        await stopTimeTracking(notes);
+        // For backend timers - check if this is the active timer or a paused DB timer
+        if (activeTimeEntry && selectedTimer.id === activeTimeEntry.id) {
+          // Active backend timer - use standard stop flow
+          await stopTimeTracking(notes);
+        } else {
+          // Paused DB timer (not the active entry) - update directly in database
+          console.log('💾 Saving paused DB timer directly:', selectedTimer.id);
+          const { supabase } = await import('@/integrations/supabase/client');
+          
+          const { error } = await supabase
+            .from('time_entries')
+            .update({
+              end_time: endTime.toISOString(),
+              duration: durationMinutes,
+              notes: notes || null,
+              timer_status: 'completed',
+            })
+            .eq('id', selectedTimer.id);
+          
+          if (error) {
+            console.error('Error saving paused timer:', error);
+            throw error;
+          }
+          
+          // Log the stopped event
+          await supabase.from('time_entry_events').insert({
+            time_entry_id: selectedTimer.id,
+            event_type: 'stopped',
+            event_timestamp: endTime.toISOString(),
+            auth_user_id: currentUser.auth_user_id,
+            details: { notes, durationMinutes, source: 'timer_box_paused_save' },
+          });
+        }
       }
 
       // Remove timer from list

@@ -2614,11 +2614,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       warningCount: eventValidationWarnings.length
     });
     
+    // Set end_time, duration, notes AND timer_status to completed
     await updateTimeEntry(activeTimeEntry.id, {
       endTime: endTime.toISOString(),
       duration,
       description: notes
     });
+    
+    // Ensure timer_status is set to completed
+    await supabase
+      .from('time_entries')
+      .update({ timer_status: 'completed' })
+      .eq('id', activeTimeEntry.id);
     
     setActiveTimeEntry(null);
     setIsTimerPaused(false);
