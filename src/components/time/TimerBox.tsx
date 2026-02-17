@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { TimeEntryEventLog } from "@/components/time/TimeEntryEventLog";
+import { fetchTimeEntryEvents } from "@/utils/timeEntryEventLogger";
 
 interface TimerItem {
   id: string;
@@ -197,42 +198,98 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     }
   }, [activeTimeEntry, isTimerPaused, tasks, projects, clients, lastActiveEntryId]);
 
+  // Calculate elapsed time for a paused timer from its events
+  const calculatePausedElapsed = useCallback(async (entryId: string, startTime: Date): Promise<number> => {
+    try {
+      const events = await fetchTimeEntryEvents(entryId);
+      
+      let totalPauseDurationMs = 0;
+      let lastPauseTimestamp: number | null = null;
+      let lastEventTimestamp: number = startTime.getTime();
+      
+      for (const event of events) {
+        const eventTime = new Date(event.event_timestamp).getTime();
+        
+        if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
+          lastPauseTimestamp = eventTime;
+        } else if (event.event_type === 'resumed' && lastPauseTimestamp !== null) {
+          totalPauseDurationMs += eventTime - lastPauseTimestamp;
+          lastPauseTimestamp = null;
+        }
+        
+        lastEventTimestamp = eventTime;
+      }
+      
+      // If still paused (last event was a pause), elapsed = pauseTime - startTime - totalPauseDuration
+      if (lastPauseTimestamp !== null) {
+        const elapsed = lastPauseTimestamp - startTime.getTime() - totalPauseDurationMs;
+        return Math.max(0, elapsed);
+      }
+      
+      // Fallback: use last event time
+      const elapsed = lastEventTimestamp - startTime.getTime() - totalPauseDurationMs;
+      return Math.max(0, elapsed);
+    } catch (err) {
+      console.error('Error calculating paused elapsed:', err);
+      return 0;
+    }
+  }, []);
+
   // Sync DB-backed paused timers into the timer list
   useEffect(() => {
     if (!pausedTimeEntries || pausedTimeEntries.length === 0) return;
     
-    setTimers(prev => {
-      let updated = [...prev];
+    const syncPausedTimers = async () => {
+      const newTimers: TimerItem[] = [];
+      
       for (const entry of pausedTimeEntries) {
-        if (!updated.find(t => t.id === entry.id)) {
-          const task = tasks.find(t => t.id === entry.taskId);
-          const project = entry.projectId ? projects.find(p => p.id === entry.projectId) : null;
-          const client = project?.clientId ? clients.find(c => c.id === project.clientId) : null;
-          updated.push({
-            id: entry.id,
-            taskId: entry.taskId || '',
-            taskTitle: task?.title || 'Unknown Task',
-            projectName: project?.name,
-            clientName: client?.name,
-            projectId: entry.projectId,
-            clientId: entry.clientId || project?.clientId,
-            startTime: new Date(entry.startTime),
-            elapsed: 0,
-            isPaused: true,
-            pausedAt: undefined,
-            totalPausedTime: 0,
-            isActive: false,
-            isLocalOnly: false,
-            userId: currentUser?.id,
-          });
-        }
+        const startTime = new Date(entry.startTime);
+        const task = tasks.find(t => t.id === entry.taskId);
+        const project = entry.projectId ? projects.find(p => p.id === entry.projectId) : null;
+        const client = project?.clientId ? clients.find(c => c.id === project.clientId) : null;
+        
+        // Calculate elapsed from events
+        const elapsed = await calculatePausedElapsed(entry.id, startTime);
+        
+        newTimers.push({
+          id: entry.id,
+          taskId: entry.taskId || '',
+          taskTitle: task?.title || 'Unknown Task',
+          projectName: project?.name,
+          clientName: client?.name,
+          projectId: entry.projectId,
+          clientId: entry.clientId || project?.clientId,
+          startTime,
+          elapsed,
+          isPaused: true,
+          pausedAt: undefined,
+          totalPausedTime: 0,
+          isActive: false,
+          isLocalOnly: false,
+          userId: currentUser?.id,
+        });
       }
-      // Remove timers that are no longer in pausedTimeEntries (they were resumed/stopped)
-      const pausedIds = new Set(pausedTimeEntries.map(e => e.id));
-      updated = updated.filter(t => t.isLocalOnly || !t.isPaused || t.id === activeTimeEntry?.id || pausedIds.has(t.id));
-      return updated;
-    });
-  }, [pausedTimeEntries, tasks, projects, clients]);
+      
+      setTimers(prev => {
+        let updated = [...prev];
+        for (const newTimer of newTimers) {
+          const existingIdx = updated.findIndex(t => t.id === newTimer.id);
+          if (existingIdx === -1) {
+            updated.push(newTimer);
+          } else if (updated[existingIdx].elapsed === 0 && newTimer.elapsed > 0) {
+            // Update elapsed if it was 0 (not yet calculated)
+            updated[existingIdx] = { ...updated[existingIdx], elapsed: newTimer.elapsed };
+          }
+        }
+        // Remove timers that are no longer in pausedTimeEntries
+        const pausedIds = new Set(pausedTimeEntries.map(e => e.id));
+        updated = updated.filter(t => t.isLocalOnly || !t.isPaused || t.id === activeTimeEntry?.id || pausedIds.has(t.id));
+        return updated;
+      });
+    };
+    
+    syncPausedTimers();
+  }, [pausedTimeEntries, tasks, projects, clients, calculatePausedElapsed]);
 
   // Update elapsed time for active timers (both local and backend)
   useEffect(() => {
