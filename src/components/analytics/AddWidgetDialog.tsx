@@ -23,7 +23,8 @@ export type WidgetType =
   | 'time-tracking-monthly'
   | 'team-performance'
   | 'budget-overview'
-  | 'completion-rate';
+  | 'completion-rate'
+  | 'business-hours';
 
 interface WidgetOption {
   id: WidgetType;
@@ -98,6 +99,12 @@ const widgetOptions: WidgetOption[] = [
     name: 'Completion Rate',
     description: 'Track completion trends over time',
     icon: <TrendingUp className="h-5 w-5" />
+  },
+  {
+    id: 'business-hours',
+    name: 'Business Hours Report',
+    description: 'Week-on-week, month-on-month & year-on-year total hours for the business',
+    icon: <Clock className="h-5 w-5" />
   }
 ];
 
