@@ -10,6 +10,7 @@ import { MetricsWidget } from "@/components/analytics/MetricsWidget";
 import { ChartWidget } from "@/components/analytics/ChartWidget";
 import { MultiLineChartWidget } from "@/components/analytics/MultiLineChartWidget";
 import { AddWidgetDialog, WidgetType } from "@/components/analytics/AddWidgetDialog";
+import { BusinessHoursWidget } from "@/components/analytics/BusinessHoursWidget";
 import { TimeFrameSelector, TimeFramePreset } from "@/components/analytics/TimeFrameSelector";
 import { toast } from "sonner";
 import { format, startOfToday, startOfWeek, startOfMonth, startOfQuarter, startOfYear, endOfToday, endOfWeek, endOfMonth, endOfQuarter, endOfYear, eachDayOfInterval, eachMonthOfInterval, parseISO, isSameDay, isSameMonth } from "date-fns";
@@ -419,6 +420,16 @@ export default function Analytics() {
           </WidgetContainer>
         );
 
+      case 'business-hours':
+        return (
+          <WidgetContainer
+            title="Business Hours Report"
+            onRemove={() => removeWidget(widget.id)}
+          >
+            <BusinessHoursWidget timeEntries={timeEntries} />
+          </WidgetContainer>
+        );
+
       default:
         return null;
     }
@@ -468,7 +479,7 @@ export default function Analytics() {
                 {widgets
                   .sort((a, b) => a.position - b.position)
                   .map((widget, index) => {
-                    const isFullWidth = widget.type === 'metrics' || widget.type === 'risk-success' || widget.type === 'time-tracking-daily' || widget.type === 'time-tracking-monthly';
+                    const isFullWidth = widget.type === 'metrics' || widget.type === 'risk-success' || widget.type === 'time-tracking-daily' || widget.type === 'time-tracking-monthly' || widget.type === 'business-hours';
                     return (
                       <Draggable key={widget.id} draggableId={widget.id} index={index}>
                         {(provided, snapshot) => (
