@@ -283,25 +283,71 @@ export function ClientTimeReport() {
     });
   };
 
-  const handleExport = () => {
-    const rows = [
-      ["Client", "Project", "Total Hours", "Total Minutes"],
-    ];
-
-    clientData.forEach(({ client, projects, totalMinutes }) => {
-      rows.push([client.name, "", formatHoursDecimal(totalMinutes), totalMinutes.toString()]);
-      Object.values(projects).forEach(({ project, totalMinutes: projectMinutes }) => {
-        rows.push(["", project.name, formatHoursDecimal(projectMinutes), projectMinutes.toString()]);
-      });
-    });
-
-    rows.push(["TOTAL", "", formatHoursDecimal(totalMinutes), totalMinutes.toString()]);
-
-    const csvContent = rows.map(row => row.join(",")).join("\n");
-    const dateLabel = dateRange.from && dateRange.to 
+  const handleExport = (detailed = false) => {
+    const dateLabel = dateRange.from && dateRange.to
       ? `${format(dateRange.from, "yyyy-MM-dd")}_to_${format(dateRange.to, "yyyy-MM-dd")}`
       : "report";
-    downloadCSV(csvContent, `time-by-client_${dateLabel}.csv`);
+
+    if (detailed) {
+      // Itemised export: one row per time entry
+      const rows = [
+        ["Date", "Time", "Client", "Project", "Task", "User", "Duration (hrs)", "Duration (h:m)", "Status", "Notes"],
+      ];
+
+      clientData.forEach(({ client, projects: projectsData }) => {
+        Object.values(projectsData).forEach(({ project, entries }) => {
+          // Sort entries by start time ascending
+          const sorted = [...entries].sort(
+            (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+          );
+          sorted.forEach(entry => {
+            const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
+            const user = users.find(u => u.id === entry.userId);
+            const entryDate = format(new Date(entry.startTime), "yyyy-MM-dd");
+            const entryTime = format(new Date(entry.startTime), "HH:mm");
+            const durationHrs = formatHoursDecimal(entry.duration);
+            const durationHM = formatDuration(entry.duration);
+            const status = entry.status || "pending";
+            const notes = (entry.notes || "").replace(/"/g, '""');
+            rows.push([
+              entryDate,
+              entryTime,
+              `"${client.name}"`,
+              `"${project.name}"`,
+              `"${task?.title || "-"}"`,
+              `"${user?.name || "Unknown"}"`,
+              durationHrs,
+              durationHM,
+              status,
+              `"${notes}"`,
+            ]);
+          });
+        });
+      });
+
+      // Totals row
+      rows.push(["", "", "TOTAL", "", "", "", formatHoursDecimal(totalMinutes), formatDuration(totalMinutes), "", ""]);
+
+      const csvContent = rows.map(row => row.join(",")).join("\n");
+      downloadCSV(csvContent, `time-itemised_${dateLabel}.csv`);
+    } else {
+      // Summary export: client / project totals only
+      const rows = [
+        ["Client", "Project", "Total Hours", "Total Minutes"],
+      ];
+
+      clientData.forEach(({ client, projects, totalMinutes }) => {
+        rows.push([client.name, "", formatHoursDecimal(totalMinutes), totalMinutes.toString()]);
+        Object.values(projects).forEach(({ project, totalMinutes: projectMinutes }) => {
+          rows.push(["", project.name, formatHoursDecimal(projectMinutes), projectMinutes.toString()]);
+        });
+      });
+
+      rows.push(["TOTAL", "", formatHoursDecimal(totalMinutes), totalMinutes.toString()]);
+
+      const csvContent = rows.map(row => row.join(",")).join("\n");
+      downloadCSV(csvContent, `time-by-client_${dateLabel}.csv`);
+    }
   };
 
   return (
@@ -366,10 +412,16 @@ export function ClientTimeReport() {
                 )}
               </div>
 
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleExport(false)}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Summary CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleExport(true)}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Detailed CSV
+                </Button>
+              </div>
             </div>
             
             {/* Additional Filters */}
