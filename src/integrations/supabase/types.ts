@@ -185,6 +185,44 @@ export type Database = {
         }
         Relationships: []
       }
+      client_portals: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          project_id: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          project_id: string
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          project_id?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
@@ -795,6 +833,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      portal_comments: {
+        Row: {
+          client_email: string | null
+          client_name: string
+          content: string
+          created_at: string
+          id: string
+          portal_id: string
+        }
+        Insert: {
+          client_email?: string | null
+          client_name: string
+          content: string
+          created_at?: string
+          id?: string
+          portal_id: string
+        }
+        Update: {
+          client_email?: string | null
+          client_name?: string
+          content?: string
+          created_at?: string
+          id?: string
+          portal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_comments_portal_id_fkey"
+            columns: ["portal_id"]
+            isOneToOne: false
+            referencedRelation: "client_portals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -2331,6 +2404,7 @@ export type Database = {
         }[]
       }
       get_current_user_organization: { Args: never; Returns: string }
+      get_portal_data: { Args: { portal_token: string }; Returns: Json }
       get_user_workspace_id: { Args: { _user_id: string }; Returns: string }
       has_system_role: {
         Args: {

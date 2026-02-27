@@ -5,7 +5,7 @@ import { Project, Task } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Edit, Clock, AlertTriangle, User, Users, CheckSquare, FileText, Files, Bell, Mail, GanttChart, X } from "lucide-react";
+import { Calendar, Edit, Clock, AlertTriangle, User, Users, CheckSquare, FileText, Files, Bell, Mail, GanttChart, X, Link2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format, differenceInDays, parseISO, isValid, isBefore, isAfter, startOfDay, endOfDay } from "date-fns";
@@ -25,6 +25,7 @@ import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
+import { SharePortalDialog } from "@/components/projects/SharePortalDialog";
 
 export default function ProjectDetails() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -39,6 +40,7 @@ export default function ProjectDetails() {
   const [isGeneratingRoundup, setIsGeneratingRoundup] = useState(false);
   const [roundupDialogOpen, setRoundupDialogOpen] = useState(false);
   const [selectedOverdueTask, setSelectedOverdueTask] = useState<Task | null>(null);
+  const [sharePortalOpen, setSharePortalOpen] = useState(false);
   
   // Task filters
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
@@ -253,6 +255,10 @@ export default function ProjectDetails() {
           <p className="text-muted-foreground">{project.description}</p>
         </div>
         <div className="space-x-2">
+          <Button variant="outline" onClick={() => setSharePortalOpen(true)}>
+            <Link2 className="w-4 h-4 mr-2" />
+            Share with Client
+          </Button>
           <Button variant="outline" onClick={handleEditProject}>
             <Edit className="w-4 h-4 mr-2" />
             Edit Project
@@ -605,6 +611,13 @@ export default function ProjectDetails() {
         clientEmail={client?.email || ""}
         clientName={client?.name || ""}
         roundupData={roundupData}
+      />
+
+      <SharePortalDialog
+        open={sharePortalOpen}
+        onOpenChange={setSharePortalOpen}
+        projectId={projectId!}
+        projectName={project.name}
       />
     </div>
   );

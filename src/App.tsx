@@ -35,6 +35,7 @@ import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 import ConfirmInvite from "./pages/ConfirmInvite";
 import { AuthVerify } from '@/components/auth/AuthVerify';
+import ClientPortal from "./pages/ClientPortal";
 
 // Simplified Protected route component - avoid useLocation to prevent initialization errors
 const ProtectedRoute = ({ 
@@ -235,6 +236,7 @@ const App = () => {
                 <Route path="/forgot-password" element={<PublicRoute element={<ForgotPassword />} />} />
                 <Route path="/reset-password" element={<PublicRoute element={<ResetPassword />} />} />
                 <Route path="/auth/v1/verify" element={<AuthVerify />} />
+                <Route path="/portal/:token" element={<ClientPortal />} />
                 
                 {/* Protected routes */}
                 <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
