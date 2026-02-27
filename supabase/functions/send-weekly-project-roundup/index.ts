@@ -120,13 +120,12 @@ const handler = async (req: Request): Promise<Response> => {
     if (awaitingFeedbackTasks.length > 0) {
       awaitingFeedbackSection = "Friendly reminder that I am waiting on feedback for the below tasks:\n\n";
       awaitingFeedbackTasks.forEach((task: any) => {
-        awaitingFeedbackSection += `• ${task.title}`;
+        awaitingFeedbackSection += `• ${task.title}\n`;
         if (task.awaiting_feedback_details) {
-          // Format details on a new line, indented for clarity
-          awaitingFeedbackSection += `\n  ${task.awaiting_feedback_details}`;
+          awaitingFeedbackSection += `  ${task.awaiting_feedback_details}\n`;
         }
-        awaitingFeedbackSection += `\n\n`;
       });
+      awaitingFeedbackSection += "\n";
     }
 
     // Generate email content as plain text
