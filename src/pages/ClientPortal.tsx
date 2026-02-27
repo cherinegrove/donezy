@@ -53,6 +53,9 @@ interface PortalData {
   project: PortalProject;
   tasks: PortalTask[] | null;
   total_hours: number;
+  approved_hours: number;
+  declined_hours: number;
+  pending_hours: number;
   comments: PortalComment[] | null;
   portal_id: string;
   error?: string;
@@ -213,7 +216,7 @@ export default function ClientPortal() {
     );
   }
 
-  const { project, total_hours, comments } = data;
+  const { project, total_hours, approved_hours, declined_hours, pending_hours, comments } = data;
   const commentList = comments || [];
 
   const doneTasks = taskList.filter(t => t.status === "done").length;
@@ -254,7 +257,7 @@ export default function ClientPortal() {
 
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
         {/* Stats row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card className="shadow-sm border-slate-200">
             <CardContent className="pt-5 pb-5">
               <div className="flex items-center justify-between mb-3">
@@ -269,7 +272,7 @@ export default function ClientPortal() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm border-slate-200">
+          <Card className="shadow-sm border-slate-200 sm:col-span-2">
             <CardContent className="pt-5 pb-5">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-slate-500">Time Tracked</p>
@@ -287,6 +290,20 @@ export default function ClientPortal() {
                   <p className="text-xs text-slate-400 mt-1">{hoursPercent}% of {project.allocated_hours}h budget</p>
                 </>
               )}
+              <div className="mt-4 grid grid-cols-3 gap-2 pt-3 border-t border-slate-100">
+                <div className="text-center">
+                  <p className="text-xs text-slate-400 mb-0.5">Approved</p>
+                  <p className="text-sm font-semibold text-emerald-600">{(approved_hours ?? 0).toFixed(1)}h</p>
+                </div>
+                <div className="text-center border-x border-slate-100">
+                  <p className="text-xs text-slate-400 mb-0.5">Pending</p>
+                  <p className="text-sm font-semibold text-amber-500">{(pending_hours ?? 0).toFixed(1)}h</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-slate-400 mb-0.5">Declined</p>
+                  <p className="text-sm font-semibold text-red-500">{(declined_hours ?? 0).toFixed(1)}h</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
