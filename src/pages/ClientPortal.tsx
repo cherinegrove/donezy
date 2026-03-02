@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle2, Clock, AlertCircle, Calendar as CalendarIcon,
-  BarChart3, MessageSquare, Send, Loader2, Timer, X
+  BarChart3, MessageSquare, Send, Loader2, Timer, X, ChevronDown, ChevronUp, AtSign
 } from "lucide-react";
 import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from "date-fns";
 import type { DateRange } from "react-day-picker";
@@ -37,6 +37,12 @@ interface PortalComment {
   created_at: string;
 }
 
+interface TeamMember {
+  auth_user_id: string;
+  name: string;
+  email: string;
+}
+
 interface PortalProject {
   id: string;
   name: string;
@@ -57,7 +63,9 @@ interface PortalData {
   declined_hours: number;
   pending_hours: number;
   comments: PortalComment[] | null;
+  team_members: TeamMember[] | null;
   portal_id: string;
+  project_id: string;
   error?: string;
 }
 
@@ -93,6 +101,228 @@ const statusIcon = (status: string) => {
   return <AlertCircle className="w-4 h-4 text-slate-400 shrink-0" />;
 };
 
+// ─── Per-task comment form ────────────────────────────────────────────────────
+
+interface TaskCommentFormProps {
+  task: PortalTask;
+  portalToken: string;
+  teamMembers: TeamMember[];
+  clientName: string;
+  clientEmail: string;
+  onClientNameChange: (v: string) => void;
+  onClientEmailChange: (v: string) => void;
+}
+
+function TaskCommentForm({
+  task,
+  portalToken,
+  teamMembers,
+  clientName,
+  clientEmail,
+  onClientNameChange,
+  onClientEmailChange,
+}: TaskCommentFormProps) {
+  const [open, setOpen] = useState(false);
+  const [content, setContent] = useState("");
+  const [mentionSearch, setMentionSearch] = useState("");
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionedUsers, setMentionedUsers] = useState<TeamMember[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const filteredMembers = useMemo(() =>
+    teamMembers.filter(m =>
+      m.name.toLowerCase().includes(mentionSearch.toLowerCase()) &&
+      !mentionedUsers.find(u => u.auth_user_id === m.auth_user_id)
+    ), [teamMembers, mentionSearch, mentionedUsers]);
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setContent(val);
+    // Detect @ trigger
+    const lastAt = val.lastIndexOf("@");
+    if (lastAt !== -1 && lastAt === val.length - 1) {
+      setMentionSearch("");
+      setShowMentions(true);
+    } else if (lastAt !== -1 && val.slice(lastAt + 1).match(/^\w*$/)) {
+      setMentionSearch(val.slice(lastAt + 1));
+      setShowMentions(true);
+    } else {
+      setShowMentions(false);
+    }
+  };
+
+  const insertMention = (member: TeamMember) => {
+    const lastAt = content.lastIndexOf("@");
+    const newContent = content.slice(0, lastAt) + `@${member.name} `;
+    setContent(newContent);
+    setMentionedUsers(prev => [...prev, member]);
+    setShowMentions(false);
+    textareaRef.current?.focus();
+  };
+
+  const removeMention = (userId: string) => {
+    const member = mentionedUsers.find(u => u.auth_user_id === userId);
+    if (member) {
+      setContent(prev => prev.replace(`@${member.name} `, "").replace(`@${member.name}`, ""));
+    }
+    setMentionedUsers(prev => prev.filter(u => u.auth_user_id !== userId));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientName.trim() || !content.trim()) return;
+    setSubmitting(true);
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/portal-add-task-comment`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            portal_token: portalToken,
+            task_id: task.id,
+            client_name: clientName.trim(),
+            content: content.trim(),
+            mentioned_user_ids: mentionedUsers.map(u => u.auth_user_id),
+          }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed");
+      setContent("");
+      setMentionedUsers([]);
+      setSubmitted(true);
+      setTimeout(() => setSubmitted(false), 4000);
+      setOpen(false);
+    } catch (err) {
+      console.error("Failed to submit comment:", err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mt-2">
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-blue-600 transition-colors"
+        >
+          <MessageSquare className="w-3.5 h-3.5" />
+          {submitted ? (
+            <span className="text-emerald-600 font-medium">Comment sent ✓</span>
+          ) : (
+            "Leave a comment on this task"
+          )}
+        </button>
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-2 bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-slate-600 flex items-center gap-1.5">
+              <MessageSquare className="w-3.5 h-3.5" />
+              Comment on: <span className="text-slate-800 truncate max-w-[180px]">{task.title}</span>
+            </p>
+            <button type="button" onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Name + email (persisted across tasks once filled) */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-[11px] text-slate-500">Your name *</Label>
+              <Input
+                value={clientName}
+                onChange={e => onClientNameChange(e.target.value)}
+                placeholder="Jane Smith"
+                required
+                className="text-xs h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px] text-slate-500">Email (optional)</Label>
+              <Input
+                type="email"
+                value={clientEmail}
+                onChange={e => onClientEmailChange(e.target.value)}
+                placeholder="jane@company.com"
+                className="text-xs h-8"
+              />
+            </div>
+          </div>
+
+          {/* Mention chips */}
+          {mentionedUsers.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {mentionedUsers.map(u => (
+                <span key={u.auth_user_id} className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 text-[11px] font-medium">
+                  @{u.name}
+                  <button type="button" onClick={() => removeMention(u.auth_user_id)}>
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Message textarea with mention dropdown */}
+          <div className="relative space-y-1">
+            <Label className="text-[11px] text-slate-500">
+              Message * <span className="text-slate-400">(type @ to mention a team member)</span>
+            </Label>
+            <Textarea
+              ref={textareaRef}
+              value={content}
+              onChange={handleContentChange}
+              placeholder="Share feedback or ask a question…"
+              rows={3}
+              required
+              className="text-sm resize-none"
+            />
+            {showMentions && filteredMembers.length > 0 && (
+              <div className="absolute z-20 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                {filteredMembers.map(member => (
+                  <button
+                    key={member.auth_user_id}
+                    type="button"
+                    onClick={() => insertMention(member)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 flex items-center gap-2"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold shrink-0">
+                      {member.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-800 text-xs">{member.name}</p>
+                      <p className="text-slate-400 text-[10px]">{member.email}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <p className="text-[10px] text-slate-400 flex items-center gap-1">
+              <AtSign className="w-3 h-3" /> Type @ to tag team members
+            </p>
+            <Button type="submit" disabled={submitting} size="sm" className="h-7 text-xs">
+              {submitting ? (
+                <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Sending…</>
+              ) : (
+                <><Send className="w-3 h-3 mr-1.5" />Send</>
+              )}
+            </Button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 export default function ClientPortal() {
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<PortalData | null>(null);
@@ -102,11 +332,9 @@ export default function ClientPortal() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
-  // Comment form
+  // Shared client identity across all task comment forms
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
-  const [commentContent, setCommentContent] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -133,40 +361,14 @@ export default function ClientPortal() {
     }
   };
 
-  const handleSubmitComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!data?.portal_id || !clientName.trim() || !commentContent.trim()) return;
-    setSubmitting(true);
-    try {
-      const { error: insertError } = await supabase
-        .from("portal_comments")
-        .insert({
-          portal_id: data.portal_id,
-          client_name: clientName.trim(),
-          client_email: clientEmail.trim() || null,
-          content: commentContent.trim(),
-        });
-      if (insertError) throw insertError;
-      setCommentContent("");
-      await loadPortalData();
-    } catch (err) {
-      console.error("Failed to submit comment:", err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const taskList = useMemo(() => data?.tasks || [], [data]);
+  const teamMembers = useMemo(() => data?.team_members || [], [data]);
 
   const filteredTasks = useMemo(() => {
     let tasks = taskList;
-
-    // Filter by status tab
     if (activeTab !== "all") {
       tasks = tasks.filter(t => t.status === activeTab);
     }
-
-    // Filter by date range (due_date)
     if (dateRange?.from) {
       tasks = tasks.filter(t => {
         if (!t.due_date) return false;
@@ -176,11 +378,9 @@ export default function ClientPortal() {
         return isWithinInterval(due, { start: from, end: to });
       });
     }
-
     return tasks;
   }, [taskList, activeTab, dateRange]);
 
-  // Count per status for tab badges
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: taskList.length };
     taskList.forEach(t => {
@@ -216,8 +416,7 @@ export default function ClientPortal() {
     );
   }
 
-  const { project, total_hours, approved_hours, declined_hours, pending_hours, comments } = data;
-  const commentList = comments || [];
+  const { project, total_hours, approved_hours, declined_hours, pending_hours } = data;
 
   const doneTasks = taskList.filter(t => t.status === "done").length;
   const inProgressTasks = taskList.filter(t => t.status === "in-progress").length;
@@ -319,12 +518,11 @@ export default function ClientPortal() {
           </Card>
         </div>
 
-        {/* Tasks Section with Tabs + Date Filter */}
+        {/* Tasks Section */}
         <Card className="shadow-sm border-slate-200">
           <CardHeader className="pb-0">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <CardTitle className="text-base font-semibold text-slate-800">Tasks</CardTitle>
-              {/* Date Range Filter */}
               <div className="flex items-center gap-2">
                 <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                   <PopoverTrigger asChild>
@@ -368,6 +566,14 @@ export default function ClientPortal() {
             </div>
           </CardHeader>
           <CardContent className="pt-4">
+            {/* Identity reminder banner if name not filled */}
+            {!clientName && (
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 flex items-center gap-2 text-xs text-blue-700">
+                <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+                Want to leave comments? Fill in your name once below a task and it'll be remembered across all tasks.
+              </div>
+            )}
+
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="flex-wrap h-auto gap-1 bg-slate-100 p-1 mb-4">
                 {STATUS_TABS.map(tab => {
@@ -397,39 +603,54 @@ export default function ClientPortal() {
                   ) : (
                     <div className="divide-y divide-slate-100">
                       {filteredTasks.map(task => (
-                        <div key={task.id} className="flex items-start gap-3 py-3.5">
-                          <div className="mt-0.5">{statusIcon(task.status)}</div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium ${task.status === "done" ? "line-through text-slate-400" : "text-slate-800"}`}>
-                              {task.title}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-3 mt-1">
-                              {task.due_date && (
-                                <span className="flex items-center gap-1 text-xs text-slate-400">
-                                  <CalendarIcon className="w-3 h-3" />
-                                  Due {task.due_date}
-                                </span>
-                              )}
-                              {task.time_spent_hours > 0 && (
-                                <span className="flex items-center gap-1 text-xs text-blue-600 font-medium">
-                                  <Timer className="w-3 h-3" />
-                                  {task.time_spent_hours.toFixed(1)}h logged
-                                </span>
-                              )}
-                              {task.estimated_hours ? (
-                                <span className="text-xs text-slate-400">
-                                  est. {task.estimated_hours}h
-                                </span>
-                              ) : null}
+                        <div key={task.id} className="py-3.5">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5">{statusIcon(task.status)}</div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium ${task.status === "done" ? "line-through text-slate-400" : "text-slate-800"}`}>
+                                {task.title}
+                              </p>
+                              <div className="flex flex-wrap items-center gap-3 mt-1">
+                                {task.due_date && (
+                                  <span className="flex items-center gap-1 text-xs text-slate-400">
+                                    <CalendarIcon className="w-3 h-3" />
+                                    Due {task.due_date}
+                                  </span>
+                                )}
+                                {task.time_spent_hours > 0 && (
+                                  <span className="flex items-center gap-1 text-xs text-blue-600 font-medium">
+                                    <Timer className="w-3 h-3" />
+                                    {task.time_spent_hours.toFixed(1)}h logged
+                                  </span>
+                                )}
+                                {task.estimated_hours ? (
+                                  <span className="text-xs text-slate-400">
+                                    est. {task.estimated_hours}h
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0 pt-0.5">
+                              <span className={`text-xs font-medium capitalize ${priorityColors[task.priority] || "text-slate-400"}`}>
+                                {task.priority}
+                              </span>
+                              <Badge className={`text-xs capitalize border ${statusColors[task.status] || "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                                {task.status?.replace(/-/g, " ")}
+                              </Badge>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0 pt-0.5">
-                            <span className={`text-xs font-medium capitalize ${priorityColors[task.priority] || "text-slate-400"}`}>
-                              {task.priority}
-                            </span>
-                            <Badge className={`text-xs capitalize border ${statusColors[task.status] || "bg-slate-100 text-slate-600 border-slate-200"}`}>
-                              {task.status?.replace(/-/g, " ")}
-                            </Badge>
+
+                          {/* Per-task comment form */}
+                          <div className="ml-7">
+                            <TaskCommentForm
+                              task={task}
+                              portalToken={token!}
+                              teamMembers={teamMembers}
+                              clientName={clientName}
+                              clientEmail={clientEmail}
+                              onClientNameChange={setClientName}
+                              onClientEmailChange={setClientEmail}
+                            />
                           </div>
                         </div>
                       ))}
@@ -438,81 +659,6 @@ export default function ClientPortal() {
                 </TabsContent>
               ))}
             </Tabs>
-          </CardContent>
-        </Card>
-
-        {/* Comments Section */}
-        <Card className="shadow-sm border-slate-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold text-slate-800 flex items-center gap-2">
-              <MessageSquare className="w-4 h-4" />
-              Leave a Comment
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 space-y-4">
-            <form onSubmit={handleSubmitComment} className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="client-name" className="text-xs text-slate-600">Your name *</Label>
-                  <Input
-                    id="client-name"
-                    value={clientName}
-                    onChange={e => setClientName(e.target.value)}
-                    placeholder="Jane Smith"
-                    required
-                    className="text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="client-email" className="text-xs text-slate-600">Email (optional)</Label>
-                  <Input
-                    id="client-email"
-                    type="email"
-                    value={clientEmail}
-                    onChange={e => setClientEmail(e.target.value)}
-                    placeholder="jane@company.com"
-                    className="text-sm"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="comment" className="text-xs text-slate-600">Message *</Label>
-                <Textarea
-                  id="comment"
-                  value={commentContent}
-                  onChange={e => setCommentContent(e.target.value)}
-                  placeholder="Share feedback, ask questions, or leave a note…"
-                  rows={3}
-                  required
-                  className="text-sm resize-none"
-                />
-              </div>
-              <Button type="submit" disabled={submitting} className="w-full sm:w-auto" size="sm">
-                {submitting ? (
-                  <><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> Sending…</>
-                ) : (
-                  <><Send className="w-3.5 h-3.5 mr-2" /> Send Comment</>
-                )}
-              </Button>
-            </form>
-
-            {commentList.length > 0 && (
-              <>
-                <Separator />
-                <div className="space-y-3">
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Previous Comments</p>
-                  {commentList.map(c => (
-                    <div key={c.id} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-sm font-semibold text-slate-800">{c.client_name}</p>
-                        <p className="text-xs text-slate-400">{format(new Date(c.created_at), "MMM d, yyyy")}</p>
-                      </div>
-                      <p className="text-sm text-slate-600">{c.content}</p>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
           </CardContent>
         </Card>
 
