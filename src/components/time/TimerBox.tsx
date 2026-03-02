@@ -394,16 +394,24 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       const elapsedAtPause = now - timer.startTime.getTime() - (timer.totalPausedTime || 0);
       
       if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
-        // Pause backend timer - update local state IMMEDIATELY to prevent flicker
-        setTimers(prev => prev.map(t => t.id === timerId ? {
-          ...t,
-          isPaused: true,
-          pausedAt: new Date(),
-          isActive: false,
-          elapsed: elapsedAtPause // Store the elapsed time at pause
-        } : t));
-        // Then sync with backend (async)
-        pauseTimeTracking();
+        setLoadingTimerId(timerId);
+        try {
+          // Await the DB write BEFORE updating UI so the activeTimeEntry effect
+          // can't overwrite the paused state while the DB still shows 'active'
+          await pauseTimeTracking();
+          setTimers(prev => prev.map(t => t.id === timerId ? {
+            ...t,
+            isPaused: true,
+            pausedAt: new Date(),
+            isActive: false,
+            elapsed: elapsedAtPause
+          } : t));
+        } catch (err) {
+          console.error('Error pausing timer:', err);
+          toast.error('Failed to pause timer');
+        } finally {
+          setLoadingTimerId(null);
+        }
       } else {
         // Pause local timer
         setTimers(prev => prev.map(t => t.id === timerId ? {
