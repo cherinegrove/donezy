@@ -333,14 +333,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     // RULE: Resuming a timer pauses all other timers
     if (timer.isPaused) {
       if (!timer.isLocalOnly) {
-        // Optimistic UI update immediately
         setLoadingTimerId(timerId);
-        setTimers(prev => prev.map(t => {
-          if (t.id === timerId) return { ...t, isPaused: false, isActive: true, pausedAt: undefined };
-          if (t.isActive && !t.isPaused) return { ...t, isPaused: true, isActive: false, pausedAt: new Date() };
-          return t;
-        }));
-
         try {
           // Pause current active timer if exists
           if (activeTimeEntry && !isTimerPaused) {
@@ -371,14 +364,10 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           ]);
 
           window.dispatchEvent(new CustomEvent('timersUpdated'));
-          toast.success('Timer resumed');
+          window.location.reload();
         } catch (err) {
           console.error('Error resuming DB timer:', err);
           toast.error('Failed to resume timer');
-          // Revert optimistic update
-          setTimers(prev => prev.map(t =>
-            t.id === timerId ? { ...t, isPaused: true, isActive: false } : t
-          ));
         } finally {
           setLoadingTimerId(null);
         }
@@ -437,66 +426,64 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     if (!selectedTimer || !currentUser) return;
 
     setSavingTimerId(selectedTimer.id);
-    // Optimistic: close dialog immediately
-    setStopDialogOpen(false);
-    const capturedTimer = selectedTimer;
-    const capturedNotes = notes;
-    setSelectedTimer(null);
-    setNotes("");
-    setTimers(prev => prev.filter(t => t.id !== capturedTimer.id));
-
     try {
       const endTime = new Date();
-      const startTime = capturedTimer.startTime;
+      const startTime = selectedTimer.startTime;
       
       let actualElapsedMs: number;
-      if (capturedTimer.isPaused) {
-        actualElapsedMs = capturedTimer.elapsed;
-      } else if (capturedTimer.isActive) {
-        actualElapsedMs = endTime.getTime() - startTime.getTime() - (capturedTimer.totalPausedTime || 0);
+      if (selectedTimer.isPaused) {
+        actualElapsedMs = selectedTimer.elapsed;
+      } else if (selectedTimer.isActive) {
+        actualElapsedMs = endTime.getTime() - startTime.getTime() - (selectedTimer.totalPausedTime || 0);
       } else {
-        actualElapsedMs = capturedTimer.elapsed;
+        actualElapsedMs = selectedTimer.elapsed;
       }
       
       const durationMinutes = Math.floor(actualElapsedMs / (1000 * 60));
 
-      if (capturedTimer.isLocalOnly) {
-        const task = tasks.find(t => t.id === capturedTimer.taskId);
+      if (selectedTimer.isLocalOnly) {
+        const task = tasks.find(t => t.id === selectedTimer.taskId);
         const project = projects.find(p => p.id === task?.projectId);
         await addTimeEntry({
           userId: currentUser.id,
-          taskId: capturedTimer.taskId,
+          taskId: selectedTimer.taskId,
           projectId: project?.id || null,
           clientId: project?.clientId || null,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
           duration: durationMinutes,
-          description: capturedNotes || null,
+          description: notes || null,
           billable: true,
           status: 'pending',
         });
       } else {
-        if (activeTimeEntry && capturedTimer.id === activeTimeEntry.id) {
-          await stopTimeTracking(capturedNotes);
+        if (activeTimeEntry && selectedTimer.id === activeTimeEntry.id) {
+          await stopTimeTracking(notes);
         } else {
           const { error } = await supabase
             .from('time_entries')
-            .update({ end_time: endTime.toISOString(), duration: durationMinutes, notes: capturedNotes || null, timer_status: 'completed' })
-            .eq('id', capturedTimer.id);
+            .update({ end_time: endTime.toISOString(), duration: durationMinutes, notes: notes || null, timer_status: 'completed' })
+            .eq('id', selectedTimer.id);
           if (error) throw error;
           await supabase.from('time_entry_events').insert({
-            time_entry_id: capturedTimer.id,
+            time_entry_id: selectedTimer.id,
             event_type: 'stopped',
             event_timestamp: endTime.toISOString(),
             auth_user_id: currentUser.auth_user_id,
-            details: { notes: capturedNotes, durationMinutes, source: 'timer_box_paused_save' },
+            details: { notes, durationMinutes, source: 'timer_box_paused_save' },
           });
         }
       }
+
+      // Only remove from UI after successful save
+      setTimers(prev => prev.filter(t => t.id !== selectedTimer.id));
+      setStopDialogOpen(false);
+      setSelectedTimer(null);
+      setNotes("");
       toast.success('Time entry saved');
     } catch (error) {
       console.error('Error stopping timer:', error);
-      toast.error('Failed to save time entry');
+      toast.error('Failed to save time entry — please try again');
     } finally {
       setSavingTimerId(null);
     }
@@ -690,13 +677,18 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           <DialogFooter className="flex justify-between">
             <Button 
               variant="destructive" 
+              disabled={!!savingTimerId}
               onClick={() => selectedTimer && handleDeleteTimer(selectedTimer.id)}
             >
               Delete Timer
             </Button>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStopDialogOpen(false)}>Cancel</Button>
-              <Button onClick={confirmStopTimer}>Save Time Entry</Button>
+              <Button variant="outline" disabled={!!savingTimerId} onClick={() => setStopDialogOpen(false)}>Cancel</Button>
+              <Button onClick={confirmStopTimer} disabled={!!savingTimerId}>
+                {savingTimerId ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>
+                ) : 'Save Time Entry'}
+              </Button>
             </div>
           </DialogFooter>
         </DialogContent>
