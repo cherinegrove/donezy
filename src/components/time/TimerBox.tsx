@@ -1,15 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Clock, Play, Pause, Save, Timer, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Clock, Play, Pause, Save, Timer, Trash2, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { TimeEntryEventLog } from "@/components/time/TimeEntryEventLog";
 import { fetchTimeEntryEvents } from "@/utils/timeEntryEventLogger";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface TimerItem {
   id: string;
@@ -40,8 +41,9 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [selectedTimer, setSelectedTimer] = useState<TimerItem | null>(null);
   const [notes, setNotes] = useState("");
-  const [newlyCreatedTimerId, setNewlyCreatedTimerId] = useState<string | null>(null);
   const [expandedTimerId, setExpandedTimerId] = useState<string | null>(null);
+  const [loadingTimerId, setLoadingTimerId] = useState<string | null>(null);
+  const [savingTimerId, setSavingTimerId] = useState<string | null>(null);
 
   // Load timers from localStorage on mount - filter to current user only and validate against backend
   useEffect(() => {
@@ -326,72 +328,72 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
 
   const handlePauseTimer = async (timerId: string) => {
     const timer = timers.find(t => t.id === timerId);
-    if (!timer) return;
+    if (!timer || loadingTimerId === timerId) return;
 
     // RULE: Resuming a timer pauses all other timers
     if (timer.isPaused) {
-      console.log('▶️ Resuming timer:', timerId, 'with elapsed:', timer.elapsed, 'ms');
-      
-      // First, the currently active backend timer will be auto-paused by startTimeTracking
-      // But for DB-backed paused timers, we should reactivate in DB instead of delete+recreate
       if (!timer.isLocalOnly) {
-        // DB-backed paused timer - reactivate it directly
+        // Optimistic UI update immediately
+        setLoadingTimerId(timerId);
+        setTimers(prev => prev.map(t => {
+          if (t.id === timerId) return { ...t, isPaused: false, isActive: true, pausedAt: undefined };
+          if (t.isActive && !t.isPaused) return { ...t, isPaused: true, isActive: false, pausedAt: new Date() };
+          return t;
+        }));
+
         try {
-          const { supabase } = await import('@/integrations/supabase/client');
-          
           // Pause current active timer if exists
           if (activeTimeEntry && !isTimerPaused) {
-            await supabase
-              .from('time_entries')
-              .update({ timer_status: 'paused' })
-              .eq('id', activeTimeEntry.id);
-            
-            await supabase.from('time_entry_events').insert({
-              time_entry_id: activeTimeEntry.id,
-              auth_user_id: currentUser?.auth_user_id || currentUser?.id || '',
-              event_type: 'auto_paused',
-              event_timestamp: new Date().toISOString(),
-              details: { reason: 'Another timer resumed', pausedAt: new Date().toISOString() }
-            });
+            await Promise.all([
+              supabase.from('time_entries').update({ timer_status: 'paused' }).eq('id', activeTimeEntry.id),
+              supabase.from('time_entry_events').insert({
+                time_entry_id: activeTimeEntry.id,
+                auth_user_id: currentUser?.auth_user_id || currentUser?.id || '',
+                event_type: 'auto_paused',
+                event_timestamp: new Date().toISOString(),
+                details: { reason: 'Another timer resumed', pausedAt: new Date().toISOString() }
+              })
+            ]);
           }
+
+          const pauseDuration = timer.pausedAt ? Date.now() - timer.pausedAt.getTime() : 0;
           
           // Reactivate this paused timer
-          await supabase
-            .from('time_entries')
-            .update({ timer_status: 'active' })
-            .eq('id', timer.id);
-          
-          // Calculate pause duration so restore logic can reconstruct totalPausedTime
-          const pauseDuration = timer.pausedAt 
-            ? Date.now() - timer.pausedAt.getTime() 
-            : 0;
-          
-          await supabase.from('time_entry_events').insert({
-            time_entry_id: timer.id,
-            auth_user_id: currentUser?.auth_user_id || currentUser?.id || '',
-            event_type: 'resumed',
-            event_timestamp: new Date().toISOString(),
-            details: { 
-              resumedAt: new Date().toISOString(),
-              pauseDuration,
-              pauseDurationMinutes: Math.floor(pauseDuration / (1000 * 60))
-            }
-          });
-          
-          console.log('✅ Timer resumed in DB (no delete):', timer.id);
+          await Promise.all([
+            supabase.from('time_entries').update({ timer_status: 'active' }).eq('id', timer.id),
+            supabase.from('time_entry_events').insert({
+              time_entry_id: timer.id,
+              auth_user_id: currentUser?.auth_user_id || currentUser?.id || '',
+              event_type: 'resumed',
+              event_timestamp: new Date().toISOString(),
+              details: { resumedAt: new Date().toISOString(), pauseDuration, pauseDurationMinutes: Math.floor(pauseDuration / (1000 * 60)) }
+            })
+          ]);
+
           window.dispatchEvent(new CustomEvent('timersUpdated'));
-          window.location.reload();
+          toast.success('Timer resumed');
         } catch (err) {
           console.error('Error resuming DB timer:', err);
+          toast.error('Failed to resume timer');
+          // Revert optimistic update
+          setTimers(prev => prev.map(t =>
+            t.id === timerId ? { ...t, isPaused: true, isActive: false } : t
+          ));
+        } finally {
+          setLoadingTimerId(null);
         }
       } else {
-        // Legacy local-only timer - use the old flow
-        if (activeTimeEntry && !isTimerPaused) {
-          await stopTimeTracking('Auto-paused when resuming another timer');
+        // Legacy local-only timer
+        setLoadingTimerId(timerId);
+        try {
+          if (activeTimeEntry && !isTimerPaused) {
+            await stopTimeTracking('Auto-paused when resuming another timer');
+          }
+          await startTimeTracking(timer.taskId, timer.projectId, timer.clientId, timer.elapsed);
+          setTimers(prev => prev.filter(t => t.id !== timerId));
+        } finally {
+          setLoadingTimerId(null);
         }
-        
-        await startTimeTracking(timer.taskId, timer.projectId, timer.clientId, timer.elapsed);
-        setTimers(prev => prev.filter(t => t.id !== timerId));
       }
       
     } else if (timer.isActive && !timer.isPaused) {
@@ -434,118 +436,85 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
   const confirmStopTimer = async () => {
     if (!selectedTimer || !currentUser) return;
 
+    setSavingTimerId(selectedTimer.id);
+    // Optimistic: close dialog immediately
+    setStopDialogOpen(false);
+    const capturedTimer = selectedTimer;
+    const capturedNotes = notes;
+    setSelectedTimer(null);
+    setNotes("");
+    setTimers(prev => prev.filter(t => t.id !== capturedTimer.id));
+
     try {
       const endTime = new Date();
-      const startTime = selectedTimer.startTime;
+      const startTime = capturedTimer.startTime;
       
-      // Calculate actual elapsed time at this moment (not from stale state)
       let actualElapsedMs: number;
-      
-      if (selectedTimer.isPaused) {
-        // Timer is paused - use the elapsed time at pause
-        actualElapsedMs = selectedTimer.elapsed;
-      } else if (selectedTimer.isActive) {
-        // Timer is actively running - calculate from start time minus paused time
-        actualElapsedMs = endTime.getTime() - startTime.getTime() - (selectedTimer.totalPausedTime || 0);
+      if (capturedTimer.isPaused) {
+        actualElapsedMs = capturedTimer.elapsed;
+      } else if (capturedTimer.isActive) {
+        actualElapsedMs = endTime.getTime() - startTime.getTime() - (capturedTimer.totalPausedTime || 0);
       } else {
-        // Timer is stopped/inactive - use the stored elapsed
-        actualElapsedMs = selectedTimer.elapsed;
+        actualElapsedMs = capturedTimer.elapsed;
       }
       
       const durationMinutes = Math.floor(actualElapsedMs / (1000 * 60));
-      
-      console.log('💾 Saving timer:', {
-        taskTitle: selectedTimer.taskTitle,
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-        calculatedElapsedMs: actualElapsedMs,
-        storedElapsedMs: selectedTimer.elapsed,
-        durationMinutes,
-        isPaused: selectedTimer.isPaused,
-        isActive: selectedTimer.isActive,
-        isLocalOnly: selectedTimer.isLocalOnly,
-        totalPausedTime: selectedTimer.totalPausedTime
-      });
 
-      if (selectedTimer.isLocalOnly) {
-        // For local-only timers, create a completed time entry directly in the database
-        console.log('💾 Saving local timer as completed time entry');
-        
-        const task = tasks.find(t => t.id === selectedTimer.taskId);
+      if (capturedTimer.isLocalOnly) {
+        const task = tasks.find(t => t.id === capturedTimer.taskId);
         const project = projects.find(p => p.id === task?.projectId);
-        
         await addTimeEntry({
           userId: currentUser.id,
-          taskId: selectedTimer.taskId,
+          taskId: capturedTimer.taskId,
           projectId: project?.id || null,
           clientId: project?.clientId || null,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
           duration: durationMinutes,
-          description: notes || null,
+          description: capturedNotes || null,
           billable: true,
           status: 'pending',
         });
       } else {
-        // For backend timers - check if this is the active timer or a paused DB timer
-        if (activeTimeEntry && selectedTimer.id === activeTimeEntry.id) {
-          // Active backend timer - use standard stop flow
-          await stopTimeTracking(notes);
+        if (activeTimeEntry && capturedTimer.id === activeTimeEntry.id) {
+          await stopTimeTracking(capturedNotes);
         } else {
-          // Paused DB timer (not the active entry) - update directly in database
-          console.log('💾 Saving paused DB timer directly:', selectedTimer.id);
-          const { supabase } = await import('@/integrations/supabase/client');
-          
           const { error } = await supabase
             .from('time_entries')
-            .update({
-              end_time: endTime.toISOString(),
-              duration: durationMinutes,
-              notes: notes || null,
-              timer_status: 'completed',
-            })
-            .eq('id', selectedTimer.id);
-          
-          if (error) {
-            console.error('Error saving paused timer:', error);
-            throw error;
-          }
-          
-          // Log the stopped event
+            .update({ end_time: endTime.toISOString(), duration: durationMinutes, notes: capturedNotes || null, timer_status: 'completed' })
+            .eq('id', capturedTimer.id);
+          if (error) throw error;
           await supabase.from('time_entry_events').insert({
-            time_entry_id: selectedTimer.id,
+            time_entry_id: capturedTimer.id,
             event_type: 'stopped',
             event_timestamp: endTime.toISOString(),
             auth_user_id: currentUser.auth_user_id,
-            details: { notes, durationMinutes, source: 'timer_box_paused_save' },
+            details: { notes: capturedNotes, durationMinutes, source: 'timer_box_paused_save' },
           });
         }
       }
-
-      // Remove timer from list
-      setTimers(prev => prev.filter(t => t.id !== selectedTimer.id));
-      
-      setStopDialogOpen(false);
-      setSelectedTimer(null);
-      setNotes("");
+      toast.success('Time entry saved');
     } catch (error) {
       console.error('Error stopping timer:', error);
+      toast.error('Failed to save time entry');
+    } finally {
+      setSavingTimerId(null);
     }
   };
 
   const handleDeleteTimer = async (timerId: string) => {
     const timer = timers.find(t => t.id === timerId);
     if (!timer) return;
-    
-    console.log('🗑️ Cancelling timer:', timerId);
+
+    // Optimistic: remove from UI immediately
+    setTimers(prev => prev.filter(t => t.id !== timerId));
+    setStopDialogOpen(false);
     
     // If this is the active backend timer, stop it properly
     if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
       await stopTimeTracking('Timer cancelled');
     } else if (!timer.isLocalOnly) {
-      // DB-backed paused timer - soft-delete
       try {
-        const { supabase } = await import('@/integrations/supabase/client');
         await supabase
           .from('time_entries')
           .update({ timer_status: 'cancelled', end_time: new Date().toISOString() })
@@ -591,18 +560,12 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
               </div>
             ) : (
               timers.map((timer) => {
-                console.log('🖼️ Rendering timer:', {
-                  id: timer.id.slice(0, 8),
-                  clientName: timer.clientName,
-                  isActive: timer.isActive,
-                  isPaused: timer.isPaused,
-                  isLocalOnly: timer.isLocalOnly,
-                  shouldShowPlay: !timer.isActive || timer.isPaused || (!timer.isLocalOnly && isTimerPaused),
-                  backendIsTimerPaused: isTimerPaused
-                });
+                const isLoading = loadingTimerId === timer.id;
+                const isSaving = savingTimerId === timer.id;
+                const showPlay = !timer.isActive || timer.isPaused || (!timer.isLocalOnly && isTimerPaused);
                 return (
                 <div key={timer.id} className="space-y-3">
-                  <div className="flex items-start justify-between p-3 rounded-lg border bg-card">
+                  <div className={cn("flex items-start justify-between p-3 rounded-lg border bg-card transition-opacity", (isLoading || isSaving) && "opacity-60")}>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-sm truncate">{timer.taskTitle}</h4>
                       {timer.projectName && (
@@ -615,54 +578,58 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                         <div className="font-mono text-lg font-bold">
                           {formatTime(timer.elapsed)}
                         </div>
-                         <div className="flex gap-1">
-                           {timer.isActive && !timer.isPaused && !(!timer.isLocalOnly && isTimerPaused) && (
-                             <Badge variant="default" className="text-xs">
-                               Live
-                             </Badge>
-                           )}
-                           {(timer.isPaused || (!timer.isLocalOnly && isTimerPaused)) && (
-                             <Badge variant="secondary" className="text-xs">
-                               Paused
-                             </Badge>
-                           )}
+                        <div className="flex gap-1">
+                          {timer.isActive && !timer.isPaused && !(!timer.isLocalOnly && isTimerPaused) && (
+                            <Badge variant="default" className="text-xs">Live</Badge>
+                          )}
+                          {(timer.isPaused || (!timer.isLocalOnly && isTimerPaused)) && (
+                            <Badge variant="secondary" className="text-xs">Paused</Badge>
+                          )}
+                          {(isLoading || isSaving) && (
+                            <Badge variant="outline" className="text-xs gap-1">
+                              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                              {isSaving ? 'Saving...' : 'Loading...'}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-1 ml-2">
-                       <Button
-                         variant="ghost"
-                         size="sm"
-                         onClick={() => {
-                           console.log('🖱️ Button clicked for timer:', timer.id.slice(0, 8), timer.clientName);
-                           handlePauseTimer(timer.id);
-                         }}
-                          className={cn(
-                            "h-8 w-8 p-0",
-                            (!timer.isActive || timer.isPaused || (!timer.isLocalOnly && isTimerPaused)) ? "text-green-600 hover:text-green-700" : "text-yellow-600 hover:text-yellow-700"
-                          )}
-                        >
-                          {(!timer.isActive || timer.isPaused || (!timer.isLocalOnly && isTimerPaused)) ? (
-                            <Play className="h-4 w-4" />
-                          ) : (
-                            <Pause className="h-4 w-4" />
-                          )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handlePauseTimer(timer.id)}
+                        disabled={isLoading || isSaving}
+                        className={cn(
+                          "h-8 w-8 p-0",
+                          showPlay ? "text-success hover:text-success/80" : "text-warning hover:text-warning/80"
+                        )}
+                      >
+                        {isLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : showPlay ? (
+                          <Play className="h-4 w-4" />
+                        ) : (
+                          <Pause className="h-4 w-4" />
+                        )}
                       </Button>
                       
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleStopTimer(timer)}
+                        disabled={isLoading || isSaving}
                         className="h-8 w-8 p-0 text-primary hover:text-primary/80"
                       >
-                        <Save className="h-4 w-4" />
+                        {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                       </Button>
                       
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteTimer(timer.id)}
+                        disabled={isLoading || isSaving}
                         className="h-8 w-8 p-0 text-destructive hover:text-destructive/90"
                       >
                         <Trash2 className="h-3 w-3" />
