@@ -405,17 +405,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
-      console.log('🔄 Loading time entries from database...');
+      const currentAuthUserId = session.user.id;
+      // Only load entries for the current user — prevents loading 600+ rows from all users
       const { data, error } = await supabase
         .from('time_entries')
-        .select('*');
+        .select('*')
+        .eq('auth_user_id', currentAuthUserId)
+        .order('start_time', { ascending: false })
+        .limit(500);
       
       if (error) {
         console.error('Error loading time entries:', error);
         return;
       }
       
-      console.log('📊 Raw time entries from database:', data);
+      
       
       const convertedTimeEntries = data?.map((entry: any) => ({
         id: entry.id,
@@ -434,13 +438,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         timerStatus: entry.timer_status || undefined
       })) || [];
       
-      console.log('✅ Converted time entries:', convertedTimeEntries);
       setTimeEntries(convertedTimeEntries);
       
-      // Use session.user.id directly instead of currentUser which may not be loaded yet
-      const currentAuthUserId = session?.user?.id;
       if (!currentAuthUserId) {
-        console.log('⚠️ No auth user ID available, skipping active timer detection');
         return;
       }
       
