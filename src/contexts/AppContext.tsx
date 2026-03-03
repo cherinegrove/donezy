@@ -299,30 +299,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*');
-      
+      // Load tasks in parallel with comments and files, with reasonable limits
+      const [tasksResult, commentsResult, filesResult] = await Promise.all([
+        supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(500),
+        supabase.from('comments').select('*').order('created_at', { ascending: true }).limit(1000),
+        supabase.from('task_files').select('*').limit(500),
+      ]);
+
+      const { data, error } = tasksResult;
       if (error) {
         console.error('Error loading tasks:', error);
         return;
       }
 
-      // Load comments for all tasks
-      const { data: commentsData, error: commentsError } = await supabase
-        .from('comments')
-        .select('*')
-        .order('created_at', { ascending: true });
-
+      const { data: commentsData, error: commentsError } = commentsResult;
       if (commentsError) {
         console.error('Error loading comments:', commentsError);
       }
 
-      // Load task files for all tasks
-      const { data: filesData, error: filesError } = await supabase
-        .from('task_files')
-        .select('*');
-
+      const { data: filesData, error: filesError } = filesResult;
       if (filesError) {
         console.error('Error loading task files:', filesError);
       }
