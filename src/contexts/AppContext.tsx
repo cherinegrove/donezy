@@ -142,15 +142,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Data loading functions
   const loadUsers = async () => {
-    if (!session?.user) {
-      console.log('❌ No session available for loading users');
-      return;
-    }
+    if (!session?.user) return;
     
     try {
-      console.log('🔄 Loading users with session:', session.user.id);
-      console.log('🔄 Session user email:', session.user.email);
-      
       // Load users and system roles in parallel
       const [usersResult, systemRolesResult] = await Promise.all([
         supabase.from('users').select('*'),
@@ -181,42 +175,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           }
         });
       }
-      console.log('🔐 System roles map:', systemRolesMap);
       
-      console.log('🔍 Raw DB data:', data);
       const convertedUsers = data?.map((dbUser: any) => ({
         ...convertDbUserToUser(dbUser),
         systemRoles: systemRolesMap[dbUser.auth_user_id] || []
       })) || [];
-      console.log('🔍 Converted users:', convertedUsers.length);
       setUsers(convertedUsers);
       
-      // Set current user based on auth_user_id match from raw DB data
+      // Set current user based on auth_user_id match
       const sessionUserDb = data?.find((dbUser: any) => dbUser.auth_user_id === session.user.id);
-      console.log('🔍 Looking for user with auth_user_id:', session.user.id);
-      console.log('🔍 Available DB users:', data?.map((dbUser: any) => ({ 
-        auth_user_id: dbUser.auth_user_id, 
-        email: dbUser.email, 
-        name: dbUser.name 
-      })));
-      console.log('🔍 Found session user in DB:', sessionUserDb ? sessionUserDb.name : 'NOT FOUND');
       
       if (sessionUserDb) {
         const sessionUser = {
           ...convertDbUserToUser(sessionUserDb),
           systemRoles: systemRolesMap[sessionUserDb.auth_user_id] || []
         };
-        console.log('✅ Current user set:', sessionUser.name, 'System roles:', sessionUser.systemRoles);
         setCurrentUser(sessionUser);
       } else {
-        console.warn('⚠️ User not found by auth_user_id - trying email fallback');
         // Fallback to email match
         const emailUser = convertedUsers.find(u => u.email === session.user.email);
         if (emailUser) {
-          console.log('✅ Current user set by email:', emailUser.name);
           setCurrentUser(emailUser);
-        } else {
-          console.warn('⚠️ User not found by auth_user_id OR email');
         }
       }
     } catch (error) {
@@ -227,18 +206,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const loadClients = async () => {
     if (!session?.user) return;
     
-    console.log('🔄 Loading clients...');
     try {
       const { data, error } = await supabase
         .from('clients')
         .select('*');
       
       if (error) {
-        console.error('❌ Error loading clients:', error);
+        console.error('Error loading clients:', error);
         return;
       }
-      
-      console.log('📊 Raw client data from Supabase:', data);
       
       const convertedClients = data?.map((client: any) => ({
         id: client.id,
@@ -251,10 +227,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         status: (client.status as 'active' | 'inactive') || 'active'
       })) || [];
       
-      console.log('✅ Converted clients:', convertedClients.length, convertedClients);
       setClients(convertedClients);
     } catch (error) {
-      console.error('❌ Error loading clients:', error);
+      console.error('Error loading clients:', error);
     }
   };
 
@@ -299,30 +274,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*');
-      
+      // Load tasks in parallel with comments and files, with reasonable limits
+      const [tasksResult, commentsResult, filesResult] = await Promise.all([
+        supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(500),
+        supabase.from('comments').select('*').order('created_at', { ascending: true }).limit(1000),
+        supabase.from('task_files').select('*').limit(500),
+      ]);
+
+      const { data, error } = tasksResult;
       if (error) {
         console.error('Error loading tasks:', error);
         return;
       }
 
-      // Load comments for all tasks
-      const { data: commentsData, error: commentsError } = await supabase
-        .from('comments')
-        .select('*')
-        .order('created_at', { ascending: true });
-
+      const { data: commentsData, error: commentsError } = commentsResult;
       if (commentsError) {
         console.error('Error loading comments:', commentsError);
       }
 
-      // Load task files for all tasks
-      const { data: filesData, error: filesError } = await supabase
-        .from('task_files')
-        .select('*');
-
+      const { data: filesData, error: filesError } = filesResult;
       if (filesError) {
         console.error('Error loading task files:', filesError);
       }
@@ -453,12 +423,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         )
       );
       
-      console.log('🔍 Active timer detection:', { currentAuthUserId, totalEntries: convertedTimeEntries.length, activeFound: activeEntries.length });
-      
-      console.log('🎯 Found active entries for auth user:', currentAuthUserId, activeEntries);
-      
       if (activeEntries.length > 1) {
-        console.warn('⚠️ Multiple active timers found! Cleaning up...');
         // Keep the most recent one, stop the others
         const sortedActive = activeEntries.sort((a, b) => 
           new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
@@ -466,37 +431,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const keepTimer = sortedActive[0];
         const stopTimers = sortedActive.slice(1);
         
-        // Stop the older timers
         for (const timer of stopTimers) {
-          console.log('🛑 Auto-stopping old timer:', timer.id);
           const duration = Math.floor((Date.now() - new Date(timer.startTime).getTime()) / (1000 * 60));
-          
-          const { error: stopError } = await supabase
+          await supabase
             .from('time_entries')
-            .update({
-              end_time: new Date().toISOString(),
-              duration: Math.max(1, duration)
-            })
+            .update({ end_time: new Date().toISOString(), duration: Math.max(1, duration) })
             .eq('id', timer.id);
-          
-          if (stopError) {
-            console.error('Error stopping duplicate timer:', stopError);
-          }
         }
         
         setActiveTimeEntry(keepTimer);
-        console.log('✅ Cleanup complete. Active timer:', keepTimer.id);
-        
-        // Reload to get updated data
         setTimeout(() => loadTimeEntries(), 1000);
       } else if (activeEntries.length === 1) {
         setActiveTimeEntry(activeEntries[0]);
-        console.log('✅ Single active timer found:', activeEntries[0].id);
         
-        // CRITICAL: Restore pause state AND accumulated paused time from database events
-        // This prevents the bug where totalPausedTime is lost after page refresh
         try {
-          // Fetch ALL events for this timer to calculate total paused time
           const { data: allEvents, error: eventsError } = await supabase
             .from('time_entry_events')
             .select('event_type, details, event_timestamp')
@@ -504,7 +452,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             .order('event_timestamp', { ascending: true });
           
           if (!eventsError && allEvents && allEvents.length > 0) {
-            // Calculate accumulated paused time from pause/resume pairs
             let accumulatedPausedTime = 0;
             let currentlyPaused = false;
             let currentPausedAt: Date | null = null;
@@ -515,12 +462,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                 const pausedAtStr = (event.details as any)?.pausedAt;
                 currentPausedAt = pausedAtStr ? new Date(pausedAtStr) : new Date(event.event_timestamp);
               } else if (event.event_type === 'resumed' && currentlyPaused) {
-                // Add the paused duration from the resume event if available
                 const pauseDuration = (event.details as any)?.pauseDuration;
                 if (typeof pauseDuration === 'number' && pauseDuration > 0) {
                   accumulatedPausedTime += pauseDuration;
                 } else if (currentPausedAt) {
-                  // Fallback: calculate from timestamps when pauseDuration not in details
                   const resumedAt = new Date(event.event_timestamp);
                   accumulatedPausedTime += resumedAt.getTime() - currentPausedAt.getTime();
                 }
@@ -529,29 +474,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
               }
             }
             
-            // Get the last event to determine current state
             const lastEvent = allEvents[allEvents.length - 1];
-            console.log('📊 Last event for timer:', lastEvent.event_type, '| Total pause events:', allEvents.filter(e => e.event_type === 'paused').length);
-            console.log('📊 Calculated accumulated paused time:', Math.floor(accumulatedPausedTime / 1000), 'seconds');
-            
             if (lastEvent.event_type === 'paused') {
               setIsTimerPaused(true);
               const pausedAtStr = (lastEvent.details as any)?.pausedAt;
-              if (pausedAtStr) {
-                setPausedAt(new Date(pausedAtStr));
-              }
-              console.log('⏸️ Timer was paused, restoring pause state');
+              if (pausedAtStr) setPausedAt(new Date(pausedAtStr));
             } else {
               setIsTimerPaused(false);
               setPausedAt(null);
-              console.log('▶️ Timer was not paused');
             }
             
-            // CRITICAL: Restore accumulated paused time
             setTotalPausedTime(accumulatedPausedTime);
-            console.log('✅ Restored totalPausedTime:', accumulatedPausedTime, 'ms');
           } else {
-            // No events found, reset pause state
             setIsTimerPaused(false);
             setPausedAt(null);
             setTotalPausedTime(0);
@@ -567,10 +501,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setIsTimerPaused(false);
         setPausedAt(null);
         setTotalPausedTime(0);
-        console.log('✅ No active timers found');
       }
       
-      // Detect paused timers for current user (DB-backed paused timers)
       const pausedEntries = convertedTimeEntries.filter(entry => 
         !entry.endTime && (entry as any).timerStatus === 'paused' && (
           entry.userId === currentAuthUserId || 
@@ -579,7 +511,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         )
       );
       setPausedTimeEntries(pausedEntries);
-      console.log('⏸️ Found', pausedEntries.length, 'paused timers in database');
     } catch (error) {
       console.error('Error loading time entries:', error);
     }
@@ -793,21 +724,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
-      console.log('🔄 Loading messages...');
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('to_user_id', session.user.id) // Only load messages TO the current user for notifications
-        .order('timestamp', { ascending: false });
+        .eq('to_user_id', session.user.id)
+        .order('timestamp', { ascending: false })
+        .limit(100); // Limit to 100 most recent messages
       
       if (error) {
         console.error('Error loading messages:', error);
         return;
       }
       
-      console.log('🔍 Raw messages from DB:', data);
-      
-      // Convert database messages to Message interface
       const convertedMessages: Message[] = data?.map((dbMsg: any) => ({
         id: dbMsg.id,
         senderId: dbMsg.from_user_id,
@@ -819,12 +747,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         projectId: dbMsg.project_id
       })) || [];
       
-      console.log('🔍 Converted messages:', convertedMessages);
       setMessages(convertedMessages);
     } catch (error) {
       console.error('Error loading messages:', error);
     }
-
   };
 
   const loadNotes = async () => {
@@ -863,7 +789,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const { data, error } = await supabase
         .from('task_logs')
         .select('*')
-        .order('timestamp', { ascending: false });
+        .order('timestamp', { ascending: false })
+        .limit(200); // Limit to recent 200 logs to prevent memory/performance issues
       
       if (error) {
         console.error('Error loading task logs:', error);
@@ -887,13 +814,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const loadTaskStatuses = async () => {
     try {
-      console.log('🔍 Loading task statuses...');
-      
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        console.log('🔍 No session for task statuses');
-        return;
-      }
+      if (!session?.user) return;
 
       const { data, error } = await supabase
         .from('task_status_definitions')
@@ -906,9 +828,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
 
-      console.log('🔍 Task statuses loaded:', data?.length || 0);
-
-      // Load existing statuses (defaults are created by migration if none exist)
       if (data && data.length > 0) {
         const convertedStatuses: TaskStatusDefinition[] = data.map(status => ({
           id: status.id,
@@ -917,7 +836,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           color: status.color,
           order: status.order_index,
         }));
-
         setTaskStatuses(convertedStatuses);
       }
     } catch (error) {
@@ -927,13 +845,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const loadProjectStatuses = async () => {
     try {
-      console.log('🔍 Loading project statuses...');
-      
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        console.log('🔍 No session for project statuses');
-        return;
-      }
+      if (!session?.user) return;
 
       const { data, error } = await supabase
         .from('project_status_definitions')
@@ -946,8 +859,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
 
-      console.log('🔍 Project statuses loaded:', data?.length || 0);
-
       const convertedStatuses: ProjectStatusDefinition[] = (data || []).map(status => ({
         id: status.id,
         label: status.name,
@@ -956,7 +867,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         order: status.order_index,
         isFinal: status.is_final || false,
       }));
-
       setProjectStatuses(convertedStatuses);
     } catch (error) {
       console.error('Error loading project statuses:', error);
@@ -967,7 +877,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
-      console.log('🔍 Loading custom roles...');
       const { data, error } = await supabase
         .from('custom_roles')
         .select('*')
@@ -977,8 +886,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         console.error('Error loading custom roles:', error);
         return;
       }
-      
-      console.log('🔍 Custom roles loaded:', data?.length || 0);
       
       const convertedRoles: CustomRole[] = (data || []).map(role => ({
         id: role.id,
@@ -996,7 +903,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Initialize default dashboard if none exists
   const initializeDefaultDashboard = () => {
-    // Only create default dashboard if none exist
     if (customDashboards.length === 0) {
       const defaultDashboard: CustomDashboard = {
         id: 'default-dashboard',
@@ -1014,9 +920,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const loadTaskTemplates = async () => {
     try {
-      console.log('Loading task templates from Supabase...');
-      
-      // Load all templates (not filtering by user for now to get your existing templates)
       const { data, error } = await supabase
         .from('task_templates')
         .select('*')
@@ -1028,8 +931,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
 
-      console.log('Task templates loaded from DB:', data?.length || 0);
-      console.log('Templates:', data);
       setTaskTemplates(data || []);
     } catch (error) {
       console.error('Error loading task templates:', error);
@@ -1039,8 +940,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const loadProjectTemplates = async () => {
     try {
-      console.log('Loading project templates from Supabase...');
-      
       const { data, error } = await supabase
         .from('project_templates')
         .select('*')
@@ -1052,9 +951,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
 
-      console.log('Project templates loaded from DB:', data?.length || 0);
-      
-      // Transform database format to ProjectTemplate interface
       const transformedTemplates: ProjectTemplate[] = (data || []).map(template => ({
         id: template.id,
         name: template.name,
@@ -1066,7 +962,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         teamIds: template.team_ids || [],
         tags: template.tags || [],
         usageCount: template.usage_count || 0,
-        tasks: [], // Will be loaded separately if needed
+        tasks: [],
         createdBy: template.auth_user_id,
         createdAt: template.created_at,
         updatedAt: template.updated_at
@@ -1088,7 +984,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     if (userId && userId !== loadedForUserIdRef.current) {
       loadedForUserIdRef.current = userId;
-      console.log('🔍 Session available, loading data for user:', userId);
       // Use setTimeout to prevent potential auth deadlocks
       setTimeout(() => {
         loadUsers();
@@ -1109,25 +1004,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }, 100);
     } else if (!userId) {
       loadedForUserIdRef.current = null;
-      console.log('🔍 No session available');
     }
   }, [session]);
 
   // Authentication setup with better session handling
   useEffect(() => {
-    console.log('🔍 Setting up auth listener');
-    
     // Get initial session
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      console.log('🔍 Initial session:', initialSession ? `User: ${initialSession.user?.email}` : 'No session');
-      console.log('🔍 Full initial session object:', initialSession);
       setSession(initialSession);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      console.log('🔍 Auth state changed:', event, newSession ? `User: ${newSession.user?.email}` : 'No session');
-      
       // For token refreshes, just update the session object silently — do NOT trigger a full data reload
       if (event === 'TOKEN_REFRESHED') {
         setSession(newSession);
