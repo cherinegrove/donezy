@@ -438,13 +438,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         timerStatus: entry.timer_status || undefined
       })) || [];
       
-      console.log('✅ Converted time entries:', convertedTimeEntries);
       setTimeEntries(convertedTimeEntries);
       
-      // Use session.user.id directly instead of currentUser which may not be loaded yet
-      const currentAuthUserId = session?.user?.id;
       if (!currentAuthUserId) {
-        console.log('⚠️ No auth user ID available, skipping active timer detection');
         return;
       }
       
