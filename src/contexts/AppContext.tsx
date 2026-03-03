@@ -1048,19 +1048,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Authentication setup with better session handling
   useEffect(() => {
-    console.log('🔍 Setting up auth listener');
-    
     // Get initial session
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      console.log('🔍 Initial session:', initialSession ? `User: ${initialSession.user?.email}` : 'No session');
-      console.log('🔍 Full initial session object:', initialSession);
       setSession(initialSession);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      console.log('🔍 Auth state changed:', event, newSession ? `User: ${newSession.user?.email}` : 'No session');
-      
       // For token refreshes, just update the session object silently — do NOT trigger a full data reload
       if (event === 'TOKEN_REFRESHED') {
         setSession(newSession);
