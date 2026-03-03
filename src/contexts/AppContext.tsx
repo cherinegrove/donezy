@@ -206,18 +206,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const loadClients = async () => {
     if (!session?.user) return;
     
-    console.log('🔄 Loading clients...');
     try {
       const { data, error } = await supabase
         .from('clients')
         .select('*');
       
       if (error) {
-        console.error('❌ Error loading clients:', error);
+        console.error('Error loading clients:', error);
         return;
       }
-      
-      console.log('📊 Raw client data from Supabase:', data);
       
       const convertedClients = data?.map((client: any) => ({
         id: client.id,
@@ -230,10 +227,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         status: (client.status as 'active' | 'inactive') || 'active'
       })) || [];
       
-      console.log('✅ Converted clients:', convertedClients.length, convertedClients);
       setClients(convertedClients);
     } catch (error) {
-      console.error('❌ Error loading clients:', error);
+      console.error('Error loading clients:', error);
     }
   };
 
