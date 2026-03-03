@@ -108,11 +108,11 @@ export function FilterBar({ filters, onFilterChange, selectedFilters: externalFi
                 {filter.name}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-56 p-2" align="start">
+            <PopoverContent className="w-56 p-2" align="start" sideOffset={4}>
               <div className="grid gap-2">
                 <h4 className="font-medium text-sm px-2 py-1">{filter.name}</h4>
                 <Separator />
-                <div className="grid gap-1 mt-1">
+                <div className="grid gap-1 mt-1 max-h-60 overflow-y-auto">
                   {filter.options.map(option => (
                     <Button
                       key={option.id}
