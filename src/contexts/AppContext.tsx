@@ -405,10 +405,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
-      console.log('🔄 Loading time entries from database...');
+      const currentAuthUserId = session.user.id;
+      // Only load entries for the current user — prevents loading 600+ rows from all users
       const { data, error } = await supabase
         .from('time_entries')
-        .select('*');
+        .select('*')
+        .eq('auth_user_id', currentAuthUserId)
+        .order('start_time', { ascending: false })
+        .limit(500);
       
       if (error) {
         console.error('Error loading time entries:', error);
