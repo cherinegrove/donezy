@@ -853,13 +853,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const loadTaskStatuses = async () => {
     try {
-      console.log('🔍 Loading task statuses...');
-      
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        console.log('🔍 No session for task statuses');
-        return;
-      }
+      if (!session?.user) return;
 
       const { data, error } = await supabase
         .from('task_status_definitions')
@@ -872,9 +867,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
 
-      console.log('🔍 Task statuses loaded:', data?.length || 0);
-
-      // Load existing statuses (defaults are created by migration if none exist)
       if (data && data.length > 0) {
         const convertedStatuses: TaskStatusDefinition[] = data.map(status => ({
           id: status.id,
@@ -883,7 +875,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           color: status.color,
           order: status.order_index,
         }));
-
         setTaskStatuses(convertedStatuses);
       }
     } catch (error) {
@@ -893,13 +884,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const loadProjectStatuses = async () => {
     try {
-      console.log('🔍 Loading project statuses...');
-      
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        console.log('🔍 No session for project statuses');
-        return;
-      }
+      if (!session?.user) return;
 
       const { data, error } = await supabase
         .from('project_status_definitions')
@@ -912,8 +898,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
 
-      console.log('🔍 Project statuses loaded:', data?.length || 0);
-
       const convertedStatuses: ProjectStatusDefinition[] = (data || []).map(status => ({
         id: status.id,
         label: status.name,
@@ -922,7 +906,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         order: status.order_index,
         isFinal: status.is_final || false,
       }));
-
       setProjectStatuses(convertedStatuses);
     } catch (error) {
       console.error('Error loading project statuses:', error);
@@ -933,7 +916,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
-      console.log('🔍 Loading custom roles...');
       const { data, error } = await supabase
         .from('custom_roles')
         .select('*')
@@ -943,8 +925,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         console.error('Error loading custom roles:', error);
         return;
       }
-      
-      console.log('🔍 Custom roles loaded:', data?.length || 0);
       
       const convertedRoles: CustomRole[] = (data || []).map(role => ({
         id: role.id,
@@ -962,7 +942,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Initialize default dashboard if none exists
   const initializeDefaultDashboard = () => {
-    // Only create default dashboard if none exist
     if (customDashboards.length === 0) {
       const defaultDashboard: CustomDashboard = {
         id: 'default-dashboard',
@@ -980,9 +959,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const loadTaskTemplates = async () => {
     try {
-      console.log('Loading task templates from Supabase...');
-      
-      // Load all templates (not filtering by user for now to get your existing templates)
       const { data, error } = await supabase
         .from('task_templates')
         .select('*')
@@ -994,8 +970,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
 
-      console.log('Task templates loaded from DB:', data?.length || 0);
-      console.log('Templates:', data);
       setTaskTemplates(data || []);
     } catch (error) {
       console.error('Error loading task templates:', error);
@@ -1005,8 +979,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const loadProjectTemplates = async () => {
     try {
-      console.log('Loading project templates from Supabase...');
-      
       const { data, error } = await supabase
         .from('project_templates')
         .select('*')
@@ -1018,9 +990,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
 
-      console.log('Project templates loaded from DB:', data?.length || 0);
-      
-      // Transform database format to ProjectTemplate interface
       const transformedTemplates: ProjectTemplate[] = (data || []).map(template => ({
         id: template.id,
         name: template.name,
@@ -1032,7 +1001,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         teamIds: template.team_ids || [],
         tags: template.tags || [],
         usageCount: template.usage_count || 0,
-        tasks: [], // Will be loaded separately if needed
+        tasks: [],
         createdBy: template.auth_user_id,
         createdAt: template.created_at,
         updatedAt: template.updated_at
@@ -1054,7 +1023,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     if (userId && userId !== loadedForUserIdRef.current) {
       loadedForUserIdRef.current = userId;
-      console.log('🔍 Session available, loading data for user:', userId);
       // Use setTimeout to prevent potential auth deadlocks
       setTimeout(() => {
         loadUsers();
@@ -1075,7 +1043,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }, 100);
     } else if (!userId) {
       loadedForUserIdRef.current = null;
-      console.log('🔍 No session available');
     }
   }, [session]);
 
