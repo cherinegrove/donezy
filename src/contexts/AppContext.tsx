@@ -376,13 +376,30 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     try {
       const currentAuthUserId = session.user.id;
-      // Only load entries for the current user — prevents loading 600+ rows from all users
-      const { data, error } = await supabase
+
+      // Check if current user is an admin by querying user_system_roles
+      const { data: roleData } = await supabase
+        .from('user_system_roles')
+        .select('system_roles(name)')
+        .eq('user_id', currentAuthUserId)
+        .limit(5);
+      
+      const isAdmin = roleData?.some((r: any) => 
+        r.system_roles?.name === 'platform_admin' || r.system_roles?.name === 'support_admin'
+      );
+
+      // Admins load all users' entries; regular users only their own
+      let query = supabase
         .from('time_entries')
         .select('*')
-        .eq('auth_user_id', currentAuthUserId)
         .order('start_time', { ascending: false })
-        .limit(500);
+        .limit(1000);
+
+      if (!isAdmin) {
+        query = query.eq('auth_user_id', currentAuthUserId);
+      }
+
+      const { data, error } = await query;
       
       if (error) {
         console.error('Error loading time entries:', error);
