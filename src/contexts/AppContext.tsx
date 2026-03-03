@@ -788,21 +788,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
     
     try {
-      console.log('🔄 Loading messages...');
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('to_user_id', session.user.id) // Only load messages TO the current user for notifications
-        .order('timestamp', { ascending: false });
+        .eq('to_user_id', session.user.id)
+        .order('timestamp', { ascending: false })
+        .limit(100); // Limit to 100 most recent messages
       
       if (error) {
         console.error('Error loading messages:', error);
         return;
       }
       
-      console.log('🔍 Raw messages from DB:', data);
-      
-      // Convert database messages to Message interface
       const convertedMessages: Message[] = data?.map((dbMsg: any) => ({
         id: dbMsg.id,
         senderId: dbMsg.from_user_id,
@@ -814,12 +811,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         projectId: dbMsg.project_id
       })) || [];
       
-      console.log('🔍 Converted messages:', convertedMessages);
       setMessages(convertedMessages);
     } catch (error) {
       console.error('Error loading messages:', error);
     }
-
   };
 
   const loadNotes = async () => {
