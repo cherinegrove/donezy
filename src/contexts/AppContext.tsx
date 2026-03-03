@@ -419,7 +419,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
       
-      console.log('📊 Raw time entries from database:', data);
+      
       
       const convertedTimeEntries = data?.map((entry: any) => ({
         id: entry.id,
