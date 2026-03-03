@@ -1079,12 +1079,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
-  // Load all data when session is available
+  // Track the last user ID we loaded data for — prevents reloads on token refresh
+  const loadedForUserIdRef = React.useRef<string | null>(null);
+
+  // Load all data when session is available, but ONLY when the user ID changes
   useEffect(() => {
-    if (session?.user) {
-      console.log('🔍 Session available, loading data...');
-      console.log('🔍 Session user email:', session.user.email);
-      console.log('🔍 Session user ID:', session.user.id);
+    const userId = session?.user?.id ?? null;
+
+    if (userId && userId !== loadedForUserIdRef.current) {
+      loadedForUserIdRef.current = userId;
+      console.log('🔍 Session available, loading data for user:', userId);
       // Use setTimeout to prevent potential auth deadlocks
       setTimeout(() => {
         loadUsers();
@@ -1103,7 +1107,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         loadProjectTemplates();
         initializeDefaultDashboard();
       }, 100);
-    } else {
+    } else if (!userId) {
+      loadedForUserIdRef.current = null;
       console.log('🔍 No session available');
     }
   }, [session]);
