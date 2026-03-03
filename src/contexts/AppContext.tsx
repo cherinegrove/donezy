@@ -858,7 +858,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const { data, error } = await supabase
         .from('task_logs')
         .select('*')
-        .order('timestamp', { ascending: false });
+        .order('timestamp', { ascending: false })
+        .limit(200); // Limit to recent 200 logs to prevent memory/performance issues
       
       if (error) {
         console.error('Error loading task logs:', error);
