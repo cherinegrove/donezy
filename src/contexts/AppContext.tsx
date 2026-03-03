@@ -423,12 +423,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         )
       );
       
-      console.log('🔍 Active timer detection:', { currentAuthUserId, totalEntries: convertedTimeEntries.length, activeFound: activeEntries.length });
-      
-      console.log('🎯 Found active entries for auth user:', currentAuthUserId, activeEntries);
-      
       if (activeEntries.length > 1) {
-        console.warn('⚠️ Multiple active timers found! Cleaning up...');
         // Keep the most recent one, stop the others
         const sortedActive = activeEntries.sort((a, b) => 
           new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
@@ -436,37 +431,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const keepTimer = sortedActive[0];
         const stopTimers = sortedActive.slice(1);
         
-        // Stop the older timers
         for (const timer of stopTimers) {
-          console.log('🛑 Auto-stopping old timer:', timer.id);
           const duration = Math.floor((Date.now() - new Date(timer.startTime).getTime()) / (1000 * 60));
-          
-          const { error: stopError } = await supabase
+          await supabase
             .from('time_entries')
-            .update({
-              end_time: new Date().toISOString(),
-              duration: Math.max(1, duration)
-            })
+            .update({ end_time: new Date().toISOString(), duration: Math.max(1, duration) })
             .eq('id', timer.id);
-          
-          if (stopError) {
-            console.error('Error stopping duplicate timer:', stopError);
-          }
         }
         
         setActiveTimeEntry(keepTimer);
-        console.log('✅ Cleanup complete. Active timer:', keepTimer.id);
-        
-        // Reload to get updated data
         setTimeout(() => loadTimeEntries(), 1000);
       } else if (activeEntries.length === 1) {
         setActiveTimeEntry(activeEntries[0]);
-        console.log('✅ Single active timer found:', activeEntries[0].id);
         
-        // CRITICAL: Restore pause state AND accumulated paused time from database events
-        // This prevents the bug where totalPausedTime is lost after page refresh
         try {
-          // Fetch ALL events for this timer to calculate total paused time
           const { data: allEvents, error: eventsError } = await supabase
             .from('time_entry_events')
             .select('event_type, details, event_timestamp')
@@ -474,7 +452,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             .order('event_timestamp', { ascending: true });
           
           if (!eventsError && allEvents && allEvents.length > 0) {
-            // Calculate accumulated paused time from pause/resume pairs
             let accumulatedPausedTime = 0;
             let currentlyPaused = false;
             let currentPausedAt: Date | null = null;
@@ -485,12 +462,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                 const pausedAtStr = (event.details as any)?.pausedAt;
                 currentPausedAt = pausedAtStr ? new Date(pausedAtStr) : new Date(event.event_timestamp);
               } else if (event.event_type === 'resumed' && currentlyPaused) {
-                // Add the paused duration from the resume event if available
                 const pauseDuration = (event.details as any)?.pauseDuration;
                 if (typeof pauseDuration === 'number' && pauseDuration > 0) {
                   accumulatedPausedTime += pauseDuration;
                 } else if (currentPausedAt) {
-                  // Fallback: calculate from timestamps when pauseDuration not in details
                   const resumedAt = new Date(event.event_timestamp);
                   accumulatedPausedTime += resumedAt.getTime() - currentPausedAt.getTime();
                 }
@@ -499,29 +474,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
               }
             }
             
-            // Get the last event to determine current state
             const lastEvent = allEvents[allEvents.length - 1];
-            console.log('📊 Last event for timer:', lastEvent.event_type, '| Total pause events:', allEvents.filter(e => e.event_type === 'paused').length);
-            console.log('📊 Calculated accumulated paused time:', Math.floor(accumulatedPausedTime / 1000), 'seconds');
-            
             if (lastEvent.event_type === 'paused') {
               setIsTimerPaused(true);
               const pausedAtStr = (lastEvent.details as any)?.pausedAt;
-              if (pausedAtStr) {
-                setPausedAt(new Date(pausedAtStr));
-              }
-              console.log('⏸️ Timer was paused, restoring pause state');
+              if (pausedAtStr) setPausedAt(new Date(pausedAtStr));
             } else {
               setIsTimerPaused(false);
               setPausedAt(null);
-              console.log('▶️ Timer was not paused');
             }
             
-            // CRITICAL: Restore accumulated paused time
             setTotalPausedTime(accumulatedPausedTime);
-            console.log('✅ Restored totalPausedTime:', accumulatedPausedTime, 'ms');
           } else {
-            // No events found, reset pause state
             setIsTimerPaused(false);
             setPausedAt(null);
             setTotalPausedTime(0);
@@ -537,10 +501,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setIsTimerPaused(false);
         setPausedAt(null);
         setTotalPausedTime(0);
-        console.log('✅ No active timers found');
       }
       
-      // Detect paused timers for current user (DB-backed paused timers)
       const pausedEntries = convertedTimeEntries.filter(entry => 
         !entry.endTime && (entry as any).timerStatus === 'paused' && (
           entry.userId === currentAuthUserId || 
@@ -549,7 +511,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         )
       );
       setPausedTimeEntries(pausedEntries);
-      console.log('⏸️ Found', pausedEntries.length, 'paused timers in database');
     } catch (error) {
       console.error('Error loading time entries:', error);
     }
