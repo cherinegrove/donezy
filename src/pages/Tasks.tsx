@@ -566,11 +566,13 @@ export default function Tasks() {
       
       {/* URL-based task dialog for shareable links */}
       {urlTask && (
-        <EditTaskDialog
-          task={urlTask}
-          open={isUrlTaskDialogOpen}
-          onOpenChange={handleUrlTaskDialogClose}
-        />
+        <Suspense fallback={null}>
+          <EditTaskDialog
+            task={urlTask}
+            open={isUrlTaskDialogOpen}
+            onOpenChange={handleUrlTaskDialogClose}
+          />
+        </Suspense>
       )}
     </div>
   );
