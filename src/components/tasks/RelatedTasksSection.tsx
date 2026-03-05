@@ -182,11 +182,13 @@ export function RelatedTasksSection({ taskId }: RelatedTasksSectionProps) {
       )}
       
       {editingTask && (
-        <EditTaskDialog
-          task={editingTask}
-          open={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen}
-        />
+        <Suspense fallback={null}>
+          <EditTaskDialog
+            task={editingTask}
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+          />
+        </Suspense>
       )}
     </div>
   );
