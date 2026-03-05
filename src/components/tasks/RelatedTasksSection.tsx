@@ -1,10 +1,11 @@
 
-import React, { useState } from "react";
+import React, { useState, Suspense, lazy } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Link, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { EditTaskDialog } from "./EditTaskDialog";
+
+const EditTaskDialog = lazy(() => import("./EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import {
   Dialog,
   DialogContent,
@@ -181,11 +182,13 @@ export function RelatedTasksSection({ taskId }: RelatedTasksSectionProps) {
       )}
       
       {editingTask && (
-        <EditTaskDialog
-          task={editingTask}
-          open={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen}
-        />
+        <Suspense fallback={null}>
+          <EditTaskDialog
+            task={editingTask}
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+          />
+        </Suspense>
       )}
     </div>
   );
