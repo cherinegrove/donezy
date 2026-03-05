@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,7 +34,7 @@ import { TimerSection } from "./TimerSection";
 import { TaskLogsSection } from "./TaskLogsSection";
 import { ChecklistSection } from "./ChecklistSection";
 import { CommentSection } from "./CommentSection";
-import { RelatedTasksSection } from "./RelatedTasksSection";
+const RelatedTasksSection = lazy(() => import("./RelatedTasksSection").then(m => ({ default: m.RelatedTasksSection })));
 import { supabase } from "@/integrations/supabase/client";
 import { RecurringTaskDialog } from "./RecurringTaskDialog";
 import { TaskStatusPromptDialog } from "./TaskStatusPromptDialog";
