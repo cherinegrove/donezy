@@ -8,7 +8,8 @@ import { Task, TaskStatus } from "@/types";
 
 import { Button } from "@/components/ui/button";
 import { CheckSquare, Plus, Upload, Calendar, Users, User } from "lucide-react";
-import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
+import React, { useState, useEffect, lazy, Suspense } from "react";
+const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { EditTaskTemplateDialog } from "@/components/tasks/EditTaskTemplateDialog";
