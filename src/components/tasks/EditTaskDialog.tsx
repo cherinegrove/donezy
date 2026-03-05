@@ -386,7 +386,9 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
               <div className="space-y-6 mt-6">
                 <ChecklistSection taskId={task.id} />
                 <CommentSection taskId={task.id} />
-                <RelatedTasksSection taskId={task.id} />
+                <Suspense fallback={null}>
+                  <RelatedTasksSection taskId={task.id} />
+                </Suspense>
               </div>
             </TabsContent>
             
