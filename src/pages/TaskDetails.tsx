@@ -12,14 +12,58 @@ import { ChecklistSection } from "@/components/tasks/ChecklistSection";
 import { CommentSection } from "@/components/tasks/CommentSection";
 import { RelatedTasksSection } from "@/components/tasks/RelatedTasksSection";
 import { Separator } from "@/components/ui/separator";
+import { Task } from "@/types";
 
 export default function TaskDetails() {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
   const { tasks, users, projects, taskStatuses } = useAppContext();
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [fetchedTask, setFetchedTask] = useState<Task | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const task = tasks.find(t => t.id === taskId);
+  const localTask = tasks.find(t => t.id === taskId);
+  const task = localTask || fetchedTask;
+
+  // Fetch from Supabase if not found in local state
+  useEffect(() => {
+    if (localTask || !taskId || isLoading) return;
+    const fetchTask = async () => {
+      setIsLoading(true);
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data, error } = await supabase.from('tasks').select('*').eq('id', taskId).single();
+        if (!error && data) {
+          setFetchedTask({
+            id: data.id,
+            title: data.title,
+            description: data.description || '',
+            status: data.status as any,
+            priority: data.priority as any,
+            projectId: data.project_id,
+            assigneeId: data.assignee_id || undefined,
+            collaboratorIds: data.collaborator_ids || [],
+            dueDate: data.due_date || undefined,
+            reminderDate: data.reminder_date || undefined,
+            createdAt: data.created_at,
+            estimatedHours: data.estimated_hours || undefined,
+            actualHours: data.actual_hours || undefined,
+            relatedTaskIds: data.related_task_ids || [],
+            backlogReason: data.backlog_reason || undefined,
+            awaitingFeedbackDetails: data.awaiting_feedback_details || undefined,
+            dueDateChangeReason: data.due_date_change_reason || undefined,
+            watcherIds: data.watcher_ids || [],
+            checklist: Array.isArray(data.checklist) ? data.checklist as any : [],
+            orderIndex: data.order_index || 0,
+          });
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchTask();
+  }, [taskId, localTask, isLoading]);
+
   const assignee = users.find(u => u.id === task?.assigneeId);
   const project = projects.find(p => p.id === task?.projectId);
   const collaborators = users.filter(u => task?.collaboratorIds?.includes(u.id));
@@ -35,6 +79,14 @@ export default function TaskDetails() {
       }, 100);
     }
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   if (!task) {
     return (
