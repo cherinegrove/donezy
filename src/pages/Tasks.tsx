@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, lazy, Suspense } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAppContext } from "@/contexts/AppContext";
@@ -44,6 +44,7 @@ type TaskViewMode = "list" | "kanban" | "timeline";
 
 export default function Tasks() {
   const { tasks, projects, users, clients, currentUser, taskStatuses } = useAppContext();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
   // URL-based task opening state
@@ -499,9 +500,7 @@ export default function Tasks() {
                 viewMode={viewMode as "list" | "kanban"}
                 onBulkEdit={handleBulkEdit}
                 onTaskOpen={(taskId) => {
-                  const newParams = new URLSearchParams(searchParams);
-                  newParams.set('task', taskId);
-                  setSearchParams(newParams, { replace: true });
+                  navigate(`/tasks/${taskId}`);
                 }}
               />
             )}
