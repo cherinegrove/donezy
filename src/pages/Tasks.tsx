@@ -1,14 +1,12 @@
 
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAppContext } from "@/contexts/AppContext";
-import { Task, TaskStatus } from "@/types";
+import { TaskStatus } from "@/types";
 
 import { Button } from "@/components/ui/button";
 import { CheckSquare, Plus, Upload, Calendar, Users, User } from "lucide-react";
-const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { EditTaskTemplateDialog } from "@/components/tasks/EditTaskTemplateDialog";
