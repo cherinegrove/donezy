@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, lazy, Suspense } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAppContext } from "@/contexts/AppContext";
