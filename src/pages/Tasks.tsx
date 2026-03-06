@@ -45,141 +45,23 @@ type TaskViewMode = "list" | "kanban" | "timeline";
 export default function Tasks() {
   const { tasks, projects, users, clients, currentUser, taskStatuses } = useAppContext();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  
-  // URL-based task opening state
-  const [urlTaskId, setUrlTaskId] = useState<string | null>(null);
-  const [urlTask, setUrlTask] = useState<Task | null>(null);
-  const [isUrlTaskDialogOpen, setIsUrlTaskDialogOpen] = useState(false);
-  const [isLoadingUrlTask, setIsLoadingUrlTask] = useState(false);
   
   // Auto-generate recurring tasks on page load
   useEffect(() => {
     const generateRecurringTasks = async () => {
       try {
         const { supabase } = await import("@/integrations/supabase/client");
-        const { data, error } = await supabase.functions.invoke('generate-recurring-tasks');
+        const { data } = await supabase.functions.invoke('generate-recurring-tasks');
         if (data?.processed > 0) {
           console.log('Generated recurring tasks:', data);
         }
       } catch (err) {
-        // Silent fail - don't show errors for background task
         console.error('Error generating recurring tasks:', err);
       }
     };
-    
-    // Run on mount with a small delay to not block initial render
     const timer = setTimeout(generateRecurringTasks, 1000);
     return () => clearTimeout(timer);
   }, []);
-  
-  // Debug logging to help identify why tasks aren't showing
-  React.useEffect(() => {
-    console.log('=== TASKS DEBUG ===');
-    console.log('Total tasks:', tasks.length);
-    console.log('Tasks:', tasks);
-    console.log('Projects:', projects.length);
-  }, [tasks, projects]);
-  
-  // Check URL for task ID on mount and when searchParams change
-  // Immediately fetch the task from Supabase for faster loading
-  useEffect(() => {
-    const taskIdFromUrl = searchParams.get('task');
-    console.log('=== URL Task Check ===');
-    console.log('Task ID from URL:', taskIdFromUrl);
-    
-    if (!taskIdFromUrl) {
-      setUrlTaskId(null);
-      setUrlTask(null);
-      setIsUrlTaskDialogOpen(false);
-      return;
-    }
-    
-    // First check if task is already in local state
-    const existingTask = tasks.find(t => t.id === taskIdFromUrl);
-    console.log('Existing task found in local state:', !!existingTask);
-    
-    if (existingTask) {
-      setUrlTaskId(taskIdFromUrl);
-      setUrlTask(existingTask);
-      setIsUrlTaskDialogOpen(true);
-      return;
-    }
-    
-    // If already loading or we have the task, skip fetching
-    if (isLoadingUrlTask || (urlTask && urlTask.id === taskIdFromUrl)) {
-      return;
-    }
-    
-    // If not found locally, fetch directly from Supabase for faster opening
-    const fetchTask = async () => {
-      console.log('Fetching task from Supabase...');
-      setIsLoadingUrlTask(true);
-      try {
-        const { supabase } = await import("@/integrations/supabase/client");
-        const { data, error } = await supabase
-          .from('tasks')
-          .select('*')
-          .eq('id', taskIdFromUrl)
-          .single();
-        
-        if (error) {
-          console.error('Error fetching task from URL:', error);
-          return;
-        }
-        
-        console.log('Task fetched successfully:', data?.title);
-        
-        if (data) {
-          const task: Task = {
-            id: data.id,
-            title: data.title,
-            description: data.description || '',
-            status: data.status as any,
-            priority: data.priority as any,
-            projectId: data.project_id,
-            assigneeId: data.assignee_id || undefined,
-            collaboratorIds: data.collaborator_ids || [],
-            dueDate: data.due_date || undefined,
-            reminderDate: data.reminder_date || undefined,
-            createdAt: data.created_at,
-            estimatedHours: data.estimated_hours || undefined,
-            actualHours: data.actual_hours || undefined,
-            relatedTaskIds: data.related_task_ids || [],
-            backlogReason: data.backlog_reason || undefined,
-            awaitingFeedbackDetails: data.awaiting_feedback_details || undefined,
-            dueDateChangeReason: data.due_date_change_reason || undefined,
-            watcherIds: data.watcher_ids || [],
-            checklist: Array.isArray(data.checklist) ? data.checklist as any : [],
-            orderIndex: data.order_index || 0,
-          };
-          console.log('Opening dialog for task:', task.title);
-          setUrlTaskId(taskIdFromUrl);
-          setUrlTask(task);
-          setIsUrlTaskDialogOpen(true);
-        }
-      } catch (err) {
-        console.error('Error fetching task:', err);
-      } finally {
-        setIsLoadingUrlTask(false);
-      }
-    };
-    
-    fetchTask();
-  }, [searchParams, tasks, isLoadingUrlTask, urlTask]);
-  
-  // Handle closing URL-based task dialog
-  const handleUrlTaskDialogClose = (open: boolean) => {
-    setIsUrlTaskDialogOpen(open);
-    if (!open) {
-      // Remove task param from URL
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete('task');
-      setSearchParams(newParams, { replace: true });
-      setUrlTaskId(null);
-      setUrlTask(null);
-    }
-  };
   
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
