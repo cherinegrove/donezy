@@ -44,6 +44,7 @@ type TaskViewMode = "list" | "kanban" | "timeline";
 
 export default function Tasks() {
   const { tasks, projects, users, clients, currentUser, taskStatuses } = useAppContext();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
   // URL-based task opening state
