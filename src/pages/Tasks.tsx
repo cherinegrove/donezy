@@ -500,9 +500,7 @@ export default function Tasks() {
                 viewMode={viewMode as "list" | "kanban"}
                 onBulkEdit={handleBulkEdit}
                 onTaskOpen={(taskId) => {
-                  const newParams = new URLSearchParams(searchParams);
-                  newParams.set('task', taskId);
-                  setSearchParams(newParams, { replace: true });
+                  navigate(`/tasks/${taskId}`);
                 }}
               />
             )}
