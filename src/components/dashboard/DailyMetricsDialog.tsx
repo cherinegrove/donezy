@@ -55,7 +55,7 @@ export function DailyMetricsDialog({ open, onOpenChange }: DailyMetricsDialogPro
   };
 
   const handleTaskClick = (taskId: string) => {
-    navigate(`/tasks?task=${taskId}`);
+    navigate(`/tasks/${taskId}`);
     onOpenChange(false);
   };
 
