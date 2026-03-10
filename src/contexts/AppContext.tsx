@@ -2154,11 +2154,34 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       // Soft-delete: mark as cancelled instead of hard-deleting
       // This preserves the audit trail for financial tracking
+      // Calculate correct active duration from event history to avoid wall-clock inflation
+      const { data: events } = await supabase
+        .from('time_entry_events')
+        .select('event_type, event_timestamp')
+        .eq('time_entry_id', timeEntryId)
+        .order('event_timestamp', { ascending: true });
+
+      let activeMs = 0;
+      let lastResumeOrStart: Date | null = null;
+      for (const ev of events || []) {
+        if (ev.event_type === 'started' || ev.event_type === 'resumed') {
+          lastResumeOrStart = new Date(ev.event_timestamp);
+        } else if ((ev.event_type === 'paused' || ev.event_type === 'auto_paused') && lastResumeOrStart) {
+          activeMs += new Date(ev.event_timestamp).getTime() - lastResumeOrStart.getTime();
+          lastResumeOrStart = null;
+        }
+      }
+      if (lastResumeOrStart) {
+        activeMs += Date.now() - lastResumeOrStart.getTime();
+      }
+      const correctDuration = Math.max(1, Math.round(activeMs / 60000));
+
       const { error } = await supabase
         .from('time_entries')
         .update({ 
           timer_status: 'cancelled',
-          end_time: new Date().toISOString()
+          end_time: new Date().toISOString(),
+          duration: correctDuration
         })
         .eq('id', timeEntryId);
 
