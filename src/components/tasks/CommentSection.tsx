@@ -337,17 +337,46 @@ export function CommentSection({ taskId }: CommentSectionProps) {
               const commentImages = commentItem.images || [];
               const isOwnComment = currentUser?.auth_user_id === commentItem.userId;
               const isEditing = editingCommentId === commentItem.id;
+
+              // Detect client portal comments (content starts with "[Client: ...]")
+              const clientMatch = commentItem.content?.match(/^\[Client:\s*([^\]]+)\]/);
+              const isClientComment = !!clientMatch;
+              const clientName = clientMatch ? clientMatch[1].trim() : null;
+              // Strip the "[Client: Name]" prefix from displayed content
+              const displayContent = isClientComment
+                ? commentItem.content.replace(/^\[Client:\s*[^\]]+\]\s*/, '')
+                : commentItem.content;
               
               return (
-                <div key={commentItem.id} className="flex gap-3 group">
+                <div
+                  key={commentItem.id}
+                  className={`flex gap-3 group rounded-lg p-2 -mx-2 ${isClientComment ? 'bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40' : ''}`}
+                >
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={commentUser?.avatar} />
-                    <AvatarFallback>{commentUser?.name?.substring(0, 2) || "UN"}</AvatarFallback>
+                    {isClientComment ? (
+                      <AvatarFallback className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs font-bold">
+                        {clientName?.substring(0, 2)?.toUpperCase() || "CL"}
+                      </AvatarFallback>
+                    ) : (
+                      <>
+                        <AvatarImage src={commentUser?.avatar} />
+                        <AvatarFallback>{commentUser?.name?.substring(0, 2) || "UN"}</AvatarFallback>
+                      </>
+                    )}
                   </Avatar>
 
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium">{commentUser?.name || "Unknown"}</span>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      {isClientComment ? (
+                        <>
+                          <span className="font-medium text-red-700 dark:text-red-300">{clientName}</span>
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700">
+                            Client Comment
+                          </span>
+                        </>
+                      ) : (
+                        <span className="font-medium">{commentUser?.name || "Unknown"}</span>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(commentItem.timestamp), "MMM d, yyyy 'at' h:mm a")}
                       </span>
@@ -400,12 +429,12 @@ export function CommentSection({ taskId }: CommentSectionProps) {
                       </div>
                     ) : (
                       <>
-                        {commentItem.content && (
+                        {displayContent && (
                           <div
-                            className="text-sm whitespace-pre-wrap break-words overflow-hidden max-w-full [&_*]:break-words [&_*]:overflow-wrap-anywhere"
+                            className={`text-sm whitespace-pre-wrap break-words overflow-hidden max-w-full [&_*]:break-words [&_*]:overflow-wrap-anywhere ${isClientComment ? 'text-red-900 dark:text-red-100' : ''}`}
                             style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                             dangerouslySetInnerHTML={{
-                              __html: formatCommentContent(commentItem.content, commentItem.mentionedUserIds),
+                              __html: formatCommentContent(displayContent, commentItem.mentionedUserIds),
                             }}
                           />
                         )}
