@@ -22,9 +22,9 @@ export const MyDailyTimeChart = () => {
       ? endOfMonth(now) 
       : endOfMonth(subMonths(now, 1));
 
-    // Filter to only current user's entries
+    // Filter to only current user's entries — match on authUserId (auth UUID) or userId
     const userEntries = timeEntries.filter(
-      entry => entry.userId === currentUser.auth_user_id
+      entry => (entry as any).authUserId === currentUser.auth_user_id || entry.userId === currentUser.auth_user_id
     );
 
     const days = eachDayOfInterval({ start: startDate, end: endDate });
