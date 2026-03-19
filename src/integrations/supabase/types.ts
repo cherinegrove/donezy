@@ -472,6 +472,33 @@ export type Database = {
         }
         Relationships: []
       }
+      google_chat_thread_mappings: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          space_name: string | null
+          task_id: string
+          thread_key: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          space_name?: string | null
+          task_id: string
+          thread_key: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          space_name?: string | null
+          task_id?: string
+          thread_key?: string
+        }
+        Relationships: []
+      }
       integration_settings: {
         Row: {
           auth_user_id: string

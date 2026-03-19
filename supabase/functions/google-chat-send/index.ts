@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,28 +12,30 @@ serve(async (req) => {
   }
 
   try {
-    const { webhookUrl, message, threadKey } = await req.json();
+    const { webhookUrl, message, threadKey, taskId, projectId } = await req.json();
     
     if (!webhookUrl || !message) {
       throw new Error("webhookUrl and message are required");
     }
 
-    console.log("Sending message to Google Chat:", { webhookUrl, message });
+    console.log("Sending message to Google Chat:", { webhookUrl, message, threadKey, taskId });
 
-    const payload: any = {
-      text: message
-    };
+    // Build payload — always use threadKey if provided so replies stay in the same thread
+    const payload: any = { text: message };
 
-    // Support threaded messages
     if (threadKey) {
       payload.thread = { threadKey };
     }
 
-    const response = await fetch(webhookUrl, {
+    // Append ?messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD so Google Chat
+    // groups the message into the existing thread when the threadKey matches.
+    const sendUrl = threadKey
+      ? `${webhookUrl}&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD`
+      : webhookUrl;
+
+    const response = await fetch(sendUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
 
@@ -44,6 +47,32 @@ serve(async (req) => {
 
     const result = await response.json();
     console.log("Message sent successfully:", result);
+
+    // Persist thread→task mapping so the webhook can route replies back to Donezy
+    if (taskId && projectId && threadKey) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+        const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+        // Upsert: one mapping per threadKey is enough
+        const { error: dbError } = await supabase
+          .from('google_chat_thread_mappings')
+          .upsert(
+            { thread_key: threadKey, task_id: taskId, project_id: projectId },
+            { onConflict: 'thread_key' }
+          );
+
+        if (dbError) {
+          console.error("Failed to save thread mapping:", dbError);
+        } else {
+          console.log("Thread mapping saved:", { threadKey, taskId, projectId });
+        }
+      } catch (mappingErr) {
+        // Non-fatal — notification still delivered
+        console.error("Thread mapping save error:", mappingErr);
+      }
+    }
 
     return new Response(
       JSON.stringify({ success: true, result }),
