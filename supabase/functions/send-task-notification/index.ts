@@ -192,23 +192,33 @@ serve(async (req) => {
       .replace(/{changes}/g, changesSummary)
       .replace(/{task_link}/g, taskUrl);
 
-    console.log('Sending message to Google Chat:', message);
+    // Each task gets a stable threadKey so all its notifications live in one thread
+    // and replies can be routed back to the correct task in Donezy.
+    const threadKey = `task-${taskId}`;
 
-    // Send to Google Chat
-    const chatResponse = await fetch(config.webhook_url, {
+    console.log('Sending message to Google Chat via google-chat-send:', message);
+
+    // Route through google-chat-send so thread mappings are saved automatically
+    const supabaseFunctionsUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-chat-send`;
+    const chatResponse = await fetch(supabaseFunctionsUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
       },
       body: JSON.stringify({
-        text: message
+        webhookUrl: config.webhook_url,
+        message,
+        threadKey,
+        taskId,
+        projectId,
       }),
     });
 
     if (!chatResponse.ok) {
       const errorText = await chatResponse.text();
-      console.error('Google Chat API error:', chatResponse.status, errorText);
-      throw new Error(`Google Chat API error: ${chatResponse.status}`);
+      console.error('google-chat-send error:', chatResponse.status, errorText);
+      throw new Error(`google-chat-send error: ${chatResponse.status}`);
     }
 
     console.log('Notification sent successfully');
