@@ -20,7 +20,6 @@ import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Tasks from "./pages/Tasks";
-import TaskDetails from "./pages/TaskDetails";
 import Notes from "./pages/Notes";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -31,6 +30,9 @@ import Admin from "./pages/Admin";
 import Dashboards from "./pages/Dashboards";
 import Analytics from "./pages/Analytics";
 import Activity from "./pages/Activity";
+
+// Lazy-load TaskDetails so it gets its own async chunk, breaking the circular dependency chain
+const TaskDetails = React.lazy(() => import("./pages/TaskDetails"));
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 import ConfirmInvite from "./pages/ConfirmInvite";
@@ -246,7 +248,11 @@ const App = () => {
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/projects/:projectId" element={<ProjectDetails />} />
                   <Route path="/tasks" element={<Tasks />} />
-                  <Route path="/tasks/:taskId" element={<TaskDetails />} />
+                  <Route path="/tasks/:taskId" element={
+                    <React.Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div></div>}>
+                      <TaskDetails />
+                    </React.Suspense>
+                  } />
                   <Route path="/notes" element={<Notes />} />
                   <Route 
                     path="/clients" 
