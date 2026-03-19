@@ -20,7 +20,6 @@ import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Tasks from "./pages/Tasks";
-import TaskDetails from "./pages/TaskDetails";
 import Notes from "./pages/Notes";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -31,6 +30,9 @@ import Admin from "./pages/Admin";
 import Dashboards from "./pages/Dashboards";
 import Analytics from "./pages/Analytics";
 import Activity from "./pages/Activity";
+
+// Lazy-load TaskDetails so it gets its own async chunk, breaking the circular dependency chain
+const TaskDetails = React.lazy(() => import("./pages/TaskDetails"));
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 import ConfirmInvite from "./pages/ConfirmInvite";
