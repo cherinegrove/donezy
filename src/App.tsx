@@ -229,77 +229,77 @@ const App = () => {
         <TooltipProvider>
           <BrowserRouter>
             <AppProvider>
-              <GlobalSearch />
-              <Routes>
-                {/* Standalone auth routes - no protection needed */}
-                <Route path="/set-password" element={
-                  <>
-                    <Toaster />
-                    <Sonner />
-                    <SetPassword />
-                  </>
-                } />
-                <Route path="/email-confirmation" element={<EmailConfirmation />} />
-                <Route path="/confirm" element={<ConfirmInvite />} />
-                
-                {/* Public routes - accessible without authentication */}
-                <Route path="/login" element={<PublicRoute element={<Login />} />} />
-                <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
-                <Route path="/forgot-password" element={<PublicRoute element={<ForgotPassword />} />} />
-                <Route path="/reset-password" element={<PublicRoute element={<ResetPassword />} />} />
-                <Route path="/auth/v1/verify" element={<AuthVerify />} />
-                <Route path="/portal/:token" element={<ClientPortal />} />
-                
-                {/* Protected routes */}
-                <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
-                  <Route index element={<Home />} />
-                  <Route path="/projects" element={<Projects />} />
-                  <Route path="/projects/:projectId" element={<ProjectDetails />} />
-                  <Route path="/tasks" element={<Tasks />} />
-                  <Route path="/tasks/:taskId" element={
-                    <React.Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div></div>}>
-                      <TaskDetails />
-                    </React.Suspense>
+              <Suspense fallback={null}>
+                <GlobalSearch />
+              </Suspense>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* Standalone auth routes - no protection needed */}
+                  <Route path="/set-password" element={
+                    <>
+                      <Toaster />
+                      <Sonner />
+                      <SetPassword />
+                    </>
                   } />
-                  <Route path="/notes" element={<Notes />} />
-                  <Route 
-                    path="/clients" 
-                    element={
-                      <ProtectedRoute 
-                        element={<Clients />} 
-                        allowedRoles={['admin', 'manager', 'developer']} 
-                      />
-                    } 
-                  />
-                  <Route path="/clients/:clientId" element={<ClientDetails />} />
-                  <Route 
-                    path="/team" 
-                    element={
-                      <ProtectedRoute 
-                        element={<Team />} 
-                        allowedRoles={['admin', 'manager']} 
-                      />
-                    } 
-                  />
-                  <Route path="/time" element={<TimeTracking />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/reports" element={<Navigate to="/analytics" replace />} />
-                  <Route path="/dashboards" element={<Dashboards />} />
-                  <Route path="/settings" element={<Settings />} />
-                   <Route 
-                    path="/admin" 
-                    element={
-                      <ProtectedRoute 
-                        element={<Admin />} 
-                        allowedRoles={['admin']} 
-                      />
-                    } 
-                  />
-                  <Route path="/analytics" element={<Analytics />} />
-                  <Route path="/activity" element={<Activity />} />
-                  <Route path="*" element={<NotFound />} />
-                </Route>
-              </Routes>
+                  <Route path="/email-confirmation" element={<EmailConfirmation />} />
+                  <Route path="/confirm" element={<ConfirmInvite />} />
+                  
+                  {/* Public routes - accessible without authentication */}
+                  <Route path="/login" element={<PublicRoute element={<Login />} />} />
+                  <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
+                  <Route path="/forgot-password" element={<PublicRoute element={<ForgotPassword />} />} />
+                  <Route path="/reset-password" element={<PublicRoute element={<ResetPassword />} />} />
+                  <Route path="/auth/v1/verify" element={<AuthVerify />} />
+                  <Route path="/portal/:token" element={<ClientPortal />} />
+                  
+                  {/* Protected routes */}
+                  <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
+                    <Route index element={<Home />} />
+                    <Route path="/projects" element={<Projects />} />
+                    <Route path="/projects/:projectId" element={<ProjectDetails />} />
+                    <Route path="/tasks" element={<Tasks />} />
+                    <Route path="/tasks/:taskId" element={<TaskDetails />} />
+                    <Route path="/notes" element={<Notes />} />
+                    <Route 
+                      path="/clients" 
+                      element={
+                        <ProtectedRoute 
+                          element={<Clients />} 
+                          allowedRoles={['admin', 'manager', 'developer']} 
+                        />
+                      } 
+                    />
+                    <Route path="/clients/:clientId" element={<ClientDetails />} />
+                    <Route 
+                      path="/team" 
+                      element={
+                        <ProtectedRoute 
+                          element={<Team />} 
+                          allowedRoles={['admin', 'manager']} 
+                        />
+                      } 
+                    />
+                    <Route path="/time" element={<TimeTracking />} />
+                    <Route path="/notifications" element={<Notifications />} />
+                    <Route path="/reports" element={<Navigate to="/analytics" replace />} />
+                    <Route path="/dashboards" element={<Dashboards />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route 
+                      path="/admin" 
+                      element={
+                        <ProtectedRoute 
+                          element={<Admin />} 
+                          allowedRoles={['admin']} 
+                        />
+                      } 
+                    />
+                    <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/activity" element={<Activity />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Route>
+                </Routes>
+              </Suspense>
               <Toaster />
               <Sonner />
             </AppProvider>
