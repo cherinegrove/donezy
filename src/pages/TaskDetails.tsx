@@ -2,9 +2,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { Task } from "@/types";
 
+// Inline the dialog to avoid circular dep — lazy-load the heavy EditTaskDialog chunk
+import React, { lazy, Suspense } from "react";
 const EditTaskDialog = lazy(() =>
   import("@/components/tasks/EditTaskDialog").then((m) => ({ default: m.EditTaskDialog }))
 );

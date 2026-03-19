@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Project, Task } from "@/types";
@@ -21,7 +21,7 @@ import { BulkEditTasksDialog } from "@/components/tasks/BulkEditTasksDialog";
 import { GoogleChatSettings } from "@/components/projects/GoogleChatSettings";
 import { WeeklyRoundupDialog } from "@/components/projects/WeeklyRoundupDialog";
 import { TaskTimeline } from "@/components/projects/TaskTimeline";
-import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
+const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";

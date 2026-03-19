@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { format, isBefore, isToday, parseISO, startOfToday } from "date-fns";
 import { useAppContext } from "@/contexts/AppContext";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Calendar, Clock } from "lucide-react";
-import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
+const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { Task } from "@/types";
 import { TaskCard } from "@/components/tasks/TaskCard";
 import { RecentTasksCard } from "@/components/dashboard/cards/RecentTasksCard";

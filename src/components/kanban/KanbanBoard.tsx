@@ -1,8 +1,8 @@
 import { Task, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
-import { useState, useEffect } from "react";
-import { EditTaskDialog } from "../tasks/EditTaskDialog";
+import { useState, useEffect, lazy, Suspense } from "react";
+const EditTaskDialog = lazy(() => import("../tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { TaskStatusPromptDialog } from "../tasks/TaskStatusPromptDialog";
 import { Settings, Edit2, CheckSquare, Trash2, GripVertical } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";

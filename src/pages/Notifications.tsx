@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Message } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,7 +12,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { NotificationReplySection } from "@/components/notifications/NotificationReplySection";
-import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
+const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import type { Task } from "@/types";
 
 export default function Notifications() {

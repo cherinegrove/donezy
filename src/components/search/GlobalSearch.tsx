@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import {
@@ -13,7 +13,7 @@ import {
 import { Search, FolderKanban, CheckSquare, User, Users, FileText, Mail, Clock, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useSmartAutocomplete } from "@/hooks/useSmartAutocomplete";
-import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
+const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import type { Task } from "@/types";
 
 interface SearchResult {

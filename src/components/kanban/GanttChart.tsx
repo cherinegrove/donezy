@@ -1,9 +1,8 @@
-
-import React from "react";
+import React, { useState, lazy, Suspense } from "react";
 import { Task } from "@/types";
 import { format, differenceInDays, addDays, startOfDay, parseISO, subDays, isWithinInterval } from "date-fns";
-import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
-import { useState } from "react";
+const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
+
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, ArrowLeft, ArrowRight } from "lucide-react";
 import {
