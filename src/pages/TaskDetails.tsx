@@ -2,9 +2,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Task } from "@/types";
+
+const EditTaskDialog = lazy(() =>
+  import("@/components/tasks/EditTaskDialog").then((m) => ({ default: m.EditTaskDialog }))
+);
 
 export default function TaskDetails() {
   const { taskId } = useParams<{ taskId: string }>();
@@ -85,13 +88,19 @@ export default function TaskDetails() {
           Back
         </Button>
       </div>
-      <EditTaskDialog
-        task={task}
-        open={true}
-        onOpenChange={(open) => {
-          if (!open) navigate(-1);
-        }}
-      />
+      <Suspense fallback={
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      }>
+        <EditTaskDialog
+          task={task}
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) navigate(-1);
+          }}
+        />
+      </Suspense>
     </>
   );
 }
