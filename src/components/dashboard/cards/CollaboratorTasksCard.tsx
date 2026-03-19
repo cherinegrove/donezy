@@ -1,8 +1,8 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { DashboardCard } from "../DashboardCard";
 import { Users } from "lucide-react";
-import { useState } from "react";
-import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
+import { useState, lazy, Suspense } from "react";
+const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { Task } from "@/types";
 import { TaskCard } from "@/components/tasks/TaskCard";
 

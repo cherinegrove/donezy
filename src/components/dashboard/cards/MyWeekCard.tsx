@@ -2,8 +2,8 @@ import { useAppContext } from "@/contexts/AppContext";
 import { DashboardCard } from "../DashboardCard";
 import { CalendarDays } from "lucide-react";
 import { startOfWeek, endOfWeek, parseISO, isWithinInterval } from "date-fns";
-import { useState } from "react";
-import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
+import { useState, lazy, Suspense } from "react";
+const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { Task } from "@/types";
 import { TaskCard } from "@/components/tasks/TaskCard";
 
