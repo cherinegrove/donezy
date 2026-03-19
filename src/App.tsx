@@ -4,40 +4,48 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { AppProvider } from "./contexts/AppContext";
+import { EmailConfirmation } from "./components/auth/EmailConfirmation";
+import ConfirmInvite from "./pages/ConfirmInvite";
+import { AuthVerify } from '@/components/auth/AuthVerify';
 
-import { AppLayout } from "./components/layout/AppLayout";
-import { GlobalSearch } from "./components/search/GlobalSearch";
-import Home from "./pages/Home";
-import Projects from "./pages/Projects";
-import ProjectDetails from "./pages/ProjectDetails";
-import Clients from "./pages/Clients";
-import ClientDetails from "./pages/ClientDetails";
-import Team from "./pages/Team";
-import TimeTracking from "./pages/TimeTracking";
-import Notifications from "./pages/Notifications";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
-import Tasks from "./pages/Tasks";
-import Notes from "./pages/Notes";
+// Auth & lightweight pages - safe to import statically
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ResetPassword from "./pages/ResetPassword";
 import SetPassword from "./pages/SetPassword";
 import ForgotPassword from "./pages/ForgotPassword";
-import Admin from "./pages/Admin";
-import Dashboards from "./pages/Dashboards";
-import Analytics from "./pages/Analytics";
-import Activity from "./pages/Activity";
-
-// Lazy-load TaskDetails so it gets its own async chunk, breaking the circular dependency chain
-const TaskDetails = React.lazy(() => import("./pages/TaskDetails"));
-import { AppProvider, useAppContext } from "./contexts/AppContext";
-import { EmailConfirmation } from "./components/auth/EmailConfirmation";
-import ConfirmInvite from "./pages/ConfirmInvite";
-import { AuthVerify } from '@/components/auth/AuthVerify';
 import ClientPortal from "./pages/ClientPortal";
+import NotFound from "./pages/NotFound";
+
+// Lazy-load ALL pages that directly or transitively import EditTaskDialog
+// This breaks the circular dependency (TDZ) when navigating directly to /tasks/:taskId
+const AppLayout = lazy(() => import("./components/layout/AppLayout").then(m => ({ default: m.AppLayout })));
+const GlobalSearch = lazy(() => import("./components/search/GlobalSearch").then(m => ({ default: m.GlobalSearch })));
+const Home = lazy(() => import("./pages/Home"));
+const Projects = lazy(() => import("./pages/Projects"));
+const ProjectDetails = lazy(() => import("./pages/ProjectDetails"));
+const Clients = lazy(() => import("./pages/Clients"));
+const ClientDetails = lazy(() => import("./pages/ClientDetails"));
+const Team = lazy(() => import("./pages/Team"));
+const TimeTracking = lazy(() => import("./pages/TimeTracking"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Tasks = lazy(() => import("./pages/Tasks"));
+const TaskDetails = lazy(() => import("./pages/TaskDetails"));
+const Notes = lazy(() => import("./pages/Notes"));
+const Admin = lazy(() => import("./pages/Admin"));
+const Dashboards = lazy(() => import("./pages/Dashboards"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Activity = lazy(() => import("./pages/Activity"));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[400px]">
+    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+  </div>
+);
 
 // Simplified Protected route component - avoid useLocation to prevent initialization errors
 const ProtectedRoute = ({ 
@@ -221,77 +229,77 @@ const App = () => {
         <TooltipProvider>
           <BrowserRouter>
             <AppProvider>
-              <GlobalSearch />
-              <Routes>
-                {/* Standalone auth routes - no protection needed */}
-                <Route path="/set-password" element={
-                  <>
-                    <Toaster />
-                    <Sonner />
-                    <SetPassword />
-                  </>
-                } />
-                <Route path="/email-confirmation" element={<EmailConfirmation />} />
-                <Route path="/confirm" element={<ConfirmInvite />} />
-                
-                {/* Public routes - accessible without authentication */}
-                <Route path="/login" element={<PublicRoute element={<Login />} />} />
-                <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
-                <Route path="/forgot-password" element={<PublicRoute element={<ForgotPassword />} />} />
-                <Route path="/reset-password" element={<PublicRoute element={<ResetPassword />} />} />
-                <Route path="/auth/v1/verify" element={<AuthVerify />} />
-                <Route path="/portal/:token" element={<ClientPortal />} />
-                
-                {/* Protected routes */}
-                <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
-                  <Route index element={<Home />} />
-                  <Route path="/projects" element={<Projects />} />
-                  <Route path="/projects/:projectId" element={<ProjectDetails />} />
-                  <Route path="/tasks" element={<Tasks />} />
-                  <Route path="/tasks/:taskId" element={
-                    <React.Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div></div>}>
-                      <TaskDetails />
-                    </React.Suspense>
+              <Suspense fallback={null}>
+                <GlobalSearch />
+              </Suspense>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* Standalone auth routes - no protection needed */}
+                  <Route path="/set-password" element={
+                    <>
+                      <Toaster />
+                      <Sonner />
+                      <SetPassword />
+                    </>
                   } />
-                  <Route path="/notes" element={<Notes />} />
-                  <Route 
-                    path="/clients" 
-                    element={
-                      <ProtectedRoute 
-                        element={<Clients />} 
-                        allowedRoles={['admin', 'manager', 'developer']} 
-                      />
-                    } 
-                  />
-                  <Route path="/clients/:clientId" element={<ClientDetails />} />
-                  <Route 
-                    path="/team" 
-                    element={
-                      <ProtectedRoute 
-                        element={<Team />} 
-                        allowedRoles={['admin', 'manager']} 
-                      />
-                    } 
-                  />
-                  <Route path="/time" element={<TimeTracking />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/reports" element={<Navigate to="/analytics" replace />} />
-                  <Route path="/dashboards" element={<Dashboards />} />
-                  <Route path="/settings" element={<Settings />} />
-                   <Route 
-                    path="/admin" 
-                    element={
-                      <ProtectedRoute 
-                        element={<Admin />} 
-                        allowedRoles={['admin']} 
-                      />
-                    } 
-                  />
-                  <Route path="/analytics" element={<Analytics />} />
-                  <Route path="/activity" element={<Activity />} />
-                  <Route path="*" element={<NotFound />} />
-                </Route>
-              </Routes>
+                  <Route path="/email-confirmation" element={<EmailConfirmation />} />
+                  <Route path="/confirm" element={<ConfirmInvite />} />
+                  
+                  {/* Public routes - accessible without authentication */}
+                  <Route path="/login" element={<PublicRoute element={<Login />} />} />
+                  <Route path="/signup" element={<PublicRoute element={<Signup />} />} />
+                  <Route path="/forgot-password" element={<PublicRoute element={<ForgotPassword />} />} />
+                  <Route path="/reset-password" element={<PublicRoute element={<ResetPassword />} />} />
+                  <Route path="/auth/v1/verify" element={<AuthVerify />} />
+                  <Route path="/portal/:token" element={<ClientPortal />} />
+                  
+                  {/* Protected routes */}
+                  <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
+                    <Route index element={<Home />} />
+                    <Route path="/projects" element={<Projects />} />
+                    <Route path="/projects/:projectId" element={<ProjectDetails />} />
+                    <Route path="/tasks" element={<Tasks />} />
+                    <Route path="/tasks/:taskId" element={<TaskDetails />} />
+                    <Route path="/notes" element={<Notes />} />
+                    <Route 
+                      path="/clients" 
+                      element={
+                        <ProtectedRoute 
+                          element={<Clients />} 
+                          allowedRoles={['admin', 'manager', 'developer']} 
+                        />
+                      } 
+                    />
+                    <Route path="/clients/:clientId" element={<ClientDetails />} />
+                    <Route 
+                      path="/team" 
+                      element={
+                        <ProtectedRoute 
+                          element={<Team />} 
+                          allowedRoles={['admin', 'manager']} 
+                        />
+                      } 
+                    />
+                    <Route path="/time" element={<TimeTracking />} />
+                    <Route path="/notifications" element={<Notifications />} />
+                    <Route path="/reports" element={<Navigate to="/analytics" replace />} />
+                    <Route path="/dashboards" element={<Dashboards />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route 
+                      path="/admin" 
+                      element={
+                        <ProtectedRoute 
+                          element={<Admin />} 
+                          allowedRoles={['admin']} 
+                        />
+                      } 
+                    />
+                    <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/activity" element={<Activity />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Route>
+                </Routes>
+              </Suspense>
               <Toaster />
               <Sonner />
             </AppProvider>
