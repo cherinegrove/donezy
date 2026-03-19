@@ -2,9 +2,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { EditTaskDialog } from "@/components/tasks/EditTaskDialog";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Task } from "@/types";
+
+const EditTaskDialog = lazy(() =>
+  import("@/components/tasks/EditTaskDialog").then((m) => ({ default: m.EditTaskDialog }))
+);
 
 export default function TaskDetails() {
   const { taskId } = useParams<{ taskId: string }>();
