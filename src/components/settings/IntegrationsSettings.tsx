@@ -255,36 +255,76 @@ export function IntegrationsSettings() {
             <Separator />
 
             <div className="space-y-4">
-              <h4 className="font-semibold">How to Set Up Google Chat for a Project</h4>
-              
+              <h4 className="font-semibold">How It Works</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="rounded-lg border p-3 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+                  <p className="text-sm font-medium text-green-800 dark:text-green-200">✅ Part 1 — Outgoing (Simple)</p>
+                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">Donezy → Google Chat via an <strong>Incoming Webhook URL</strong>. Set up per project.</p>
+                </div>
+                <div className="rounded-lg border p-3 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">⚙️ Part 2 — Incoming Replies (Requires Bot)</p>
+                  <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">Google Chat → Donezy requires a <strong>Google Chat App (Bot)</strong> configured in Google Cloud Console.</p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h4 className="font-semibold">Part 1: Send Notifications to Google Chat</h4>
               <ol className="space-y-3 text-sm list-decimal list-inside">
-                <li className="space-y-2">
-                  <span className="font-medium">Create a Google Chat Webhook</span>
+                <li className="space-y-1">
+                  <span className="font-medium">Create an Incoming Webhook in Google Chat</span>
                   <ul className="ml-6 mt-1 space-y-1 text-muted-foreground list-disc list-inside">
-                    <li>Open the Google Chat space where you want to receive notifications</li>
-                    <li>Click the space name at the top, then select "Apps & integrations"</li>
-                    <li>Click "Add webhooks" and create a new webhook</li>
-                    <li>Copy the webhook URL</li>
+                    <li>Open the Google Chat space → click the space name → <strong>Apps & integrations</strong></li>
+                    <li>Click <strong>Add webhooks</strong>, give it a name, and copy the webhook URL</li>
                   </ul>
                 </li>
-
-                <li className="space-y-2">
-                  <span className="font-medium">Configure in Your Project</span>
+                <li className="space-y-1">
+                  <span className="font-medium">Paste the webhook URL in your Project Settings</span>
                   <ul className="ml-6 mt-1 space-y-1 text-muted-foreground list-disc list-inside">
-                    <li>Navigate to the project where you want to enable Google Chat</li>
-                    <li>Look for the "Google Chat Settings" section in the project details</li>
-                    <li>Paste your webhook URL</li>
-                    <li>Configure which notifications you want to send to Google Chat</li>
+                    <li>Go to the project → <strong>Google Chat Settings</strong> tab → paste the URL and enable notifications</li>
                   </ul>
                 </li>
+              </ol>
+            </div>
 
-                <li className="space-y-2">
-                  <span className="font-medium">Notification Types</span>
+            <Separator />
+
+            <div className="space-y-4">
+              <h4 className="font-semibold">Part 2: Receive Replies Back in Donezy (Bidirectional)</h4>
+              <div className="rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-200 mb-3">
+                ⚠️ A simple webhook URL is <strong>one-way only</strong>. To get replies from Google Chat back into Donezy as comments, you need to create a <strong>Google Chat App (Bot)</strong>.
+              </div>
+              <ol className="space-y-3 text-sm list-decimal list-inside">
+                <li className="space-y-1">
+                  <span className="font-medium">Enable the Google Chat API in Google Cloud Console</span>
                   <ul className="ml-6 mt-1 space-y-1 text-muted-foreground list-disc list-inside">
-                    <li>Task created or updated</li>
-                    <li>Project status changes</li>
-                    <li>Comments and mentions</li>
-                    <li>Due date reminders</li>
+                    <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">console.cloud.google.com</a> → <strong>APIs & Services</strong> → Enable <strong>Google Chat API</strong></li>
+                  </ul>
+                </li>
+                <li className="space-y-1">
+                  <span className="font-medium">Configure a Google Chat App</span>
+                  <ul className="ml-6 mt-1 space-y-1 text-muted-foreground list-disc list-inside">
+                    <li>Under <strong>Google Chat API → Configuration</strong>, create an App</li>
+                    <li>Set the <strong>App URL</strong> (webhook endpoint) to:</li>
+                  </ul>
+                  <div className="ml-6 mt-2 rounded bg-muted px-3 py-2 font-mono text-xs break-all select-all">
+                    https://puwxkygdlclcbyxrtppd.supabase.co/functions/v1/google-chat-webhook
+                  </div>
+                </li>
+                <li className="space-y-1">
+                  <span className="font-medium">Add the Bot to your Google Chat space</span>
+                  <ul className="ml-6 mt-1 space-y-1 text-muted-foreground list-disc list-inside">
+                    <li>In your Chat space → <strong>Apps & integrations</strong> → add your new app</li>
+                    <li>The bot will confirm it's connected to Donezy</li>
+                  </ul>
+                </li>
+                <li className="space-y-1">
+                  <span className="font-medium">Reply to task notifications in the thread</span>
+                  <ul className="ml-6 mt-1 space-y-1 text-muted-foreground list-disc list-inside">
+                    <li>When Donezy sends a task notification, <strong>reply to that specific message thread</strong> (not a new message)</li>
+                    <li>Your reply will appear as a comment on the task in Donezy automatically</li>
                   </ul>
                 </li>
               </ol>
@@ -295,11 +335,11 @@ export function IntegrationsSettings() {
             <div className="rounded-lg bg-blue-50 dark:bg-blue-950 p-4">
               <h4 className="font-semibold mb-2 text-blue-900 dark:text-blue-100">💡 Pro Tip</h4>
               <p className="text-sm text-blue-800 dark:text-blue-200">
-                You can configure different Google Chat spaces for different projects. This is useful for keeping client communications separate or organizing notifications by team.
+                You can configure different Google Chat spaces for different projects. Configure the <strong>same bot</strong> across all spaces — replies from any of them will route back to the correct Donezy task automatically.
               </p>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button onClick={() => window.location.href = '/projects'}>
                 Go to Projects
               </Button>
@@ -309,7 +349,16 @@ export function IntegrationsSettings() {
                   target="_blank" 
                   rel="noopener noreferrer"
                 >
-                  Google Chat Webhook Docs
+                  Webhook Docs
+                </a>
+              </Button>
+              <Button variant="outline" asChild>
+                <a 
+                  href="https://developers.google.com/chat/how-tos/apps-develop" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  Google Chat App Docs
                 </a>
               </Button>
             </div>
