@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -8,8 +8,15 @@ import { useState, useEffect } from "react";
 
 export function AppLayout() {
   const [showDailyMetrics, setShowDailyMetrics] = useState(false);
+  const location = useLocation();
+
+  // Don't show daily metrics when a task is open via deep link — it would
+  // render on top of the task dialog and block all pointer events.
+  const isTaskDeepLink = /^\/tasks\/[^/]+$/.test(location.pathname);
 
   useEffect(() => {
+    if (isTaskDeepLink) return;
+
     const lastShown = localStorage.getItem("dailyMetricsLastShown");
     const today = new Date().toDateString();
 
@@ -21,7 +28,7 @@ export function AppLayout() {
 
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [isTaskDeepLink]);
   
   return (
     <ThemeProvider>
@@ -45,3 +52,4 @@ export function AppLayout() {
     </ThemeProvider>
   );
 }
+
