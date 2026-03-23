@@ -20,7 +20,7 @@ serve(async (req) => {
     // ── Bot added to a space ───────────────────────────────────────────────
     if (eventType === 'ADDED_TO_SPACE') {
       return new Response(
-        JSON.stringify({ text: "👋 Hi! I'm connected to Donezy. Reply to any task notification and your message will appear as a comment directly in Donezy!" }),
+        JSON.stringify({ text: "👋 Hi! I'm connected to Donezy. Reply to any task notification thread and your message will appear as a comment directly in Donezy!" }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -57,35 +57,69 @@ serve(async (req) => {
 
       // ── Try to route reply to a Donezy task comment ────────────────────
       if (threadName) {
-        // Derive the threadKey from the thread name.
-        // When we send messages we set threadKey = "task-{taskId}".
-        // Google Chat stores threads as "spaces/XXX/threads/YYY" but also
-        // echoes back the threadKey in payload.message.thread.threadKey (Bot API).
-        const threadKey =
-          payload.message?.thread?.threadKey ??
-          threadName.split('/').pop() ??
-          threadName;
-
-        console.log("Looking up thread mapping for key:", threadKey);
-
         const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
         const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
         const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-        // Look up the task associated with this thread
-        const { data: mapping, error: lookupError } = await supabase
-          .from('google_chat_thread_mappings')
-          .select('task_id, project_id')
-          .eq('thread_key', threadKey)
-          .maybeSingle();
+        // Build a list of candidate thread keys to try — Google Chat can echo
+        // back the key in different formats depending on how the message was sent.
+        const threadKeyFromPayload = payload.message?.thread?.threadKey;
+        const threadIdFromName = threadName.split('/').pop(); // last segment of "spaces/X/threads/Y"
 
-        if (lookupError) {
-          console.error("DB lookup error:", lookupError);
+        // Derive the "task-{uuid}" key from the thread name segment if it looks like a UUID
+        const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const taskIdFromThread = threadIdFromName && uuidPattern.test(threadIdFromName ?? '')
+          ? `task-${threadIdFromName}`
+          : null;
+
+        // Collect unique candidates (filter nulls/undefined)
+        const candidates = [
+          threadKeyFromPayload,
+          threadIdFromName ? `task-${threadIdFromName}` : null,
+          threadIdFromName,
+          taskIdFromThread,
+          threadName,
+        ].filter((k): k is string => Boolean(k));
+
+        const uniqueCandidates = [...new Set(candidates)];
+        console.log("Thread key candidates:", uniqueCandidates);
+
+        let mapping: { task_id: string; project_id: string } | null = null;
+
+        for (const candidate of uniqueCandidates) {
+          const { data, error } = await supabase
+            .from('google_chat_thread_mappings')
+            .select('task_id, project_id')
+            .eq('thread_key', candidate)
+            .maybeSingle();
+
+          if (error) {
+            console.error(`DB lookup error for candidate "${candidate}":`, error);
+            continue;
+          }
+
+          if (data?.task_id) {
+            mapping = data;
+            console.log(`Found task mapping using key "${candidate}":`, data);
+            break;
+          }
+        }
+
+        // If still not found, try matching by space_name in case we stored it
+        if (!mapping && spaceName && threadName) {
+          const { data, error } = await supabase
+            .from('google_chat_thread_mappings')
+            .select('task_id, project_id, thread_key')
+            .eq('space_name', spaceName)
+            .maybeSingle();
+
+          if (!error && data?.task_id) {
+            mapping = data;
+            console.log("Found task mapping via space_name:", data);
+          }
         }
 
         if (mapping?.task_id) {
-          console.log("Found task mapping:", mapping);
-
           // Find the first admin/owner user to attach the comment to
           const { data: adminUser } = await supabase
             .from('users')
@@ -127,12 +161,12 @@ serve(async (req) => {
         }
 
         // Thread found but no mapping — just acknowledge
-        console.log("No task mapping found for threadKey:", threadKey);
+        console.log("No task mapping found for any candidate key:", uniqueCandidates);
       }
 
       // Default: non-threaded message or no mapping found
       return new Response(
-        JSON.stringify({ text: "💬 I received your message! Reply directly to a task notification to add a comment in Donezy." }),
+        JSON.stringify({ text: "💬 I received your message! Reply directly to a task notification thread to add a comment in Donezy." }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
