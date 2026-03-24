@@ -3,8 +3,14 @@ import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { DailyMetricsDialog } from "@/components/dashboard/DailyMetricsDialog";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
+
+// Lazy-load to avoid circular dependency TDZ errors on deep-linked task routes
+const DailyMetricsDialog = lazy(() =>
+  import("@/components/dashboard/DailyMetricsDialog").then((m) => ({
+    default: m.DailyMetricsDialog,
+  }))
+);
 
 export function AppLayout() {
   const [showDailyMetrics, setShowDailyMetrics] = useState(false);
@@ -48,12 +54,15 @@ export function AppLayout() {
           </div>
         </div>
 
-        <DailyMetricsDialog 
-          open={showDailyMetrics} 
-          onOpenChange={setShowDailyMetrics} 
-        />
+        {showDailyMetrics && (
+          <Suspense fallback={null}>
+            <DailyMetricsDialog 
+              open={showDailyMetrics} 
+              onOpenChange={setShowDailyMetrics} 
+            />
+          </Suspense>
+        )}
       </SidebarProvider>
     </ThemeProvider>
   );
 }
-
