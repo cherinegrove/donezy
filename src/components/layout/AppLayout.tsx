@@ -14,8 +14,12 @@ export function AppLayout() {
   // render on top of the task dialog and block all pointer events.
   const isTaskDeepLink = /^\/tasks\/[^/]+$/.test(location.pathname);
 
+  // Close the dialog immediately if user navigates to a task deep link
   useEffect(() => {
-    if (isTaskDeepLink) return;
+    if (isTaskDeepLink) {
+      setShowDailyMetrics(false);
+      return;
+    }
 
     const lastShown = localStorage.getItem("dailyMetricsLastShown");
     const today = new Date().toDateString();
