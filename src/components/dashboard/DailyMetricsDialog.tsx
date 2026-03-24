@@ -89,7 +89,7 @@ export function DailyMetricsDialog({ open, onOpenChange }: DailyMetricsDialogPro
     return isBefore(dueDate, today);
   });
 
-  const unreadNotifications = 0;
+  const unreadNotifications: number = 0;
 
   const handleSectionClick = (section: string) => {
     setExpandedSection(expandedSection === section ? null : section);
