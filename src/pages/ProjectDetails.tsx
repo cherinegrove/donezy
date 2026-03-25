@@ -42,6 +42,13 @@ export default function ProjectDetails() {
   const [roundupDialogOpen, setRoundupDialogOpen] = useState(false);
   const [selectedOverdueTask, setSelectedOverdueTask] = useState<Task | null>(null);
   const [sharePortalOpen, setSharePortalOpen] = useState(false);
+  const [roundupSettings, setRoundupSettings] = useState<{
+    enabled: boolean;
+    day: string;
+    time: string;
+    recipientEmail: string;
+  }>({ enabled: false, day: "friday", time: "09:00", recipientEmail: "" });
+  const [isSavingRoundupSettings, setIsSavingRoundupSettings] = useState(false);
   
   // Task filters
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
