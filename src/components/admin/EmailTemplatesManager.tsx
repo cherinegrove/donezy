@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Mail, Send, Edit, Loader2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Mail, Send, Edit, Loader2, Braces } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -470,6 +471,53 @@ export const EmailTemplatesManager = () => {
                     {isEditing ? 'Edit' : 'Preview'}: {selectedTemplate.name}
                   </h3>
                   <div className="flex gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Braces className="h-4 w-4 mr-1" />
+                          Variables
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80" align="end">
+                        <h4 className="font-medium mb-3 text-sm">Available Variables</h4>
+                        {selectedTemplate.type === 'awaiting_feedback' ? (
+                          <div className="text-sm space-y-2">
+                            {[
+                              ['{{user_name}}', 'Your name (the sender)'],
+                              ['{{task_title}}', 'The task name'],
+                              ['{{project_name}}', 'Project the task belongs to'],
+                              ['{{feedback_what}}', "What you're waiting on"],
+                              ['{{feedback_who}}', 'Who you need it from'],
+                              ['{{feedback_why}}', 'Why it matters / impact'],
+                              ['{{feedback_when}}', "Date it's needed by"],
+                            ].map(([code, desc]) => (
+                              <div key={code} className="flex items-start gap-2">
+                                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono shrink-0">{code}</code>
+                                <span className="text-muted-foreground text-xs">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm space-y-2">
+                            {[
+                              ['{{user_name}}', "Recipient's name"],
+                              ['{{task_title}}', 'Task title'],
+                              ['{{project_name}}', 'Project name'],
+                              ['{{due_date}}', 'Due date'],
+                              ['{{priority}}', 'Task priority'],
+                              ['{{company_name}}', 'Company name'],
+                              ['{{mention_by}}', 'Person who mentioned you'],
+                              ['{{context_type}}', 'Where you were mentioned'],
+                            ].map(([code, desc]) => (
+                              <div key={code} className="flex items-start gap-2">
+                                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono shrink-0">{code}</code>
+                                <span className="text-muted-foreground text-xs">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </PopoverContent>
+                    </Popover>
                     {!isEditing && (
                       <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                         <Edit className="h-4 w-4 mr-1" />
@@ -593,31 +641,6 @@ export const EmailTemplatesManager = () => {
                     </div>
                   </div>
 
-                    <div className="bg-muted p-3 rounded text-sm">
-                      <h4 className="font-medium mb-2">Available Variables:</h4>
-                      {selectedTemplate.type === 'awaiting_feedback' ? (
-                        <div className="text-muted-foreground space-y-1">
-                          <p><code>{'{{user_name}}'}</code> — Your name (the sender)</p>
-                          <p><code>{'{{task_title}}'}</code> — The task name</p>
-                          <p><code>{'{{project_name}}'}</code> — Project the task belongs to</p>
-                          <p><code>{'{{feedback_what}}'}</code> — What you're waiting on</p>
-                          <p><code>{'{{feedback_who}}'}</code> — Who you need it from</p>
-                          <p><code>{'{{feedback_why}}'}</code> — Why it matters / impact</p>
-                          <p><code>{'{{feedback_when}}'}</code> — Date it's needed by</p>
-                        </div>
-                      ) : (
-                        <div className="text-muted-foreground space-y-1">
-                          <p><code>{'{{user_name}}'}</code> — Recipient's name</p>
-                          <p><code>{'{{task_title}}'}</code> — Task title</p>
-                          <p><code>{'{{project_name}}'}</code> — Project name</p>
-                          <p><code>{'{{due_date}}'}</code> — Due date</p>
-                          <p><code>{'{{priority}}'}</code> — Task priority</p>
-                          <p><code>{'{{company_name}}'}</code> — Company name</p>
-                          <p><code>{'{{mention_by}}'}</code> — Person who mentioned you</p>
-                          <p><code>{'{{context_type}}'}</code> — Where you were mentioned (task/comment)</p>
-                        </div>
-                      )}
-                    </div>
                 </div>
               </>
             ) : (
