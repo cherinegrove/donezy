@@ -15,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { CalendarIcon, Trash } from "lucide-react";
+import { VoiceDescriptionButton } from "./VoiceDescriptionButton";
 import { ProjectSelect } from "./ProjectSelect";
 import { Assignee2Select } from "./Assignee2Select";
 import { CollaboratorSelect } from "./CollaboratorSelect";
@@ -270,11 +271,18 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="description">Description</Label>
+                  <VoiceDescriptionButton
+                    onTranscript={(text) => setDescription(text)}
+                    existingText={description}
+                  />
+                </div>
                 <Textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Enter task description or use the mic to dictate..."
                   rows={5}
                 />
               </div>

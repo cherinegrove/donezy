@@ -30,6 +30,7 @@ import { StatusSelect } from "./StatusSelect";
 import { UrgentSelect } from "./UrgentSelect";
 import { AssigneeSelect } from "./AssigneeSelect";
 import { CalendarIcon, Plus, Trash2, CheckCircle2, File, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { VoiceDescriptionButton } from "./VoiceDescriptionButton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RelatedTasksSection } from "./RelatedTasksSection";
 import { supabase } from "@/integrations/supabase/client";
@@ -440,8 +441,14 @@ export function CreateTaskDialog({
                   name="description"
                   render={({ field }) => (
                     <div className="space-y-2">
-                      <Label htmlFor="description">Description {isFieldRequired('description') && '*'}</Label>
-                      <Textarea id="description" placeholder="Enter task description" {...field} rows={5} />
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="description">Description {isFieldRequired('description') && '*'}</Label>
+                        <VoiceDescriptionButton
+                          onTranscript={(text) => field.onChange(text)}
+                          existingText={field.value}
+                        />
+                      </div>
+                      <Textarea id="description" placeholder="Enter task description or use the mic to dictate..." {...field} rows={5} />
                       <FormMessage />
                     </div>
                   )}
