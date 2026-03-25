@@ -1271,6 +1271,7 @@ export type Database = {
           updated_at: string
           used_hours: number | null
           watcher_ids: string[] | null
+          weekly_roundup_settings: Json | null
         }
         Insert: {
           allocated_hours?: number | null
@@ -1293,6 +1294,7 @@ export type Database = {
           updated_at?: string
           used_hours?: number | null
           watcher_ids?: string[] | null
+          weekly_roundup_settings?: Json | null
         }
         Update: {
           allocated_hours?: number | null
@@ -1315,6 +1317,7 @@ export type Database = {
           updated_at?: string
           used_hours?: number | null
           watcher_ids?: string[] | null
+          weekly_roundup_settings?: Json | null
         }
         Relationships: [
           {
