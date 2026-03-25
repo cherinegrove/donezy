@@ -641,31 +641,6 @@ export const EmailTemplatesManager = () => {
                     </div>
                   </div>
 
-                    <div className="bg-muted p-3 rounded text-sm">
-                      <h4 className="font-medium mb-2">Available Variables:</h4>
-                      {selectedTemplate.type === 'awaiting_feedback' ? (
-                        <div className="text-muted-foreground space-y-1">
-                          <p><code>{'{{user_name}}'}</code> — Your name (the sender)</p>
-                          <p><code>{'{{task_title}}'}</code> — The task name</p>
-                          <p><code>{'{{project_name}}'}</code> — Project the task belongs to</p>
-                          <p><code>{'{{feedback_what}}'}</code> — What you're waiting on</p>
-                          <p><code>{'{{feedback_who}}'}</code> — Who you need it from</p>
-                          <p><code>{'{{feedback_why}}'}</code> — Why it matters / impact</p>
-                          <p><code>{'{{feedback_when}}'}</code> — Date it's needed by</p>
-                        </div>
-                      ) : (
-                        <div className="text-muted-foreground space-y-1">
-                          <p><code>{'{{user_name}}'}</code> — Recipient's name</p>
-                          <p><code>{'{{task_title}}'}</code> — Task title</p>
-                          <p><code>{'{{project_name}}'}</code> — Project name</p>
-                          <p><code>{'{{due_date}}'}</code> — Due date</p>
-                          <p><code>{'{{priority}}'}</code> — Task priority</p>
-                          <p><code>{'{{company_name}}'}</code> — Company name</p>
-                          <p><code>{'{{mention_by}}'}</code> — Person who mentioned you</p>
-                          <p><code>{'{{context_type}}'}</code> — Where you were mentioned (task/comment)</p>
-                        </div>
-                      )}
-                    </div>
                 </div>
               </>
             ) : (
