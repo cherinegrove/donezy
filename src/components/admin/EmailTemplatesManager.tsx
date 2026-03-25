@@ -335,7 +335,7 @@ export const EmailTemplatesManager = () => {
 
     try {
       // Replace template variables with sample data
-      const sampleData = {
+      const sampleData: Record<string, string> = {
         user_name: "John Doe",
         task_title: "Sample Task",
         project_name: "Sample Project", 
@@ -348,7 +348,12 @@ export const EmailTemplatesManager = () => {
         context_type: "task comment",
         context_title: "Sample Task",
         mention_message: "Hey @john, can you check this out?",
-        project_description: "This is a sample project for testing"
+        project_description: "This is a sample project for testing",
+        // Awaiting feedback variables
+        feedback_what: "Approval on the revised mockups",
+        feedback_who: "Client / Design Lead",
+        feedback_why: "Blocking development start",
+        feedback_when: "Friday, March 28",
       };
 
       let processedSubject = selectedTemplate.subject;
