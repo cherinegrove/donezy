@@ -57,9 +57,13 @@ export default function ProjectDetails() {
   const [roundupData, setRoundupData] = useState<{
     subject: string;
     emailContent: string;
+    emailHtml?: string;
     stats: {
-      backlogCount: number;
+      completedCount: number;
       inProgressCount: number;
+      awaitingCount: number;
+      projectHealth: "on-track" | "attention-needed" | "blocked";
+      backlogCount: number;
       awaitingFeedbackCount: number;
       completedThisWeek: number;
       addedThisWeek: number;
