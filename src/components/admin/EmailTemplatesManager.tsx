@@ -17,7 +17,7 @@ interface EmailTemplate {
   name: string;
   subject: string;
   content: string;
-  type: 'task_due_today' | 'task_reminder' | 'task_overdue' | 'task_assignment' | 'project_added' | 'task_collaborator' | 'mentioned' | 'awaiting_feedback';
+  type: 'task_due_today' | 'task_reminder' | 'task_overdue' | 'task_assignment' | 'project_added' | 'task_collaborator' | 'mentioned' | 'awaiting_feedback' | 'weekly_roundup';
   isActive: boolean;
 }
 
@@ -194,6 +194,30 @@ Can you help us get this by {{feedback_when}}?
 Thanks,
 {{user_name}}`,
     type: 'awaiting_feedback',
+    isActive: true
+  },
+  {
+    id: 'weekly_roundup',
+    name: 'Weekly Roundup',
+    subject: 'Your Weekly Project Roundup – {{week_range}}',
+    content: `Hi {{user_name}},
+
+Here's your weekly project roundup for {{week_range}}.
+
+✅ Tasks Completed This Week ({{completed_count}})
+{{completed_tasks}}
+
+🔄 Tasks Currently in Progress ({{in_progress_count}})
+{{in_progress_tasks}}
+
+⏳ Friendly Reminder That I Am Waiting on Feedback ({{awaiting_count}})
+{{awaiting_feedback_tasks}}
+
+{{closing_message}}
+
+Warm Regards,
+{{sender_name}}`,
+    type: 'weekly_roundup',
     isActive: true
   }
 ];
@@ -401,6 +425,7 @@ export const EmailTemplatesManager = () => {
       case 'task_collaborator': return 'bg-purple-100 text-purple-800';
       case 'mentioned': return 'bg-orange-100 text-orange-800';
       case 'awaiting_feedback': return 'bg-amber-100 text-amber-800';
+      case 'weekly_roundup': return 'bg-teal-100 text-teal-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -497,6 +522,26 @@ export const EmailTemplatesManager = () => {
                               </div>
                             ))}
                           </div>
+                        ) : selectedTemplate.type === 'weekly_roundup' ? (
+                          <div className="text-sm space-y-2">
+                            {[
+                              ['{{user_name}}', "Recipient's name"],
+                              ['{{sender_name}}', 'Your name (who sends the roundup)'],
+                              ['{{week_range}}', 'Week date range (e.g. Mar 17 – Mar 23)'],
+                              ['{{completed_tasks}}', 'Bullet list of completed tasks'],
+                              ['{{completed_count}}', 'Number of completed tasks'],
+                              ['{{in_progress_tasks}}', 'Bullet list of in-progress tasks'],
+                              ['{{in_progress_count}}', 'Number of in-progress tasks'],
+                              ['{{awaiting_feedback_tasks}}', 'Bullet list of awaiting feedback tasks'],
+                              ['{{awaiting_count}}', 'Number of awaiting feedback tasks'],
+                              ['{{closing_message}}', 'Optional closing note or CTA'],
+                            ].map(([code, desc]) => (
+                              <div key={code} className="flex items-start gap-2">
+                                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono shrink-0">{code}</code>
+                                <span className="text-muted-foreground text-xs">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
                         ) : (
                           <div className="text-sm space-y-2">
                             {[
@@ -574,6 +619,7 @@ export const EmailTemplatesManager = () => {
                           <SelectItem value="task_collaborator">Task Collaborator</SelectItem>
                           <SelectItem value="mentioned">Mentioned</SelectItem>
                           <SelectItem value="awaiting_feedback">Awaiting Feedback</SelectItem>
+                          <SelectItem value="weekly_roundup">Weekly Roundup</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
