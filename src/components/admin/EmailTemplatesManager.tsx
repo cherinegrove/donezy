@@ -522,6 +522,26 @@ export const EmailTemplatesManager = () => {
                               </div>
                             ))}
                           </div>
+                        ) : selectedTemplate.type === 'weekly_roundup' ? (
+                          <div className="text-sm space-y-2">
+                            {[
+                              ['{{user_name}}', "Recipient's name"],
+                              ['{{sender_name}}', 'Your name (who sends the roundup)'],
+                              ['{{week_range}}', 'Week date range (e.g. Mar 17 – Mar 23)'],
+                              ['{{completed_tasks}}', 'Bullet list of completed tasks'],
+                              ['{{completed_count}}', 'Number of completed tasks'],
+                              ['{{in_progress_tasks}}', 'Bullet list of in-progress tasks'],
+                              ['{{in_progress_count}}', 'Number of in-progress tasks'],
+                              ['{{awaiting_feedback_tasks}}', 'Bullet list of awaiting feedback tasks'],
+                              ['{{awaiting_count}}', 'Number of awaiting feedback tasks'],
+                              ['{{closing_message}}', 'Optional closing note or CTA'],
+                            ].map(([code, desc]) => (
+                              <div key={code} className="flex items-start gap-2">
+                                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono shrink-0">{code}</code>
+                                <span className="text-muted-foreground text-xs">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
                         ) : (
                           <div className="text-sm space-y-2">
                             {[
