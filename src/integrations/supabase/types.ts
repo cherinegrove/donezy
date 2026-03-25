@@ -1826,6 +1826,7 @@ export type Database = {
           assignee_id: string | null
           auth_user_id: string
           awaiting_feedback_details: string | null
+          awaiting_feedback_followup_date: string | null
           backlog_reason: string | null
           checklist: Json | null
           collaborator_ids: string[] | null
@@ -1852,6 +1853,7 @@ export type Database = {
           assignee_id?: string | null
           auth_user_id: string
           awaiting_feedback_details?: string | null
+          awaiting_feedback_followup_date?: string | null
           backlog_reason?: string | null
           checklist?: Json | null
           collaborator_ids?: string[] | null
@@ -1878,6 +1880,7 @@ export type Database = {
           assignee_id?: string | null
           auth_user_id?: string
           awaiting_feedback_details?: string | null
+          awaiting_feedback_followup_date?: string | null
           backlog_reason?: string | null
           checklist?: Json | null
           collaborator_ids?: string[] | null
