@@ -399,6 +399,7 @@ export const EmailTemplatesManager = () => {
       case 'project_added': return 'bg-green-100 text-green-800';
       case 'task_collaborator': return 'bg-purple-100 text-purple-800';
       case 'mentioned': return 'bg-orange-100 text-orange-800';
+      case 'awaiting_feedback': return 'bg-amber-100 text-amber-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
