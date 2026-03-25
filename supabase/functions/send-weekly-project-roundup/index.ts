@@ -45,96 +45,56 @@ function generateEmailHtml(p: {
       ? "Blocked – multiple items need your input"
       : "Needs Attention – some items are waiting on you";
 
+  const li = `style="line-height:1.15;margin:0 0 6px 0;font-size:14px;color:#374151;"`;
+
   // ── Completed section ──────────────────────────────────
-  let completedRows = "";
-  if (p.completedTasks.length > 0) {
-    completedRows = p.completedTasks
-      .map(
-        (t) => `<tr><td style="padding:4px 0 4px 12px;font-size:14px;color:#166534;">
-          • <strong>${t.title}</strong></td></tr>`
-      )
-      .join("");
-  }
-  const completedSection =
-    p.completedTasks.length > 0
-      ? `<tr><td style="padding:20px 0 8px;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border-left:4px solid #22c55e;border-radius:6px;">
-            <tr><td style="padding:14px 16px;">
-              <p style="margin:0 0 10px;font-weight:700;font-size:13px;color:#166534;letter-spacing:0.5px;text-transform:uppercase;">✅ Completed This Week</p>
-              <table width="100%" cellpadding="0" cellspacing="0">${completedRows}</table>
-            </td></tr>
-          </table>
-        </td></tr>`
-      : "";
+  const completedSection = p.completedTasks.length > 0
+    ? `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>✅ Completed This Week</strong></p>
+       <ul style="margin:0 0 0 18px;padding:0;">
+         ${p.completedTasks.map((t) => `<li ${li}>• ${t.title}</li>`).join("")}
+       </ul>`
+    : "";
 
   // ── In Progress section ────────────────────────────────
-  const inProgressRows = p.inProgressTasks
-    .map((t) => {
-      const due = t.due_date
-        ? `<span style="color:#6b7280;font-size:13px;"> — Expected: ${new Date(t.due_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>`
-        : "";
-      return `<tr><td style="padding:4px 0 4px 12px;font-size:14px;color:#1d4ed8;">• <strong>${t.title}</strong>${due}</td></tr>`;
-    })
-    .join("");
-  const inProgressSection =
-    p.inProgressTasks.length > 0
-      ? `<tr><td style="padding:12px 0 8px;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border-left:4px solid #3b82f6;border-radius:6px;">
-            <tr><td style="padding:14px 16px;">
-              <p style="margin:0 0 10px;font-weight:700;font-size:13px;color:#1d4ed8;letter-spacing:0.5px;text-transform:uppercase;">🚀 In Progress (Up Next This Week)</p>
-              <table width="100%" cellpadding="0" cellspacing="0">${inProgressRows}</table>
-            </td></tr>
-          </table>
-        </td></tr>`
-      : "";
+  const inProgressSection = p.inProgressTasks.length > 0
+    ? `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>🚀 In Progress (Up Next This Week)</strong></p>
+       <ul style="margin:0 0 0 18px;padding:0;">
+         ${p.inProgressTasks.map((t) => {
+           const due = t.due_date
+             ? ` – Expected: ${new Date(t.due_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+             : "";
+           return `<li ${li}>• ${t.title}${due}</li>`;
+         }).join("")}
+       </ul>`
+    : "";
 
   // ── Awaiting section ───────────────────────────────────
-  let awaitingContent = "";
+  let awaitingItems = "";
   if (p.awaitingTasks.length === 0) {
-    awaitingContent = `<p style="margin:6px 0 0;font-size:14px;color:#15803d;font-weight:600;">✅ All clear – no blockers at this time!</p>`;
+    awaitingItems = `<p style="margin:4px 0 0;font-size:14px;color:#374151;">✅ All clear – no blockers at this time!</p>`;
   } else {
-    awaitingContent = p.awaitingTasks
-      .map((t) => {
-        const d = parseAwaitingDetails(t.awaiting_feedback_details);
-        const detailRows = d
-          ? [
-              d.what ? `<tr><td style="padding:2px 0;font-size:13px;color:#6b7280;">→ <strong>What we need:</strong> ${d.what}</td></tr>` : "",
-              d.who ? `<tr><td style="padding:2px 0;font-size:13px;color:#6b7280;">→ <strong>From:</strong> ${d.who}</td></tr>` : "",
-              d.when ? `<tr><td style="padding:2px 0;font-size:13px;color:#6b7280;">→ <strong>Needed by:</strong> ${d.when}</td></tr>` : "",
-              d.why ? `<tr><td style="padding:2px 0;font-size:13px;color:#6b7280;">→ <strong>Why it matters:</strong> ${d.why}</td></tr>` : "",
-            ].join("")
-          : "";
-        return `<tr><td style="padding:8px 0 14px;border-bottom:1px solid #fed7aa;">
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:0 0 5px;font-size:14px;color:#9a3412;font-weight:700;">• ${t.title}</td></tr>
-              ${detailRows}
-            </table>
-          </td></tr>`;
-      })
-      .join("");
+    awaitingItems = p.awaitingTasks.map((t) => {
+      const d = parseAwaitingDetails(t.awaiting_feedback_details);
+      const details = d ? [
+        d.what ? `<p style="margin:2px 0 2px 16px;font-size:13px;color:#374151;">→ <strong>What we need:</strong> ${d.what}</p>` : "",
+        d.who  ? `<p style="margin:2px 0 2px 16px;font-size:13px;color:#374151;">→ <strong>From:</strong> ${d.who}</p>` : "",
+        d.when ? `<p style="margin:2px 0 2px 16px;font-size:13px;color:#374151;">→ <strong>Needed by:</strong> ${d.when}</p>` : "",
+        d.why  ? `<p style="margin:2px 0 10px 16px;font-size:13px;color:#374151;">→ <strong>Why it matters:</strong> ${d.why}</p>` : "",
+      ].join("") : "";
+      return `<p style="margin:0 0 4px 0;font-size:14px;color:#111827;"><strong>• ${t.title}</strong></p>${details}`;
+    }).join("");
   }
-  const awaitingBg = p.awaitingTasks.length === 0 ? "#f0fdf4" : "#fff7ed";
-  const awaitingBorder = p.awaitingTasks.length === 0 ? "#22c55e" : "#f97316";
-  const awaitingTitleColor = p.awaitingTasks.length === 0 ? "#166534" : "#9a3412";
-  const awaitingSection = `<tr><td style="padding:12px 0 8px;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="background:${awaitingBg};border-left:4px solid ${awaitingBorder};border-radius:6px;">
-        <tr><td style="padding:14px 16px;">
-          <p style="margin:0 0 10px;font-weight:700;font-size:13px;color:${awaitingTitleColor};letter-spacing:0.5px;text-transform:uppercase;">⏸️ Waiting on Your Feedback</p>
-          <table width="100%" cellpadding="0" cellspacing="0">${awaitingContent}</table>
-        </td></tr>
-      </table>
-    </td></tr>`;
+  const awaitingSection = `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>⏸️ Waiting on Your Feedback</strong></p>${awaitingItems}`;
 
   // ── Portal link ────────────────────────────────────────
   const portalSection = p.portalLink
-    ? `<tr><td style="padding:16px 0 8px;text-align:center;">
-        <a href="${p.portalLink}" style="display:inline-block;background:#4f46e5;color:white;padding:10px 28px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600;">💼 View Time Tracking Portal</a>
-      </td></tr>`
+    ? `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>💼 Time Tracking Portal</strong></p>
+       <p style="margin:0;font-size:14px;"><a href="${p.portalLink}" style="color:#4f46e5;">${p.portalLink}</a></p>`
     : "";
 
   const awaitingLabel = p.awaitingTasks.length > 0
-    ? `<strong style="color:#f97316;">${p.awaitingTasks.length}</strong> waiting on you`
-    : `<strong style="color:#22c55e;">0</strong> waiting on you`;
+    ? `<strong>${p.awaitingTasks.length}</strong> waiting on you`
+    : `<strong>0</strong> waiting on you`;
 
   return `<!DOCTYPE html>
 <html><head>
@@ -142,65 +102,47 @@ function generateEmailHtml(p: {
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>${p.projectName} – Weekly Update</title>
 </head>
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0">
   <tr><td align="center" style="padding:24px 16px;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:white;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-
-      <!-- HEADER -->
-      <tr><td style="background:linear-gradient(135deg,#1e293b 0%,#334155 100%);padding:28px 32px;">
-        <p style="margin:0;color:#94a3b8;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Weekly Project Update</p>
-        <h1 style="margin:6px 0 0;color:white;font-size:22px;font-weight:700;">${p.projectName}</h1>
-        <p style="margin:4px 0 0;color:#94a3b8;font-size:13px;">Week of ${dateRange}</p>
-      </td></tr>
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:white;">
 
       <!-- BODY -->
       <tr><td style="padding:24px 32px;">
+        <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">Weekly Project Update · Week of ${dateRange}</p>
+        <h1 style="margin:0 0 20px;font-size:20px;font-weight:700;color:#111827;">${p.projectName}</h1>
+
         <p style="margin:0 0 6px;font-size:15px;color:#374151;">Hi ${p.clientName},</p>
-        <p style="margin:0 0 20px;font-size:15px;color:#374151;">Here's your weekly project update:</p>
+        <p style="margin:0 0 16px;font-size:15px;color:#374151;">Here's your weekly project update:</p>
 
-        <!-- QUICK SUMMARY -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:4px;">
-          <tr><td style="padding:14px 18px;">
-            <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">📊 Quick Summary</p>
-            <p style="margin:0;font-size:14px;color:#374151;">
-              <strong>${p.completedTasks.length}</strong> completed &nbsp;·&nbsp;
-              <strong>${p.inProgressTasks.length}</strong> in progress &nbsp;·&nbsp;
-              ${awaitingLabel}
-            </p>
-          </td></tr>
-        </table>
+        <p style="margin:0 0 20px;font-size:14px;color:#374151;">
+          <strong>📊 Quick Summary:</strong>
+          ${p.completedTasks.length} completed &nbsp;·&nbsp;
+          ${p.inProgressTasks.length} in progress &nbsp;·&nbsp;
+          ${awaitingLabel}
+        </p>
 
-        <!-- TASK SECTIONS -->
-        <table width="100%" cellpadding="0" cellspacing="0">
-          ${completedSection}
-          ${inProgressSection}
-          ${awaitingSection}
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 4px;">
 
-          <!-- PROJECT HEALTH -->
-          <tr><td style="padding:12px 0 8px;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">
-              <tr><td style="padding:12px 16px;">
-                <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">📈 Project Health</p>
-                <p style="margin:0;font-size:14px;color:#374151;">${healthEmoji} ${healthText}</p>
-              </td></tr>
-            </table>
-          </td></tr>
+        ${completedSection}
+        ${inProgressSection}
+        ${awaitingSection}
 
-          ${portalSection}
+        <p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>📈 Project Health</strong></p>
+        <p style="margin:0 0 20px;font-size:14px;color:#374151;">${healthEmoji} ${healthText}</p>
 
-          <!-- SIGN OFF -->
-          <tr><td style="padding:24px 0 0;border-top:1px solid #e2e8f0;margin-top:8px;">
-            <p style="margin:0;font-size:14px;color:#374151;">Let me know if you have any questions about the waiting items — happy to jump on a quick call to discuss!</p>
-            <p style="margin:14px 0 4px;font-size:14px;color:#374151;">Have a great weekend,</p>
-            <p style="margin:0;font-size:14px;font-weight:700;color:#374151;">${p.senderName}</p>
-          </td></tr>
-        </table>
+        ${portalSection}
+
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px;">
+
+        <p style="margin:0 0 4px;font-size:14px;color:#374151;">Let me know if you have any questions about the waiting items — happy to jump on a quick call to discuss!</p>
+        <p style="margin:12px 0 4px;font-size:14px;color:#374151;">Have a great weekend,</p>
+        <p style="margin:0;font-size:14px;font-weight:700;color:#111827;">${p.senderName}</p>
       </td></tr>
 
       <!-- FOOTER -->
-      <tr><td style="background:#f8fafc;padding:14px 32px;border-top:1px solid #e2e8f0;text-align:center;">
-        <p style="margin:0;font-size:12px;color:#94a3b8;">Sent via Donezy</p>
+      <tr><td style="padding:12px 32px;border-top:1px solid #e5e7eb;text-align:center;">
+        <p style="margin:0;font-size:12px;color:#9ca3af;">Sent via Donezy</p>
       </td></tr>
 
     </table>
