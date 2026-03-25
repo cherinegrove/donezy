@@ -31,7 +31,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const resend = new Resend(resendApiKey);
     const { data, error } = await resend.emails.send({
-      from: "Donezy <no-reply@donezy.io>",
+      from: "Donezy <noreply@donezy.io>",
       to: [email],
       subject: `[TEST] ${subject}`,
       html: `

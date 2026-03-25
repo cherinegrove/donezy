@@ -24,7 +24,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending recovery email to:", email);
 
     const emailResponse = await resend.emails.send({
-      from: "Donezy <no-reply@donezy.io>",
+      from: "Donezy <noreply@donezy.io>",
       to: [email],
       subject: "Reset your Donezy password",
       html: `
