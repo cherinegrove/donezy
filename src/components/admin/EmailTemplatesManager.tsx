@@ -195,6 +195,30 @@ Thanks,
 {{user_name}}`,
     type: 'awaiting_feedback',
     isActive: true
+  },
+  {
+    id: 'weekly_roundup',
+    name: 'Weekly Roundup',
+    subject: 'Your Weekly Project Roundup – {{week_range}}',
+    content: `Hi {{user_name}},
+
+Here's your weekly project roundup for {{week_range}}.
+
+✅ Tasks Completed This Week ({{completed_count}})
+{{completed_tasks}}
+
+🔄 Tasks Currently in Progress ({{in_progress_count}})
+{{in_progress_tasks}}
+
+⏳ Friendly Reminder That I Am Waiting on Feedback ({{awaiting_count}})
+{{awaiting_feedback_tasks}}
+
+{{closing_message}}
+
+Warm Regards,
+{{sender_name}}`,
+    type: 'weekly_roundup',
+    isActive: true
   }
 ];
 
