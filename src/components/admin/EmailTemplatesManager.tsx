@@ -174,6 +174,26 @@ Best regards,
 {{company_name}} Team`,
     type: 'mentioned',
     isActive: true
+  },
+  {
+    id: 'awaiting_feedback',
+    name: 'Awaiting Feedback',
+    subject: 'Following up on {{task_title}} – feedback needed',
+    content: `Hi {{feedback_who}},
+
+Quick check-in on {{task_title}}.
+
+We're waiting on: {{feedback_what}}
+From: {{feedback_who}}
+Impact: {{feedback_why}}
+Need by: {{feedback_when}}
+
+Can you help us get this by {{feedback_when}}?
+
+Thanks,
+{{user_name}}`,
+    type: 'awaiting_feedback',
+    isActive: true
   }
 ];
 
