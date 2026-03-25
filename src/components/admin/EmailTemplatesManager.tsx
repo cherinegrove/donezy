@@ -471,6 +471,53 @@ export const EmailTemplatesManager = () => {
                     {isEditing ? 'Edit' : 'Preview'}: {selectedTemplate.name}
                   </h3>
                   <div className="flex gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Braces className="h-4 w-4 mr-1" />
+                          Variables
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80" align="end">
+                        <h4 className="font-medium mb-3 text-sm">Available Variables</h4>
+                        {selectedTemplate.type === 'awaiting_feedback' ? (
+                          <div className="text-sm space-y-2">
+                            {[
+                              ['{{user_name}}', 'Your name (the sender)'],
+                              ['{{task_title}}', 'The task name'],
+                              ['{{project_name}}', 'Project the task belongs to'],
+                              ['{{feedback_what}}', "What you're waiting on"],
+                              ['{{feedback_who}}', 'Who you need it from'],
+                              ['{{feedback_why}}', 'Why it matters / impact'],
+                              ['{{feedback_when}}', "Date it's needed by"],
+                            ].map(([code, desc]) => (
+                              <div key={code} className="flex items-start gap-2">
+                                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono shrink-0">{code}</code>
+                                <span className="text-muted-foreground text-xs">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm space-y-2">
+                            {[
+                              ['{{user_name}}', "Recipient's name"],
+                              ['{{task_title}}', 'Task title'],
+                              ['{{project_name}}', 'Project name'],
+                              ['{{due_date}}', 'Due date'],
+                              ['{{priority}}', 'Task priority'],
+                              ['{{company_name}}', 'Company name'],
+                              ['{{mention_by}}', 'Person who mentioned you'],
+                              ['{{context_type}}', 'Where you were mentioned'],
+                            ].map(([code, desc]) => (
+                              <div key={code} className="flex items-start gap-2">
+                                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono shrink-0">{code}</code>
+                                <span className="text-muted-foreground text-xs">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </PopoverContent>
+                    </Popover>
                     {!isEditing && (
                       <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                         <Edit className="h-4 w-4 mr-1" />
