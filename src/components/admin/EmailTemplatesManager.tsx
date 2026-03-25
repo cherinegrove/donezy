@@ -16,7 +16,7 @@ interface EmailTemplate {
   name: string;
   subject: string;
   content: string;
-  type: 'task_due_today' | 'task_reminder' | 'task_overdue' | 'task_assignment' | 'project_added' | 'task_collaborator' | 'mentioned';
+  type: 'task_due_today' | 'task_reminder' | 'task_overdue' | 'task_assignment' | 'project_added' | 'task_collaborator' | 'mentioned' | 'awaiting_feedback';
   isActive: boolean;
 }
 
@@ -174,6 +174,26 @@ Best regards,
 {{company_name}} Team`,
     type: 'mentioned',
     isActive: true
+  },
+  {
+    id: 'awaiting_feedback',
+    name: 'Awaiting Feedback',
+    subject: 'Following up on {{task_title}} – feedback needed',
+    content: `Hi {{feedback_who}},
+
+Quick check-in on {{task_title}}.
+
+We're waiting on: {{feedback_what}}
+From: {{feedback_who}}
+Impact: {{feedback_why}}
+Need by: {{feedback_when}}
+
+Can you help us get this by {{feedback_when}}?
+
+Thanks,
+{{user_name}}`,
+    type: 'awaiting_feedback',
+    isActive: true
   }
 ];
 
@@ -315,7 +335,7 @@ export const EmailTemplatesManager = () => {
 
     try {
       // Replace template variables with sample data
-      const sampleData = {
+      const sampleData: Record<string, string> = {
         user_name: "John Doe",
         task_title: "Sample Task",
         project_name: "Sample Project", 
@@ -328,7 +348,12 @@ export const EmailTemplatesManager = () => {
         context_type: "task comment",
         context_title: "Sample Task",
         mention_message: "Hey @john, can you check this out?",
-        project_description: "This is a sample project for testing"
+        project_description: "This is a sample project for testing",
+        // Awaiting feedback variables
+        feedback_what: "Approval on the revised mockups",
+        feedback_who: "Client / Design Lead",
+        feedback_why: "Blocking development start",
+        feedback_when: "Friday, March 28",
       };
 
       let processedSubject = selectedTemplate.subject;
@@ -374,6 +399,7 @@ export const EmailTemplatesManager = () => {
       case 'project_added': return 'bg-green-100 text-green-800';
       case 'task_collaborator': return 'bg-purple-100 text-purple-800';
       case 'mentioned': return 'bg-orange-100 text-orange-800';
+      case 'awaiting_feedback': return 'bg-amber-100 text-amber-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -499,6 +525,7 @@ export const EmailTemplatesManager = () => {
                           <SelectItem value="project_added">Added to Project</SelectItem>
                           <SelectItem value="task_collaborator">Task Collaborator</SelectItem>
                           <SelectItem value="mentioned">Mentioned</SelectItem>
+                          <SelectItem value="awaiting_feedback">Awaiting Feedback</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -568,16 +595,28 @@ export const EmailTemplatesManager = () => {
 
                     <div className="bg-muted p-3 rounded text-sm">
                       <h4 className="font-medium mb-2">Available Variables:</h4>
-                      <div className="text-muted-foreground space-y-1">
-                        <p><code>{'{{user_name}}'}</code> - Recipient's name</p>
-                        <p><code>{'{{task_title}}'}</code> - Task title</p>
-                        <p><code>{'{{project_name}}'}</code> - Project name</p>
-                        <p><code>{'{{due_date}}'}</code> - Due date</p>
-                        <p><code>{'{{priority}}'}</code> - Task priority</p>
-                        <p><code>{'{{company_name}}'}</code> - Company name</p>
-                        <p><code>{'{{mention_by}}'}</code> - Person who mentioned you</p>
-                        <p><code>{'{{context_type}}'}</code> - Where you were mentioned (task/comment)</p>
-                      </div>
+                      {selectedTemplate.type === 'awaiting_feedback' ? (
+                        <div className="text-muted-foreground space-y-1">
+                          <p><code>{'{{user_name}}'}</code> — Your name (the sender)</p>
+                          <p><code>{'{{task_title}}'}</code> — The task name</p>
+                          <p><code>{'{{project_name}}'}</code> — Project the task belongs to</p>
+                          <p><code>{'{{feedback_what}}'}</code> — What you're waiting on</p>
+                          <p><code>{'{{feedback_who}}'}</code> — Who you need it from</p>
+                          <p><code>{'{{feedback_why}}'}</code> — Why it matters / impact</p>
+                          <p><code>{'{{feedback_when}}'}</code> — Date it's needed by</p>
+                        </div>
+                      ) : (
+                        <div className="text-muted-foreground space-y-1">
+                          <p><code>{'{{user_name}}'}</code> — Recipient's name</p>
+                          <p><code>{'{{task_title}}'}</code> — Task title</p>
+                          <p><code>{'{{project_name}}'}</code> — Project name</p>
+                          <p><code>{'{{due_date}}'}</code> — Due date</p>
+                          <p><code>{'{{priority}}'}</code> — Task priority</p>
+                          <p><code>{'{{company_name}}'}</code> — Company name</p>
+                          <p><code>{'{{mention_by}}'}</code> — Person who mentioned you</p>
+                          <p><code>{'{{context_type}}'}</code> — Where you were mentioned (task/comment)</p>
+                        </div>
+                      )}
                     </div>
                 </div>
               </>
