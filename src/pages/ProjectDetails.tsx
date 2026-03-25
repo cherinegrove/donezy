@@ -5,7 +5,8 @@ import { Project, Task } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Edit, Clock, AlertTriangle, User, Users, CheckSquare, FileText, Files, Bell, Mail, GanttChart, X, Link2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Calendar, Edit, Clock, AlertTriangle, User, Users, CheckSquare, FileText, Files, Bell, Mail, GanttChart, X, Link2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format, differenceInDays, parseISO, isValid, isBefore, isAfter, startOfDay, endOfDay } from "date-fns";
@@ -41,6 +42,13 @@ export default function ProjectDetails() {
   const [roundupDialogOpen, setRoundupDialogOpen] = useState(false);
   const [selectedOverdueTask, setSelectedOverdueTask] = useState<Task | null>(null);
   const [sharePortalOpen, setSharePortalOpen] = useState(false);
+  const [roundupSettings, setRoundupSettings] = useState<{
+    enabled: boolean;
+    day: string;
+    time: string;
+    recipientEmail: string;
+  }>({ enabled: false, day: "friday", time: "09:00", recipientEmail: "" });
+  const [isSavingRoundupSettings, setIsSavingRoundupSettings] = useState(false);
   
   // Task filters
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
@@ -65,6 +73,25 @@ export default function ProjectDetails() {
     console.log("Looking for project with ID:", projectId, "Found:", foundProject);
     setProject(foundProject || null);
   }, [projects, projectId]);
+
+  // Load roundup settings from project
+  useEffect(() => {
+    if (project && (project as any).weekly_roundup_settings) {
+      const s = (project as any).weekly_roundup_settings;
+      setRoundupSettings({
+        enabled: s.enabled ?? false,
+        day: s.day ?? "friday",
+        time: s.time ?? "09:00",
+        recipientEmail: s.recipientEmail ?? "",
+      });
+    } else if (project) {
+      // Default recipient to client email
+      setRoundupSettings(prev => ({
+        ...prev,
+        recipientEmail: clients.find(c => c.id === project.clientId)?.email ?? "",
+      }));
+    }
+  }, [project?.id]);
   
   const client = project ? clients.find(c => c.id === project.clientId) : null;
 
@@ -244,6 +271,24 @@ export default function ProjectDetails() {
       });
     } finally {
       setIsGeneratingRoundup(false);
+    }
+  };
+
+  const handleSaveRoundupSettings = async () => {
+    if (!project) return;
+    setIsSavingRoundupSettings(true);
+    try {
+      const { error } = await supabase
+        .from("projects")
+        .update({ weekly_roundup_settings: roundupSettings } as any)
+        .eq("id", project.id);
+      if (error) throw error;
+      toast({ title: "Saved", description: "Roundup schedule saved successfully." });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
+    } finally {
+      setIsSavingRoundupSettings(false);
     }
   };
 
@@ -551,34 +596,103 @@ export default function ProjectDetails() {
         </TabsContent>
         
         <TabsContent value="roundup" className="mt-6 animate-fade-in">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                Weekly Project Roundup
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                Generate a weekly summary email to share with your client. This includes completed tasks, in-progress work, and items awaiting feedback.
-              </p>
-              {!client?.email ? (
-                <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                  <p className="text-sm text-amber-800 dark:text-amber-200">
-                    Client email is not configured for this project. Please update the client's email address to generate roundups.
-                  </p>
+          <div className="space-y-6">
+            {/* Manual Generate */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  Weekly Project Roundup
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  Generate a preview of this week's roundup email — includes only <strong>In Progress</strong> tasks.
+                </p>
+                {!client?.email ? (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      Client email is not configured for this project. Please update the client's email address to generate roundups.
+                    </p>
+                  </div>
+                ) : (
+                  <Button onClick={handleGenerateRoundup} disabled={isGeneratingRoundup}>
+                    <Mail className="w-4 h-4 mr-2" />
+                    {isGeneratingRoundup ? "Generating..." : "Preview Roundup"}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Schedule Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Automatic Schedule
+                  </span>
+                  <Switch
+                    checked={roundupSettings.enabled}
+                    onCheckedChange={(v) => setRoundupSettings(s => ({ ...s, enabled: v }))}
+                  />
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  When enabled, the roundup will be sent automatically on the selected day and time. Only <strong>In Progress</strong> tasks will be included.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <Label>Send on</Label>
+                    <Select
+                      value={roundupSettings.day}
+                      onValueChange={(v) => setRoundupSettings(s => ({ ...s, day: v }))}
+                      disabled={!roundupSettings.enabled}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monday">Monday</SelectItem>
+                        <SelectItem value="tuesday">Tuesday</SelectItem>
+                        <SelectItem value="wednesday">Wednesday</SelectItem>
+                        <SelectItem value="thursday">Thursday</SelectItem>
+                        <SelectItem value="friday">Friday</SelectItem>
+                        <SelectItem value="saturday">Saturday</SelectItem>
+                        <SelectItem value="sunday">Sunday</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Time</Label>
+                    <input
+                      type="time"
+                      value={roundupSettings.time}
+                      onChange={(e) => setRoundupSettings(s => ({ ...s, time: e.target.value }))}
+                      disabled={!roundupSettings.enabled}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Send to (email)</Label>
+                    <input
+                      type="email"
+                      value={roundupSettings.recipientEmail}
+                      onChange={(e) => setRoundupSettings(s => ({ ...s, recipientEmail: e.target.value }))}
+                      disabled={!roundupSettings.enabled}
+                      placeholder={client?.email || "Recipient email"}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                    />
+                  </div>
                 </div>
-              ) : (
-                <Button 
-                  onClick={handleGenerateRoundup}
-                  disabled={isGeneratingRoundup}
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  {isGeneratingRoundup ? "Generating..." : "Generate Weekly Roundup"}
+                <Button onClick={handleSaveRoundupSettings} disabled={isSavingRoundupSettings} size="sm">
+                  <Save className="w-4 h-4 mr-2" />
+                  {isSavingRoundupSettings ? "Saving..." : "Save Schedule"}
                 </Button>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
         
         <TabsContent value="notifications" className="mt-6 animate-fade-in">
