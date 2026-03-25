@@ -30,6 +30,7 @@ import { StatusSelect } from "./StatusSelect";
 import { UrgentSelect } from "./UrgentSelect";
 import { AssigneeSelect } from "./AssigneeSelect";
 import { CalendarIcon, Plus, Trash2, CheckCircle2, File, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { VoiceDescriptionButton } from "./VoiceDescriptionButton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RelatedTasksSection } from "./RelatedTasksSection";
 import { supabase } from "@/integrations/supabase/client";
