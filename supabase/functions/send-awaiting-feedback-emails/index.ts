@@ -45,79 +45,7 @@ function parseFeedbackDetails(raw: string): FeedbackDetails {
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === "object" && "what" in parsed) return parsed;
   } catch {}
-  // Legacy plain-text fallback
   return { what: raw };
-}
-
-function buildFeedbackBlock(details: FeedbackDetails): string {
-  const rows: string[] = [];
-  if (details.what) rows.push(`<tr><td style="padding:4px 0; font-size:13px; color:#6b7280; width:110px;">Waiting on:</td><td style="padding:4px 0; font-size:13px; color:#111827; font-weight:500;">${escapeHtml(details.what)}</td></tr>`);
-  if (details.who)  rows.push(`<tr><td style="padding:4px 0; font-size:13px; color:#6b7280;">From:</td><td style="padding:4px 0; font-size:13px; color:#111827;">${escapeHtml(details.who)}</td></tr>`);
-  if (details.why)  rows.push(`<tr><td style="padding:4px 0; font-size:13px; color:#6b7280;">Impact:</td><td style="padding:4px 0; font-size:13px; color:#111827;">${escapeHtml(details.why)}</td></tr>`);
-  if (details.when) rows.push(`<tr><td style="padding:4px 0; font-size:13px; color:#6b7280;">Need by:</td><td style="padding:4px 0; font-size:13px; color:#111827;">${escapeHtml(details.when)}</td></tr>`);
-  if (!rows.length) return "";
-  return `<table style="border-collapse:collapse; width:100%;">${rows.join("")}</table>`;
-}
-
-function buildEmailHtml(
-  userName: string,
-  tasks: Array<{
-    title: string;
-    project_name: string;
-    awaiting_feedback_details: string;
-    due_date: string | null;
-    followup_date: string | null;
-    is_followup: boolean;
-  }>,
-  isFollowUp: boolean
-): string {
-  const taskRows = tasks.map(task => {
-    const feedback = parseFeedbackDetails(task.awaiting_feedback_details || "");
-    const feedbackBlock = buildFeedbackBlock(feedback);
-    const followupBadge = task.is_followup
-      ? `<span style="display:inline-block; background:#fef3c7; color:#92400e; font-size:11px; font-weight:600; padding:2px 8px; border-radius:99px; margin-left:8px;">FOLLOW-UP</span>`
-      : "";
-    return `
-      <div style="border:1px solid #e5e7eb; border-radius:8px; padding:16px 20px; margin-bottom:16px; background:#fafafa;">
-        <p style="margin:0 0 4px 0; font-size:16px; font-weight:600; color:#111827;">
-          ${escapeHtml(task.title)}${followupBadge}
-        </p>
-        <p style="margin:0 0 12px 0; font-size:13px; color:#6b7280;">Project: ${escapeHtml(task.project_name)}</p>
-        ${feedbackBlock
-          ? `<div style="margin-top:8px; padding:12px 14px; background:#fff7ed; border-left:3px solid #f97316; border-radius:4px;">
-              ${feedbackBlock}
-            </div>`
-          : ""
-        }
-        ${task.due_date ? `<p style="margin:8px 0 0 0; font-size:12px; color:#9ca3af;">Task due: ${task.due_date}</p>` : ""}
-      </div>
-    `;
-  }).join("");
-
-  const headingText = isFollowUp
-    ? "⏰ Follow-up: Tasks Still Awaiting Feedback"
-    : "⏳ Tasks Awaiting Feedback";
-
-  const introText = isFollowUp
-    ? `You requested a follow-up reminder for <strong>${tasks.length} task${tasks.length === 1 ? "" : "s"}</strong> still awaiting a response. Here's the current status:`
-    : `You have <strong>${tasks.length} task${tasks.length === 1 ? "" : "s"}</strong> with pending feedback. Here's a summary of what's waiting:`;
-
-  return `
-    <div style="font-family:Arial,sans-serif; max-width:600px; margin:0 auto; padding:20px; background:#ffffff;">
-      <div style="background:#f97316; border-radius:8px 8px 0 0; padding:24px 28px;">
-        <h1 style="margin:0; color:#ffffff; font-size:22px;">${headingText}</h1>
-      </div>
-      <div style="border:1px solid #e5e7eb; border-top:none; border-radius:0 0 8px 8px; padding:24px 28px;">
-        <p style="margin:0 0 20px 0; font-size:15px; color:#374151;">Hi ${escapeHtml(userName)},</p>
-        <p style="margin:0 0 24px 0; font-size:14px; color:#6b7280;">${introText}</p>
-        ${taskRows}
-        <p style="margin:24px 0 0 0; font-size:13px; color:#9ca3af;">
-          Please follow up on these items to keep your projects moving forward.
-        </p>
-        <p style="margin:8px 0 0 0; font-size:13px; color:#9ca3af;">— The Donezy Team</p>
-      </div>
-    </div>
-  `;
 }
 
 function escapeHtml(str: string): string {
@@ -127,6 +55,58 @@ function escapeHtml(str: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+/** Apply {{variable}} substitution */
+function applyVars(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
+}
+
+/** Convert plain-text template to HTML (preserve line breaks) */
+function textToHtml(text: string): string {
+  return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;white-space:pre-wrap;font-size:14px;color:#374151;line-height:1.7;">${escapeHtml(text)}</div>`;
+}
+
+/** Default HTML email for a single awaiting-feedback task */
+function buildDefaultHtml(
+  userName: string,
+  task: {
+    title: string;
+    project_name: string;
+    awaiting_feedback_details: string;
+    due_date: string | null;
+    is_followup: boolean;
+  }
+): string {
+  const feedback = parseFeedbackDetails(task.awaiting_feedback_details || "");
+  const rows: string[] = [];
+  if (feedback.what) rows.push(`<tr><td style="padding:5px 0;font-size:13px;color:#6b7280;width:120px;">We're waiting on:</td><td style="padding:5px 0;font-size:13px;color:#111827;font-weight:500;">${escapeHtml(feedback.what)}</td></tr>`);
+  if (feedback.who)  rows.push(`<tr><td style="padding:5px 0;font-size:13px;color:#6b7280;">From:</td><td style="padding:5px 0;font-size:13px;color:#111827;">${escapeHtml(feedback.who)}</td></tr>`);
+  if (feedback.why)  rows.push(`<tr><td style="padding:5px 0;font-size:13px;color:#6b7280;">Impact:</td><td style="padding:5px 0;font-size:13px;color:#111827;">${escapeHtml(feedback.why)}</td></tr>`);
+  if (feedback.when) rows.push(`<tr><td style="padding:5px 0;font-size:13px;color:#6b7280;">Need by:</td><td style="padding:5px 0;font-size:13px;color:#111827;">${escapeHtml(feedback.when)}</td></tr>`);
+
+  const badge = task.is_followup
+    ? `<span style="display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;margin-left:8px;">FOLLOW-UP</span>`
+    : "";
+
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#ffffff;">
+      <div style="background:#f97316;border-radius:8px 8px 0 0;padding:20px 24px;">
+        <h1 style="margin:0;color:#ffffff;font-size:20px;">
+          ${task.is_followup ? "⏰ Follow-up: Awaiting Feedback" : "⏳ Awaiting Feedback"}
+        </h1>
+      </div>
+      <div style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:24px;">
+        <p style="margin:0 0 16px 0;font-size:15px;color:#374151;">Hi ${escapeHtml(userName)},</p>
+        <p style="margin:0 0 4px 0;font-size:16px;font-weight:600;color:#111827;">
+          ${escapeHtml(task.title)}${badge}
+        </p>
+        <p style="margin:0 0 16px 0;font-size:13px;color:#6b7280;">Project: ${escapeHtml(task.project_name)}</p>
+        ${rows.length ? `<div style="padding:14px 16px;background:#fff7ed;border-left:3px solid #f97316;border-radius:4px;"><table style="border-collapse:collapse;width:100%;">${rows.join("")}</table></div>` : ""}
+        ${task.due_date ? `<p style="margin:12px 0 0;font-size:12px;color:#9ca3af;">Task due: ${task.due_date}</p>` : ""}
+        <p style="margin:20px 0 0;font-size:13px;color:#9ca3af;">— The Donezy Team</p>
+      </div>
+    </div>`;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -142,6 +122,16 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     const todayStr = new Date().toISOString().split('T')[0];
+
+    // Load the custom template from DB (if admin has saved one)
+    const { data: dbTemplate } = await supabase
+      .from('email_templates')
+      .select('subject, content, is_active')
+      .eq('type', 'awaiting_feedback')
+      .maybeSingle();
+
+    const customTemplate = dbTemplate?.is_active ? dbTemplate : null;
+    console.log(`Custom template: ${customTemplate ? 'loaded' : 'using default'}`);
 
     // Fetch all open tasks with awaiting_feedback_details
     const { data: tasks, error: tasksError } = await supabase
@@ -168,20 +158,19 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Found ${tasks?.length || 0} tasks with awaiting feedback details`);
 
-    // Separate daily digest tasks vs follow-up tasks due today
-    const digestTasks = tasks || [];
-    const followupTasksToday = digestTasks.filter(t => t.awaiting_feedback_followup_date === todayStr);
+    const allTasks = tasks || [];
+    const followupTasksToday = allTasks.filter(t => t.awaiting_feedback_followup_date === todayStr);
 
-    // Group all tasks by owner for daily digest
-    const tasksByOwner: Record<string, typeof digestTasks> = {};
-    for (const task of digestTasks) {
+    // Group daily digest tasks by owner
+    const tasksByOwner: Record<string, typeof allTasks> = {};
+    for (const task of allTasks) {
       const ownerId = task.auth_user_id;
       if (!tasksByOwner[ownerId]) tasksByOwner[ownerId] = [];
       tasksByOwner[ownerId].push(task);
     }
 
     // Group follow-up tasks by owner
-    const followupByOwner: Record<string, typeof digestTasks> = {};
+    const followupByOwner: Record<string, typeof allTasks> = {};
     for (const task of followupTasksToday) {
       const ownerId = task.auth_user_id;
       if (!followupByOwner[ownerId]) followupByOwner[ownerId] = [];
@@ -190,7 +179,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     let emailsSent = 0;
 
-    // Send daily digest
+    // ── Daily digest ──────────────────────────────────────────────
     for (const [ownerId, ownerTasks] of Object.entries(tasksByOwner)) {
       const { data: ownerUser, error: userError } = await supabase
         .from('users')
@@ -203,25 +192,45 @@ const handler = async (req: Request): Promise<Response> => {
         continue;
       }
 
-      const formattedTasks = ownerTasks.map(t => ({
-        title: t.title,
-        project_name: (t.project as any)?.name || 'Unknown Project',
-        awaiting_feedback_details: t.awaiting_feedback_details || '',
-        due_date: t.due_date,
-        followup_date: t.awaiting_feedback_followup_date,
-        is_followup: false,
-      }));
+      // Send one email per task so the template applies neatly per task
+      for (const task of ownerTasks) {
+        const feedback = parseFeedbackDetails(task.awaiting_feedback_details || "");
+        const projectName = (task.project as any)?.name || 'Unknown Project';
 
-      const subject = `${ownerTasks.length} task${ownerTasks.length === 1 ? '' : 's'} awaiting feedback`;
-      const html = buildEmailHtml(ownerUser.name, formattedTasks, false);
+        let subject: string;
+        let html: string;
 
-      const sent = await sendEmail(ownerUser.email, subject, html);
-      if (sent) emailsSent++;
+        if (customTemplate) {
+          const vars: Record<string, string> = {
+            user_name: ownerUser.name || '',
+            task_title: task.title || '',
+            project_name: projectName,
+            feedback_what: feedback.what || '',
+            feedback_who: feedback.who || '',
+            feedback_why: feedback.why || '',
+            feedback_when: feedback.when || task.due_date || '',
+          };
+          subject = applyVars(customTemplate.subject, vars);
+          // Render plain-text template as HTML
+          html = textToHtml(applyVars(customTemplate.content, vars));
+        } else {
+          subject = `Following up on ${task.title} – feedback needed`;
+          html = buildDefaultHtml(ownerUser.name, {
+            title: task.title,
+            project_name: projectName,
+            awaiting_feedback_details: task.awaiting_feedback_details || '',
+            due_date: task.due_date,
+            is_followup: false,
+          });
+        }
+
+        const sent = await sendEmail(ownerUser.email, subject, html);
+        if (sent) emailsSent++;
+      }
     }
 
-    // Send targeted follow-up emails
+    // ── Targeted follow-up emails ──────────────────────────────────
     for (const [ownerId, ownerTasks] of Object.entries(followupByOwner)) {
-      // Already sent in digest above – send a separate follow-up email too
       const { data: ownerUser, error: userError } = await supabase
         .from('users')
         .select('name, email')
@@ -230,20 +239,39 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (userError || !ownerUser?.email) continue;
 
-      const formattedTasks = ownerTasks.map(t => ({
-        title: t.title,
-        project_name: (t.project as any)?.name || 'Unknown Project',
-        awaiting_feedback_details: t.awaiting_feedback_details || '',
-        due_date: t.due_date,
-        followup_date: t.awaiting_feedback_followup_date,
-        is_followup: true,
-      }));
+      for (const task of ownerTasks) {
+        const feedback = parseFeedbackDetails(task.awaiting_feedback_details || "");
+        const projectName = (task.project as any)?.name || 'Unknown Project';
 
-      const subject = `Follow-up reminder: ${ownerTasks.length} task${ownerTasks.length === 1 ? '' : 's'} still awaiting feedback`;
-      const html = buildEmailHtml(ownerUser.name, formattedTasks, true);
+        let subject: string;
+        let html: string;
 
-      const sent = await sendEmail(ownerUser.email, subject, html);
-      if (sent) emailsSent++;
+        if (customTemplate) {
+          const vars: Record<string, string> = {
+            user_name: ownerUser.name || '',
+            task_title: task.title || '',
+            project_name: projectName,
+            feedback_what: feedback.what || '',
+            feedback_who: feedback.who || '',
+            feedback_why: feedback.why || '',
+            feedback_when: feedback.when || task.due_date || '',
+          };
+          subject = `[Follow-up] ${applyVars(customTemplate.subject, vars)}`;
+          html = textToHtml(applyVars(customTemplate.content, vars));
+        } else {
+          subject = `Follow-up reminder: ${task.title} still awaiting feedback`;
+          html = buildDefaultHtml(ownerUser.name, {
+            title: task.title,
+            project_name: projectName,
+            awaiting_feedback_details: task.awaiting_feedback_details || '',
+            due_date: task.due_date,
+            is_followup: true,
+          });
+        }
+
+        const sent = await sendEmail(ownerUser.email, subject, html);
+        if (sent) emailsSent++;
+      }
     }
 
     console.log(`Awaiting feedback email check complete. Emails sent: ${emailsSent}`);
@@ -252,8 +280,9 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({
         success: true,
         emailsSent,
-        tasksFound: tasks?.length || 0,
+        tasksFound: allTasks.length,
         followupTasksToday: followupTasksToday.length,
+        usingCustomTemplate: !!customTemplate,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
