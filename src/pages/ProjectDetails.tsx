@@ -274,6 +274,24 @@ export default function ProjectDetails() {
     }
   };
 
+  const handleSaveRoundupSettings = async () => {
+    if (!project) return;
+    setIsSavingRoundupSettings(true);
+    try {
+      const { error } = await supabase
+        .from("projects")
+        .update({ weekly_roundup_settings: roundupSettings } as any)
+        .eq("id", project.id);
+      if (error) throw error;
+      toast({ title: "Saved", description: "Roundup schedule saved successfully." });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
+    } finally {
+      setIsSavingRoundupSettings(false);
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
