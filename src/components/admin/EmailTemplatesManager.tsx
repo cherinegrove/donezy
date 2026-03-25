@@ -525,6 +525,7 @@ export const EmailTemplatesManager = () => {
                           <SelectItem value="project_added">Added to Project</SelectItem>
                           <SelectItem value="task_collaborator">Task Collaborator</SelectItem>
                           <SelectItem value="mentioned">Mentioned</SelectItem>
+                          <SelectItem value="awaiting_feedback">Awaiting Feedback</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
