@@ -196,6 +196,7 @@ export interface Task {
   backlogReason?: string;
   dueDateChangeReason?: string;
   awaitingFeedbackDetails?: string;
+  awaitingFeedbackFollowUpDate?: string;
   lastDueDateChange?: string;
 }
 
