@@ -441,8 +441,14 @@ export function CreateTaskDialog({
                   name="description"
                   render={({ field }) => (
                     <div className="space-y-2">
-                      <Label htmlFor="description">Description {isFieldRequired('description') && '*'}</Label>
-                      <Textarea id="description" placeholder="Enter task description" {...field} rows={5} />
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="description">Description {isFieldRequired('description') && '*'}</Label>
+                        <VoiceDescriptionButton
+                          onTranscript={(text) => field.onChange(text)}
+                          existingText={field.value}
+                        />
+                      </div>
+                      <Textarea id="description" placeholder="Enter task description or use the mic to dictate..." {...field} rows={5} />
                       <FormMessage />
                     </div>
                   )}
