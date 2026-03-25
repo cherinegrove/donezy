@@ -15,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { CalendarIcon, Trash } from "lucide-react";
+import { VoiceDescriptionButton } from "./VoiceDescriptionButton";
 import { ProjectSelect } from "./ProjectSelect";
 import { Assignee2Select } from "./Assignee2Select";
 import { CollaboratorSelect } from "./CollaboratorSelect";
