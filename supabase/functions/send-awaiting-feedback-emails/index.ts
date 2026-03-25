@@ -16,7 +16,7 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
   try {
     const resend = new Resend(resendApiKey);
     const { error } = await resend.emails.send({
-      from: "Donezy <no-reply@donezy.io>",
+      from: "Donezy <noreply@donezy.io>",
       to: [to],
       subject,
       html,
