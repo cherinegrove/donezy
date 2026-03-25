@@ -37,7 +37,6 @@ function generateEmailHtml(p: {
   const fmt = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   const dateRange = `${fmt(weekStart)} – ${fmt(now)} ${now.getFullYear()}`;
 
-  const healthEmoji = p.projectHealth === "on-track" ? "🟢" : p.projectHealth === "blocked" ? "🔴" : "🟡";
   const healthText =
     p.projectHealth === "on-track"
       ? "On Track – great progress this week!"
@@ -49,7 +48,7 @@ function generateEmailHtml(p: {
 
   // ── Completed section ──────────────────────────────────
   const completedSection = p.completedTasks.length > 0
-    ? `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>✅ Completed This Week</strong></p>
+    ? `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>Completed This Week</strong></p>
        <ul style="margin:0 0 0 18px;padding:0;">
          ${p.completedTasks.map((t) => `<li ${li}>• ${t.title}</li>`).join("")}
        </ul>`
@@ -57,7 +56,7 @@ function generateEmailHtml(p: {
 
   // ── In Progress section ────────────────────────────────
   const inProgressSection = p.inProgressTasks.length > 0
-    ? `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>🚀 In Progress (Up Next This Week)</strong></p>
+    ? `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>In Progress (Up Next This Week)</strong></p>
        <ul style="margin:0 0 0 18px;padding:0;">
          ${p.inProgressTasks.map((t) => {
            const due = t.due_date
@@ -71,7 +70,7 @@ function generateEmailHtml(p: {
   // ── Awaiting section ───────────────────────────────────
   let awaitingItems = "";
   if (p.awaitingTasks.length === 0) {
-    awaitingItems = `<p style="margin:4px 0 0;font-size:14px;color:#374151;">✅ All clear – no blockers at this time!</p>`;
+    awaitingItems = `<p style="margin:4px 0 0;font-size:14px;color:#374151;">All clear – no blockers at this time!</p>`;
   } else {
     awaitingItems = p.awaitingTasks.map((t) => {
       const d = parseAwaitingDetails(t.awaiting_feedback_details);
@@ -84,11 +83,11 @@ function generateEmailHtml(p: {
       return `<p style="margin:0 0 4px 0;font-size:14px;color:#111827;"><strong>• ${t.title}</strong></p>${details}`;
     }).join("");
   }
-  const awaitingSection = `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>⏸️ Waiting on Your Feedback</strong></p>${awaitingItems}`;
+  const awaitingSection = `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>Waiting on Your Feedback</strong></p>${awaitingItems}`;
 
   // ── Portal link ────────────────────────────────────────
   const portalSection = p.portalLink
-    ? `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>💼 Time Tracking Portal</strong></p>
+    ? `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>Time Tracking Portal</strong></p>
        <p style="margin:0;font-size:14px;"><a href="${p.portalLink}" style="color:#4f46e5;">${p.portalLink}</a></p>`
     : "";
 
