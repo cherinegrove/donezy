@@ -73,6 +73,25 @@ export default function ProjectDetails() {
     console.log("Looking for project with ID:", projectId, "Found:", foundProject);
     setProject(foundProject || null);
   }, [projects, projectId]);
+
+  // Load roundup settings from project
+  useEffect(() => {
+    if (project && (project as any).weekly_roundup_settings) {
+      const s = (project as any).weekly_roundup_settings;
+      setRoundupSettings({
+        enabled: s.enabled ?? false,
+        day: s.day ?? "friday",
+        time: s.time ?? "09:00",
+        recipientEmail: s.recipientEmail ?? "",
+      });
+    } else if (project) {
+      // Default recipient to client email
+      setRoundupSettings(prev => ({
+        ...prev,
+        recipientEmail: clients.find(c => c.id === project.clientId)?.email ?? "",
+      }));
+    }
+  }, [project?.id]);
   
   const client = project ? clients.find(c => c.id === project.clientId) : null;
 
