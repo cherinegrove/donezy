@@ -1,10 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 interface TestEmailRequest {
@@ -14,47 +13,26 @@ interface TestEmailRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests first
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const smtpHost = Deno.env.get("SMTP_HOST");
-    const smtpUser = Deno.env.get("SMTP_USER");
-    const smtpPass = Deno.env.get("SMTP_PASS");
-    const smtpFrom = Deno.env.get("SMTP_FROM");
-    
-    if (!smtpHost || !smtpUser || !smtpPass || !smtpFrom) {
-      console.error("SMTP configuration is incomplete");
-      return new Response(JSON.stringify({ 
-        error: "Email service is not configured. Please configure SMTP settings in Supabase." 
-      }), {
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      return new Response(JSON.stringify({ error: "Email service is not configured. Please add the RESEND_API_KEY secret." }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
     const { email, subject, content }: TestEmailRequest = await req.json();
-
     console.log("Sending test email to:", email);
-    console.log("Subject:", subject);
 
-    const client = new SMTPClient({
-      connection: {
-        hostname: smtpHost,
-        port: 587,
-        tls: true,
-        auth: {
-          username: smtpUser,
-          password: smtpPass,
-        },
-      },
-    });
-
-    await client.send({
-      from: smtpFrom,
-      to: email,
+    const resend = new Resend(resendApiKey);
+    const { data, error } = await resend.emails.send({
+      from: "Donezy <no-reply@donezy.io>",
+      to: [email],
       subject: `[TEST] ${subject}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
@@ -74,25 +52,23 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    await client.close();
+    if (error) {
+      console.error("Resend error:", error);
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
-    console.log("Test email sent successfully");
+    console.log("Test email sent successfully:", data?.id);
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: "Test email sent successfully"
-    }), {
+    return new Response(JSON.stringify({ success: true, message: "Test email sent successfully", email_id: data?.id }), {
       status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: any) {
     console.error("Error in send-test-email function:", error);
-    return new Response(JSON.stringify({ 
-      error: error.message || "Failed to send test email" 
-    }), {
+    return new Response(JSON.stringify({ error: error.message || "Failed to send test email" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });

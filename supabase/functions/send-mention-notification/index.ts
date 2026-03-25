@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,7 +16,6 @@ interface EmailTemplate {
   is_active: boolean;
 }
 
-// Helper function to get email template from database
 async function getEmailTemplate(supabase: any, templateType: string, authUserId: string): Promise<EmailTemplate | null> {
   const { data, error } = await supabase
     .from('email_templates')
@@ -33,7 +32,6 @@ async function getEmailTemplate(supabase: any, templateType: string, authUserId:
   return data;
 }
 
-// Helper function to replace template variables
 function processTemplate(template: string, variables: Record<string, string>): string {
   let result = template;
   for (const [key, value] of Object.entries(variables)) {
@@ -42,7 +40,6 @@ function processTemplate(template: string, variables: Record<string, string>): s
   return result;
 }
 
-// Default template for mentions
 const defaultMentionTemplate = {
   subject: 'You were mentioned in: {{context_title}}',
   content: `Hello {{user_name}},
@@ -60,35 +57,19 @@ Best regards,
 {{company_name}} Team`
 };
 
-// Send email using SMTP
 async function sendEmail(to: string, subject: string, content: string): Promise<boolean> {
-  const smtpHost = Deno.env.get("SMTP_HOST");
-  const smtpUser = Deno.env.get("SMTP_USER");
-  const smtpPass = Deno.env.get("SMTP_PASS");
-  const smtpFrom = Deno.env.get("SMTP_FROM");
-
-  if (!smtpHost || !smtpUser || !smtpPass || !smtpFrom) {
-    console.error("SMTP configuration is incomplete - skipping email send");
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendApiKey) {
+    console.error("RESEND_API_KEY is not configured - skipping email send");
     return false;
   }
 
   try {
-    const client = new SMTPClient({
-      connection: {
-        hostname: smtpHost,
-        port: 587,
-        tls: true,
-        auth: {
-          username: smtpUser,
-          password: smtpPass,
-        },
-      },
-    });
-
-    await client.send({
-      from: smtpFrom,
-      to: to,
-      subject: subject,
+    const resend = new Resend(resendApiKey);
+    const { error } = await resend.emails.send({
+      from: "Donezy <no-reply@donezy.io>",
+      to: [to],
+      subject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background-color: white; padding: 20px; border-radius: 5px;">
@@ -100,7 +81,11 @@ async function sendEmail(to: string, subject: string, content: string): Promise<
       `,
     });
 
-    await client.close();
+    if (error) {
+      console.error(`Resend error sending to ${to}:`, error);
+      return false;
+    }
+
     console.log(`Email sent successfully to ${to}`);
     return true;
   } catch (error) {
@@ -117,7 +102,6 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
     console.log('Processing mention notification request');
@@ -131,7 +115,6 @@ serve(async (req) => {
       );
     }
     
-    // Get the mentioned user's details
     const { data: mentionedUser, error: userError } = await supabase
       .from('users')
       .select('name, email, auth_user_id')
@@ -146,8 +129,7 @@ serve(async (req) => {
       );
     }
     
-    // Get the mentioner's user details
-    const { data: mentionerUser, error: mentionerError } = await supabase
+    const { data: mentionerUser } = await supabase
       .from('users')
       .select('auth_user_id')
       .eq('name', mentionerName)
@@ -155,7 +137,6 @@ serve(async (req) => {
     
     const fromUserId = mentionerUser?.auth_user_id || mentionedUserId;
     
-    // Create a notification message for the mentioned user
     const plainText = messageContent.replace(/<[^>]*>/g, '').substring(0, 100);
     
     const { data: notification, error: notificationError } = await supabase
@@ -181,7 +162,6 @@ serve(async (req) => {
       );
     }
     
-    // Check for email template - use mentioned user's auth_user_id to find their account owner's template
     const template = await getEmailTemplate(supabase, 'mentioned', mentionedUserId);
     const isActive = template ? template.is_active : true;
     
@@ -191,7 +171,6 @@ serve(async (req) => {
       const templateSubject = template?.subject || defaultMentionTemplate.subject;
       const templateContent = template?.content || defaultMentionTemplate.content;
       
-      // Get task title if available
       let taskTitle = 'a comment';
       if (taskId) {
         const { data: task } = await supabase
@@ -199,9 +178,7 @@ serve(async (req) => {
           .select('title')
           .eq('id', taskId)
           .single();
-        if (task) {
-          taskTitle = task.title;
-        }
+        if (task) taskTitle = task.title;
       }
       
       const variables = {
@@ -222,14 +199,8 @@ serve(async (req) => {
       console.log('Mention email template is inactive - skipping email');
     }
     
-    console.log(`Created mention notification for user ${mentionedUser.name}`);
-    
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        notificationId: notification.id,
-        emailSent
-      }),
+      JSON.stringify({ success: true, notificationId: notification.id, emailSent }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
     
