@@ -17,7 +17,7 @@ interface EmailTemplate {
   name: string;
   subject: string;
   content: string;
-  type: 'task_due_today' | 'task_reminder' | 'task_overdue' | 'task_assignment' | 'project_added' | 'task_collaborator' | 'mentioned' | 'awaiting_feedback';
+  type: 'task_due_today' | 'task_reminder' | 'task_overdue' | 'task_assignment' | 'project_added' | 'task_collaborator' | 'mentioned' | 'awaiting_feedback' | 'weekly_roundup';
   isActive: boolean;
 }
 
