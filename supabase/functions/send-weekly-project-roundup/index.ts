@@ -115,7 +115,7 @@ function generateEmailHtml(p: {
         <p style="margin:0 0 16px;font-size:15px;color:#374151;">Here's your weekly project update:</p>
 
         <p style="margin:0 0 20px;font-size:14px;color:#374151;">
-          <strong>📊 Quick Summary:</strong>
+          <strong>Quick Summary:</strong>
           ${p.completedTasks.length} completed &nbsp;·&nbsp;
           ${p.inProgressTasks.length} in progress &nbsp;·&nbsp;
           ${awaitingLabel}
@@ -127,8 +127,8 @@ function generateEmailHtml(p: {
         ${inProgressSection}
         ${awaitingSection}
 
-        <p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>📈 Project Health</strong></p>
-        <p style="margin:0 0 20px;font-size:14px;color:#374151;">${healthEmoji} ${healthText}</p>
+        <p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>Project Health</strong></p>
+        <p style="margin:0 0 20px;font-size:14px;color:#374151;">${healthText}</p>
 
         ${portalSection}
 
