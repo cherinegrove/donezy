@@ -263,6 +263,7 @@ export default function ProjectDetails() {
       setRoundupData({
         subject: data.subject,
         emailContent: data.emailContent,
+        emailHtml: data.emailHtml,
         stats: data.stats,
       });
       setRoundupDialogOpen(true);
