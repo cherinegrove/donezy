@@ -27,7 +27,7 @@ function generateEmailHtml(p: {
   completedTasks: any[];
   inProgressTasks: any[];
   awaitingTasks: any[];
-  portalLink: string | null;
+  
   projectHealth: string;
   senderName: string;
 }): string {
@@ -85,11 +85,6 @@ function generateEmailHtml(p: {
   }
   const awaitingSection = `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>Waiting on Your Feedback</strong></p>${awaitingItems}`;
 
-  // ── Portal link ────────────────────────────────────────
-  const portalSection = p.portalLink
-    ? `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>Time Tracking Portal</strong></p>
-       <p style="margin:0;font-size:14px;"><a href="${p.portalLink}" style="color:#4f46e5;">${p.portalLink}</a></p>`
-    : "";
 
   const awaitingLabel = p.awaitingTasks.length > 0
     ? `<strong>${p.awaitingTasks.length}</strong> waiting on you`
@@ -130,7 +125,7 @@ function generateEmailHtml(p: {
         <p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>Project Health</strong></p>
         <p style="margin:0 0 20px;font-size:14px;color:#374151;">${healthText}</p>
 
-        ${portalSection}
+        
 
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px;">
 
@@ -274,7 +269,7 @@ const handler = async (req: Request): Promise<Response> => {
       completedTasks,
       inProgressTasks,
       awaitingTasks,
-      portalLink,
+      
       projectHealth,
       senderName,
     };
