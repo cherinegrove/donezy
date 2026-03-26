@@ -269,7 +269,7 @@ const handler = async (req: Request): Promise<Response> => {
       completedTasks,
       inProgressTasks,
       awaitingTasks,
-      portalLink,
+      
       projectHealth,
       senderName,
     };
