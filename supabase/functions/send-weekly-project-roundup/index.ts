@@ -85,11 +85,6 @@ function generateEmailHtml(p: {
   }
   const awaitingSection = `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>Waiting on Your Feedback</strong></p>${awaitingItems}`;
 
-  // ── Portal link ────────────────────────────────────────
-  const portalSection = p.portalLink
-    ? `<p style="margin:20px 0 6px;font-size:15px;color:#111827;"><strong>Time Tracking Portal</strong></p>
-       <p style="margin:0;font-size:14px;"><a href="${p.portalLink}" style="color:#4f46e5;">${p.portalLink}</a></p>`
-    : "";
 
   const awaitingLabel = p.awaitingTasks.length > 0
     ? `<strong>${p.awaitingTasks.length}</strong> waiting on you`
