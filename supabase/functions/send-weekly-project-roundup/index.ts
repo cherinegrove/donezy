@@ -27,7 +27,7 @@ function generateEmailHtml(p: {
   completedTasks: any[];
   inProgressTasks: any[];
   awaitingTasks: any[];
-  portalLink: string | null;
+  
   projectHealth: string;
   senderName: string;
 }): string {
