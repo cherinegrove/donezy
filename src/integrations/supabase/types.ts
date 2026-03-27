@@ -1963,6 +1963,239 @@ export type Database = {
           },
         ]
       }
+      tenant_account_events: {
+        Row: {
+          account_id: string
+          admin_user_id: string | null
+          created_at: string
+          description: string
+          details: Json | null
+          event_type: string
+          id: string
+        }
+        Insert: {
+          account_id: string
+          admin_user_id?: string | null
+          created_at?: string
+          description: string
+          details?: Json | null
+          event_type: string
+          id?: string
+        }
+        Update: {
+          account_id?: string
+          admin_user_id?: string | null
+          created_at?: string
+          description?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_account_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_accounts: {
+        Row: {
+          account_limits: Json
+          auto_renew: boolean
+          billing_cycle: string
+          company_name: string
+          created_at: string
+          feature_flags: Json
+          id: string
+          internal_notes: string | null
+          last_activity_at: string | null
+          next_billing_date: string | null
+          primary_contact_email: string | null
+          primary_contact_name: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_price: number
+          subscription_tier: string
+          trial_end_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_limits?: Json
+          auto_renew?: boolean
+          billing_cycle?: string
+          company_name: string
+          created_at?: string
+          feature_flags?: Json
+          id?: string
+          internal_notes?: string | null
+          last_activity_at?: string | null
+          next_billing_date?: string | null
+          primary_contact_email?: string | null
+          primary_contact_name?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_price?: number
+          subscription_tier?: string
+          trial_end_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_limits?: Json
+          auto_renew?: boolean
+          billing_cycle?: string
+          company_name?: string
+          created_at?: string
+          feature_flags?: Json
+          id?: string
+          internal_notes?: string | null
+          last_activity_at?: string | null
+          next_billing_date?: string | null
+          primary_contact_email?: string | null
+          primary_contact_name?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_price?: number
+          subscription_tier?: string
+          trial_end_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tenant_audit_log: {
+        Row: {
+          account_id: string | null
+          action_type: string
+          admin_user_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          action_type: string
+          admin_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          action_type?: string
+          admin_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_audit_log_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_invoices: {
+        Row: {
+          account_id: string
+          amount: number
+          created_at: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          paid_date: string | null
+          status: string
+          stripe_invoice_id: string | null
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          paid_date?: string | null
+          status?: string
+          stripe_invoice_id?: string | null
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          paid_date?: string | null
+          status?: string
+          stripe_invoice_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_invoices_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_users: {
+        Row: {
+          account_id: string
+          created_at: string
+          email: string
+          id: string
+          last_login_at: string | null
+          name: string
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          email: string
+          id?: string
+          last_login_at?: string | null
+          name: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          last_login_at?: string | null
+          name?: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_users_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       test: {
         Row: {
           created_at: string
