@@ -263,6 +263,17 @@ const App = () => {
                   <Route path="/auth/v1/verify" element={<AuthVerify />} />
                   <Route path="/portal/:token" element={<ClientPortal />} />
                   
+                  {/* Admin Portal (multi-tenant) - separate layout */}
+                  <Route path="/admin-portal" element={<ProtectedRoute element={<AdminPortalLayout />} />}>
+                    <Route index element={<AdminPortalDashboard />} />
+                    <Route path="accounts" element={<AdminPortalAccounts />} />
+                    <Route path="accounts/:accountId" element={<AdminPortalAccountDetail />} />
+                    <Route path="financials" element={<AdminPortalFinancials />} />
+                    <Route path="notifications" element={<AdminPortalNotifications />} />
+                    <Route path="audit-log" element={<AdminPortalAuditLog />} />
+                    <Route path="settings" element={<AdminPortalSettings />} />
+                  </Route>
+                  
                   {/* Protected routes */}
                   <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
                     <Route index element={<Home />} />
