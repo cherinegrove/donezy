@@ -41,6 +41,16 @@ const Dashboards = lazy(() => import("./pages/Dashboards"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Activity = lazy(() => import("./pages/Activity"));
 
+// Admin Portal (multi-tenant)
+const AdminPortalLayout = lazy(() => import("./components/admin-portal/AdminPortalLayout").then(m => ({ default: m.AdminPortalLayout })));
+const AdminPortalDashboard = lazy(() => import("./pages/admin-portal/AdminPortalDashboard"));
+const AdminPortalAccounts = lazy(() => import("./pages/admin-portal/AdminPortalAccounts"));
+const AdminPortalAccountDetail = lazy(() => import("./pages/admin-portal/AdminPortalAccountDetail"));
+const AdminPortalFinancials = lazy(() => import("./pages/admin-portal/AdminPortalFinancials"));
+const AdminPortalNotifications = lazy(() => import("./pages/admin-portal/AdminPortalNotifications"));
+const AdminPortalAuditLog = lazy(() => import("./pages/admin-portal/AdminPortalAuditLog"));
+const AdminPortalSettings = lazy(() => import("./pages/admin-portal/AdminPortalSettings"));
+
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
