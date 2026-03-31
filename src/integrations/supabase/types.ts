@@ -1271,6 +1271,7 @@ export type Database = {
           updated_at: string
           used_hours: number | null
           watcher_ids: string[] | null
+          weekly_roundup_settings: Json | null
         }
         Insert: {
           allocated_hours?: number | null
@@ -1293,6 +1294,7 @@ export type Database = {
           updated_at?: string
           used_hours?: number | null
           watcher_ids?: string[] | null
+          weekly_roundup_settings?: Json | null
         }
         Update: {
           allocated_hours?: number | null
@@ -1315,6 +1317,7 @@ export type Database = {
           updated_at?: string
           used_hours?: number | null
           watcher_ids?: string[] | null
+          weekly_roundup_settings?: Json | null
         }
         Relationships: [
           {
@@ -1387,6 +1390,175 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      rbac_permissions: {
+        Row: {
+          action: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          resource: string
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          resource: string
+          scope?: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          resource?: string
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rbac_resources: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_name: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_name: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rbac_role_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rbac_role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "rbac_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rbac_role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "rbac_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rbac_roles: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          name: string
+          organization_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name: string
+          organization_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+          organization_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rbac_roles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rbac_user_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          role_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rbac_user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "rbac_roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recurring_tasks: {
         Row: {
@@ -1826,6 +1998,7 @@ export type Database = {
           assignee_id: string | null
           auth_user_id: string
           awaiting_feedback_details: string | null
+          awaiting_feedback_followup_date: string | null
           backlog_reason: string | null
           checklist: Json | null
           collaborator_ids: string[] | null
@@ -1852,6 +2025,7 @@ export type Database = {
           assignee_id?: string | null
           auth_user_id: string
           awaiting_feedback_details?: string | null
+          awaiting_feedback_followup_date?: string | null
           backlog_reason?: string | null
           checklist?: Json | null
           collaborator_ids?: string[] | null
@@ -1878,6 +2052,7 @@ export type Database = {
           assignee_id?: string | null
           auth_user_id?: string
           awaiting_feedback_details?: string | null
+          awaiting_feedback_followup_date?: string | null
           backlog_reason?: string | null
           checklist?: Json | null
           collaborator_ids?: string[] | null
@@ -1953,6 +2128,239 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_account_events: {
+        Row: {
+          account_id: string
+          admin_user_id: string | null
+          created_at: string
+          description: string
+          details: Json | null
+          event_type: string
+          id: string
+        }
+        Insert: {
+          account_id: string
+          admin_user_id?: string | null
+          created_at?: string
+          description: string
+          details?: Json | null
+          event_type: string
+          id?: string
+        }
+        Update: {
+          account_id?: string
+          admin_user_id?: string | null
+          created_at?: string
+          description?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_account_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_accounts: {
+        Row: {
+          account_limits: Json
+          auto_renew: boolean
+          billing_cycle: string
+          company_name: string
+          created_at: string
+          feature_flags: Json
+          id: string
+          internal_notes: string | null
+          last_activity_at: string | null
+          next_billing_date: string | null
+          primary_contact_email: string | null
+          primary_contact_name: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_price: number
+          subscription_tier: string
+          trial_end_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_limits?: Json
+          auto_renew?: boolean
+          billing_cycle?: string
+          company_name: string
+          created_at?: string
+          feature_flags?: Json
+          id?: string
+          internal_notes?: string | null
+          last_activity_at?: string | null
+          next_billing_date?: string | null
+          primary_contact_email?: string | null
+          primary_contact_name?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_price?: number
+          subscription_tier?: string
+          trial_end_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_limits?: Json
+          auto_renew?: boolean
+          billing_cycle?: string
+          company_name?: string
+          created_at?: string
+          feature_flags?: Json
+          id?: string
+          internal_notes?: string | null
+          last_activity_at?: string | null
+          next_billing_date?: string | null
+          primary_contact_email?: string | null
+          primary_contact_name?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_price?: number
+          subscription_tier?: string
+          trial_end_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tenant_audit_log: {
+        Row: {
+          account_id: string | null
+          action_type: string
+          admin_user_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          action_type: string
+          admin_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          action_type?: string
+          admin_user_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_audit_log_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_invoices: {
+        Row: {
+          account_id: string
+          amount: number
+          created_at: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          paid_date: string | null
+          status: string
+          stripe_invoice_id: string | null
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          paid_date?: string | null
+          status?: string
+          stripe_invoice_id?: string | null
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          paid_date?: string | null
+          status?: string
+          stripe_invoice_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_invoices_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_users: {
+        Row: {
+          account_id: string
+          created_at: string
+          email: string
+          id: string
+          last_login_at: string | null
+          name: string
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          email: string
+          id?: string
+          last_login_at?: string | null
+          name: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          last_login_at?: string | null
+          name?: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_users_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -2449,6 +2857,15 @@ export type Database = {
           _target_user_id?: string
         }
         Returns: undefined
+      }
+      rbac_user_has_permission: {
+        Args: {
+          _action: string
+          _required_scope?: string
+          _resource: string
+          _user_id: string
+        }
+        Returns: boolean
       }
       track_usage: {
         Args: {
