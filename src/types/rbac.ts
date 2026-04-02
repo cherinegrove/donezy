@@ -158,7 +158,6 @@ export interface RbacPermission {
   name: string; // e.g. 'projects:view'
   resource: RbacResource;
   action: RbacAction;
-  scope: RbacScope;
   description?: string;
   created_at?: string;
   updated_at?: string;
@@ -171,7 +170,7 @@ export interface RbacRole {
   color?: string;
   is_system: boolean; // Built-in roles cannot be deleted
   organization_id?: string;
-  permissions: RbacPermission[];
+  permissions: RbacAssignedPermission[];
   created_at?: string;
   updated_at?: string;
 }
@@ -198,7 +197,12 @@ export interface RbacRolePermission {
   id: string;
   role_id: string;
   permission_id: string;
+  scope: RbacScope;
   created_at?: string;
+}
+
+export interface RbacAssignedPermission extends RbacPermission {
+  scope: RbacScope;
 }
 
 // --- Permission Check Context ---

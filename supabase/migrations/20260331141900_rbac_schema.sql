@@ -14,17 +14,16 @@ CREATE TABLE IF NOT EXISTS rbac_resources (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 2. Permissions table (resource + action + scope)
+-- 2. Permissions table (resource + action, NO SCOPE)
 CREATE TABLE IF NOT EXISTS rbac_permissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL UNIQUE,               -- 'projects:view', 'tasks:create', etc.
   resource TEXT NOT NULL,                  -- references rbac_resources.name
   action TEXT NOT NULL,
-  scope TEXT NOT NULL DEFAULT 'own',       -- 'own', 'project', 'all'
   description TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(resource, action, scope)
+  UNIQUE(resource, action)
 );
 
 -- 3. Roles table (named collection of permissions)
@@ -39,11 +38,12 @@ CREATE TABLE IF NOT EXISTS rbac_roles (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 4. Role ↔ Permission junction
+-- 4. Role ↔ Permission junction (SCOPE LIVES HERE)
 CREATE TABLE IF NOT EXISTS rbac_role_permissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   role_id UUID NOT NULL REFERENCES rbac_roles(id) ON DELETE CASCADE,
   permission_id UUID NOT NULL REFERENCES rbac_permissions(id) ON DELETE CASCADE,
+  scope TEXT NOT NULL DEFAULT 'own',       -- 'own', 'project', 'all'
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(role_id, permission_id)
 );
@@ -160,9 +160,9 @@ CREATE OR REPLACE FUNCTION rbac_user_has_permission(
       AND p.action = _action
       AND (
         -- Scope hierarchy: 'all' covers everything, 'project' covers project+own, 'own' covers own
-        p.scope = 'all'
-        OR (p.scope = 'project' AND _required_scope IN ('project', 'own'))
-        OR (p.scope = _required_scope)
+        rp.scope = 'all'
+        OR (rp.scope = 'project' AND _required_scope IN ('project', 'own'))
+        OR (rp.scope = _required_scope)
       )
   );
 $$ LANGUAGE SQL SECURITY DEFINER STABLE;
@@ -200,116 +200,116 @@ ON CONFLICT (name) DO NOTHING;
 -- SEED DATA: Permissions
 -- ============================================================
 
-INSERT INTO rbac_permissions (name, resource, action, scope, description) VALUES
+INSERT INTO rbac_permissions (name, resource, action, description) VALUES
   -- Projects
-  ('projects:view',    'projects', 'view',    'own',     'View project details and list'),
-  ('projects:create',  'projects', 'create',  'own',     'Create new projects'),
-  ('projects:edit',    'projects', 'edit',    'own',     'Edit project details'),
-  ('projects:delete',  'projects', 'delete',  'own',     'Delete projects'),
-  ('projects:archive', 'projects', 'archive', 'own',     'Archive projects'),
-  ('projects:restore', 'projects', 'restore', 'own',     'Restore archived projects'),
-  ('projects:share',   'projects', 'share',   'own',     'Share project externally'),
-  ('projects:import',  'projects', 'import',  'own',     'Import projects from file'),
-  ('projects:export',  'projects', 'export',  'own',     'Export project data'),
+  ('projects:view',    'projects', 'view',    'View project details and list'),
+  ('projects:create',  'projects', 'create',  'Create new projects'),
+  ('projects:edit',    'projects', 'edit',    'Edit project details'),
+  ('projects:delete',  'projects', 'delete',  'Delete projects'),
+  ('projects:archive', 'projects', 'archive', 'Archive projects'),
+  ('projects:restore', 'projects', 'restore', 'Restore archived projects'),
+  ('projects:share',   'projects', 'share',   'Share project externally'),
+  ('projects:import',  'projects', 'import',  'Import projects from file'),
+  ('projects:export',  'projects', 'export',  'Export project data'),
   -- Tasks
-  ('tasks:view',       'tasks',    'view',    'project', 'View task details and list'),
-  ('tasks:create',     'tasks',    'create',  'project', 'Create new tasks'),
-  ('tasks:edit',       'tasks',    'edit',    'project', 'Edit task details'),
-  ('tasks:delete',     'tasks',    'delete',  'project', 'Delete tasks'),
+  ('tasks:view',       'tasks',    'view',    'View task details and list'),
+  ('tasks:create',     'tasks',    'create',  'Create new tasks'),
+  ('tasks:edit',       'tasks',    'edit',    'Edit task details'),
+  ('tasks:delete',     'tasks',    'delete',  'Delete tasks'),
   -- Time Entries
-  ('time_entries:view',    'time_entries', 'view',    'own',     'View time entries'),
-  ('time_entries:perform', 'time_entries', 'perform', 'own',     'Add/edit/start/stop time entries'),
-  ('time_entries:manage',  'time_entries', 'manage',  'own',     'Approve/reject time entries'),
-  ('time_entries:export',  'time_entries', 'export',  'own',     'Export time data'),
+  ('time_entries:view',    'time_entries', 'view',    'View time entries'),
+  ('time_entries:perform', 'time_entries', 'perform', 'Add/edit/start/stop time entries'),
+  ('time_entries:manage',  'time_entries', 'manage',  'Approve/reject time entries'),
+  ('time_entries:export',  'time_entries', 'export',  'Export time data'),
   -- Users
-  ('users:view',       'users',    'view',    'all',     'View user details and list'),
-  ('users:create',     'users',    'create',  'all',     'Create new users'),
-  ('users:edit',       'users',    'edit',    'all',     'Edit user details'),
-  ('users:delete',     'users',    'delete',  'all',     'Delete users'),
-  ('users:manage',     'users',    'manage',  'all',     'Activate/deactivate/assign roles'),
-  ('users:import',     'users',    'import',  'all',     'Import users from file'),
-  ('users:export',     'users',    'export',  'all',     'Export user data'),
+  ('users:view',       'users',    'view',    'View user details and list'),
+  ('users:create',     'users',    'create',  'Create new users'),
+  ('users:edit',       'users',    'edit',    'Edit user details'),
+  ('users:delete',     'users',    'delete',  'Delete users'),
+  ('users:manage',     'users',    'manage',  'Activate/deactivate/assign roles'),
+  ('users:import',     'users',    'import',  'Import users from file'),
+  ('users:export',     'users',    'export',  'Export user data'),
   -- Teams
-  ('teams:view',       'teams',    'view',    'all',     'View team details and list'),
-  ('teams:create',     'teams',    'create',  'all',     'Create new teams'),
-  ('teams:edit',       'teams',    'edit',    'all',     'Edit team details'),
-  ('teams:delete',     'teams',    'delete',  'all',     'Delete teams'),
-  ('teams:manage',     'teams',    'manage',  'all',     'Add/remove team members'),
+  ('teams:view',       'teams',    'view',    'View team details and list'),
+  ('teams:create',     'teams',    'create',  'Create new teams'),
+  ('teams:edit',       'teams',    'edit',    'Edit team details'),
+  ('teams:delete',     'teams',    'delete',  'Delete teams'),
+  ('teams:manage',     'teams',    'manage',  'Add/remove team members'),
   -- Clients
-  ('clients:view',     'clients',  'view',    'all',     'View client details and list'),
-  ('clients:create',   'clients',  'create',  'all',     'Create new clients'),
-  ('clients:edit',     'clients',  'edit',    'all',     'Edit client details'),
-  ('clients:delete',   'clients',  'delete',  'all',     'Delete clients'),
-  ('clients:export',   'clients',  'export',  'all',     'Export client data'),
+  ('clients:view',     'clients',  'view',    'View client details and list'),
+  ('clients:create',   'clients',  'create',  'Create new clients'),
+  ('clients:edit',     'clients',  'edit',    'Edit client details'),
+  ('clients:delete',   'clients',  'delete',  'Delete clients'),
+  ('clients:export',   'clients',  'export',  'Export client data'),
   -- Notes
-  ('notes:view',       'notes',    'view',    'project', 'View notes'),
-  ('notes:create',     'notes',    'create',  'project', 'Create notes'),
-  ('notes:edit',       'notes',    'edit',    'project', 'Edit notes'),
-  ('notes:delete',     'notes',    'delete',  'project', 'Delete notes'),
+  ('notes:view',       'notes',    'view',    'View notes'),
+  ('notes:create',     'notes',    'create',  'Create notes'),
+  ('notes:edit',       'notes',    'edit',    'Edit notes'),
+  ('notes:delete',     'notes',    'delete',  'Delete notes'),
   -- Messages
-  ('messages:view',    'messages', 'view',    'project', 'View messages'),
-  ('messages:create',  'messages', 'create',  'project', 'Create messages'),
-  ('messages:edit',    'messages', 'edit',    'project', 'Edit messages'),
-  ('messages:delete',  'messages', 'delete',  'project', 'Delete messages'),
-  ('messages:send',    'messages', 'send',    'project', 'Send messages'),
+  ('messages:view',    'messages', 'view',    'View messages'),
+  ('messages:create',  'messages', 'create',  'Create messages'),
+  ('messages:edit',    'messages', 'edit',    'Edit messages'),
+  ('messages:delete',  'messages', 'delete',  'Delete messages'),
+  ('messages:send',    'messages', 'send',    'Send messages'),
   -- Comments
-  ('comments:view',    'comments', 'view',    'project', 'View comments'),
-  ('comments:create',  'comments', 'create',  'project', 'Create comments'),
-  ('comments:edit',    'comments', 'edit',    'project', 'Edit comments'),
+  ('comments:view',    'comments', 'view',    'View comments'),
+  ('comments:create',  'comments', 'create',  'Create comments'),
+  ('comments:edit',    'comments', 'edit',    'Edit comments'),
   -- Roles
-  ('roles:view',       'roles',    'view',    'all',     'View roles'),
-  ('roles:create',     'roles',    'create',  'all',     'Create custom roles'),
-  ('roles:edit',       'roles',    'edit',    'all',     'Edit roles'),
-  ('roles:delete',     'roles',    'delete',  'all',     'Delete custom roles'),
+  ('roles:view',       'roles',    'view',    'View roles'),
+  ('roles:create',     'roles',    'create',  'Create custom roles'),
+  ('roles:edit',       'roles',    'edit',    'Edit roles'),
+  ('roles:delete',     'roles',    'delete',  'Delete custom roles'),
   -- Permissions
-  ('permissions:view',   'permissions', 'view',   'all',  'View permissions'),
-  ('permissions:create', 'permissions', 'create', 'all',  'Create custom permissions'),
-  ('permissions:edit',   'permissions', 'edit',   'all',  'Edit permissions'),
-  ('permissions:delete', 'permissions', 'delete', 'all',  'Delete custom permissions'),
+  ('permissions:view',   'permissions', 'view',   'View permissions'),
+  ('permissions:create', 'permissions', 'create', 'Create custom permissions'),
+  ('permissions:edit',   'permissions', 'edit',   'Edit permissions'),
+  ('permissions:delete', 'permissions', 'delete', 'Delete custom permissions'),
   -- Templates
-  ('templates:view',   'templates', 'view',   'all',     'View templates'),
-  ('templates:create', 'templates', 'create', 'all',     'Create templates'),
-  ('templates:edit',   'templates', 'edit',   'all',     'Edit templates'),
-  ('templates:delete', 'templates', 'delete', 'all',     'Delete templates'),
-  ('templates:use',    'templates', 'use',    'all',     'Use template to create item'),
+  ('templates:view',   'templates', 'view',   'View templates'),
+  ('templates:create', 'templates', 'create', 'Create templates'),
+  ('templates:edit',   'templates', 'edit',   'Edit templates'),
+  ('templates:delete', 'templates', 'delete', 'Delete templates'),
+  ('templates:use',    'templates', 'use',    'Use template to create item'),
   -- Statuses
-  ('statuses:view',    'statuses', 'view',   'all',      'View status definitions'),
-  ('statuses:create',  'statuses', 'create', 'all',      'Create status definitions'),
-  ('statuses:edit',    'statuses', 'edit',   'all',      'Edit status definitions'),
-  ('statuses:delete',  'statuses', 'delete', 'all',      'Delete status definitions'),
+  ('statuses:view',    'statuses', 'view',       'View status definitions'),
+  ('statuses:create',  'statuses', 'create',     'Create status definitions'),
+  ('statuses:edit',    'statuses', 'edit',       'Edit status definitions'),
+  ('statuses:delete',  'statuses', 'delete',     'Delete status definitions'),
   -- Custom Fields
-  ('custom_fields:view',   'custom_fields', 'view',   'all', 'View custom fields'),
-  ('custom_fields:create', 'custom_fields', 'create', 'all', 'Create custom fields'),
-  ('custom_fields:edit',   'custom_fields', 'edit',   'all', 'Edit custom fields'),
-  ('custom_fields:delete', 'custom_fields', 'delete', 'all', 'Delete custom fields'),
+  ('custom_fields:view',   'custom_fields', 'view',   'View custom fields'),
+  ('custom_fields:create', 'custom_fields', 'create', 'Create custom fields'),
+  ('custom_fields:edit',   'custom_fields', 'edit',   'Edit custom fields'),
+  ('custom_fields:delete', 'custom_fields', 'delete', 'Delete custom fields'),
   -- Settings
-  ('settings:view',    'settings', 'view', 'own',       'View user settings'),
-  ('settings:edit',    'settings', 'edit', 'own',       'Edit user settings'),
+  ('settings:view',    'settings', 'view', 'View user settings'),
+  ('settings:edit',    'settings', 'edit', 'Edit user settings'),
   -- Integrations
-  ('integrations:view',   'integrations', 'view',   'all', 'View integrations'),
-  ('integrations:create', 'integrations', 'create', 'all', 'Create integrations'),
-  ('integrations:edit',   'integrations', 'edit',   'all', 'Edit integrations'),
+  ('integrations:view',   'integrations', 'view',   'View integrations'),
+  ('integrations:create', 'integrations', 'create', 'Create integrations'),
+  ('integrations:edit',   'integrations', 'edit',   'Edit integrations'),
   -- Notifications
-  ('notifications:view',  'notifications', 'view', 'own',  'View notifications'),
+  ('notifications:view',  'notifications', 'view', 'View notifications'),
   -- Audit Logs
-  ('audit_logs:view',   'audit_logs', 'view',   'own',    'View audit logs'),
-  ('audit_logs:export', 'audit_logs', 'export', 'own',    'Export audit logs'),
+  ('audit_logs:view',   'audit_logs', 'view',   'View audit logs'),
+  ('audit_logs:export', 'audit_logs', 'export', 'Export audit logs'),
   -- Analytics
-  ('analytics:view',   'analytics', 'view', 'own',       'View analytics'),
+  ('analytics:view',   'analytics', 'view', 'View analytics'),
   -- Dashboards
-  ('dashboards:view',   'dashboards', 'view',   'own',    'View dashboards'),
-  ('dashboards:create', 'dashboards', 'create', 'own',    'Create dashboards/reports'),
-  ('dashboards:edit',   'dashboards', 'edit',   'own',    'Edit dashboards/reports'),
-  ('dashboards:delete', 'dashboards', 'delete', 'own',    'Delete dashboards/reports'),
+  ('dashboards:view',   'dashboards', 'view',   'View dashboards'),
+  ('dashboards:create', 'dashboards', 'create', 'Create dashboards/reports'),
+  ('dashboards:edit',   'dashboards', 'edit',   'Edit dashboards/reports'),
+  ('dashboards:delete', 'dashboards', 'delete', 'Delete dashboards/reports'),
   -- Billing
-  ('billing:view',     'billing', 'view',   'all',        'View billing information'),
-  ('billing:create',   'billing', 'create', 'all',        'Create billing entries'),
-  ('billing:edit',     'billing', 'edit',   'all',        'Edit billing entries'),
-  ('billing:delete',   'billing', 'delete', 'all',        'Delete billing entries'),
-  ('billing:export',   'billing', 'export', 'all',        'Export billing data'),
+  ('billing:view',     'billing', 'view',   'View billing information'),
+  ('billing:create',   'billing', 'create', 'Create billing entries'),
+  ('billing:edit',     'billing', 'edit',   'Edit billing entries'),
+  ('billing:delete',   'billing', 'delete', 'Delete billing entries'),
+  ('billing:export',   'billing', 'export', 'Export billing data'),
   -- Platform Settings
-  ('platform_settings:view', 'platform_settings', 'view', 'all', 'View platform settings'),
-  ('platform_settings:edit', 'platform_settings', 'edit', 'all', 'Edit platform settings')
+  ('platform_settings:view', 'platform_settings', 'view', 'View platform settings'),
+  ('platform_settings:edit', 'platform_settings', 'edit', 'Edit platform settings')
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================
@@ -332,11 +332,11 @@ INSERT INTO rbac_roles (id, name, description, color, is_system) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
--- Assign ALL permissions to Platform Superadmin
+-- Assign ALL permissions to Platform Superadmin (Scope: ALL)
 -- ============================================================
 
-INSERT INTO rbac_role_permissions (role_id, permission_id)
-SELECT '00000000-0000-0000-0000-000000000001', id
+INSERT INTO rbac_role_permissions (role_id, permission_id, scope)
+SELECT '00000000-0000-0000-0000-000000000001', id, 'all'
 FROM rbac_permissions
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
@@ -344,27 +344,34 @@ ON CONFLICT (role_id, permission_id) DO NOTHING;
 -- Assign permissions to Project Owner
 -- ============================================================
 
-INSERT INTO rbac_role_permissions (role_id, permission_id)
-SELECT '00000000-0000-0000-0000-000000000002', id
-FROM rbac_permissions
-WHERE name IN (
-  -- Projects: own scope
+INSERT INTO rbac_role_permissions (role_id, permission_id, scope)
+SELECT '00000000-0000-0000-0000-000000000002', p.id,
+  CASE 
+    WHEN p.name LIKE 'projects:%' THEN 'own'
+    WHEN p.name LIKE 'tasks:%' THEN 'project'
+    WHEN p.name LIKE 'time_entries:%' THEN 'own'
+    WHEN p.name LIKE 'notes:%' THEN 'project'
+    WHEN p.name LIKE 'messages:%' THEN 'project'
+    WHEN p.name LIKE 'comments:%' THEN 'project'
+    WHEN p.name LIKE 'analytics:%' THEN 'project'
+    WHEN p.name LIKE 'dashboards:%' THEN 'project'
+    WHEN p.name LIKE 'audit_logs:%' THEN 'project'
+    WHEN p.name LIKE 'notifications:%' THEN 'own'
+    WHEN p.name LIKE 'settings:%' THEN 'own'
+    ELSE 'own'
+  END
+FROM rbac_permissions p
+WHERE p.name IN (
   'projects:view', 'projects:edit', 'projects:archive', 'projects:restore',
   'projects:share', 'projects:import', 'projects:export',
-  -- Tasks: project scope
   'tasks:view', 'tasks:create', 'tasks:edit', 'tasks:delete',
-  -- Time entries
   'time_entries:view', 'time_entries:perform', 'time_entries:export',
-  -- Notes, messages, comments: project scope
   'notes:view', 'notes:create', 'notes:edit', 'notes:delete',
   'messages:view', 'messages:create', 'messages:edit', 'messages:delete', 'messages:send',
   'comments:view', 'comments:create', 'comments:edit',
-  -- Analytics, dashboards, audit logs: project scope
   'analytics:view', 'dashboards:view', 'dashboards:create', 'dashboards:edit', 'dashboards:delete',
   'audit_logs:view', 'audit_logs:export',
-  -- Notifications: own
   'notifications:view',
-  -- Settings: own
   'settings:view', 'settings:edit'
 )
 ON CONFLICT (role_id, permission_id) DO NOTHING;
@@ -373,26 +380,33 @@ ON CONFLICT (role_id, permission_id) DO NOTHING;
 -- Assign permissions to Project Collaborator
 -- ============================================================
 
-INSERT INTO rbac_role_permissions (role_id, permission_id)
-SELECT '00000000-0000-0000-0000-000000000003', id
-FROM rbac_permissions
-WHERE name IN (
-  -- Projects: own scope (view only)
+INSERT INTO rbac_role_permissions (role_id, permission_id, scope)
+SELECT '00000000-0000-0000-0000-000000000003', p.id,
+  CASE 
+    WHEN p.name LIKE 'projects:%' THEN 'own'
+    WHEN p.name LIKE 'tasks:%' THEN 'project'
+    WHEN p.name LIKE 'time_entries:%' THEN 'own'
+    WHEN p.name LIKE 'notes:%' THEN 'project'
+    WHEN p.name LIKE 'messages:%' THEN 'project'
+    WHEN p.name LIKE 'comments:%' THEN 'project'
+    WHEN p.name LIKE 'analytics:%' THEN 'own'
+    WHEN p.name LIKE 'dashboards:%' THEN 'own'
+    WHEN p.name LIKE 'audit_logs:%' THEN 'own'
+    WHEN p.name LIKE 'notifications:%' THEN 'own'
+    WHEN p.name LIKE 'settings:%' THEN 'own'
+    ELSE 'own'
+  END
+FROM rbac_permissions p
+WHERE p.name IN (
   'projects:view',
-  -- Tasks: project scope
   'tasks:view', 'tasks:create', 'tasks:edit',
-  -- Time entries: own
   'time_entries:view', 'time_entries:perform',
-  -- Notes, messages, comments: project scope
   'notes:view', 'notes:create', 'notes:edit', 'notes:delete',
   'messages:view', 'messages:create', 'messages:edit', 'messages:delete', 'messages:send',
   'comments:view', 'comments:create', 'comments:edit',
-  -- Analytics, dashboards: own scope
   'analytics:view', 'dashboards:view', 'dashboards:create', 'dashboards:edit', 'dashboards:delete',
   'audit_logs:view',
-  -- Notifications: own
   'notifications:view',
-  -- Settings: own
   'settings:view', 'settings:edit'
 )
 ON CONFLICT (role_id, permission_id) DO NOTHING;

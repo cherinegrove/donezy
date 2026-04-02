@@ -4,7 +4,12 @@
 // ============================================================
 
 import { supabase } from "@/integrations/supabase/client";
-import type { RbacRole, RbacPermission } from "@/types/rbac";
+import type {
+  RbacRole,
+  RbacPermission,
+  RbacAssignedPermission,
+  RbacScope,
+} from "@/types/rbac";
 
 // ---- Typed DB row shapes (mirrors generated types) ----
 
@@ -23,6 +28,7 @@ interface RolePermRow {
   id?: string;
   role_id: string;
   permission_id?: string;
+  scope: RbacScope;
   permission: RbacPermission | null;
 }
 
@@ -37,7 +43,7 @@ interface PermIdRow {
  */
 function assembleRole(
   roleRow: RoleRow,
-  permissions: RbacPermission[],
+  permissions: RbacAssignedPermission[],
 ): RbacRole {
   return {
     id: roleRow.id,
@@ -73,20 +79,24 @@ export const roleService = {
         id,
         role_id,
         permission_id,
+        scope,
         permission:rbac_permissions(*)
       `);
 
     if (rpError) throw rpError;
 
     // Group permissions by role_id
-    const permsByRole: Record<string, RbacPermission[]> = {};
+    const permsByRole: Record<string, RbacAssignedPermission[]> = {};
     if (rolePerms) {
       for (const rp of rolePerms as unknown as RolePermRow[]) {
         if (!permsByRole[rp.role_id]) {
           permsByRole[rp.role_id] = [];
         }
         if (rp.permission) {
-          permsByRole[rp.role_id].push(rp.permission);
+          permsByRole[rp.role_id].push({
+            ...rp.permission,
+            scope: rp.scope,
+          });
         }
       }
     }
@@ -116,6 +126,7 @@ export const roleService = {
       .from("rbac_role_permissions")
       .select(
         `
+        scope,
         permission:rbac_permissions(*)
       `,
       )
@@ -123,11 +134,13 @@ export const roleService = {
 
     if (rpError) throw rpError;
 
-    const permissions: RbacPermission[] = (
+    const permissions: RbacAssignedPermission[] = (
       rolePerms as unknown as RolePermRow[]
     )
-      .map((rp) => rp.permission)
-      .filter((p): p is RbacPermission => p !== null);
+      .map((rp) =>
+        rp.permission ? { ...rp.permission, scope: rp.scope } : null,
+      )
+      .filter((p): p is RbacAssignedPermission => p !== null);
 
     return assembleRole(role as RoleRow, permissions);
   },
@@ -193,10 +206,14 @@ export const roleService = {
   /**
    * Assign a permission to a role
    */
-  async assignPermission(roleId: string, permissionId: string): Promise<void> {
+  async assignPermission(
+    roleId: string,
+    permissionId: string,
+    scope: RbacScope = "own",
+  ): Promise<void> {
     const { error } = await supabase
       .from("rbac_role_permissions")
-      .insert({ role_id: roleId, permission_id: permissionId });
+      .insert({ role_id: roleId, permission_id: permissionId, scope });
 
     if (error) throw error;
   },
@@ -217,7 +234,10 @@ export const roleService = {
   /**
    * Set all permissions for a role (replaces existing)
    */
-  async setPermissions(roleId: string, permissionIds: string[]): Promise<void> {
+  async setPermissions(
+    roleId: string,
+    permissions: { permissionId: string; scope: RbacScope }[],
+  ): Promise<void> {
     const { error: deleteError } = await supabase
       .from("rbac_role_permissions")
       .delete()
@@ -225,10 +245,11 @@ export const roleService = {
 
     if (deleteError) throw deleteError;
 
-    if (permissionIds.length > 0) {
-      const rows = permissionIds.map((pid) => ({
+    if (permissions.length > 0) {
+      const rows = permissions.map((p) => ({
         role_id: roleId,
-        permission_id: pid,
+        permission_id: p.permissionId,
+        scope: p.scope,
       }));
 
       const { error: insertError } = await supabase
@@ -240,15 +261,20 @@ export const roleService = {
   },
 
   /**
-   * Get permission IDs for a role
+   * Get assigned permissions with scopes
    */
-  async getPermissionIds(roleId: string): Promise<string[]> {
+  async getAssignedPermissions(
+    roleId: string,
+  ): Promise<{ permissionId: string; scope: RbacScope }[]> {
     const { data, error } = await supabase
       .from("rbac_role_permissions")
-      .select("permission_id")
+      .select("permission_id, scope")
       .eq("role_id", roleId);
 
     if (error) throw error;
-    return (data as PermIdRow[]).map((rp) => rp.permission_id);
+    return (data as any[]).map((rp) => ({
+      permissionId: rp.permission_id,
+      scope: rp.scope,
+    }));
   },
 };
