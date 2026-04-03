@@ -68,14 +68,22 @@ export const resourceService = {
    * Update resource
    */
   async update(id: string, updates: ResourceUpdate): Promise<RbacResource_DB> {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("rbac_resources")
       .update(updates)
-      .eq("id", id)
-      .select()
-      .single();
+      .eq("id", id);
 
     if (error) throw error;
+
+    // Re-fetch the row separately so the SELECT policy (USING true) is used,
+    // avoiding PGRST116 when the UPDATE's RETURNING is filtered by WITH CHECK.
+    const { data, error: fetchError } = await supabase
+      .from("rbac_resources")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (fetchError) throw fetchError;
     return data as RbacResource_DB;
   },
 

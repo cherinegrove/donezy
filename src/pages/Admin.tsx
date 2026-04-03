@@ -11,19 +11,42 @@ import { NativeFieldsManager } from "@/components/admin/NativeFieldsManager";
 import { SubscriptionManager } from "@/components/admin/SubscriptionManager";
 import { DataImportManager } from "@/components/admin/DataImportManager";
 import { TimeAudit } from "@/components/admin/TimeAudit";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AreaChart, BarChart3, Box, Database, Settings, ShieldAlert, Users, CheckSquare, Folder } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  AreaChart,
+  BarChart3,
+  Box,
+  Database,
+  Settings,
+  ShieldAlert,
+  Users,
+  CheckSquare,
+  Folder,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Clients from "@/pages/Clients";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { SystemPreferences } from "@/components/admin/SystemPreferences";
 import { DefaultNotificationSettings } from "@/components/admin/DefaultNotificationSettings";
 import { EmailTemplatesManager } from "@/components/admin/EmailTemplatesManager";
 
 // Helper to check if user has admin system role
 const hasAdminRole = (user: any) => {
-  return user?.systemRoles?.includes('platform_admin') || 
-         user?.systemRoles?.includes('support_admin');
+  return (
+    user?.systemRoles?.includes("platform_admin") ||
+    user?.systemRoles?.includes("support_admin")
+  );
 };
 
 const Admin = () => {
@@ -53,10 +76,16 @@ const Admin = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Manage users, teams, and monitor system activity</p>
+        <p className="text-muted-foreground">
+          Manage users, teams, and monitor system activity
+        </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-6"
+      >
         <TabsList className="flex-wrap h-auto p-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
@@ -66,6 +95,10 @@ const Admin = () => {
           <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="activity">Activity Log</TabsTrigger>
+          <TabsTrigger value="roles">Roles</TabsTrigger>
+          <TabsTrigger value="rbac-roles">RBAC Roles</TabsTrigger>
+          <TabsTrigger value="permissions">RBAC Permissions</TabsTrigger>
+          <TabsTrigger value="resources">RBAC Resources</TabsTrigger>
           <TabsTrigger value="account-settings">Account Settings</TabsTrigger>
         </TabsList>
 
@@ -73,7 +106,9 @@ const Admin = () => {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Total Users
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
@@ -87,42 +122,61 @@ const Admin = () => {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Seat Usage</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Seat Usage
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <div className="text-2xl font-bold">{Math.round(seatUsagePercentage)}%</div>
+                  <div className="text-2xl font-bold">
+                    {Math.round(seatUsagePercentage)}%
+                  </div>
                   <Box className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  {seatUsagePercentage >= 80 ? "Near capacity" : "Available capacity"}
+                  {seatUsagePercentage >= 80
+                    ? "Near capacity"
+                    : "Available capacity"}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">System Status</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  System Status
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">Healthy</Badge>
+                    <Badge
+                      variant="outline"
+                      className="bg-green-500/10 text-green-500 border-green-500/20"
+                    >
+                      Healthy
+                    </Badge>
                   </div>
                   <ShieldAlert className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">100% uptime last 30 days</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  100% uptime last 30 days
+                </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Storage Used</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Storage Used
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="text-2xl font-bold">68%</div>
                   <Database className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">5.4GB of 8GB</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  5.4GB of 8GB
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -134,11 +188,15 @@ const Admin = () => {
                   <AreaChart className="h-5 w-5 text-primary" />
                   User Activity
                 </CardTitle>
-                <CardDescription>User logins over the past 30 days</CardDescription>
+                <CardDescription>
+                  User logins over the past 30 days
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px] flex items-center justify-center border rounded-md bg-muted/40">
-                  <p className="text-muted-foreground text-sm">User activity chart placeholder</p>
+                  <p className="text-muted-foreground text-sm">
+                    User activity chart placeholder
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -152,7 +210,9 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 <div className="h-[300px] flex items-center justify-center border rounded-md bg-muted/40">
-                  <p className="text-muted-foreground text-sm">Resource usage chart placeholder</p>
+                  <p className="text-muted-foreground text-sm">
+                    Resource usage chart placeholder
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -183,9 +243,24 @@ const Admin = () => {
           <AdminTeams />
         </TabsContent>
 
-
         <TabsContent value="activity" className="space-y-6">
           <AdminActivity />
+        </TabsContent>
+
+        <TabsContent value="roles" className="space-y-6">
+          <AdminRoles />
+        </TabsContent>
+
+        <TabsContent value="rbac-roles" className="space-y-6">
+          <RbacRoles />
+        </TabsContent>
+
+        <TabsContent value="permissions" className="space-y-6">
+          <RbacPermissions />
+        </TabsContent>
+
+        <TabsContent value="resources" className="space-y-6">
+          <RbacResources />
         </TabsContent>
 
         <TabsContent value="account-settings" className="space-y-6">
@@ -196,7 +271,9 @@ const Admin = () => {
                   <Settings className="h-5 w-5 text-primary" />
                   <div className="text-left">
                     <h3 className="font-semibold">Account Settings</h3>
-                    <p className="text-sm text-muted-foreground">Manage custom fields and global system settings</p>
+                    <p className="text-sm text-muted-foreground">
+                      Manage custom fields and global system settings
+                    </p>
                   </div>
                 </div>
               </div>

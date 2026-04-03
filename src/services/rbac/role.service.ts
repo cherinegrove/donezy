@@ -176,16 +176,16 @@ export const roleService = {
       color: string;
     }>,
   ): Promise<RbacRole> {
+    // Plain PATCH without .select() to avoid sending "Prefer: return=representation"
+    // which triggers a restrictive CORS preflight on some Supabase configurations.
     const { error } = await supabase
       .from("rbac_roles")
       .update(updates)
-      .eq("id", id)
-      .select()
-      .single();
+      .eq("id", id);
 
     if (error) throw error;
 
-    // Reload full role with permissions
+    // Re-fetch the full role with permissions via GET (always allowed by CORS).
     return (await this.getById(id))!;
   },
 

@@ -1,28 +1,80 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useState, useEffect, useCallback } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Plus, Edit, Trash2, Shield } from "lucide-react";
 import { resourceService } from "@/services/rbac";
 import type { RbacResource_DB } from "@/types/rbac";
+import { RbacResourcesDialog } from "./RbacResourcesDialog";
 
 export default function RbacResources() {
   const [resources, setResources] = useState<RbacResource_DB[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await resourceService.getAll();
-        setResources(data);
-      } catch (err) {
-        console.error("Failed to load resources", err);
-      } finally {
-        setLoading(false);
-      }
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingResource, setEditingResource] = useState<RbacResource_DB | null>(null);
+
+  const loadResources = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await resourceService.getAll();
+      setResources(data);
+    } catch (err) {
+      console.error("Failed to load resources", err);
+    } finally {
+      setLoading(false);
     }
-    load();
   }, []);
+
+  useEffect(() => {
+    loadResources();
+  }, [loadResources]);
+
+  const handleCreateClick = () => {
+    setEditingResource(null);
+    setDialogOpen(true);
+  };
+
+  const handleEditClick = (resource: RbacResource_DB) => {
+    setEditingResource(resource);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteClick = async (resource: RbacResource_DB) => {
+    if (
+      !confirm(
+        `Delete resource "${resource.display_name}"?\n\nThis will also remove all permissions associated with it.`,
+      )
+    )
+      return;
+
+    try {
+      await resourceService.delete(resource.id);
+      await loadResources();
+    } catch (err) {
+      console.error("Failed to delete resource", err);
+      alert("Failed to delete the resource. It may have associated permissions.");
+    }
+  };
+
+  const handleDialogSuccess = async () => {
+    setDialogOpen(false);
+    await loadResources();
+  };
 
   return (
     <div className="space-y-6">
@@ -33,6 +85,10 @@ export default function RbacResources() {
             System resources available for role-based access control.
           </p>
         </div>
+        <Button onClick={handleCreateClick}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Resource
+        </Button>
       </div>
 
       <Card>
@@ -50,12 +106,16 @@ export default function RbacResources() {
                   <TableHead>Resource ID</TableHead>
                   <TableHead>Display Name</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                    <TableCell
+                      colSpan={4}
+                      className="text-center py-8 text-muted-foreground"
+                    >
                       Loading resources...
                     </TableCell>
                   </TableRow>
@@ -65,15 +125,40 @@ export default function RbacResources() {
                       <TableCell className="font-mono text-sm">
                         <Badge variant="outline">{resource.name}</Badge>
                       </TableCell>
-                      <TableCell className="font-medium">{resource.display_name}</TableCell>
+                      <TableCell className="font-medium">
+                        {resource.display_name}
+                      </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
-                        {resource.description || "-"}
+                        {resource.description || (
+                          <span className="italic opacity-50">No description</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditClick(resource)}
+                          >
+                            <Edit className="h-3.5 w-3.5 mr-1.5" /> Edit
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteClick(resource)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                    <TableCell
+                      colSpan={4}
+                      className="text-center py-8 text-muted-foreground"
+                    >
                       <Shield className="h-10 w-10 mx-auto mb-2 opacity-20" />
                       No resources found
                     </TableCell>
@@ -84,6 +169,13 @@ export default function RbacResources() {
           </div>
         </CardContent>
       </Card>
+
+      <RbacResourcesDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        resource={editingResource}
+        onSuccess={handleDialogSuccess}
+      />
     </div>
   );
 }
