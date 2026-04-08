@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -317,8 +316,10 @@ const App = () => {
                     />
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/activity" element={<Activity />} />
-                    <Route path="*" element={<NotFound />} />
                   </Route>
+                  
+                  {/* Catch-all 404 route - must be last */}
+                  <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
               <Toaster />
