@@ -265,12 +265,12 @@ const App = () => {
                   {/* Admin Portal (multi-tenant) - separate layout */}
                   <Route path="/admin-portal" element={<ProtectedRoute element={<AdminPortalLayout />} />}>
                     <Route index element={<AdminPortalDashboard />} />
-                    <Route path="accounts" element={<AdminPortalAccounts />} />
-                    <Route path="accounts/:accountId" element={<AdminPortalAccountDetail />} />
-                    <Route path="financials" element={<AdminPortalFinancials />} />
-                    <Route path="notifications" element={<AdminPortalNotifications />} />
-                    <Route path="audit-log" element={<AdminPortalAuditLog />} />
-                    <Route path="settings" element={<AdminPortalSettings />} />
+                    <Route path="/admin-portal/accounts" element={<AdminPortalAccounts />} />
+                    <Route path="/admin-portal/accounts/:accountId" element={<AdminPortalAccountDetail />} />
+                    <Route path="/admin-portal/financials" element={<AdminPortalFinancials />} />
+                    <Route path="/admin-portal/notifications" element={<AdminPortalNotifications />} />
+                    <Route path="/admin-portal/audit-log" element={<AdminPortalAuditLog />} />
+                    <Route path="/admin-portal/settings" element={<AdminPortalSettings />} />
                   </Route>
                   
                   {/* Protected routes */}
