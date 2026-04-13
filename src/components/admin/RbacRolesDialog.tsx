@@ -21,6 +21,7 @@ import { Edit, Plus, Save, X, AlertTriangle } from "lucide-react";
 import { roleService } from "@/services/rbac";
 import type { RbacRole, RbacPermission, RbacScope } from "@/types/rbac";
 import { RBAC_RESOURCES, RBAC_SCOPES } from "@/types/rbac";
+import { useToast } from "@/hooks/use-toast";
 
 interface RbacRolesDialogProps {
   open: boolean;
@@ -37,6 +38,8 @@ export function RbacRolesDialog({
   permissionsByResource,
   onSuccess,
 }: RbacRolesDialogProps) {
+  const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<{
     name: string;
     description: string;
@@ -76,6 +79,8 @@ export function RbacRolesDialog({
   }, [open, role]);
 
   const handleSaveRole = async () => {
+    if (saving) return;
+    setSaving(true);
     try {
       let savedRole: RbacRole;
       if (role) {
@@ -101,10 +106,24 @@ export function RbacRolesDialog({
       );
       await roleService.setPermissions(savedRole.id, selectedArray);
 
+      toast({
+        title: role ? "Role updated" : "Role created",
+        description: role
+          ? `"${formData.name}" has been updated successfully.`
+          : `"${formData.name}" has been created successfully.`,
+      });
       onSuccess();
     } catch (err) {
       console.error("Failed to save role", err);
-      alert("Failed to save role. Please check the console.");
+      const msg =
+        err instanceof Error ? err.message : "Please check the console.";
+      toast({
+        title: "Save failed",
+        description: msg,
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -357,9 +376,12 @@ export function RbacRolesDialog({
               <X className="h-4 w-4 mr-2" />
               Cancel
             </Button>
-            <Button onClick={handleSaveRole} disabled={!formData.name.trim()}>
+            <Button
+              onClick={handleSaveRole}
+              disabled={!formData.name.trim() || saving}
+            >
               <Save className="h-4 w-4 mr-2" />
-              {role ? "Update Role" : "Create Role"}
+              {saving ? "Saving…" : role ? "Update Role" : "Create Role"}
             </Button>
           </div>
         </div>

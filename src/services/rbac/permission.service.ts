@@ -4,12 +4,7 @@
 // ============================================================
 
 import { supabase } from "@/integrations/supabase/client";
-import type {
-  RbacPermission,
-  RbacResource,
-  RbacAction,
-  RbacScope,
-} from "@/types/rbac";
+import type { RbacPermission, RbacResource, RbacAction } from "@/types/rbac";
 
 export const permissionService = {
   /**
@@ -83,7 +78,6 @@ export const permissionService = {
     name: string;
     resource: RbacResource;
     action: RbacAction;
-    scope: RbacScope;
     description?: string;
   }): Promise<RbacPermission> {
     const { data, error } = await supabase
@@ -105,19 +99,19 @@ export const permissionService = {
       name: string;
       resource: RbacResource;
       action: RbacAction;
-      scope: RbacScope;
       description: string;
     }>,
   ): Promise<RbacPermission> {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("rbac_permissions")
       .update(updates)
-      .eq("id", id)
-      .select()
-      .single();
+      .eq("id", id);
 
     if (error) throw error;
-    return data as RbacPermission;
+
+    const updated = await this.getById(id);
+    if (!updated) throw new Error("Permission not found after update");
+    return updated;
   },
 
   /**

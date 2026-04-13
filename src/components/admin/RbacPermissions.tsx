@@ -1,36 +1,99 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useState, useEffect, useCallback } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Key } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Shield, Key, Plus, Edit, Trash2 } from "lucide-react";
 import { permissionService } from "@/services/rbac";
-import type { RbacPermission } from "@/types/rbac";
+import type { RbacPermission, RbacResource } from "@/types/rbac";
+import { RBAC_RESOURCES } from "@/types/rbac";
+import { RbacPermissionDialog } from "./RbacPermissionDialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RbacPermissions() {
-  const [groupedPermissions, setGroupedPermissions] = useState<Record<string, RbacPermission[]>>({});
+  const { toast } = useToast();
+
+  const [groupedPermissions, setGroupedPermissions] = useState<
+    Record<string, RbacPermission[]>
+  >({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await permissionService.getGroupedByResource();
-        setGroupedPermissions(data);
-      } catch (err) {
-        console.error("Failed to load permissions", err);
-      } finally {
-        setLoading(false);
-      }
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingPermission, setEditingPermission] =
+    useState<RbacPermission | null>(null);
+  const [defaultResource, setDefaultResource] = useState<
+    RbacResource | undefined
+  >(undefined);
+
+  const loadPermissions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await permissionService.getGroupedByResource();
+      setGroupedPermissions(data);
+    } catch (err) {
+      console.error("Failed to load permissions", err);
+    } finally {
+      setLoading(false);
     }
-    load();
   }, []);
 
-  const getScopeBadgeColor = (scope: string) => {
-    switch (scope) {
-      case "all": return "bg-red-500/10 text-red-500 border-red-500/20";
-      case "project": return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-      case "own": return "bg-green-500/10 text-green-500 border-green-500/20";
-      default: return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+  useEffect(() => {
+    loadPermissions();
+  }, [loadPermissions]);
+
+  const handleCreateClick = (resource?: RbacResource) => {
+    setEditingPermission(null);
+    setDefaultResource(resource);
+    setDialogOpen(true);
+  };
+
+  const handleEditClick = (permission: RbacPermission) => {
+    setEditingPermission(permission);
+    setDefaultResource(undefined);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteClick = async (permission: RbacPermission) => {
+    if (
+      !confirm(
+        `Delete permission "${permission.name}"?\n\nThis will remove it from all roles that use it.`,
+      )
+    )
+      return;
+
+    try {
+      await permissionService.delete(permission.id);
+      toast({
+        title: "Permission deleted",
+        description: `"${permission.name}" has been removed.`,
+      });
+      await loadPermissions();
+    } catch (err) {
+      console.error("Failed to delete permission", err);
+      toast({
+        title: "Delete failed",
+        description: "This permission may still be assigned to roles.",
+        variant: "destructive",
+      });
     }
+  };
+
+  const handleDialogSuccess = async () => {
+    setDialogOpen(false);
+    await loadPermissions();
   };
 
   return (
@@ -39,9 +102,14 @@ export default function RbacPermissions() {
         <div>
           <h2 className="text-2xl font-bold">System Permissions</h2>
           <p className="text-muted-foreground mt-1">
-            Granular permissions that define what actions can be performed on resources.
+            Granular permissions that define what actions can be performed on
+            resources.
           </p>
         </div>
+        <Button onClick={() => handleCreateClick()}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Permission
+        </Button>
       </div>
 
       {loading ? (
@@ -55,21 +123,42 @@ export default function RbacPermissions() {
           {Object.entries(groupedPermissions).map(([resource, permissions]) => (
             <Card key={resource} className="overflow-hidden">
               <CardHeader className="bg-muted/30 border-b py-4">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Key className="h-4 w-4" />
-                  Resource: <span className="font-mono text-sm px-2 py-1 bg-background border rounded-md">{resource}</span>
-                </CardTitle>
-                <CardDescription>
-                  {permissions.length} permission(s) defined for this resource
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Key className="h-4 w-4" />
+                      Resource:{" "}
+                      <span className="font-mono text-sm px-2 py-1 bg-background border rounded-md">
+                        {resource}
+                      </span>
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      {permissions.length} permission(s) defined for this
+                      resource
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCreateClick(resource as RbacResource)}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1.5" />
+                    Add to {RBAC_RESOURCES.find((r) => r.value === resource)?.label ?? resource}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[30%]">Permission Name</TableHead>
+                      <TableHead className="w-[30%]">
+                        Permission Name
+                      </TableHead>
                       <TableHead className="w-[20%]">Action</TableHead>
                       <TableHead>Description</TableHead>
+                      <TableHead className="text-right w-[130px]">
+                        Actions
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -82,7 +171,29 @@ export default function RbacPermissions() {
                           <Badge variant="outline">{perm.action}</Badge>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {perm.description || "-"}
+                          {perm.description || (
+                            <span className="italic opacity-50">
+                              No description
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditClick(perm)}
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteClick(perm)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -96,11 +207,21 @@ export default function RbacPermissions() {
         <Card>
           <CardContent className="py-16 text-center text-muted-foreground">
             <Shield className="h-10 w-10 mx-auto mb-4 opacity-20" />
-            <h3 className="text-lg font-medium text-foreground mb-1">No Permissions Found</h3>
+            <h3 className="text-lg font-medium text-foreground mb-1">
+              No Permissions Found
+            </h3>
             <p>The system currently has no permissions defined.</p>
           </CardContent>
         </Card>
       )}
+
+      <RbacPermissionDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        permission={editingPermission}
+        defaultResource={defaultResource}
+        onSuccess={handleDialogSuccess}
+      />
     </div>
   );
 }

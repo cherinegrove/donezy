@@ -13,6 +13,7 @@ import {
 import { Edit, Plus, Save, X } from "lucide-react";
 import { resourceService } from "@/services/rbac";
 import type { RbacResource_DB } from "@/types/rbac";
+import { useToast } from "@/hooks/use-toast";
 
 interface RbacResourcesDialogProps {
   open: boolean;
@@ -28,6 +29,7 @@ export function RbacResourcesDialog({
   resource,
   onSuccess,
 }: RbacResourcesDialogProps) {
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
     display_name: "",
@@ -63,11 +65,19 @@ export function RbacResourcesDialog({
           display_name: formData.display_name.trim(),
           description: formData.description.trim() || undefined,
         });
+        toast({
+          title: "Resource updated",
+          description: `"${formData.display_name.trim()}" has been updated successfully.`,
+        });
       } else {
         await resourceService.create({
           name: formData.name.trim().toLowerCase().replace(/\s+/g, "_"),
           display_name: formData.display_name.trim(),
           description: formData.description.trim() || undefined,
+        });
+        toast({
+          title: "Resource created",
+          description: `"${formData.display_name.trim()}" has been created successfully.`,
         });
       }
       onSuccess();
@@ -79,6 +89,11 @@ export function RbacResourcesDialog({
             ? String((err as { message: unknown }).message)
             : "Unknown error";
       console.error("Failed to save resource:", msg, err);
+      toast({
+        title: resource ? "Update failed" : "Create failed",
+        description: msg,
+        variant: "destructive",
+      });
       setError(`Failed to save: ${msg}`);
     } finally {
       setSaving(false);

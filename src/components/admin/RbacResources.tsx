@@ -20,8 +20,10 @@ import { Plus, Edit, Trash2, Shield } from "lucide-react";
 import { resourceService } from "@/services/rbac";
 import type { RbacResource_DB } from "@/types/rbac";
 import { RbacResourcesDialog } from "./RbacResourcesDialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RbacResources() {
+  const { toast } = useToast();
   const [resources, setResources] = useState<RbacResource_DB[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -64,10 +66,18 @@ export default function RbacResources() {
 
     try {
       await resourceService.delete(resource.id);
+      toast({
+        title: "Resource deleted",
+        description: `"${resource.display_name}" has been removed.`,
+      });
       await loadResources();
     } catch (err) {
       console.error("Failed to delete resource", err);
-      alert("Failed to delete the resource. It may have associated permissions.");
+      toast({
+        title: "Delete failed",
+        description: "This resource may have associated permissions.",
+        variant: "destructive",
+      });
     }
   };
 

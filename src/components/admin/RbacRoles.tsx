@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,10 +13,12 @@ import { RbacRolesDialog } from "./RbacRolesDialog";
 import { Shield, Plus, Edit, Trash2, Info, User } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { roleService, permissionService } from "@/services/rbac";
-import type { RbacRole, RbacPermission, RbacScope } from "@/types/rbac";
-import { RBAC_RESOURCES, RBAC_SCOPES } from "@/types/rbac";
+import type { RbacRole, RbacPermission } from "@/types/rbac";
+import { RBAC_RESOURCES } from "@/types/rbac";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RbacRoles() {
+  const { toast } = useToast();
   const [roles, setRoles] = useState<RbacRole[]>([]);
   const [permissionsByResource, setPermissionsByResource] = useState<
     Record<string, RbacPermission[]>
@@ -26,7 +28,7 @@ export default function RbacRoles() {
   const [isCreating, setIsCreating] = useState(false);
   const [editingRole, setEditingRole] = useState<RbacRole | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [fetchedRoles, fetchedPerms] = await Promise.all([
@@ -40,11 +42,11 @@ export default function RbacRoles() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleCreateRole = () => {
     setIsCreating(true);
@@ -56,7 +58,7 @@ export default function RbacRoles() {
     setIsCreating(false);
   };
 
-  const handleDeleteRole = async (roleId: string) => {
+  const handleDeleteRole = async (roleId: string, roleName: string) => {
     if (
       !confirm(
         "Are you sure you want to delete this role? Users assigned to this role will lose its permissions.",
@@ -66,10 +68,18 @@ export default function RbacRoles() {
 
     try {
       await roleService.delete(roleId);
+      toast({
+        title: "Role deleted",
+        description: `"${roleName}" has been removed.`,
+      });
       await loadData();
     } catch (err) {
       console.error("Failed to delete role", err);
-      alert("Failed to delete role. It might be a system role.");
+      toast({
+        title: "Delete failed",
+        description: "This may be a system role that cannot be deleted.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -218,7 +228,7 @@ export default function RbacRoles() {
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleDeleteRole(role.id)}
+                          onClick={() => handleDeleteRole(role.id, role.name)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

@@ -41,6 +41,11 @@ import { SystemPreferences } from "@/components/admin/SystemPreferences";
 import { DefaultNotificationSettings } from "@/components/admin/DefaultNotificationSettings";
 import { EmailTemplatesManager } from "@/components/admin/EmailTemplatesManager";
 
+import AdminRoles from "@/components/admin/AdminRoles";
+import RbacPermissions from "@/components/admin/RbacPermissions";
+import RbacResources from "@/components/admin/RbacResources";
+import RbacRoles from "@/components/admin/RbacRoles";
+
 // Helper to check if user has admin system role
 const hasAdminRole = (user: any) => {
   return (
