@@ -9,6 +9,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { RbacRolesDialog } from "./RbacRolesDialog";
 import { Shield, Plus, Edit, Trash2, Info, User } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -27,6 +37,12 @@ export default function RbacRoles() {
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [editingRole, setEditingRole] = useState<RbacRole | null>(null);
+
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -58,19 +74,18 @@ export default function RbacRoles() {
     setIsCreating(false);
   };
 
-  const handleDeleteRole = async (roleId: string, roleName: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this role? Users assigned to this role will lose its permissions.",
-      )
-    )
-      return;
+  const handleDeleteRole = (roleId: string, roleName: string) => {
+    setDeleteTarget({ id: roleId, name: roleName });
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await roleService.delete(roleId);
+      await roleService.delete(deleteTarget.id);
       toast({
         title: "Role deleted",
-        description: `"${roleName}" has been removed.`,
+        description: `"${deleteTarget.name}" has been removed.`,
       });
       await loadData();
     } catch (err) {
@@ -80,6 +95,9 @@ export default function RbacRoles() {
         description: "This may be a system role that cannot be deleted.",
         variant: "destructive",
       });
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -250,6 +268,34 @@ export default function RbacRoles() {
           </TableBody>
         </Table>
       </div>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Role</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete{" "}
+              <span className="font-medium text-foreground">
+                {deleteTarget?.name}
+              </span>
+              ? Users assigned to this role will lose its permissions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

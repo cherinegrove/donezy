@@ -16,6 +16,16 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Shield, Key, Plus, Edit, Trash2 } from "lucide-react";
 import { permissionService } from "@/services/rbac";
 import type { RbacPermission, RbacResource } from "@/types/rbac";
@@ -37,6 +47,9 @@ export default function RbacPermissions() {
   const [defaultResource, setDefaultResource] = useState<
     RbacResource | undefined
   >(undefined);
+
+  const [deleteTarget, setDeleteTarget] = useState<RbacPermission | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadPermissions = useCallback(async () => {
     setLoading(true);
@@ -66,19 +79,18 @@ export default function RbacPermissions() {
     setDialogOpen(true);
   };
 
-  const handleDeleteClick = async (permission: RbacPermission) => {
-    if (
-      !confirm(
-        `Delete permission "${permission.name}"?\n\nThis will remove it from all roles that use it.`,
-      )
-    )
-      return;
+  const handleDeleteClick = (permission: RbacPermission) => {
+    setDeleteTarget(permission);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await permissionService.delete(permission.id);
+      await permissionService.delete(deleteTarget.id);
       toast({
         title: "Permission deleted",
-        description: `"${permission.name}" has been removed.`,
+        description: `"${deleteTarget.name}" has been removed.`,
       });
       await loadPermissions();
     } catch (err) {
@@ -88,6 +100,9 @@ export default function RbacPermissions() {
         description: "This permission may still be assigned to roles.",
         variant: "destructive",
       });
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -222,6 +237,34 @@ export default function RbacPermissions() {
         defaultResource={defaultResource}
         onSuccess={handleDialogSuccess}
       />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Permission</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete{" "}
+              <span className="font-mono font-medium text-foreground">
+                {deleteTarget?.name}
+              </span>
+              ? This will remove it from all roles that use it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

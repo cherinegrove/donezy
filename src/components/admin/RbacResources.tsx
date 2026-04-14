@@ -16,6 +16,16 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Plus, Edit, Trash2, Shield } from "lucide-react";
 import { resourceService } from "@/services/rbac";
 import type { RbacResource_DB } from "@/types/rbac";
@@ -29,6 +39,9 @@ export default function RbacResources() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<RbacResource_DB | null>(null);
+
+  const [deleteTarget, setDeleteTarget] = useState<RbacResource_DB | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadResources = useCallback(async () => {
     setLoading(true);
@@ -56,19 +69,18 @@ export default function RbacResources() {
     setDialogOpen(true);
   };
 
-  const handleDeleteClick = async (resource: RbacResource_DB) => {
-    if (
-      !confirm(
-        `Delete resource "${resource.display_name}"?\n\nThis will also remove all permissions associated with it.`,
-      )
-    )
-      return;
+  const handleDeleteClick = (resource: RbacResource_DB) => {
+    setDeleteTarget(resource);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await resourceService.delete(resource.id);
+      await resourceService.delete(deleteTarget.id);
       toast({
         title: "Resource deleted",
-        description: `"${resource.display_name}" has been removed.`,
+        description: `"${deleteTarget.display_name}" has been removed.`,
       });
       await loadResources();
     } catch (err) {
@@ -78,6 +90,9 @@ export default function RbacResources() {
         description: "This resource may have associated permissions.",
         variant: "destructive",
       });
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -186,6 +201,34 @@ export default function RbacResources() {
         resource={editingResource}
         onSuccess={handleDialogSuccess}
       />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Resource</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete{" "}
+              <span className="font-medium text-foreground">
+                {deleteTarget?.display_name}
+              </span>
+              ? This will also remove all permissions associated with it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
