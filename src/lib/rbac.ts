@@ -48,10 +48,6 @@ export function hasPermission(
 ): boolean {
   if (!user) return false;
 
-  // Legacy fallback: platform_admin bypasses all checks
-  if (user.systemRoles?.includes("platform_admin")) return true;
-  if (user.systemRoles?.includes("support_admin")) return true;
-
   const roles = user.rbacRoles;
   if (!roles || roles.length === 0) return false;
 
@@ -104,10 +100,6 @@ export function canAccess(
   context: PermissionContext = {}
 ): boolean {
   if (!user) return false;
-
-  // Legacy fallback
-  if (user.systemRoles?.includes("platform_admin")) return true;
-  if (user.systemRoles?.includes("support_admin")) return true;
 
   const roles = user.rbacRoles;
   if (!roles || roles.length === 0) return false;
@@ -177,14 +169,6 @@ export function getEffectiveScope(
 ): RbacScope | null {
   if (!user) return null;
 
-  // Legacy admin bypass
-  if (
-    user.systemRoles?.includes("platform_admin") ||
-    user.systemRoles?.includes("support_admin")
-  ) {
-    return "all";
-  }
-
   const roles = user.rbacRoles;
   if (!roles || roles.length === 0) return null;
 
@@ -216,14 +200,6 @@ export function getEffectiveScope(
 export function isRbacAdmin(user: User | null | undefined): boolean {
   if (!user) return false;
 
-  // Legacy check
-  if (
-    user.systemRoles?.includes("platform_admin") ||
-    user.systemRoles?.includes("support_admin")
-  ) {
-    return true;
-  }
-
   // RBAC check: user has platform_settings:edit (only admins have this)
   return hasPermission(user, "platform_settings", "edit", "all");
 }
@@ -253,11 +229,7 @@ export function getAllPermissions(
 /** Get all role names for a user */
 export function getRoleNames(user: User | null | undefined): string[] {
   if (!user?.rbacRoles) {
-    // Fallback to legacy
-    if (user?.systemRoles?.includes("platform_admin"))
-      return ["Platform Superadmin"];
-    if (user?.systemRoles?.includes("support_admin")) return ["Support Admin"];
-    return ["User"];
+    return [];
   }
 
   return user.rbacRoles.map((r) => r.name);
