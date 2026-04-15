@@ -1,19 +1,59 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { AppContextType } from './AppContextType';
-import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, TaskStatusDefinition, ProjectStatusDefinition, CustomField, TaskStatus, TimeEntryStatus, TaskFile } from "@/types";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { AppContextType } from "./AppContextType";
+import {
+  User,
+  Team,
+  Client,
+  Project,
+  Task,
+  TimeEntry,
+  Message,
+  Purchase,
+  ProjectTemplate,
+  CustomRole,
+  Note,
+  TaskLog,
+  TaskStatusDefinition,
+  ProjectStatusDefinition,
+  CustomField,
+  TaskStatus,
+  TimeEntryStatus,
+  TaskFile,
+} from "@/types";
 import { CustomDashboard, SavedReport } from "@/types/dashboard";
-import { supabase } from '@/integrations/supabase/client';
-import { Session } from '@supabase/supabase-js';
-import { mockUsers, mockTeams, mockClients, mockProjects, mockTasks, mockTimeEntries, mockMessages, mockPurchases, mockProjectTemplates, mockTaskTemplates, mockCustomRoles, mockCustomFields, mockDashboards } from "@/data/mockData";
-import { useToast } from '@/hooks/use-toast';
-import { logTimeEntryEvent } from '@/utils/timeEntryEventLogger';
+import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
+import {
+  mockUsers,
+  mockTeams,
+  mockClients,
+  mockProjects,
+  mockTasks,
+  mockTimeEntries,
+  mockMessages,
+  mockPurchases,
+  mockProjectTemplates,
+  mockTaskTemplates,
+  mockCustomRoles,
+  mockCustomFields,
+  mockDashboards,
+} from "@/data/mockData";
+import { useToast } from "@/hooks/use-toast";
+import { logTimeEntryEvent } from "@/utils/timeEntryEventLogger";
+import { userRoleService } from "@/services/rbac";
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const useAppContext = () => {
   const context = useContext(AppContext);
   if (context === undefined) {
-    throw new Error('useAppContext must be used within an AppProvider');
+    throw new Error("useAppContext must be used within an AppProvider");
   }
   return context;
 };
@@ -35,31 +75,55 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [projectTemplates, setProjectTemplates] = useState<ProjectTemplate[]>([]);
+  const [projectTemplates, setProjectTemplates] = useState<ProjectTemplate[]>(
+    [],
+  );
   const [taskTemplates, setTaskTemplates] = useState<any[]>([]);
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
-  const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(null);
+  const [activeTimeEntry, setActiveTimeEntry] = useState<TimeEntry | null>(
+    null,
+  );
   const [pausedTimeEntries, setPausedTimeEntries] = useState<TimeEntry[]>([]);
   const [isTimerPaused, setIsTimerPaused] = useState<boolean>(false);
   const [pausedAt, setPausedAt] = useState<Date | null>(null);
   const [totalPausedTime, setTotalPausedTime] = useState<number>(0);
   const [taskLogs, setTaskLogs] = useState<TaskLog[]>([]);
   const [taskStatuses, setTaskStatuses] = useState<TaskStatusDefinition[]>([
-    { id: '1', label: 'Backlog', value: 'backlog', color: 'bg-gray-500', order: 0 },
-    { id: '2', label: 'To Do', value: 'todo', color: 'bg-blue-500', order: 1 },
-    { id: '3', label: 'In Progress', value: 'in-progress', color: 'bg-yellow-500', order: 2 },
-    { id: '4', label: 'Review/Awaiting Feedback', value: 'review', color: 'bg-orange-500', order: 3 },
-    { id: '5', label: 'Done', value: 'done', color: 'bg-green-500', order: 4 },
+    {
+      id: "1",
+      label: "Backlog",
+      value: "backlog",
+      color: "bg-gray-500",
+      order: 0,
+    },
+    { id: "2", label: "To Do", value: "todo", color: "bg-blue-500", order: 1 },
+    {
+      id: "3",
+      label: "In Progress",
+      value: "in-progress",
+      color: "bg-yellow-500",
+      order: 2,
+    },
+    {
+      id: "4",
+      label: "Review/Awaiting Feedback",
+      value: "review",
+      color: "bg-orange-500",
+      order: 3,
+    },
+    { id: "5", label: "Done", value: "done", color: "bg-green-500", order: 4 },
   ]);
-  const [projectStatuses, setProjectStatuses] = useState<ProjectStatusDefinition[]>([]);
+  const [projectStatuses, setProjectStatuses] = useState<
+    ProjectStatusDefinition[]
+  >([]);
   const [customDashboards, setCustomDashboards] = useState<CustomDashboard[]>([
     {
-      id: 'projects-dashboard',
-      name: 'Projects Dashboard',
-      description: 'Custom reports for projects',
+      id: "projects-dashboard",
+      name: "Projects Dashboard",
+      description: "Custom reports for projects",
       reportIds: [],
       layout: [],
       isDefault: false,
@@ -67,9 +131,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       updatedAt: new Date().toISOString(),
     },
     {
-      id: 'tasks-dashboard', 
-      name: 'Tasks Dashboard',
-      description: 'Custom reports for tasks',
+      id: "tasks-dashboard",
+      name: "Tasks Dashboard",
+      description: "Custom reports for tasks",
       reportIds: [],
       layout: [],
       isDefault: false,
@@ -77,9 +141,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       updatedAt: new Date().toISOString(),
     },
     {
-      id: 'time-dashboard',
-      name: 'Time Dashboard', 
-      description: 'Custom reports for time entries',
+      id: "time-dashboard",
+      name: "Time Dashboard",
+      description: "Custom reports for time entries",
       reportIds: [],
       layout: [],
       isDefault: false,
@@ -87,9 +151,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       updatedAt: new Date().toISOString(),
     },
     {
-      id: 'billing-dashboard',
-      name: 'Billing Dashboard',
-      description: 'Custom reports for billing and purchases', 
+      id: "billing-dashboard",
+      name: "Billing Dashboard",
+      description: "Custom reports for billing and purchases",
       reportIds: [],
       layout: [],
       isDefault: false,
@@ -102,7 +166,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Helper function to safely parse JSON fields
   const safeParseJson = (value: any, defaultValue: any = {}) => {
     if (value === null || value === undefined) return defaultValue;
-    if (typeof value === 'object') return value;
+    if (typeof value === "object") return value;
     try {
       return JSON.parse(value);
     } catch {
@@ -133,35 +197,38 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       clientRole: dbUser.client_role || undefined,
       permissions: safeParseJson(dbUser.permissions, {}),
       managerId: dbUser.manager_id || undefined,
-      notificationPreferences: safeParseJson(dbUser.notification_preferences, {}),
+      notificationPreferences: safeParseJson(
+        dbUser.notification_preferences,
+        {},
+      ),
       is_guest: dbUser.is_guest || false,
       guest_of_user_id: dbUser.guest_of_user_id || undefined,
-      guest_permissions: safeParseJson(dbUser.guest_permissions, {})
+      guest_permissions: safeParseJson(dbUser.guest_permissions, {}),
     };
   };
 
   // Data loading functions
   const loadUsers = async () => {
     if (!session?.user) return;
-    
+
     try {
-      // Load users and system roles in parallel
+      // Load users, system roles, and RBAC roles in parallel
       const [usersResult, systemRolesResult] = await Promise.all([
-        supabase.from('users').select('*'),
-        supabase.from('user_system_roles').select(`
+        supabase.from("users").select("*"),
+        supabase.from("user_system_roles").select(`
           user_id,
           system_roles!inner (name)
-        `)
+        `),
       ]);
-      
+
       if (usersResult.error) {
-        console.error('Error loading users:', usersResult.error);
+        console.error("Error loading users:", usersResult.error);
         return;
       }
-      
+
       const data = usersResult.data;
-      
-      // Build a map of user_id -> system role names
+
+      // Build a map of user_id -> system role names (legacy)
       const systemRolesMap: Record<string, string[]> = {};
       if (systemRolesResult.data) {
         systemRolesResult.data.forEach((usr: any) => {
@@ -175,137 +242,169 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           }
         });
       }
-      
-      const convertedUsers = data?.map((dbUser: any) => ({
-        ...convertDbUserToUser(dbUser),
-        systemRoles: systemRolesMap[dbUser.auth_user_id] || []
-      })) || [];
+
+      // Load RBAC roles for all users
+      const allUserIds = data?.map((u: any) => u.auth_user_id) || [];
+      let rbacRolesMap: Record<string, any[]> = {};
+      try {
+        rbacRolesMap =
+          await userRoleService.getResolvedRolesForUsers(allUserIds);
+      } catch (rbacError) {
+        // RBAC tables might not exist yet — gracefully degrade
+        console.warn(
+          "RBAC roles not loaded (tables may not exist yet):",
+          rbacError,
+        );
+      }
+
+      const convertedUsers =
+        data?.map((dbUser: any) => ({
+          ...convertDbUserToUser(dbUser),
+          systemRoles: systemRolesMap[dbUser.auth_user_id] || [],
+          rbacRoles: rbacRolesMap[dbUser.auth_user_id] || [],
+        })) || [];
       setUsers(convertedUsers);
-      
+
       // Set current user based on auth_user_id match
-      const sessionUserDb = data?.find((dbUser: any) => dbUser.auth_user_id === session.user.id);
-      
+      const sessionUserDb = data?.find(
+        (dbUser: any) => dbUser.auth_user_id === session.user.id,
+      );
+
       if (sessionUserDb) {
         const sessionUser = {
           ...convertDbUserToUser(sessionUserDb),
-          systemRoles: systemRolesMap[sessionUserDb.auth_user_id] || []
+          systemRoles: systemRolesMap[sessionUserDb.auth_user_id] || [],
+          rbacRoles: rbacRolesMap[sessionUserDb.auth_user_id] || [],
         };
         setCurrentUser(sessionUser);
       } else {
         // Fallback to email match
-        const emailUser = convertedUsers.find(u => u.email === session.user.email);
+        const emailUser = convertedUsers.find(
+          (u) => u.email === session.user.email,
+        );
         if (emailUser) {
           setCurrentUser(emailUser);
         }
       }
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error("Error loading users:", error);
     }
   };
 
   const loadClients = async () => {
     if (!session?.user) return;
-    
+
     try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*');
-      
+      const { data, error } = await supabase.from("clients").select("*");
+
       if (error) {
-        console.error('Error loading clients:', error);
+        console.error("Error loading clients:", error);
         return;
       }
-      
-      const convertedClients = data?.map((client: any) => ({
-        id: client.id,
-        name: client.name,
-        email: client.email,
-        phone: client.phone || undefined,
-        address: client.address || undefined,
-        website: client.website || undefined,
-        createdAt: client.created_at,
-        status: (client.status as 'active' | 'inactive') || 'active'
-      })) || [];
-      
+
+      const convertedClients =
+        data?.map((client: any) => ({
+          id: client.id,
+          name: client.name,
+          email: client.email,
+          phone: client.phone || undefined,
+          address: client.address || undefined,
+          website: client.website || undefined,
+          createdAt: client.created_at,
+          status: (client.status as "active" | "inactive") || "active",
+        })) || [];
+
       setClients(convertedClients);
     } catch (error) {
-      console.error('Error loading clients:', error);
+      console.error("Error loading clients:", error);
     }
   };
 
   const loadProjects = async () => {
     if (!session?.user) return;
-    
+
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*');
-      
+      const { data, error } = await supabase.from("projects").select("*");
+
       if (error) {
-        console.error('Error loading projects:', error);
+        console.error("Error loading projects:", error);
         return;
       }
-      
-      const convertedProjects = data?.map((project: any) => ({
-        id: project.id,
-        name: project.name,
-        description: project.description,
-        clientId: project.client_id,
-        status: (project.status as 'todo' | 'in-progress' | 'done') || 'todo',
-        serviceType: (project.service_type as 'project' | 'bank-hours' | 'pay-as-you-go') || 'project',
-        startDate: project.start_date || undefined,
-        dueDate: project.due_date || undefined,
-        allocatedHours: project.allocated_hours || undefined,
-        usedHours: project.used_hours || 0,
-        teamIds: project.team_ids || [],
-        watcherIds: project.watcher_ids || [],
-        ownerId: project.owner_id || undefined,
-        collaboratorIds: project.collaborator_ids || [],
-        google_chat_settings: project.google_chat_settings || undefined
-      })) || [];
-      
+
+      const convertedProjects =
+        data?.map((project: any) => ({
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          clientId: project.client_id,
+          status: (project.status as "todo" | "in-progress" | "done") || "todo",
+          serviceType:
+            (project.service_type as
+              | "project"
+              | "bank-hours"
+              | "pay-as-you-go") || "project",
+          startDate: project.start_date || undefined,
+          dueDate: project.due_date || undefined,
+          allocatedHours: project.allocated_hours || undefined,
+          usedHours: project.used_hours || 0,
+          teamIds: project.team_ids || [],
+          watcherIds: project.watcher_ids || [],
+          ownerId: project.owner_id || undefined,
+          collaboratorIds: project.collaborator_ids || [],
+          google_chat_settings: project.google_chat_settings || undefined,
+        })) || [];
+
       setProjects(convertedProjects);
     } catch (error) {
-      console.error('Error loading projects:', error);
+      console.error("Error loading projects:", error);
     }
   };
 
   const loadTasks = async () => {
     if (!session?.user) return;
-    
+
     try {
       // Load tasks in parallel with comments and files, with reasonable limits
       const [tasksResult, commentsResult, filesResult] = await Promise.all([
-        supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(500),
-        supabase.from('comments').select('*').order('created_at', { ascending: true }).limit(1000),
-        supabase.from('task_files').select('*').limit(500),
+        supabase
+          .from("tasks")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(500),
+        supabase
+          .from("comments")
+          .select("*")
+          .order("created_at", { ascending: true })
+          .limit(1000),
+        supabase.from("task_files").select("*").limit(500),
       ]);
 
       const { data, error } = tasksResult;
       if (error) {
-        console.error('Error loading tasks:', error);
+        console.error("Error loading tasks:", error);
         return;
       }
 
       const { data: commentsData, error: commentsError } = commentsResult;
       if (commentsError) {
-        console.error('Error loading comments:', commentsError);
+        console.error("Error loading comments:", commentsError);
       }
 
       const { data: filesData, error: filesError } = filesResult;
       if (filesError) {
-        console.error('Error loading task files:', filesError);
+        console.error("Error loading task files:", filesError);
       }
 
       // Group comments by task_id
       const commentsByTask: { [key: string]: any[] } = {};
       if (commentsData) {
-        commentsData.forEach(comment => {
+        commentsData.forEach((comment) => {
           if (!commentsByTask[comment.task_id]) {
             commentsByTask[comment.task_id] = [];
           }
           // Determine if comment was edited by comparing created_at and updated_at
-          const isEdited = comment.updated_at && comment.created_at !== comment.updated_at;
+          const isEdited =
+            comment.updated_at && comment.created_at !== comment.updated_at;
           commentsByTask[comment.task_id].push({
             id: comment.id,
             userId: comment.user_id,
@@ -314,7 +413,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             mentionedUserIds: comment.mentioned_user_ids || [],
             images: comment.images || [],
             edited: isEdited,
-            editedAt: isEdited ? comment.updated_at : undefined
+            editedAt: isEdited ? comment.updated_at : undefined,
           });
         });
       }
@@ -322,161 +421,174 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Group files by task_id
       const filesByTask: { [key: string]: TaskFile[] } = {};
       if (filesData) {
-        filesData.forEach(file => {
+        filesData.forEach((file) => {
           if (!filesByTask[file.task_id]) {
             filesByTask[file.task_id] = [];
           }
           filesByTask[file.task_id].push({
             id: file.id,
             name: file.name,
-            url: file.external_url || file.file_path || '',
+            url: file.external_url || file.file_path || "",
             externalUrl: file.external_url,
             isExternalLink: file.is_external_link || false,
             size: file.file_size || 0,
             sizeKb: Math.round((file.file_size || 0) / 1024),
-            uploadedAt: file.uploaded_at
+            uploadedAt: file.uploaded_at,
           });
         });
       }
-      
-      const convertedTasks = data?.map((task: any) => ({
-        id: task.id,
-        title: task.title,
-        description: task.description || '',
-        projectId: task.project_id,
-        assigneeId: task.assignee_id || undefined,
-        status: (task.status as TaskStatus) || 'backlog',
-        priority: (task.priority as 'low' | 'medium' | 'high') || 'medium',
-        dueDate: task.due_date || undefined,
-        estimatedHours: task.estimated_hours || undefined,
-        actualHours: task.actual_hours || undefined,
-        createdAt: task.created_at,
-        watcherIds: task.watcher_ids || [],
-        comments: commentsByTask[task.id] || [],
-        collaboratorIds: task.collaborator_ids || [],
-        relatedTaskIds: task.related_task_ids || [],
-        checklist: task.checklist || [],
-        files: filesByTask[task.id] || [],
-        backlogReason: task.backlog_reason || undefined,
-        dueDateChangeReason: task.due_date_change_reason || undefined,
-        awaitingFeedbackDetails: task.awaiting_feedback_details || undefined,
-        lastDueDateChange: task.last_due_date_change || undefined,
-        reminderDate: task.reminder_date || undefined,
-        orderIndex: task.order_index || 0
-      })) || [];
-      
+
+      const convertedTasks =
+        data?.map((task: any) => ({
+          id: task.id,
+          title: task.title,
+          description: task.description || "",
+          projectId: task.project_id,
+          assigneeId: task.assignee_id || undefined,
+          status: (task.status as TaskStatus) || "backlog",
+          priority: (task.priority as "low" | "medium" | "high") || "medium",
+          dueDate: task.due_date || undefined,
+          estimatedHours: task.estimated_hours || undefined,
+          actualHours: task.actual_hours || undefined,
+          createdAt: task.created_at,
+          watcherIds: task.watcher_ids || [],
+          comments: commentsByTask[task.id] || [],
+          collaboratorIds: task.collaborator_ids || [],
+          relatedTaskIds: task.related_task_ids || [],
+          checklist: task.checklist || [],
+          files: filesByTask[task.id] || [],
+          backlogReason: task.backlog_reason || undefined,
+          dueDateChangeReason: task.due_date_change_reason || undefined,
+          awaitingFeedbackDetails: task.awaiting_feedback_details || undefined,
+          lastDueDateChange: task.last_due_date_change || undefined,
+          reminderDate: task.reminder_date || undefined,
+          orderIndex: task.order_index || 0,
+        })) || [];
+
       setTasks(convertedTasks);
     } catch (error) {
-      console.error('Error loading tasks:', error);
+      console.error("Error loading tasks:", error);
     }
   };
 
   const loadTimeEntries = async () => {
     if (!session?.user) return;
-    
+
     try {
       const currentAuthUserId = session.user.id;
 
       // No user filter — RLS handles access control automatically:
       // admins (platform_admin/support_admin) see all entries, regular users see only their own
       const { data, error } = await supabase
-        .from('time_entries')
-        .select('*')
-        .order('start_time', { ascending: false })
+        .from("time_entries")
+        .select("*")
+        .order("start_time", { ascending: false })
         .limit(1000);
-      
+
       if (error) {
-        console.error('Error loading time entries:', error);
+        console.error("Error loading time entries:", error);
         return;
       }
-      
-      
-      
-      const convertedTimeEntries = data?.map((entry: any) => ({
-        id: entry.id,
-        userId: entry.user_id,
-        authUserId: entry.auth_user_id, // Also track auth_user_id for robust matching
-        taskId: entry.task_id || '',
-        projectId: entry.project_id || undefined,
-        clientId: entry.client_id || undefined,
-        startTime: entry.start_time,
-        endTime: entry.end_time || undefined,
-        duration: entry.duration || 0,
-        description: entry.notes || undefined,
-        status: (entry.status as TimeEntryStatus) || 'pending',
-        notes: entry.notes || undefined,
-        rejectionReason: entry.rejection_reason || undefined,
-        timerStatus: entry.timer_status || undefined
-      })) || [];
-      
+
+      const convertedTimeEntries =
+        data?.map((entry: any) => ({
+          id: entry.id,
+          userId: entry.user_id,
+          authUserId: entry.auth_user_id, // Also track auth_user_id for robust matching
+          taskId: entry.task_id || "",
+          projectId: entry.project_id || undefined,
+          clientId: entry.client_id || undefined,
+          startTime: entry.start_time,
+          endTime: entry.end_time || undefined,
+          duration: entry.duration || 0,
+          description: entry.notes || undefined,
+          status: (entry.status as TimeEntryStatus) || "pending",
+          notes: entry.notes || undefined,
+          rejectionReason: entry.rejection_reason || undefined,
+          timerStatus: entry.timer_status || undefined,
+        })) || [];
+
       setTimeEntries(convertedTimeEntries);
-      
+
       if (!currentAuthUserId) {
         return;
       }
-      
+
       // Only detect ACTIVE timers (not paused ones) for the main activeTimeEntry
-      const activeEntries = convertedTimeEntries.filter(entry => 
-        !entry.endTime && (entry as any).timerStatus === 'active' && (
-          entry.userId === currentAuthUserId || 
-          entry.authUserId === currentAuthUserId ||
-          entry.userId === currentAuthUserId.toString()
-        )
+      const activeEntries = convertedTimeEntries.filter(
+        (entry) =>
+          !entry.endTime &&
+          (entry as any).timerStatus === "active" &&
+          (entry.userId === currentAuthUserId ||
+            entry.authUserId === currentAuthUserId ||
+            entry.userId === currentAuthUserId.toString()),
       );
-      
+
       if (activeEntries.length > 1) {
         // Keep the most recent one, stop the others
-        const sortedActive = activeEntries.sort((a, b) => 
-          new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+        const sortedActive = activeEntries.sort(
+          (a, b) =>
+            new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
         );
         const keepTimer = sortedActive[0];
         const stopTimers = sortedActive.slice(1);
-        
+
         for (const timer of stopTimers) {
-          const duration = Math.floor((Date.now() - new Date(timer.startTime).getTime()) / (1000 * 60));
+          const duration = Math.floor(
+            (Date.now() - new Date(timer.startTime).getTime()) / (1000 * 60),
+          );
           await supabase
-            .from('time_entries')
-            .update({ end_time: new Date().toISOString(), duration: Math.max(1, duration) })
-            .eq('id', timer.id);
+            .from("time_entries")
+            .update({
+              end_time: new Date().toISOString(),
+              duration: Math.max(1, duration),
+            })
+            .eq("id", timer.id);
         }
-        
+
         setActiveTimeEntry(keepTimer);
         setTimeout(() => loadTimeEntries(), 1000);
       } else if (activeEntries.length === 1) {
         setActiveTimeEntry(activeEntries[0]);
-        
+
         try {
           const { data: allEvents, error: eventsError } = await supabase
-            .from('time_entry_events')
-            .select('event_type, details, event_timestamp')
-            .eq('time_entry_id', activeEntries[0].id)
-            .order('event_timestamp', { ascending: true });
-          
+            .from("time_entry_events")
+            .select("event_type, details, event_timestamp")
+            .eq("time_entry_id", activeEntries[0].id)
+            .order("event_timestamp", { ascending: true });
+
           if (!eventsError && allEvents && allEvents.length > 0) {
             let accumulatedPausedTime = 0;
             let currentlyPaused = false;
             let currentPausedAt: Date | null = null;
-            
+
             for (const event of allEvents) {
-              if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
+              if (
+                event.event_type === "paused" ||
+                event.event_type === "auto_paused"
+              ) {
                 currentlyPaused = true;
                 const pausedAtStr = (event.details as any)?.pausedAt;
-                currentPausedAt = pausedAtStr ? new Date(pausedAtStr) : new Date(event.event_timestamp);
-              } else if (event.event_type === 'resumed' && currentlyPaused) {
+                currentPausedAt = pausedAtStr
+                  ? new Date(pausedAtStr)
+                  : new Date(event.event_timestamp);
+              } else if (event.event_type === "resumed" && currentlyPaused) {
                 const pauseDuration = (event.details as any)?.pauseDuration;
-                if (typeof pauseDuration === 'number' && pauseDuration > 0) {
+                if (typeof pauseDuration === "number" && pauseDuration > 0) {
                   accumulatedPausedTime += pauseDuration;
                 } else if (currentPausedAt) {
                   const resumedAt = new Date(event.event_timestamp);
-                  accumulatedPausedTime += resumedAt.getTime() - currentPausedAt.getTime();
+                  accumulatedPausedTime +=
+                    resumedAt.getTime() - currentPausedAt.getTime();
                 }
                 currentlyPaused = false;
                 currentPausedAt = null;
               }
             }
-            
+
             const lastEvent = allEvents[allEvents.length - 1];
-            if (lastEvent.event_type === 'paused') {
+            if (lastEvent.event_type === "paused") {
               setIsTimerPaused(true);
               const pausedAtStr = (lastEvent.details as any)?.pausedAt;
               if (pausedAtStr) setPausedAt(new Date(pausedAtStr));
@@ -484,7 +596,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
               setIsTimerPaused(false);
               setPausedAt(null);
             }
-            
+
             setTotalPausedTime(accumulatedPausedTime);
           } else {
             setIsTimerPaused(false);
@@ -492,7 +604,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             setTotalPausedTime(0);
           }
         } catch (err) {
-          console.error('Error checking timer pause state:', err);
+          console.error("Error checking timer pause state:", err);
           setIsTimerPaused(false);
           setPausedAt(null);
           setTotalPausedTime(0);
@@ -503,45 +615,45 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setPausedAt(null);
         setTotalPausedTime(0);
       }
-      
-      const pausedEntries = convertedTimeEntries.filter(entry => 
-        !entry.endTime && (entry as any).timerStatus === 'paused' && (
-          entry.userId === currentAuthUserId || 
-          entry.authUserId === currentAuthUserId ||
-          entry.userId === currentAuthUserId.toString()
-        )
+
+      const pausedEntries = convertedTimeEntries.filter(
+        (entry) =>
+          !entry.endTime &&
+          (entry as any).timerStatus === "paused" &&
+          (entry.userId === currentAuthUserId ||
+            entry.authUserId === currentAuthUserId ||
+            entry.userId === currentAuthUserId.toString()),
       );
       setPausedTimeEntries(pausedEntries);
     } catch (error) {
-      console.error('Error loading time entries:', error);
+      console.error("Error loading time entries:", error);
     }
   };
 
   const loadTeams = async () => {
     if (!session?.user) return;
-    
+
     try {
-      const { data, error } = await supabase
-        .from('teams')
-        .select('*');
-      
+      const { data, error } = await supabase.from("teams").select("*");
+
       if (error) {
-        console.error('Error loading teams:', error);
+        console.error("Error loading teams:", error);
         return;
       }
-      
-      const convertedTeams = data?.map((team: any) => ({
-        id: team.id,
-        name: team.name,
-        description: team.description || undefined,
-        memberIds: [], // Teams don't store memberIds in the database schema
-        leaderId: team.leader_id,
-        color: team.color
-      })) || [];
-      
+
+      const convertedTeams =
+        data?.map((team: any) => ({
+          id: team.id,
+          name: team.name,
+          description: team.description || undefined,
+          memberIds: [], // Teams don't store memberIds in the database schema
+          leaderId: team.leader_id,
+          color: team.color,
+        })) || [];
+
       setTeams(convertedTeams);
     } catch (error) {
-      console.error('Error loading teams:', error);
+      console.error("Error loading teams:", error);
     }
   };
 
@@ -550,18 +662,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
 
     const messagesChannel = supabase
-      .channel('messages-changes')
+      .channel("messages-changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `to_user_id=eq.${session.user.id}`
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `to_user_id=eq.${session.user.id}`,
         },
         (payload) => {
-          console.log('🔔 New message received via real-time:', payload);
-          
+          console.log("🔔 New message received via real-time:", payload);
+
           // Convert the new message and add to state
           const newMessage: Message = {
             id: payload.new.id,
@@ -571,34 +683,36 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             timestamp: payload.new.timestamp,
             read: payload.new.read,
             taskId: payload.new.task_id,
-            projectId: payload.new.project_id
+            projectId: payload.new.project_id,
           };
-          
-          setMessages(prev => [newMessage, ...prev]);
-        }
+
+          setMessages((prev) => [newMessage, ...prev]);
+        },
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages',
-          filter: `to_user_id=eq.${session.user.id}`
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `to_user_id=eq.${session.user.id}`,
         },
         (payload) => {
-          console.log('📝 Message updated via real-time:', payload);
-          
+          console.log("📝 Message updated via real-time:", payload);
+
           // Update the message in state
-          setMessages(prev => prev.map(msg => 
-            msg.id === payload.new.id 
-              ? {
-                  ...msg,
-                  read: payload.new.read,
-                  content: payload.new.content
-                }
-              : msg
-          ));
-        }
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === payload.new.id
+                ? {
+                    ...msg,
+                    read: payload.new.read,
+                    content: payload.new.content,
+                  }
+                : msg,
+            ),
+          );
+        },
       )
       .subscribe();
 
@@ -612,48 +726,50 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
 
     const tasksChannel = supabase
-      .channel('tasks-changes')
+      .channel("tasks-changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'tasks'
+          event: "UPDATE",
+          schema: "public",
+          table: "tasks",
         },
         (payload) => {
-          console.log('📋 Task updated via real-time:', payload);
-          
+          console.log("📋 Task updated via real-time:", payload);
+
           // Update the task in state, preserving comments and files
-          setTasks(prev => prev.map(task => 
-            task.id === payload.new.id 
-              ? {
-                  ...task,
-                  assigneeId: payload.new.assignee_id,
-                  collaboratorIds: payload.new.collaborator_ids || [],
-                  status: payload.new.status,
-                  title: payload.new.title,
-                  description: payload.new.description,
-                  priority: payload.new.priority,
-                  dueDate: payload.new.due_date,
-                  startDate: payload.new.start_date,
-                  // Preserve comments and files - they are managed separately
-                  comments: task.comments,
-                  files: task.files
-                }
-              : task
-          ));
-        }
+          setTasks((prev) =>
+            prev.map((task) =>
+              task.id === payload.new.id
+                ? {
+                    ...task,
+                    assigneeId: payload.new.assignee_id,
+                    collaboratorIds: payload.new.collaborator_ids || [],
+                    status: payload.new.status,
+                    title: payload.new.title,
+                    description: payload.new.description,
+                    priority: payload.new.priority,
+                    dueDate: payload.new.due_date,
+                    startDate: payload.new.start_date,
+                    // Preserve comments and files - they are managed separately
+                    comments: task.comments,
+                    files: task.files,
+                  }
+                : task,
+            ),
+          );
+        },
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'tasks'
+          event: "INSERT",
+          schema: "public",
+          table: "tasks",
         },
         (payload) => {
-          console.log('📋 New task created via real-time:', payload);
-          
+          console.log("📋 New task created via real-time:", payload);
+
           // Convert and add new task to state
           const newTask: Task = {
             id: payload.new.id,
@@ -673,11 +789,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             comments: [],
             customFields: safeParseJson(payload.new.custom_fields, {}),
             subtasks: [],
-            watcherIds: payload.new.watcher_ids || []
+            watcherIds: payload.new.watcher_ids || [],
           };
-          
-          setTasks(prev => [newTask, ...prev]);
-        }
+
+          setTasks((prev) => [newTask, ...prev]);
+        },
       )
       .subscribe();
 
@@ -691,28 +807,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
 
     const taskLogsChannel = supabase
-      .channel('task-logs-changes')
+      .channel("task-logs-changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'task_logs'
+          event: "INSERT",
+          schema: "public",
+          table: "task_logs",
         },
         (payload) => {
-          console.log('📝 New task log created via real-time:', payload);
-          
+          console.log("📝 New task log created via real-time:", payload);
+
           const newLog: TaskLog = {
             id: payload.new.id,
             taskId: payload.new.task_id,
             userId: payload.new.user_id,
             action: payload.new.action,
             timestamp: payload.new.timestamp,
-            details: payload.new.details ? (typeof payload.new.details === 'string' ? payload.new.details : JSON.stringify(payload.new.details)) : undefined
+            details: payload.new.details
+              ? typeof payload.new.details === "string"
+                ? payload.new.details
+                : JSON.stringify(payload.new.details)
+              : undefined,
           };
-          
-          setTaskLogs(prev => [newLog, ...prev]);
-        }
+
+          setTaskLogs((prev) => [newLog, ...prev]);
+        },
       )
       .subscribe();
 
@@ -723,182 +843,196 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const loadMessages = async () => {
     if (!session?.user) return;
-    
+
     try {
       const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('to_user_id', session.user.id)
-        .order('timestamp', { ascending: false })
+        .from("messages")
+        .select("*")
+        .eq("to_user_id", session.user.id)
+        .order("timestamp", { ascending: false })
         .limit(100); // Limit to 100 most recent messages
-      
+
       if (error) {
-        console.error('Error loading messages:', error);
+        console.error("Error loading messages:", error);
         return;
       }
-      
-      const convertedMessages: Message[] = data?.map((dbMsg: any) => ({
-        id: dbMsg.id,
-        senderId: dbMsg.from_user_id,
-        recipientIds: [dbMsg.to_user_id], 
-        content: dbMsg.content,
-        timestamp: dbMsg.timestamp,
-        read: dbMsg.read,
-        taskId: dbMsg.task_id,
-        projectId: dbMsg.project_id
-      })) || [];
-      
+
+      const convertedMessages: Message[] =
+        data?.map((dbMsg: any) => ({
+          id: dbMsg.id,
+          senderId: dbMsg.from_user_id,
+          recipientIds: [dbMsg.to_user_id],
+          content: dbMsg.content,
+          timestamp: dbMsg.timestamp,
+          read: dbMsg.read,
+          taskId: dbMsg.task_id,
+          projectId: dbMsg.project_id,
+        })) || [];
+
       setMessages(convertedMessages);
     } catch (error) {
-      console.error('Error loading messages:', error);
+      console.error("Error loading messages:", error);
     }
   };
 
   const loadNotes = async () => {
     if (!session?.user) return;
-    
+
     try {
-      const { data, error } = await supabase
-        .from('notes')
-        .select('*');
-      
+      const { data, error } = await supabase.from("notes").select("*");
+
       if (error) {
-        console.error('Error loading notes:', error);
+        console.error("Error loading notes:", error);
         return;
       }
-      
-      const convertedNotes = data?.map((note: any) => ({
-        id: note.id,
-        title: note.title,
-        content: note.content || '',
-        userId: note.user_id,
-        createdAt: note.created_at,
-        updatedAt: note.updated_at,
-        archived: note.archived || false
-      })) || [];
-      
+
+      const convertedNotes =
+        data?.map((note: any) => ({
+          id: note.id,
+          title: note.title,
+          content: note.content || "",
+          userId: note.user_id,
+          createdAt: note.created_at,
+          updatedAt: note.updated_at,
+          archived: note.archived || false,
+        })) || [];
+
       setNotes(convertedNotes);
     } catch (error) {
-      console.error('Error loading notes:', error);
+      console.error("Error loading notes:", error);
     }
   };
 
   const loadTaskLogs = async () => {
     if (!session?.user) return;
-    
+
     try {
       const { data, error } = await supabase
-        .from('task_logs')
-        .select('*')
-        .order('timestamp', { ascending: false })
+        .from("task_logs")
+        .select("*")
+        .order("timestamp", { ascending: false })
         .limit(200); // Limit to recent 200 logs to prevent memory/performance issues
-      
+
       if (error) {
-        console.error('Error loading task logs:', error);
+        console.error("Error loading task logs:", error);
         return;
       }
 
-      const convertedLogs: TaskLog[] = data?.map(log => ({
-        id: log.id,
-        taskId: log.task_id,
-        userId: log.user_id,
-        action: log.action,
-        timestamp: log.timestamp,
-        details: log.details ? (typeof log.details === 'string' ? log.details : JSON.stringify(log.details)) : undefined
-      })) || [];
-      
+      const convertedLogs: TaskLog[] =
+        data?.map((log) => ({
+          id: log.id,
+          taskId: log.task_id,
+          userId: log.user_id,
+          action: log.action,
+          timestamp: log.timestamp,
+          details: log.details
+            ? typeof log.details === "string"
+              ? log.details
+              : JSON.stringify(log.details)
+            : undefined,
+        })) || [];
+
       setTaskLogs(convertedLogs);
     } catch (error) {
-      console.error('Error loading task logs:', error);
+      console.error("Error loading task logs:", error);
     }
   };
 
   const loadTaskStatuses = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) return;
 
       const { data, error } = await supabase
-        .from('task_status_definitions')
-        .select('*')
-        .eq('auth_user_id', session.user.id)
-        .order('order_index');
+        .from("task_status_definitions")
+        .select("*")
+        .eq("auth_user_id", session.user.id)
+        .order("order_index");
 
       if (error) {
-        console.error('Error loading task statuses:', error);
+        console.error("Error loading task statuses:", error);
         return;
       }
 
       if (data && data.length > 0) {
-        const convertedStatuses: TaskStatusDefinition[] = data.map(status => ({
-          id: status.id,
-          label: status.name,
-          value: status.value || status.name.toLowerCase().replace(/\s+/g, '-'),
-          color: status.color,
-          order: status.order_index,
-        }));
+        const convertedStatuses: TaskStatusDefinition[] = data.map(
+          (status) => ({
+            id: status.id,
+            label: status.name,
+            value:
+              status.value || status.name.toLowerCase().replace(/\s+/g, "-"),
+            color: status.color,
+            order: status.order_index,
+          }),
+        );
         setTaskStatuses(convertedStatuses);
       }
     } catch (error) {
-      console.error('Error loading task statuses:', error);
+      console.error("Error loading task statuses:", error);
     }
   };
 
   const loadProjectStatuses = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) return;
 
       const { data, error } = await supabase
-        .from('project_status_definitions')
-        .select('*')
-        .eq('auth_user_id', session.user.id)
-        .order('order_index');
+        .from("project_status_definitions")
+        .select("*")
+        .eq("auth_user_id", session.user.id)
+        .order("order_index");
 
       if (error) {
-        console.error('Error loading project statuses:', error);
+        console.error("Error loading project statuses:", error);
         return;
       }
 
-      const convertedStatuses: ProjectStatusDefinition[] = (data || []).map(status => ({
-        id: status.id,
-        label: status.name,
-        value: status.name.toLowerCase().replace(/\s+/g, '-'),
-        color: status.color,
-        order: status.order_index,
-        isFinal: status.is_final || false,
-      }));
+      const convertedStatuses: ProjectStatusDefinition[] = (data || []).map(
+        (status) => ({
+          id: status.id,
+          label: status.name,
+          value: status.name.toLowerCase().replace(/\s+/g, "-"),
+          color: status.color,
+          order: status.order_index,
+          isFinal: status.is_final || false,
+        }),
+      );
       setProjectStatuses(convertedStatuses);
     } catch (error) {
-      console.error('Error loading project statuses:', error);
+      console.error("Error loading project statuses:", error);
     }
   };
 
   const loadCustomRoles = async () => {
     if (!session?.user) return;
-    
+
     try {
       const { data, error } = await supabase
-        .from('custom_roles')
-        .select('*')
-        .eq('auth_user_id', session.user.id);
-      
+        .from("custom_roles")
+        .select("*")
+        .eq("auth_user_id", session.user.id);
+
       if (error) {
-        console.error('Error loading custom roles:', error);
+        console.error("Error loading custom roles:", error);
         return;
       }
-      
-      const convertedRoles: CustomRole[] = (data || []).map(role => ({
+
+      const convertedRoles: CustomRole[] = (data || []).map((role) => ({
         id: role.id,
         name: role.name,
-        description: role.description || '',
+        description: role.description || "",
         permissions: safeParseJson(role.permissions, {}),
-        color: role.color
+        color: role.color,
       }));
-      
+
       setCustomRoles(convertedRoles);
     } catch (error) {
-      console.error('Error loading custom roles:', error);
+      console.error("Error loading custom roles:", error);
     }
   };
 
@@ -906,9 +1040,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const initializeDefaultDashboard = () => {
     if (customDashboards.length === 0) {
       const defaultDashboard: CustomDashboard = {
-        id: 'default-dashboard',
-        name: 'My Dashboard',
-        description: 'Default dashboard for all your reports',
+        id: "default-dashboard",
+        name: "My Dashboard",
+        description: "Default dashboard for all your reports",
         reportIds: [],
         layout: [],
         isDefault: true,
@@ -922,19 +1056,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const loadTaskTemplates = async () => {
     try {
       const { data, error } = await supabase
-        .from('task_templates')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("task_templates")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('Error loading task templates:', error);
+        console.error("Error loading task templates:", error);
         setTaskTemplates([]);
         return;
       }
 
       setTaskTemplates(data || []);
     } catch (error) {
-      console.error('Error loading task templates:', error);
+      console.error("Error loading task templates:", error);
       setTaskTemplates([]);
     }
   };
@@ -942,36 +1076,42 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const loadProjectTemplates = async () => {
     try {
       const { data, error } = await supabase
-        .from('project_templates')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("project_templates")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('Error loading project templates:', error);
+        console.error("Error loading project templates:", error);
         setProjectTemplates([]);
         return;
       }
 
-      const transformedTemplates: ProjectTemplate[] = (data || []).map(template => ({
-        id: template.id,
-        name: template.name,
-        description: template.description || '',
-        serviceType: (template.service_type as 'project' | 'bank-hours' | 'pay-as-you-go') || 'project',
-        defaultDuration: template.default_duration || 0,
-        allocatedHours: template.allocated_hours || 0,
-        customFields: template.custom_fields || [],
-        teamIds: template.team_ids || [],
-        tags: template.tags || [],
-        usageCount: template.usage_count || 0,
-        tasks: [],
-        createdBy: template.auth_user_id,
-        createdAt: template.created_at,
-        updatedAt: template.updated_at
-      }));
-      
+      const transformedTemplates: ProjectTemplate[] = (data || []).map(
+        (template) => ({
+          id: template.id,
+          name: template.name,
+          description: template.description || "",
+          serviceType:
+            (template.service_type as
+              | "project"
+              | "bank-hours"
+              | "pay-as-you-go") || "project",
+          defaultDuration: template.default_duration || 0,
+          allocatedHours: template.allocated_hours || 0,
+          customFields: template.custom_fields || [],
+          teamIds: template.team_ids || [],
+          tags: template.tags || [],
+          usageCount: template.usage_count || 0,
+          tasks: [],
+          createdBy: template.auth_user_id,
+          createdAt: template.created_at,
+          updatedAt: template.updated_at,
+        }),
+      );
+
       setProjectTemplates(transformedTemplates);
     } catch (error) {
-      console.error('Error loading project templates:', error);
+      console.error("Error loading project templates:", error);
       setProjectTemplates([]);
     }
   };
@@ -1016,16 +1156,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       // For token refreshes, just update the session object silently — do NOT trigger a full data reload
-      if (event === 'TOKEN_REFRESHED') {
+      if (event === "TOKEN_REFRESHED") {
         setSession(newSession);
         return;
       }
 
       setSession(newSession);
-      
-      if (event === 'SIGNED_OUT') {
+
+      if (event === "SIGNED_OUT") {
         // Clear all state on sign out
         setCurrentUser(null);
         setUsers([]);
@@ -1057,15 +1199,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         email,
         password,
       });
-      
+
       if (error) {
-        console.error('Login error:', error);
+        console.error("Login error:", error);
         return false;
       }
-      
+
       return true;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       return false;
     }
   };
@@ -1073,12 +1215,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const logout = async (): Promise<boolean> => {
     try {
       const { error } = await supabase.auth.signOut();
-      
+
       if (error) {
-        console.error('Logout error:', error);
+        console.error("Logout error:", error);
         return false;
       }
-      
+
       // Clear all state
       setCurrentUser(null);
       setUsers([]);
@@ -1098,22 +1240,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setTaskLogs([]);
       setTaskStatuses([]);
       setProjectStatuses([]);
-      
+
       return true;
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
       return false;
     }
   };
 
   // User functions
-  const addUser = async (user: Omit<User, 'id'>) => {
+  const addUser = async (user: Omit<User, "id">) => {
     if (!session?.user) return;
-    
+
     try {
       // For new user invitations, don't set auth_user_id yet - they'll get it when they sign up
       const { data, error } = await supabase
-        .from('users')
+        .from("users")
         .insert({
           auth_user_id: null, // Set to null for invited users
           name: user.name,
@@ -1131,156 +1273,184 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           billing_rate: user.billingRate,
           currency: user.currency,
           client_role: user.clientRole,
-          permissions: user.permissions ? JSON.stringify(user.permissions) : null,
+          permissions: user.permissions
+            ? JSON.stringify(user.permissions)
+            : null,
           manager_id: user.managerId,
-          notification_preferences: user.notificationPreferences ? JSON.stringify(user.notificationPreferences) : null,
+          notification_preferences: user.notificationPreferences
+            ? JSON.stringify(user.notificationPreferences)
+            : null,
           is_guest: user.is_guest,
           guest_of_user_id: user.guest_of_user_id,
-          guest_permissions: user.guest_permissions ? JSON.stringify(user.guest_permissions) : null,
-          organization_id: currentUser?.organizationId // Assign new users to the current user's organization
+          guest_permissions: user.guest_permissions
+            ? JSON.stringify(user.guest_permissions)
+            : null,
+          organization_id: currentUser?.organizationId, // Assign new users to the current user's organization
         })
         .select()
         .single();
 
       if (error) {
-        console.error('Error adding user:', error);
+        console.error("Error adding user:", error);
         return;
       }
 
       if (data) {
         const newUser = convertDbUserToUser(data);
-        setUsers(prev => [...prev, newUser]);
-        
+        setUsers((prev) => [...prev, newUser]);
+
         // Send invitation email via Supabase Auth
         try {
-          const { error: emailError } = await supabase.functions.invoke('send-invite-email', {
-            body: {
-              email: user.email,
-              name: user.name,
-              role: user.roleId,
-              inviterName: currentUser?.name || 'Team Admin',
-              companyName: "Donezy"
-            }
-          });
+          const { error: emailError } = await supabase.functions.invoke(
+            "send-invite-email",
+            {
+              body: {
+                email: user.email,
+                name: user.name,
+                role: user.roleId,
+                inviterName: currentUser?.name || "Team Admin",
+                companyName: "Donezy",
+              },
+            },
+          );
 
           if (emailError) {
-            console.error('Error sending invitation email:', emailError);
+            console.error("Error sending invitation email:", emailError);
           } else {
-            console.log('Invitation email sent successfully to:', user.email);
+            console.log("Invitation email sent successfully to:", user.email);
           }
         } catch (emailErr) {
-          console.error('Error sending invitation email:', emailErr);
+          console.error("Error sending invitation email:", emailErr);
         }
       }
     } catch (error) {
-      console.error('Error adding user:', error);
+      console.error("Error adding user:", error);
     }
   };
 
   const updateUser = async (userId: string, updates: Partial<User>) => {
     if (!session?.user) return;
-    
-    console.log('📝 updateUser called with:', { userId, updates });
-    
+
+    console.log("📝 updateUser called with:", { userId, updates });
+
     try {
       const dbUpdates: any = {};
-      
+
       if (updates.name !== undefined) dbUpdates.name = updates.name;
       if (updates.email !== undefined) dbUpdates.email = updates.email;
       if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
       if (updates.roleId !== undefined) dbUpdates.role = updates.roleId;
       if (updates.status !== undefined) dbUpdates.status = updates.status;
       if (updates.teamIds !== undefined) dbUpdates.team_ids = updates.teamIds;
-      if (updates.jobTitle !== undefined) dbUpdates.job_title = updates.jobTitle;
-      if (updates.clientId !== undefined) dbUpdates.client_id = updates.clientId;
+      if (updates.jobTitle !== undefined)
+        dbUpdates.job_title = updates.jobTitle;
+      if (updates.clientId !== undefined)
+        dbUpdates.client_id = updates.clientId;
       if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
-      if (updates.employmentType !== undefined) dbUpdates.employment_type = updates.employmentType;
-      if (updates.billingType !== undefined) dbUpdates.billing_type = updates.billingType;
-      if (updates.hourlyRate !== undefined) dbUpdates.hourly_rate = updates.hourlyRate;
-      if (updates.monthlyRate !== undefined) dbUpdates.monthly_rate = updates.monthlyRate;
-      if (updates.billingRate !== undefined) dbUpdates.billing_rate = updates.billingRate;
+      if (updates.employmentType !== undefined)
+        dbUpdates.employment_type = updates.employmentType;
+      if (updates.billingType !== undefined)
+        dbUpdates.billing_type = updates.billingType;
+      if (updates.hourlyRate !== undefined)
+        dbUpdates.hourly_rate = updates.hourlyRate;
+      if (updates.monthlyRate !== undefined)
+        dbUpdates.monthly_rate = updates.monthlyRate;
+      if (updates.billingRate !== undefined)
+        dbUpdates.billing_rate = updates.billingRate;
       if (updates.currency !== undefined) dbUpdates.currency = updates.currency;
-      if (updates.clientRole !== undefined) dbUpdates.client_role = updates.clientRole;
-      if (updates.permissions !== undefined) dbUpdates.permissions = JSON.stringify(updates.permissions);
-      if (updates.managerId !== undefined) dbUpdates.manager_id = updates.managerId;
-      if (updates.notificationPreferences !== undefined) dbUpdates.notification_preferences = JSON.stringify(updates.notificationPreferences);
+      if (updates.clientRole !== undefined)
+        dbUpdates.client_role = updates.clientRole;
+      if (updates.permissions !== undefined)
+        dbUpdates.permissions = JSON.stringify(updates.permissions);
+      if (updates.managerId !== undefined)
+        dbUpdates.manager_id = updates.managerId;
+      if (updates.notificationPreferences !== undefined)
+        dbUpdates.notification_preferences = JSON.stringify(
+          updates.notificationPreferences,
+        );
       if (updates.is_guest !== undefined) dbUpdates.is_guest = updates.is_guest;
-      if (updates.guest_of_user_id !== undefined) dbUpdates.guest_of_user_id = updates.guest_of_user_id;
-      if (updates.guest_permissions !== undefined) dbUpdates.guest_permissions = JSON.stringify(updates.guest_permissions);
+      if (updates.guest_of_user_id !== undefined)
+        dbUpdates.guest_of_user_id = updates.guest_of_user_id;
+      if (updates.guest_permissions !== undefined)
+        dbUpdates.guest_permissions = JSON.stringify(updates.guest_permissions);
 
-      console.log('📝 Database updates to apply:', dbUpdates);
+      console.log("📝 Database updates to apply:", dbUpdates);
 
       const { data, error } = await supabase
-        .from('users')
+        .from("users")
         .update(dbUpdates)
-        .eq('auth_user_id', userId)
+        .eq("auth_user_id", userId)
         .select();
 
       if (error) {
-        console.error('❌ Error updating user:', error);
+        console.error("❌ Error updating user:", error);
         return;
       }
 
-      console.log('✅ User updated successfully:', data);
+      console.log("✅ User updated successfully:", data);
 
-      setUsers(prev => prev.map(user => 
-        user.auth_user_id === userId ? { ...user, ...updates } : user
-      ));
+      setUsers((prev) =>
+        prev.map((user) =>
+          user.auth_user_id === userId ? { ...user, ...updates } : user,
+        ),
+      );
     } catch (error) {
-      console.error('❌ Error updating user:', error);
+      console.error("❌ Error updating user:", error);
     }
   };
 
   const deleteUser = async (userId: string) => {
     if (!session?.user) return;
-    
-    console.log('🗑️ Attempting to delete user with ID:', userId);
-    const userToDelete = users.find(u => u.auth_user_id === userId);
-    console.log('🗑️ User to delete:', userToDelete);
-    
+
+    console.log("🗑️ Attempting to delete user with ID:", userId);
+    const userToDelete = users.find((u) => u.auth_user_id === userId);
+    console.log("🗑️ User to delete:", userToDelete);
+
     try {
       // Hard delete: Remove user from database completely
       const { data, error } = await supabase
-        .from('users')
+        .from("users")
         .delete()
-        .eq('auth_user_id', userId)
+        .eq("auth_user_id", userId)
         .select();
 
       if (error) {
-        console.error('❌ Error deleting user:', error);
-        console.error('❌ Error details:', JSON.stringify(error, null, 2));
+        console.error("❌ Error deleting user:", error);
+        console.error("❌ Error details:", JSON.stringify(error, null, 2));
         return;
       }
 
-      console.log('✅ User successfully deleted from database:', data);
+      console.log("✅ User successfully deleted from database:", data);
 
       // Update local state to remove the user from the list
-      setUsers(prev => {
-        const updatedUsers = prev.filter(user => user.auth_user_id !== userId);
-        console.log('🔄 Updated users state, user removed from list');
+      setUsers((prev) => {
+        const updatedUsers = prev.filter(
+          (user) => user.auth_user_id !== userId,
+        );
+        console.log("🔄 Updated users state, user removed from list");
         return updatedUsers;
       });
     } catch (error) {
-      console.error('❌ Error deleting user:', error);
+      console.error("❌ Error deleting user:", error);
     }
   };
 
   const getUserById = (userId: string): User | undefined => {
-    return users.find(user => user.auth_user_id === userId);
+    return users.find((user) => user.auth_user_id === userId);
   };
 
   // Client functions
-  const addClient = async (client: Omit<Client, 'id'>) => {
+  const addClient = async (client: Omit<Client, "id">) => {
     console.log("🔵 addClient called with:", client);
     if (!session?.user) {
       console.log("❌ No session/user, returning early");
       return;
     }
-    
+
     try {
       console.log("🔵 Inserting client into database...");
       const { data, error } = await supabase
-        .from('clients')
+        .from("clients")
         .insert({
           auth_user_id: session.user.id,
           name: client.name,
@@ -1288,14 +1458,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           phone: client.phone,
           address: client.address,
           website: client.website,
-          status: client.status || 'active'
+          status: client.status || "active",
         })
         .select()
         .single();
       console.log("🔵 Database insert result:", { data, error });
 
       if (error) {
-        console.error('Error adding client:', error);
+        console.error("Error adding client:", error);
         return;
       }
 
@@ -1308,22 +1478,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           address: data.address || undefined,
           website: data.website || undefined,
           createdAt: data.created_at,
-          status: (data.status as 'active' | 'inactive') || 'active'
+          status: (data.status as "active" | "inactive") || "active",
         };
         console.log("🔵 Adding client to state:", newClient);
-        setClients(prev => [...prev, newClient]);
+        setClients((prev) => [...prev, newClient]);
       }
     } catch (error) {
-      console.error('Error adding client:', error);
+      console.error("Error adding client:", error);
     }
   };
 
   const updateClient = async (clientId: string, updates: Partial<Client>) => {
     if (!session?.user) return;
-    
+
     try {
       const dbUpdates: any = {};
-      
+
       if (updates.name !== undefined) dbUpdates.name = updates.name;
       if (updates.email !== undefined) dbUpdates.email = updates.email;
       if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
@@ -1332,54 +1502,56 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.status !== undefined) dbUpdates.status = updates.status;
 
       const { error } = await supabase
-        .from('clients')
+        .from("clients")
         .update(dbUpdates)
-        .eq('id', clientId);
+        .eq("id", clientId);
 
       if (error) {
-        console.error('Error updating client:', error);
+        console.error("Error updating client:", error);
         return;
       }
 
-      setClients(prev => prev.map(client => 
-        client.id === clientId ? { ...client, ...updates } : client
-      ));
+      setClients((prev) =>
+        prev.map((client) =>
+          client.id === clientId ? { ...client, ...updates } : client,
+        ),
+      );
     } catch (error) {
-      console.error('Error updating client:', error);
+      console.error("Error updating client:", error);
     }
   };
 
   const deleteClient = async (clientId: string) => {
     if (!session?.user) return;
-    
+
     try {
       const { error } = await supabase
-        .from('clients')
+        .from("clients")
         .delete()
-        .eq('id', clientId);
+        .eq("id", clientId);
 
       if (error) {
-        console.error('Error deleting client:', error);
+        console.error("Error deleting client:", error);
         return;
       }
 
-      setClients(prev => prev.filter(client => client.id !== clientId));
+      setClients((prev) => prev.filter((client) => client.id !== clientId));
     } catch (error) {
-      console.error('Error deleting client:', error);
+      console.error("Error deleting client:", error);
     }
   };
 
   const getClientById = (clientId: string): Client | undefined => {
-    return clients.find(client => client.id === clientId);
+    return clients.find((client) => client.id === clientId);
   };
 
   // Project functions
-  const addProject = async (project: Omit<Project, 'id'>) => {
+  const addProject = async (project: Omit<Project, "id">) => {
     if (!session?.user) return;
-    
+
     try {
       const { data, error } = await supabase
-        .from('projects')
+        .from("projects")
         .insert({
           auth_user_id: session.user.id,
           name: project.name,
@@ -1394,13 +1566,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           team_ids: project.teamIds || [],
           watcher_ids: project.watcherIds || [],
           owner_id: project.ownerId || null,
-          collaborator_ids: project.collaboratorIds || []
+          collaborator_ids: project.collaboratorIds || [],
         })
         .select()
         .single();
 
       if (error) {
-        console.error('Error adding project:', error);
+        console.error("Error adding project:", error);
         return;
       }
 
@@ -1410,8 +1582,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           name: data.name,
           description: data.description,
           clientId: data.client_id,
-          status: (data.status as 'todo' | 'in-progress' | 'done') || 'todo',
-          serviceType: (data.service_type as 'project' | 'bank-hours' | 'pay-as-you-go') || 'project',
+          status: (data.status as "todo" | "in-progress" | "done") || "todo",
+          serviceType:
+            (data.service_type as "project" | "bank-hours" | "pay-as-you-go") ||
+            "project",
           startDate: data.start_date || undefined,
           dueDate: data.due_date || undefined,
           allocatedHours: data.allocated_hours || undefined,
@@ -1420,102 +1594,136 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           watcherIds: data.watcher_ids || [],
           ownerId: data.owner_id || undefined,
           collaboratorIds: data.collaborator_ids || [],
-          google_chat_settings: data.google_chat_settings || undefined
+          google_chat_settings: data.google_chat_settings || undefined,
         };
-        setProjects(prev => [...prev, newProject]);
+        setProjects((prev) => [...prev, newProject]);
       }
     } catch (error) {
-      console.error('Error adding project:', error);
+      console.error("Error adding project:", error);
     }
   };
 
-  const updateProject = async (projectId: string, updates: Partial<Project>) => {
+  const updateProject = async (
+    projectId: string,
+    updates: Partial<Project>,
+  ) => {
     if (!session?.user) return;
-    
+
     try {
       const dbUpdates: any = {};
-      
+
       if (updates.name !== undefined) dbUpdates.name = updates.name;
-      if (updates.description !== undefined) dbUpdates.description = updates.description;
-      if (updates.clientId !== undefined) dbUpdates.client_id = updates.clientId;
+      if (updates.description !== undefined)
+        dbUpdates.description = updates.description;
+      if (updates.clientId !== undefined)
+        dbUpdates.client_id = updates.clientId;
       if (updates.status !== undefined) dbUpdates.status = updates.status;
-      if (updates.serviceType !== undefined) dbUpdates.service_type = updates.serviceType;
-      if (updates.startDate !== undefined) dbUpdates.start_date = updates.startDate;
+      if (updates.serviceType !== undefined)
+        dbUpdates.service_type = updates.serviceType;
+      if (updates.startDate !== undefined)
+        dbUpdates.start_date = updates.startDate;
       if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate;
-      if (updates.allocatedHours !== undefined) dbUpdates.allocated_hours = updates.allocatedHours;
-      if (updates.usedHours !== undefined) dbUpdates.used_hours = updates.usedHours;
+      if (updates.allocatedHours !== undefined)
+        dbUpdates.allocated_hours = updates.allocatedHours;
+      if (updates.usedHours !== undefined)
+        dbUpdates.used_hours = updates.usedHours;
       if (updates.teamIds !== undefined) dbUpdates.team_ids = updates.teamIds;
-      if (updates.watcherIds !== undefined) dbUpdates.watcher_ids = updates.watcherIds;
+      if (updates.watcherIds !== undefined)
+        dbUpdates.watcher_ids = updates.watcherIds;
       if (updates.ownerId !== undefined) dbUpdates.owner_id = updates.ownerId;
-      if (updates.collaboratorIds !== undefined) dbUpdates.collaborator_ids = updates.collaboratorIds;
-      if ((updates as any).google_chat_settings !== undefined) dbUpdates.google_chat_settings = (updates as any).google_chat_settings;
+      if (updates.collaboratorIds !== undefined)
+        dbUpdates.collaborator_ids = updates.collaboratorIds;
+      if ((updates as any).google_chat_settings !== undefined)
+        dbUpdates.google_chat_settings = (updates as any).google_chat_settings;
 
       const { error } = await supabase
-        .from('projects')
+        .from("projects")
         .update(dbUpdates)
-        .eq('id', projectId);
+        .eq("id", projectId);
 
       if (error) {
-        console.error('Error updating project:', error);
+        console.error("Error updating project:", error);
         return;
       }
 
-      setProjects(prev => prev.map(project => 
-        project.id === projectId ? { ...project, ...updates } : project
-      ));
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === projectId ? { ...project, ...updates } : project,
+        ),
+      );
     } catch (error) {
-      console.error('Error updating project:', error);
+      console.error("Error updating project:", error);
     }
   };
 
-  const deleteProject = async (projectId: string): Promise<{ success: boolean; error?: string }> => {
+  const deleteProject = async (
+    projectId: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     if (!session?.user) {
-      return { success: false, error: 'You must be logged in to delete projects' };
+      return {
+        success: false,
+        error: "You must be logged in to delete projects",
+      };
     }
-    
+
     try {
       const { error } = await supabase
-        .from('projects')
+        .from("projects")
         .delete()
-        .eq('id', projectId);
+        .eq("id", projectId);
 
       if (error) {
-        console.error('Error deleting project:', error);
-        
+        console.error("Error deleting project:", error);
+
         // Provide user-friendly error messages
-        if (error.code === 'PGRST301' || error.message.includes('row-level security')) {
-          return { success: false, error: 'You do not have permission to delete this project. Only the project owner can delete it.' };
+        if (
+          error.code === "PGRST301" ||
+          error.message.includes("row-level security")
+        ) {
+          return {
+            success: false,
+            error:
+              "You do not have permission to delete this project. Only the project owner can delete it.",
+          };
         }
-        
-        return { success: false, error: error.message || 'Failed to delete project' };
+
+        return {
+          success: false,
+          error: error.message || "Failed to delete project",
+        };
       }
 
-      setProjects(prev => prev.filter(project => project.id !== projectId));
+      setProjects((prev) => prev.filter((project) => project.id !== projectId));
       return { success: true };
     } catch (error) {
-      console.error('Error deleting project:', error);
-      return { success: false, error: 'An unexpected error occurred while deleting the project' };
+      console.error("Error deleting project:", error);
+      return {
+        success: false,
+        error: "An unexpected error occurred while deleting the project",
+      };
     }
   };
 
   const getProjectById = (projectId: string): Project | undefined => {
-    return projects.find(project => project.id === projectId);
+    return projects.find((project) => project.id === projectId);
   };
 
   // Task functions
-  const addTask = async (task: Omit<Task, 'id' | 'createdAt' | 'timeEntries' | 'comments'>): Promise<string | undefined> => {
-    console.log('🟢 addTask called with:', task);
-    
+  const addTask = async (
+    task: Omit<Task, "id" | "createdAt" | "timeEntries" | "comments">,
+  ): Promise<string | undefined> => {
+    console.log("🟢 addTask called with:", task);
+
     if (!session?.user) {
-      console.log('❌ No session or user found');
+      console.log("❌ No session or user found");
       return undefined;
     }
-    
-    console.log('🟢 Session user ID:', session.user.id);
-    
+
+    console.log("🟢 Session user ID:", session.user.id);
+
     try {
-      console.log('🟢 Attempting to insert task into database...');
-      
+      console.log("🟢 Attempting to insert task into database...");
+
       const insertData: any = {
         auth_user_id: session.user.id,
         title: task.title,
@@ -1531,33 +1739,33 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         watcher_ids: task.watcherIds || [],
         collaborator_ids: task.collaboratorIds || [],
         related_task_ids: task.relatedTaskIds || [],
-        checklist: task.checklist || []
+        checklist: task.checklist || [],
       };
-      
-      console.log('🟢 Insert data:', insertData);
-      
+
+      console.log("🟢 Insert data:", insertData);
+
       const { data, error } = await supabase
-        .from('tasks')
+        .from("tasks")
         .insert(insertData)
         .select()
         .single();
 
       if (error) {
-        console.error('❌ Database error adding task:', error);
+        console.error("❌ Database error adding task:", error);
         throw error;
       }
 
-      console.log('🟢 Task inserted successfully:', data);
+      console.log("🟢 Task inserted successfully:", data);
 
       if (data) {
         const newTask: Task = {
           id: data.id,
           title: data.title,
-          description: data.description || '',
+          description: data.description || "",
           projectId: data.project_id,
           assigneeId: data.assignee_id || undefined,
-          status: (data.status as TaskStatus) || 'backlog',
-          priority: (data.priority as 'low' | 'medium' | 'high') || 'medium',
+          status: (data.status as TaskStatus) || "backlog",
+          priority: (data.priority as "low" | "medium" | "high") || "medium",
           dueDate: data.due_date || undefined,
           estimatedHours: data.estimated_hours || undefined,
           actualHours: data.actual_hours || undefined,
@@ -1565,127 +1773,167 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           watcherIds: data.watcher_ids || [],
           comments: [],
           collaboratorIds: data.collaborator_ids || [],
-          relatedTaskIds: data.related_task_ids || []
+          relatedTaskIds: data.related_task_ids || [],
         };
-        
-        console.log('🟢 Adding task to local state:', newTask);
-        setTasks(prev => {
+
+        console.log("🟢 Adding task to local state:", newTask);
+        setTasks((prev) => {
           const newTasks = [...prev, newTask];
-          console.log('🟢 New tasks array length:', newTasks.length);
+          console.log("🟢 New tasks array length:", newTasks.length);
           return newTasks;
         });
-        console.log('🟢 Task successfully added to local state');
-        
+        console.log("🟢 Task successfully added to local state");
+
         // Send Google Chat notification asynchronously
         if (data.project_id) {
-          console.log('🔔 Sending task_created notification for task:', data.id);
-          supabase.functions.invoke('send-task-notification', {
-            body: {
-              taskId: data.id,
-              projectId: data.project_id,
-              eventType: 'task_created',
-              userId: session.user.id
-            }
-          }).then(({ error }) => {
-            if (error) {
-              console.error('❌ Error sending task created notification:', error);
-            } else {
-              console.log('✅ Task created notification sent successfully');
-            }
-          });
+          console.log(
+            "🔔 Sending task_created notification for task:",
+            data.id,
+          );
+          supabase.functions
+            .invoke("send-task-notification", {
+              body: {
+                taskId: data.id,
+                projectId: data.project_id,
+                eventType: "task_created",
+                userId: session.user.id,
+              },
+            })
+            .then(({ error }) => {
+              if (error) {
+                console.error(
+                  "❌ Error sending task created notification:",
+                  error,
+                );
+              } else {
+                console.log("✅ Task created notification sent successfully");
+              }
+            });
         }
-        
+
         return data.id;
       }
-      
+
       return undefined;
     } catch (error) {
-      console.error('❌ Error adding task:', error);
+      console.error("❌ Error adding task:", error);
       throw error;
     }
   };
 
-  const updateTask = async (taskId: string, updates: Partial<Task>): Promise<string | undefined> => {
+  const updateTask = async (
+    taskId: string,
+    updates: Partial<Task>,
+  ): Promise<string | undefined> => {
     if (!session?.user) return undefined;
-    
+
     try {
       // Get current task for comparison
-      const currentTask = tasks.find(t => t.id === taskId);
+      const currentTask = tasks.find((t) => t.id === taskId);
       if (!currentTask) return undefined;
 
       const dbUpdates: any = {};
       const changes: string[] = [];
-      
+
       if (updates.title !== undefined && updates.title !== currentTask.title) {
         dbUpdates.title = updates.title;
         changes.push(`updated title to "${updates.title}"`);
       }
-      if (updates.description !== undefined && updates.description !== currentTask.description) {
+      if (
+        updates.description !== undefined &&
+        updates.description !== currentTask.description
+      ) {
         dbUpdates.description = updates.description;
-        changes.push('updated description');
+        changes.push("updated description");
       }
-      if (updates.projectId !== undefined && updates.projectId !== currentTask.projectId) {
+      if (
+        updates.projectId !== undefined &&
+        updates.projectId !== currentTask.projectId
+      ) {
         dbUpdates.project_id = updates.projectId;
-        changes.push('changed project');
+        changes.push("changed project");
       }
-      if (updates.assigneeId !== undefined && updates.assigneeId !== currentTask.assigneeId) {
+      if (
+        updates.assigneeId !== undefined &&
+        updates.assigneeId !== currentTask.assigneeId
+      ) {
         dbUpdates.assignee_id = updates.assigneeId;
-        const assignee = users.find(u => u.id === updates.assigneeId);
-        changes.push(`assigned to ${assignee?.name || 'someone'}`);
+        const assignee = users.find((u) => u.id === updates.assigneeId);
+        changes.push(`assigned to ${assignee?.name || "someone"}`);
       }
-      if (updates.status !== undefined && updates.status !== currentTask.status) {
+      if (
+        updates.status !== undefined &&
+        updates.status !== currentTask.status
+      ) {
         dbUpdates.status = updates.status;
-        changes.push(`changed status from "${currentTask.status}" to "${updates.status}"`);
+        changes.push(
+          `changed status from "${currentTask.status}" to "${updates.status}"`,
+        );
       }
-      if (updates.priority !== undefined && updates.priority !== currentTask.priority) {
+      if (
+        updates.priority !== undefined &&
+        updates.priority !== currentTask.priority
+      ) {
         dbUpdates.priority = updates.priority;
-        changes.push(`changed priority from "${currentTask.priority}" to "${updates.priority}"`);
+        changes.push(
+          `changed priority from "${currentTask.priority}" to "${updates.priority}"`,
+        );
       }
-      if (updates.dueDate !== undefined && updates.dueDate !== currentTask.dueDate) {
+      if (
+        updates.dueDate !== undefined &&
+        updates.dueDate !== currentTask.dueDate
+      ) {
         dbUpdates.due_date = updates.dueDate;
-        changes.push('updated due date');
+        changes.push("updated due date");
       }
-      if (updates.estimatedHours !== undefined && updates.estimatedHours !== currentTask.estimatedHours) {
+      if (
+        updates.estimatedHours !== undefined &&
+        updates.estimatedHours !== currentTask.estimatedHours
+      ) {
         dbUpdates.estimated_hours = updates.estimatedHours;
         changes.push(`updated estimated hours to ${updates.estimatedHours}`);
       }
-      if (updates.actualHours !== undefined && updates.actualHours !== currentTask.actualHours) {
+      if (
+        updates.actualHours !== undefined &&
+        updates.actualHours !== currentTask.actualHours
+      ) {
         dbUpdates.actual_hours = updates.actualHours;
         changes.push(`updated actual hours to ${updates.actualHours}`);
       }
       if (updates.watcherIds !== undefined) {
         dbUpdates.watcher_ids = updates.watcherIds;
-        changes.push('updated watchers');
+        changes.push("updated watchers");
       }
       if (updates.comments !== undefined) {
         dbUpdates.comments = updates.comments;
-        changes.push('added a comment');
+        changes.push("added a comment");
       }
       if (updates.collaboratorIds !== undefined) {
         dbUpdates.collaborator_ids = updates.collaboratorIds;
-        changes.push('updated collaborators');
+        changes.push("updated collaborators");
       }
       if (updates.relatedTaskIds !== undefined) {
         dbUpdates.related_task_ids = updates.relatedTaskIds;
-        changes.push('updated related tasks');
+        changes.push("updated related tasks");
       }
       if (updates.checklist !== undefined) {
         // Ensure checklist is properly serialized as JSON for Supabase
         dbUpdates.checklist = JSON.parse(JSON.stringify(updates.checklist));
-        console.log('📝 Updating checklist:', dbUpdates.checklist);
-        const oldChecklistLength = (currentTask.checklist as any[])?.length || 0;
+        console.log("📝 Updating checklist:", dbUpdates.checklist);
+        const oldChecklistLength =
+          (currentTask.checklist as any[])?.length || 0;
         const newChecklistLength = (updates.checklist as any[])?.length || 0;
         if (newChecklistLength > oldChecklistLength) {
-          changes.push('added checklist item');
+          changes.push("added checklist item");
         } else if (newChecklistLength < oldChecklistLength) {
-          changes.push('removed checklist item');
+          changes.push("removed checklist item");
         } else {
-          changes.push('updated checklist');
+          changes.push("updated checklist");
         }
       }
       if (updates.reminderDate !== undefined) {
         dbUpdates.reminder_date = updates.reminderDate;
-        changes.push('updated reminder date');
+        changes.push("updated reminder date");
       }
       if (updates.backlogReason !== undefined) {
         dbUpdates.backlog_reason = updates.backlogReason;
@@ -1705,101 +1953,101 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return taskId;
       }
 
-      console.log('📝 Sending task update to Supabase:', { taskId, dbUpdates });
+      console.log("📝 Sending task update to Supabase:", { taskId, dbUpdates });
       const { data, error } = await supabase
-        .from('tasks')
+        .from("tasks")
         .update(dbUpdates)
-        .eq('id', taskId)
+        .eq("id", taskId)
         .select();
 
       if (error) {
-        console.error('❌ Error updating task:', error);
+        console.error("❌ Error updating task:", error);
         return undefined;
       }
-      
-      console.log('✅ Task updated successfully:', data);
+
+      console.log("✅ Task updated successfully:", data);
 
       // Create task log entry
       if (changes.length > 0 && currentUser) {
-        const logAction = changes.join(', ');
-        await supabase
-          .from('task_logs')
-          .insert({
-            task_id: taskId,
-            user_id: currentUser.id,
-            auth_user_id: session.user.id,
-            action: logAction,
-            timestamp: new Date().toISOString()
-          });
+        const logAction = changes.join(", ");
+        await supabase.from("task_logs").insert({
+          task_id: taskId,
+          user_id: currentUser.id,
+          auth_user_id: session.user.id,
+          action: logAction,
+          timestamp: new Date().toISOString(),
+        });
       }
 
       // Create specific log entries for status-related changes
-      if (updates.status !== undefined && updates.status !== currentTask.status && currentUser) {
-        await supabase
-          .from('task_logs')
-          .insert({
-            task_id: taskId,
-            user_id: currentUser.id,
-            auth_user_id: session.user.id,
-            action: 'status_changed',
-            details: {
-              oldStatus: currentTask.status,
-              newStatus: updates.status
-            },
-            timestamp: new Date().toISOString()
-          });
+      if (
+        updates.status !== undefined &&
+        updates.status !== currentTask.status &&
+        currentUser
+      ) {
+        await supabase.from("task_logs").insert({
+          task_id: taskId,
+          user_id: currentUser.id,
+          auth_user_id: session.user.id,
+          action: "status_changed",
+          details: {
+            oldStatus: currentTask.status,
+            newStatus: updates.status,
+          },
+          timestamp: new Date().toISOString(),
+        });
       }
 
       if (updates.backlogReason !== undefined && currentUser) {
-        await supabase
-          .from('task_logs')
-          .insert({
-            task_id: taskId,
-            user_id: currentUser.id,
-            auth_user_id: session.user.id,
-            action: 'backlog_reason_added',
-            details: {
-              backlogReason: updates.backlogReason
-            },
-            timestamp: new Date().toISOString()
-          });
+        await supabase.from("task_logs").insert({
+          task_id: taskId,
+          user_id: currentUser.id,
+          auth_user_id: session.user.id,
+          action: "backlog_reason_added",
+          details: {
+            backlogReason: updates.backlogReason,
+          },
+          timestamp: new Date().toISOString(),
+        });
       }
 
-      if (updates.dueDate !== undefined && updates.dueDate !== currentTask.dueDate && currentUser) {
-        await supabase
-          .from('task_logs')
-          .insert({
-            task_id: taskId,
-            user_id: currentUser.id,
-            auth_user_id: session.user.id,
-            action: 'due_date_changed',
-            details: {
-              dueDate: updates.dueDate,
-              dueDateChangeReason: updates.dueDateChangeReason
-            },
-            timestamp: new Date().toISOString()
-          });
+      if (
+        updates.dueDate !== undefined &&
+        updates.dueDate !== currentTask.dueDate &&
+        currentUser
+      ) {
+        await supabase.from("task_logs").insert({
+          task_id: taskId,
+          user_id: currentUser.id,
+          auth_user_id: session.user.id,
+          action: "due_date_changed",
+          details: {
+            dueDate: updates.dueDate,
+            dueDateChangeReason: updates.dueDateChangeReason,
+          },
+          timestamp: new Date().toISOString(),
+        });
       }
 
       if (updates.awaitingFeedbackDetails !== undefined && currentUser) {
-        await supabase
-          .from('task_logs')
-          .insert({
-            task_id: taskId,
-            user_id: currentUser.id,
-            auth_user_id: session.user.id,
-            action: 'awaiting_feedback_details_added',
-            details: {
-              awaitingFeedbackDetails: updates.awaitingFeedbackDetails
-            },
-            timestamp: new Date().toISOString()
-          });
+        await supabase.from("task_logs").insert({
+          task_id: taskId,
+          user_id: currentUser.id,
+          auth_user_id: session.user.id,
+          action: "awaiting_feedback_details_added",
+          details: {
+            awaitingFeedbackDetails: updates.awaitingFeedbackDetails,
+          },
+          timestamp: new Date().toISOString(),
+        });
       }
 
-      setTasks(prev => prev.map(task => 
-        task.id === taskId ? { ...task, ...updates } : task
-      ));
-      
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === taskId ? { ...task, ...updates } : task,
+        ),
+      );
+
       // Build changes summary for notifications
       const changesSummary: Record<string, string> = {};
       if (updates.status && updates.status !== currentTask.status) {
@@ -1808,119 +2056,148 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.priority && updates.priority !== currentTask.priority) {
         changesSummary.priority = updates.priority;
       }
-      if (updates.assigneeId !== undefined && updates.assigneeId !== currentTask.assigneeId) {
-        const assignee = users.find(u => u.auth_user_id === updates.assigneeId);
-        changesSummary.assignee = assignee?.name || 'Unassigned';
+      if (
+        updates.assigneeId !== undefined &&
+        updates.assigneeId !== currentTask.assigneeId
+      ) {
+        const assignee = users.find(
+          (u) => u.auth_user_id === updates.assigneeId,
+        );
+        changesSummary.assignee = assignee?.name || "Unassigned";
       }
-      if (updates.dueDate !== undefined && updates.dueDate !== currentTask.dueDate) {
-        changesSummary.due_date = updates.dueDate || 'No due date';
+      if (
+        updates.dueDate !== undefined &&
+        updates.dueDate !== currentTask.dueDate
+      ) {
+        changesSummary.due_date = updates.dueDate || "No due date";
       }
 
       // Send notification for task completion
-      if (updates.status === 'done' && currentTask.status !== 'done' && currentTask.projectId) {
-        console.log('🔔 Sending task_completed notification for task:', taskId);
-        supabase.functions.invoke('send-task-notification', {
-          body: {
-            taskId,
-            projectId: currentTask.projectId,
-            eventType: 'task_completed',
-            userId: session.user.id,
-            changes: changesSummary
-          }
-        }).then(({ error }) => {
-          if (error) {
-            console.error('❌ Error sending completion notification:', error);
-          } else {
-            console.log('✅ Completion notification sent successfully');
-          }
-        });
+      if (
+        updates.status === "done" &&
+        currentTask.status !== "done" &&
+        currentTask.projectId
+      ) {
+        console.log("🔔 Sending task_completed notification for task:", taskId);
+        supabase.functions
+          .invoke("send-task-notification", {
+            body: {
+              taskId,
+              projectId: currentTask.projectId,
+              eventType: "task_completed",
+              userId: session.user.id,
+              changes: changesSummary,
+            },
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.error("❌ Error sending completion notification:", error);
+            } else {
+              console.log("✅ Completion notification sent successfully");
+            }
+          });
       }
-      
+
       // Send notification for status changes (not to done)
-      if (updates.status && updates.status !== 'done' && updates.status !== currentTask.status && currentTask.projectId) {
-        console.log('🔔 Sending status_changed notification for task:', taskId);
-        supabase.functions.invoke('send-task-notification', {
-          body: {
-            taskId,
-            projectId: currentTask.projectId,
-            eventType: 'status_changed',
-            userId: session.user.id,
-            oldStatus: currentTask.status,
-            newStatus: updates.status,
-            changes: changesSummary
-          }
-        }).then(({ error }) => {
-          if (error) {
-            console.error('❌ Error sending status change notification:', error);
-          } else {
-            console.log('✅ Status change notification sent successfully');
-          }
-        });
+      if (
+        updates.status &&
+        updates.status !== "done" &&
+        updates.status !== currentTask.status &&
+        currentTask.projectId
+      ) {
+        console.log("🔔 Sending status_changed notification for task:", taskId);
+        supabase.functions
+          .invoke("send-task-notification", {
+            body: {
+              taskId,
+              projectId: currentTask.projectId,
+              eventType: "status_changed",
+              userId: session.user.id,
+              oldStatus: currentTask.status,
+              newStatus: updates.status,
+              changes: changesSummary,
+            },
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.error(
+                "❌ Error sending status change notification:",
+                error,
+              );
+            } else {
+              console.log("✅ Status change notification sent successfully");
+            }
+          });
       }
-      
+
       // Send notification for other task updates (when no status change)
-      if (currentTask.projectId && !updates.status && Object.keys(changesSummary).length > 0) {
-        console.log('🔔 Sending task_updated notification for task:', taskId);
-        supabase.functions.invoke('send-task-notification', {
-          body: {
-            taskId,
-            projectId: currentTask.projectId,
-            eventType: 'task_updated',
-            userId: session.user.id,
-            changes: changesSummary
-          }
-        }).then(({ error }) => {
-          if (error) {
-            console.error('❌ Error sending update notification:', error);
-          } else {
-            console.log('✅ Update notification sent successfully');
-          }
-        });
+      if (
+        currentTask.projectId &&
+        !updates.status &&
+        Object.keys(changesSummary).length > 0
+      ) {
+        console.log("🔔 Sending task_updated notification for task:", taskId);
+        supabase.functions
+          .invoke("send-task-notification", {
+            body: {
+              taskId,
+              projectId: currentTask.projectId,
+              eventType: "task_updated",
+              userId: session.user.id,
+              changes: changesSummary,
+            },
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.error("❌ Error sending update notification:", error);
+            } else {
+              console.log("✅ Update notification sent successfully");
+            }
+          });
       }
 
       return taskId;
     } catch (error) {
-      console.error('Error updating task:', error);
+      console.error("Error updating task:", error);
     }
   };
 
   const deleteTask = async (taskId: string): Promise<boolean> => {
     if (!session?.user) return false;
-    
+
     try {
       // Delete related records first to avoid foreign key constraint violations
       // Delete messages linked to this task
-      await supabase.from('messages').delete().eq('task_id', taskId);
-      
+      await supabase.from("messages").delete().eq("task_id", taskId);
+
       // Delete task files
-      await supabase.from('task_files').delete().eq('task_id', taskId);
-      
+      await supabase.from("task_files").delete().eq("task_id", taskId);
+
       // Delete task reminders
-      await supabase.from('task_reminders').delete().eq('task_id', taskId);
-      
+      await supabase.from("task_reminders").delete().eq("task_id", taskId);
+
       // Delete comments
-      await supabase.from('comments').delete().eq('task_id', taskId);
-      
+      await supabase.from("comments").delete().eq("task_id", taskId);
+
       // Now delete the task
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', taskId);
+      const { error } = await supabase.from("tasks").delete().eq("id", taskId);
 
       if (error) {
-        console.error('Error deleting task:', error);
+        console.error("Error deleting task:", error);
         toast({
           title: "Error",
-          description: error.message || "Failed to delete task. You may not have permission to delete this task.",
+          description:
+            error.message ||
+            "Failed to delete task. You may not have permission to delete this task.",
           variant: "destructive",
         });
         return false;
       }
 
-      setTasks(prev => prev.filter(task => task.id !== taskId));
+      setTasks((prev) => prev.filter((task) => task.id !== taskId));
       return true;
     } catch (error) {
-      console.error('Error deleting task:', error);
+      console.error("Error deleting task:", error);
       toast({
         title: "Error",
         description: "Failed to delete task",
@@ -1931,47 +2208,53 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const getTaskById = (taskId: string): Task | undefined => {
-    return tasks.find(task => task.id === taskId);
+    return tasks.find((task) => task.id === taskId);
   };
 
   // Time Entry functions
-  const addTimeEntry = async (timeEntry: Omit<TimeEntry, 'id'>) => {
+  const addTimeEntry = async (timeEntry: Omit<TimeEntry, "id">) => {
     if (!session?.user) return;
-    
+
     try {
       // SAFEGUARD: If creating a new ACTIVE timer (no endTime), ensure all other active timers are stopped first
       // This is a belt-and-suspenders check - startTimeTracking should already do this
       if (!timeEntry.endTime && currentUser) {
-        console.log('🔒 addTimeEntry safeguard: Checking for active timers before creating new active timer');
+        console.log(
+          "🔒 addTimeEntry safeguard: Checking for active timers before creating new active timer",
+        );
         const { data: activeTimers, error: fetchError } = await supabase
-          .from('time_entries')
-          .select('id, start_time')
-          .eq('user_id', currentUser.id)
-          .eq('timer_status', 'active');
-        
+          .from("time_entries")
+          .select("id, start_time")
+          .eq("user_id", currentUser.id)
+          .eq("timer_status", "active");
+
         if (!fetchError && activeTimers && activeTimers.length > 0) {
-          console.log(`⚠️ Found ${activeTimers.length} active timer(s) that should have been stopped - stopping now`);
+          console.log(
+            `⚠️ Found ${activeTimers.length} active timer(s) that should have been stopped - stopping now`,
+          );
           for (const timer of activeTimers) {
-            const duration = Math.floor((Date.now() - new Date(timer.start_time).getTime()) / (1000 * 60));
+            const duration = Math.floor(
+              (Date.now() - new Date(timer.start_time).getTime()) / (1000 * 60),
+            );
             await supabase
-              .from('time_entries')
+              .from("time_entries")
               .update({
                 end_time: new Date().toISOString(),
                 duration: Math.max(1, duration),
-                notes: 'Auto-stopped by system (safeguard)'
+                notes: "Auto-stopped by system (safeguard)",
               })
-              .eq('id', timer.id);
+              .eq("id", timer.id);
           }
         }
       }
-      
+
       // CRITICAL: Set timer_status based on whether the entry has an endTime
       // Manual entries (with endTime) must be 'completed' to prevent the active timer
       // cleanup logic from treating them as orphaned active timers and overwriting them
-      const timerStatus = timeEntry.endTime ? 'completed' : 'active';
-      
+      const timerStatus = timeEntry.endTime ? "completed" : "active";
+
       const { data, error } = await supabase
-        .from('time_entries')
+        .from("time_entries")
         .insert({
           auth_user_id: session.user.id,
           user_id: timeEntry.userId,
@@ -1982,15 +2265,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           end_time: timeEntry.endTime,
           duration: timeEntry.duration,
           notes: timeEntry.description,
-          status: timeEntry.status || 'pending',
+          status: timeEntry.status || "pending",
           rejection_reason: timeEntry.rejectionReason,
-          timer_status: timerStatus
+          timer_status: timerStatus,
         })
         .select()
         .single();
 
       if (error) {
-        console.error('Error adding time entry:', error);
+        console.error("Error adding time entry:", error);
         return;
       }
 
@@ -1998,131 +2281,153 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const newTimeEntry: TimeEntry = {
           id: data.id,
           userId: data.user_id,
-          taskId: data.task_id || '',
+          taskId: data.task_id || "",
           projectId: data.project_id || undefined,
           clientId: data.client_id || undefined,
           startTime: data.start_time,
           endTime: data.end_time || undefined,
           duration: data.duration || 0,
           description: data.notes || undefined,
-          status: (data.status as TimeEntryStatus) || 'pending',
+          status: (data.status as TimeEntryStatus) || "pending",
           notes: data.notes || undefined,
           rejectionReason: data.rejection_reason || undefined,
-          timerStatus: data.timer_status || undefined
+          timerStatus: data.timer_status || undefined,
         };
-        setTimeEntries(prev => [...prev, newTimeEntry]);
-        
+        setTimeEntries((prev) => [...prev, newTimeEntry]);
+
         // NOTE: The 'started' event is logged by the database trigger auto_log_time_entry_started
         // Do NOT log it here to avoid duplicate events
-        
+
         return newTimeEntry;
       }
     } catch (error) {
-      console.error('Error adding time entry:', error);
+      console.error("Error adding time entry:", error);
     }
   };
 
-  const updateTimeEntry = async (timeEntryId: string, updates: Partial<TimeEntry>) => {
+  const updateTimeEntry = async (
+    timeEntryId: string,
+    updates: Partial<TimeEntry>,
+  ) => {
     if (!session?.user) return;
-    
+
     try {
       // Get the current entry for comparison (for logging changes)
-      const currentEntry = timeEntries.find(e => e.id === timeEntryId);
-      
+      const currentEntry = timeEntries.find((e) => e.id === timeEntryId);
+
       const dbUpdates: any = {};
       const changedFields: string[] = [];
-      
+
       if (updates.userId !== undefined) {
         dbUpdates.user_id = updates.userId;
       }
       if (updates.taskId !== undefined) {
         dbUpdates.task_id = updates.taskId;
-        if (currentEntry?.taskId !== updates.taskId) changedFields.push('task');
+        if (currentEntry?.taskId !== updates.taskId) changedFields.push("task");
       }
       if (updates.projectId !== undefined) {
         dbUpdates.project_id = updates.projectId;
-        if (currentEntry?.projectId !== updates.projectId) changedFields.push('project');
+        if (currentEntry?.projectId !== updates.projectId)
+          changedFields.push("project");
       }
       if (updates.clientId !== undefined) {
         dbUpdates.client_id = updates.clientId;
       }
       if (updates.startTime !== undefined) {
         dbUpdates.start_time = updates.startTime;
-        if (currentEntry?.startTime !== updates.startTime) changedFields.push('startTime');
+        if (currentEntry?.startTime !== updates.startTime)
+          changedFields.push("startTime");
       }
       if (updates.endTime !== undefined) {
         dbUpdates.end_time = updates.endTime;
-        if (currentEntry?.endTime !== updates.endTime) changedFields.push('endTime');
+        if (currentEntry?.endTime !== updates.endTime)
+          changedFields.push("endTime");
       }
       if (updates.duration !== undefined) {
         dbUpdates.duration = updates.duration;
-        if (currentEntry?.duration !== updates.duration) changedFields.push('duration');
+        if (currentEntry?.duration !== updates.duration)
+          changedFields.push("duration");
       }
       if (updates.description !== undefined) {
         dbUpdates.notes = updates.description;
-        if (currentEntry?.description !== updates.description) changedFields.push('notes');
+        if (currentEntry?.description !== updates.description)
+          changedFields.push("notes");
       }
       if (updates.notes !== undefined) {
         dbUpdates.notes = updates.notes;
-        if (currentEntry?.notes !== updates.notes) changedFields.push('notes');
+        if (currentEntry?.notes !== updates.notes) changedFields.push("notes");
       }
       if (updates.status !== undefined) {
         dbUpdates.status = updates.status;
-        if (currentEntry?.status !== updates.status) changedFields.push('status');
+        if (currentEntry?.status !== updates.status)
+          changedFields.push("status");
       }
       if (updates.rejectionReason !== undefined) {
         dbUpdates.rejection_reason = updates.rejectionReason;
       }
 
       const { error } = await supabase
-        .from('time_entries')
+        .from("time_entries")
         .update(dbUpdates)
-        .eq('id', timeEntryId);
+        .eq("id", timeEntryId);
 
       if (error) {
-        console.error('Error updating time entry:', error);
+        console.error("Error updating time entry:", error);
         return;
       }
 
       // Log manual edits if significant fields changed
       // NOTE: 'stopped' events are logged by the database trigger auto_log_time_entry_stopped
       // Do NOT log 'stopped' here to avoid duplicate events
-      const isStoppingTimer = changedFields.includes('endTime') && updates.endTime && !currentEntry?.endTime;
-      
+      const isStoppingTimer =
+        changedFields.includes("endTime") &&
+        updates.endTime &&
+        !currentEntry?.endTime;
+
       if (changedFields.length > 0 && !isStoppingTimer) {
         // Determine event type (excluding 'stopped' which is handled by DB trigger)
-        let eventType: 'manual_edit' | 'duration_changed' | 'notes_changed' | 'project_changed' | 'task_changed' | 'status_changed' = 'manual_edit';
-        
+        let eventType:
+          | "manual_edit"
+          | "duration_changed"
+          | "notes_changed"
+          | "project_changed"
+          | "task_changed"
+          | "status_changed" = "manual_edit";
+
         if (changedFields.length === 1) {
-          if (changedFields[0] === 'duration') eventType = 'duration_changed';
-          else if (changedFields[0] === 'notes') eventType = 'notes_changed';
-          else if (changedFields[0] === 'project') eventType = 'project_changed';
-          else if (changedFields[0] === 'task') eventType = 'task_changed';
-          else if (changedFields[0] === 'status') eventType = 'status_changed';
+          if (changedFields[0] === "duration") eventType = "duration_changed";
+          else if (changedFields[0] === "notes") eventType = "notes_changed";
+          else if (changedFields[0] === "project")
+            eventType = "project_changed";
+          else if (changedFields[0] === "task") eventType = "task_changed";
+          else if (changedFields[0] === "status") eventType = "status_changed";
         }
-        
+
         await logTimeEntryEvent(timeEntryId, eventType, {
           changedFields,
           previousValue: changedFields.reduce((acc, field) => {
-            if (field === 'duration') acc[field] = currentEntry?.duration;
-            else if (field === 'notes') acc[field] = currentEntry?.notes || currentEntry?.description;
-            else if (field === 'project') acc[field] = currentEntry?.projectId;
-            else if (field === 'task') acc[field] = currentEntry?.taskId;
-            else if (field === 'status') acc[field] = currentEntry?.status;
-            else if (field === 'startTime') acc[field] = currentEntry?.startTime;
-            else if (field === 'endTime') acc[field] = currentEntry?.endTime;
+            if (field === "duration") acc[field] = currentEntry?.duration;
+            else if (field === "notes")
+              acc[field] = currentEntry?.notes || currentEntry?.description;
+            else if (field === "project") acc[field] = currentEntry?.projectId;
+            else if (field === "task") acc[field] = currentEntry?.taskId;
+            else if (field === "status") acc[field] = currentEntry?.status;
+            else if (field === "startTime")
+              acc[field] = currentEntry?.startTime;
+            else if (field === "endTime") acc[field] = currentEntry?.endTime;
             return acc;
           }, {} as any),
           newValue: changedFields.reduce((acc, field) => {
-            if (field === 'duration') acc[field] = updates.duration;
-            else if (field === 'notes') acc[field] = updates.notes || updates.description;
-            else if (field === 'project') acc[field] = updates.projectId;
-            else if (field === 'task') acc[field] = updates.taskId;
-            else if (field === 'status') acc[field] = updates.status;
-            else if (field === 'startTime') acc[field] = updates.startTime;
-            else if (field === 'endTime') acc[field] = updates.endTime;
+            if (field === "duration") acc[field] = updates.duration;
+            else if (field === "notes")
+              acc[field] = updates.notes || updates.description;
+            else if (field === "project") acc[field] = updates.projectId;
+            else if (field === "task") acc[field] = updates.taskId;
+            else if (field === "status") acc[field] = updates.status;
+            else if (field === "startTime") acc[field] = updates.startTime;
+            else if (field === "endTime") acc[field] = updates.endTime;
             return acc;
-          }, {} as any)
+          }, {} as any),
         });
       }
 
@@ -2134,40 +2439,49 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.notes !== undefined) {
         syncedUpdates.description = updates.notes;
       }
-      
-      setTimeEntries(prev => prev.map(entry => 
-        entry.id === timeEntryId ? { ...entry, ...syncedUpdates } : entry
-      ));
+
+      setTimeEntries((prev) =>
+        prev.map((entry) =>
+          entry.id === timeEntryId ? { ...entry, ...syncedUpdates } : entry,
+        ),
+      );
 
       // Update active time entry if it's the one being updated
       if (activeTimeEntry?.id === timeEntryId) {
-        setActiveTimeEntry(prev => prev ? { ...prev, ...syncedUpdates } : null);
+        setActiveTimeEntry((prev) =>
+          prev ? { ...prev, ...syncedUpdates } : null,
+        );
       }
     } catch (error) {
-      console.error('Error updating time entry:', error);
+      console.error("Error updating time entry:", error);
     }
   };
 
   const deleteTimeEntry = async (timeEntryId: string) => {
     if (!session?.user) return;
-    
+
     try {
       // Soft-delete: mark as cancelled instead of hard-deleting
       // This preserves the audit trail for financial tracking
       // Calculate correct active duration from event history to avoid wall-clock inflation
       const { data: events } = await supabase
-        .from('time_entry_events')
-        .select('event_type, event_timestamp')
-        .eq('time_entry_id', timeEntryId)
-        .order('event_timestamp', { ascending: true });
+        .from("time_entry_events")
+        .select("event_type, event_timestamp")
+        .eq("time_entry_id", timeEntryId)
+        .order("event_timestamp", { ascending: true });
 
       let activeMs = 0;
       let lastResumeOrStart: Date | null = null;
       for (const ev of events || []) {
-        if (ev.event_type === 'started' || ev.event_type === 'resumed') {
+        if (ev.event_type === "started" || ev.event_type === "resumed") {
           lastResumeOrStart = new Date(ev.event_timestamp);
-        } else if ((ev.event_type === 'paused' || ev.event_type === 'auto_paused') && lastResumeOrStart) {
-          activeMs += new Date(ev.event_timestamp).getTime() - lastResumeOrStart.getTime();
+        } else if (
+          (ev.event_type === "paused" || ev.event_type === "auto_paused") &&
+          lastResumeOrStart
+        ) {
+          activeMs +=
+            new Date(ev.event_timestamp).getTime() -
+            lastResumeOrStart.getTime();
           lastResumeOrStart = null;
         }
       }
@@ -2177,34 +2491,36 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const correctDuration = Math.max(1, Math.round(activeMs / 60000));
 
       const { error } = await supabase
-        .from('time_entries')
-        .update({ 
-          timer_status: 'cancelled',
+        .from("time_entries")
+        .update({
+          timer_status: "cancelled",
           end_time: new Date().toISOString(),
-          duration: correctDuration
+          duration: correctDuration,
         })
-        .eq('id', timeEntryId);
+        .eq("id", timeEntryId);
 
       if (error) {
-        console.error('Error cancelling time entry:', error);
+        console.error("Error cancelling time entry:", error);
         return;
       }
 
       // Log the cancellation event
-      await logTimeEntryEvent(timeEntryId, 'cancelled', {
+      await logTimeEntryEvent(timeEntryId, "cancelled", {
         cancelledAt: new Date().toISOString(),
-        cancelledBy: session.user.id
+        cancelledBy: session.user.id,
       });
 
       // Remove from active UI lists (but it stays in DB)
-      setTimeEntries(prev => prev.filter(entry => entry.id !== timeEntryId));
-      
+      setTimeEntries((prev) =>
+        prev.filter((entry) => entry.id !== timeEntryId),
+      );
+
       // Clear active time entry if it was cancelled
       if (activeTimeEntry?.id === timeEntryId) {
         setActiveTimeEntry(null);
       }
     } catch (error) {
-      console.error('Error cancelling time entry:', error);
+      console.error("Error cancelling time entry:", error);
     }
   };
 
@@ -2212,157 +2528,181 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const isStartingTimer = React.useRef(false);
   const isPausingTimer = React.useRef(false);
 
-  const startTimeTracking = async (taskId?: string, projectId?: string, clientId?: string, resumeFromElapsedMs?: number) => {
+  const startTimeTracking = async (
+    taskId?: string,
+    projectId?: string,
+    clientId?: string,
+    resumeFromElapsedMs?: number,
+  ) => {
     if (!session?.user || !currentUser) return;
-    
+
     // Prevent race conditions - if already starting a timer, ignore this call
     if (isStartingTimer.current) {
-      console.log('⚠️ Already starting a timer, ignoring duplicate call');
+      console.log("⚠️ Already starting a timer, ignoring duplicate call");
       return;
     }
-    
+
     isStartingTimer.current = true;
-    
+
     try {
-      console.log('🚀 Starting new timer:', { taskId, projectId, clientId });
-      
+      console.log("🚀 Starting new timer:", { taskId, projectId, clientId });
+
       // RULE: Only ONE active timer at a time
       // First, stop ALL active timers for this user in the database (belt and suspenders)
       const { data: activeTimers, error: fetchError } = await supabase
-        .from('time_entries')
-        .select('id, start_time, task_id, project_id, client_id')
-        .eq('user_id', currentUser.id)
-        .eq('timer_status', 'active');
-      
+        .from("time_entries")
+        .select("id, start_time, task_id, project_id, client_id")
+        .eq("user_id", currentUser.id)
+        .eq("timer_status", "active");
+
       if (fetchError) {
-        console.error('Error fetching active timers:', fetchError);
+        console.error("Error fetching active timers:", fetchError);
       } else if (activeTimers && activeTimers.length > 0) {
-        console.log(`⏸️ Found ${activeTimers.length} active timer(s) to pause (not stop)`);
-        
+        console.log(
+          `⏸️ Found ${activeTimers.length} active timer(s) to pause (not stop)`,
+        );
+
         for (const timer of activeTimers) {
           // FIX: Calculate elapsed time using THIS TIMER's specific pause events
           // NOT the global totalPausedTime which may belong to a different timer
           let timerPausedTime = 0;
-          
+
           try {
             // Fetch pause/resume events specifically for this timer
             const { data: timerEvents, error: eventsError } = await supabase
-              .from('time_entry_events')
-              .select('event_type, event_timestamp')
-              .eq('time_entry_id', timer.id)
-              .in('event_type', ['paused', 'resumed', 'auto_paused'])
-              .order('event_timestamp', { ascending: true });
-            
+              .from("time_entry_events")
+              .select("event_type, event_timestamp")
+              .eq("time_entry_id", timer.id)
+              .in("event_type", ["paused", "resumed", "auto_paused"])
+              .order("event_timestamp", { ascending: true });
+
             if (!eventsError && timerEvents && timerEvents.length > 0) {
               let lastPauseTime: Date | null = null;
-              
+
               for (const event of timerEvents) {
                 const eventTime = new Date(event.event_timestamp);
-                
-                if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
+
+                if (
+                  event.event_type === "paused" ||
+                  event.event_type === "auto_paused"
+                ) {
                   lastPauseTime = eventTime;
-                } else if (event.event_type === 'resumed' && lastPauseTime) {
-                  timerPausedTime += eventTime.getTime() - lastPauseTime.getTime();
+                } else if (event.event_type === "resumed" && lastPauseTime) {
+                  timerPausedTime +=
+                    eventTime.getTime() - lastPauseTime.getTime();
                   lastPauseTime = null;
                 }
               }
-              
+
               // If timer is currently paused (lastPauseTime set but no resume), add time to now
               if (lastPauseTime) {
                 timerPausedTime += Date.now() - lastPauseTime.getTime();
               }
-              
-              console.log(`📊 Timer ${timer.id.slice(0, 8)} pause time from events: ${Math.floor(timerPausedTime / (1000 * 60))} minutes`);
+
+              console.log(
+                `📊 Timer ${timer.id.slice(0, 8)} pause time from events: ${Math.floor(timerPausedTime / (1000 * 60))} minutes`,
+              );
             }
           } catch (err) {
-            console.warn('Error fetching timer events, using raw elapsed:', err);
+            console.warn(
+              "Error fetching timer events, using raw elapsed:",
+              err,
+            );
             // Fallback: use 0 paused time (raw elapsed)
           }
-          
+
           // Calculate elapsed time using the timer's own pause history
           const rawElapsed = Date.now() - new Date(timer.start_time).getTime();
           const elapsedMs = Math.max(0, rawElapsed - timerPausedTime);
-          
+
           console.log(`⏱️ Timer ${timer.id.slice(0, 8)} elapsed calculation:`, {
             rawElapsedMs: rawElapsed,
             timerPausedTimeMs: timerPausedTime,
             finalElapsedMs: elapsedMs,
-            finalElapsedMin: Math.floor(elapsedMs / (1000 * 60))
+            finalElapsedMin: Math.floor(elapsedMs / (1000 * 60)),
           });
-          
+
           // Check if there's already a recent pause/auto_paused event to prevent duplicates
           const { data: recentPauseEvents } = await supabase
-            .from('time_entry_events')
-            .select('id, event_type, event_timestamp')
-            .eq('time_entry_id', timer.id)
-            .in('event_type', ['paused', 'auto_paused'])
-            .order('event_timestamp', { ascending: false })
+            .from("time_entry_events")
+            .select("id, event_type, event_timestamp")
+            .eq("time_entry_id", timer.id)
+            .in("event_type", ["paused", "auto_paused"])
+            .order("event_timestamp", { ascending: false })
             .limit(1);
-          
+
           const lastPauseEvent = recentPauseEvents?.[0];
-          const lastPauseAge = lastPauseEvent 
-            ? Date.now() - new Date(lastPauseEvent.event_timestamp).getTime() 
+          const lastPauseAge = lastPauseEvent
+            ? Date.now() - new Date(lastPauseEvent.event_timestamp).getTime()
             : Infinity;
-          
+
           // Only log if no pause event in the last 5 seconds (prevents duplicates)
           if (lastPauseAge > 5000) {
-            await logTimeEntryEvent(timer.id, 'auto_paused', {
-              reason: 'New timer started',
+            await logTimeEntryEvent(timer.id, "auto_paused", {
+              reason: "New timer started",
               pausedAt: new Date().toISOString(),
               elapsedMs: elapsedMs,
               timerPausedTime: timerPausedTime,
-              newTaskId: taskId
+              newTaskId: taskId,
             });
           } else {
-            console.log(`⚠️ Skipping duplicate auto_paused event for timer ${timer.id.slice(0, 8)} (last pause was ${Math.floor(lastPauseAge / 1000)}s ago)`);
+            console.log(
+              `⚠️ Skipping duplicate auto_paused event for timer ${timer.id.slice(0, 8)} (last pause was ${Math.floor(lastPauseAge / 1000)}s ago)`,
+            );
           }
-          
+
           // Timer is now kept in DB with 'paused' status - no need for localStorage
           // Just notify UI components to refresh
-          window.dispatchEvent(new CustomEvent('timersUpdated'));
-          
+          window.dispatchEvent(new CustomEvent("timersUpdated"));
+
           // Also broadcast event for TimerBox UI update (if mounted)
-          window.dispatchEvent(new CustomEvent('pauseActiveTimer', { 
-            detail: { 
-              timerId: timer.id,
-              elapsed: elapsedMs,
-              totalPausedTime: timerPausedTime // Use timer's OWN paused time
-            } 
-          }));
-          
+          window.dispatchEvent(
+            new CustomEvent("pauseActiveTimer", {
+              detail: {
+                timerId: timer.id,
+                elapsed: elapsedMs,
+                totalPausedTime: timerPausedTime, // Use timer's OWN paused time
+              },
+            }),
+          );
+
           // KEEP the timer in the database with paused status instead of deleting
           // This ensures paused timers persist across browser sessions and devices
           const { error: pauseError } = await supabase
-            .from('time_entries')
-            .update({ timer_status: 'paused' })
-            .eq('id', timer.id);
-          
+            .from("time_entries")
+            .update({ timer_status: "paused" })
+            .eq("id", timer.id);
+
           if (pauseError) {
-            console.error('Error pausing timer in DB:', timer.id, pauseError);
+            console.error("Error pausing timer in DB:", timer.id, pauseError);
           } else {
-            console.log('✅ Timer paused in database:', timer.id);
+            console.log("✅ Timer paused in database:", timer.id);
           }
         }
-        
+
         // Clear local activeTimeEntry state
         setActiveTimeEntry(null);
         setIsTimerPaused(false);
         setPausedAt(null);
         setTotalPausedTime(0);
       }
-      
+
       // Create new time entry
       // If resuming from elapsed time, calculate start time to preserve the elapsed duration
       let startTime: string;
       if (resumeFromElapsedMs && resumeFromElapsedMs > 0) {
         // Set start time in the past so elapsed time is preserved
         startTime = new Date(Date.now() - resumeFromElapsedMs).toISOString();
-        console.log('🔄 Resuming timer with preserved elapsed time:', Math.floor(resumeFromElapsedMs / 1000), 'seconds');
+        console.log(
+          "🔄 Resuming timer with preserved elapsed time:",
+          Math.floor(resumeFromElapsedMs / 1000),
+          "seconds",
+        );
       } else {
         startTime = new Date().toISOString();
       }
-      
-      const newTimeEntry: Omit<TimeEntry, 'id'> = {
+
+      const newTimeEntry: Omit<TimeEntry, "id"> = {
         userId: currentUser.id,
         taskId: taskId || null,
         projectId: projectId || null,
@@ -2372,13 +2712,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         duration: null,
         description: null,
         billable: true,
-        status: 'pending' as TimeEntryStatus,
+        status: "pending" as TimeEntryStatus,
       };
 
       await addTimeEntry(newTimeEntry);
       await loadTimeEntries(); // Reload to get the new active entry
-      
-      console.log('✅ New timer started');
+
+      console.log("✅ New timer started");
     } finally {
       isStartingTimer.current = false;
     }
@@ -2386,70 +2726,87 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const stopTimeTracking = async (notes?: string) => {
     if (!activeTimeEntry) return;
-    
+
     const endTime = new Date();
     const startTime = new Date(activeTimeEntry.startTime);
     const rawDurationMs = endTime.getTime() - startTime.getTime();
-    
+
     // FIX 4: Event validation for duration calculation
     // Calculate duration from event logs with validation and fallback
     let totalPausedFromEvents = 0;
     let eventsValid = true;
-    let eventValidationWarnings: string[] = [];
-    
+    const eventValidationWarnings: string[] = [];
+
     try {
       const { data: events, error } = await supabase
-        .from('time_entry_events')
-        .select('event_type, event_timestamp, details')
-        .eq('time_entry_id', activeTimeEntry.id)
-        .in('event_type', ['paused', 'resumed', 'auto_paused'])
-        .order('event_timestamp', { ascending: true });
-      
+        .from("time_entry_events")
+        .select("event_type, event_timestamp, details")
+        .eq("time_entry_id", activeTimeEntry.id)
+        .in("event_type", ["paused", "resumed", "auto_paused"])
+        .order("event_timestamp", { ascending: true });
+
       if (error) {
         eventsValid = false;
-        eventValidationWarnings.push(`DB error fetching events: ${error.message}`);
+        eventValidationWarnings.push(
+          `DB error fetching events: ${error.message}`,
+        );
       } else if (events && events.length > 0) {
         let lastPauseTime: Date | null = null;
         let expectingResume = false;
-        
+
         for (let i = 0; i < events.length; i++) {
           const event = events[i];
           const eventTime = new Date(event.event_timestamp);
-          
+
           // Validation: Check event timestamp is within timer bounds
           if (eventTime < startTime) {
-            eventValidationWarnings.push(`Event ${event.event_type} at ${event.event_timestamp} is before timer start`);
+            eventValidationWarnings.push(
+              `Event ${event.event_type} at ${event.event_timestamp} is before timer start`,
+            );
             eventsValid = false;
             continue;
           }
           if (eventTime > endTime) {
-            eventValidationWarnings.push(`Event ${event.event_type} at ${event.event_timestamp} is after timer end`);
+            eventValidationWarnings.push(
+              `Event ${event.event_type} at ${event.event_timestamp} is after timer end`,
+            );
             eventsValid = false;
             continue;
           }
-          
-          if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
+
+          if (
+            event.event_type === "paused" ||
+            event.event_type === "auto_paused"
+          ) {
             // Validation: Check for double-pause without resume
             if (expectingResume && lastPauseTime) {
-              eventValidationWarnings.push(`Double pause detected: paused at ${lastPauseTime.toISOString()} then ${event.event_type} at ${eventTime.toISOString()} without resume`);
+              eventValidationWarnings.push(
+                `Double pause detected: paused at ${lastPauseTime.toISOString()} then ${event.event_type} at ${eventTime.toISOString()} without resume`,
+              );
               // Still process it - use the new pause time (overwrite)
             }
             lastPauseTime = eventTime;
             expectingResume = true;
-          } else if (event.event_type === 'resumed') {
+          } else if (event.event_type === "resumed") {
             if (!lastPauseTime) {
               // Resume without pause - skip this event
-              eventValidationWarnings.push(`Resume at ${eventTime.toISOString()} without prior pause - skipping`);
+              eventValidationWarnings.push(
+                `Resume at ${eventTime.toISOString()} without prior pause - skipping`,
+              );
               continue;
             }
             const pauseDuration = eventTime.getTime() - lastPauseTime.getTime();
-            
+
             // Validation: Check for negative or impossibly long pauses
             if (pauseDuration < 0) {
-              eventValidationWarnings.push(`Negative pause duration: ${pauseDuration}ms`);
+              eventValidationWarnings.push(
+                `Negative pause duration: ${pauseDuration}ms`,
+              );
               eventsValid = false;
             } else if (pauseDuration > rawDurationMs) {
-              eventValidationWarnings.push(`Pause duration (${pauseDuration}ms) exceeds total timer duration (${rawDurationMs}ms)`);
+              eventValidationWarnings.push(
+                `Pause duration (${pauseDuration}ms) exceeds total timer duration (${rawDurationMs}ms)`,
+              );
               eventsValid = false;
             } else {
               totalPausedFromEvents += pauseDuration;
@@ -2458,75 +2815,89 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             expectingResume = false;
           }
         }
-        
+
         // If still paused (lastPauseTime is set), add time from last pause to now
         if (lastPauseTime) {
-          const finalPauseDuration = endTime.getTime() - lastPauseTime.getTime();
+          const finalPauseDuration =
+            endTime.getTime() - lastPauseTime.getTime();
           if (finalPauseDuration >= 0 && finalPauseDuration <= rawDurationMs) {
             totalPausedFromEvents += finalPauseDuration;
           } else {
-            eventValidationWarnings.push(`Final pause duration invalid: ${finalPauseDuration}ms`);
+            eventValidationWarnings.push(
+              `Final pause duration invalid: ${finalPauseDuration}ms`,
+            );
             eventsValid = false;
           }
         }
-        
+
         // Final validation: total paused time shouldn't exceed raw duration
         if (totalPausedFromEvents > rawDurationMs) {
-          eventValidationWarnings.push(`Total paused time (${totalPausedFromEvents}ms) exceeds raw duration (${rawDurationMs}ms)`);
+          eventValidationWarnings.push(
+            `Total paused time (${totalPausedFromEvents}ms) exceeds raw duration (${rawDurationMs}ms)`,
+          );
           eventsValid = false;
         }
-        
-        console.log('📊 Event-based pause calculation:', {
+
+        console.log("📊 Event-based pause calculation:", {
           totalPausedMs: totalPausedFromEvents,
           totalPausedMinutes: Math.floor(totalPausedFromEvents / (1000 * 60)),
           eventsValid,
-          eventCount: events.length
+          eventCount: events.length,
         });
       }
     } catch (err) {
-      console.error('Error fetching events for pause calculation:', err);
+      console.error("Error fetching events for pause calculation:", err);
       eventsValid = false;
       eventValidationWarnings.push(`Exception: ${err}`);
     }
-    
+
     // Log any validation warnings
     if (eventValidationWarnings.length > 0) {
-      console.warn('⚠️ Event validation warnings:', eventValidationWarnings);
+      console.warn("⚠️ Event validation warnings:", eventValidationWarnings);
     }
-    
+
     // Also check volatile state as backup
     let volatilePausedTime = totalPausedTime;
     if (isTimerPaused && pausedAt) {
       volatilePausedTime += Date.now() - pausedAt.getTime();
     }
-    
+
     // Determine which pause time to use
     let totalTimeToSubtract: number;
     let durationSource: string;
-    
+
     if (eventsValid && totalPausedFromEvents > 0) {
       // Events are valid - use event-based calculation
       totalTimeToSubtract = totalPausedFromEvents;
-      durationSource = 'events';
-    } else if (!eventsValid && volatilePausedTime > 0 && volatilePausedTime < rawDurationMs) {
+      durationSource = "events";
+    } else if (
+      !eventsValid &&
+      volatilePausedTime > 0 &&
+      volatilePausedTime < rawDurationMs
+    ) {
       // Events invalid but volatile state looks reasonable - use it
       totalTimeToSubtract = volatilePausedTime;
-      durationSource = 'volatile_state_fallback';
-      console.warn('⚠️ Using volatile state as fallback due to invalid events');
+      durationSource = "volatile_state_fallback";
+      console.warn("⚠️ Using volatile state as fallback due to invalid events");
     } else if (eventsValid && totalPausedFromEvents === 0) {
       // No pause events and that's valid (timer never paused)
       totalTimeToSubtract = 0;
-      durationSource = 'no_pauses';
+      durationSource = "no_pauses";
     } else {
       // Fallback: use raw duration (no pause deduction)
       totalTimeToSubtract = 0;
-      durationSource = 'raw_fallback';
-      console.warn('⚠️ Using raw duration - could not reliably calculate pause time');
+      durationSource = "raw_fallback";
+      console.warn(
+        "⚠️ Using raw duration - could not reliably calculate pause time",
+      );
     }
-    
-    const duration = Math.max(0, Math.floor((rawDurationMs - totalTimeToSubtract) / (1000 * 60)));
-    
-    console.log('⏹️ Final duration calculation:', {
+
+    const duration = Math.max(
+      0,
+      Math.floor((rawDurationMs - totalTimeToSubtract) / (1000 * 60)),
+    );
+
+    console.log("⏹️ Final duration calculation:", {
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
       rawDurationMinutes: Math.floor(rawDurationMs / (1000 * 60)),
@@ -2534,22 +2905,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       finalDurationMinutes: duration,
       durationSource,
       eventsValid,
-      warningCount: eventValidationWarnings.length
+      warningCount: eventValidationWarnings.length,
     });
-    
+
     // Set end_time, duration, notes AND timer_status to completed
     await updateTimeEntry(activeTimeEntry.id, {
       endTime: endTime.toISOString(),
       duration,
-      description: notes
+      description: notes,
     });
-    
+
     // Ensure timer_status is set to completed
     await supabase
-      .from('time_entries')
-      .update({ timer_status: 'completed' })
-      .eq('id', activeTimeEntry.id);
-    
+      .from("time_entries")
+      .update({ timer_status: "completed" })
+      .eq("id", activeTimeEntry.id);
+
     setActiveTimeEntry(null);
     setIsTimerPaused(false);
     setPausedAt(null);
@@ -2558,29 +2929,29 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const pauseTimeTracking = async () => {
     if (!activeTimeEntry || isTimerPaused) return;
-    
+
     // Prevent duplicate pause calls (race condition guard)
     if (isPausingTimer.current) {
-      console.log('⚠️ Already pausing timer, ignoring duplicate call');
+      console.log("⚠️ Already pausing timer, ignoring duplicate call");
       return;
     }
     isPausingTimer.current = true;
-    
+
     try {
       const pausedAtTime = new Date();
       setIsTimerPaused(true);
       setPausedAt(pausedAtTime);
-      console.log('⏸️ Timer paused in AppContext');
-      
+      console.log("⏸️ Timer paused in AppContext");
+
       // Update timer_status in database
       await supabase
-        .from('time_entries')
-        .update({ timer_status: 'paused' })
-        .eq('id', activeTimeEntry.id);
-      
+        .from("time_entries")
+        .update({ timer_status: "paused" })
+        .eq("id", activeTimeEntry.id);
+
       // Log the pause event
-      await logTimeEntryEvent(activeTimeEntry.id, 'paused', {
-        pausedAt: pausedAtTime.toISOString()
+      await logTimeEntryEvent(activeTimeEntry.id, "paused", {
+        pausedAt: pausedAtTime.toISOString(),
       });
     } finally {
       isPausingTimer.current = false;
@@ -2589,68 +2960,87 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const resumeTimeTracking = async () => {
     if (!activeTimeEntry || !isTimerPaused || !pausedAt) return;
-    
-    console.log('▶️ Resuming paused timer:', activeTimeEntry.id);
-    
+
+    console.log("▶️ Resuming paused timer:", activeTimeEntry.id);
+
     const pauseDuration = Date.now() - pausedAt.getTime();
-    
+
     // Sanity check: if pause duration is absurdly long (> 24 hours), something is wrong
     // Log a warning but still record the actual calculated value
     const maxReasonablePause = 24 * 60 * 60 * 1000; // 24 hours in ms
     if (pauseDuration > maxReasonablePause) {
-      console.warn('⚠️ Unusually long pause duration detected:', Math.floor(pauseDuration / (1000 * 60)), 'minutes. This may indicate stale state.');
+      console.warn(
+        "⚠️ Unusually long pause duration detected:",
+        Math.floor(pauseDuration / (1000 * 60)),
+        "minutes. This may indicate stale state.",
+      );
     }
-    
-    setTotalPausedTime(prev => prev + pauseDuration);
+
+    setTotalPausedTime((prev) => prev + pauseDuration);
     setIsTimerPaused(false);
     setPausedAt(null);
-    console.log('✅ Timer resumed successfully. Pause duration:', Math.floor(pauseDuration / (1000 * 60)), 'minutes');
-    
+    console.log(
+      "✅ Timer resumed successfully. Pause duration:",
+      Math.floor(pauseDuration / (1000 * 60)),
+      "minutes",
+    );
+
     // Update timer_status in database
     await supabase
-      .from('time_entries')
-      .update({ timer_status: 'active' })
-      .eq('id', activeTimeEntry.id);
-    
+      .from("time_entries")
+      .update({ timer_status: "active" })
+      .eq("id", activeTimeEntry.id);
+
     // Log the resume event with calculated pause duration
-    await logTimeEntryEvent(activeTimeEntry.id, 'resumed', {
+    await logTimeEntryEvent(activeTimeEntry.id, "resumed", {
       pauseDuration,
       pauseDurationMinutes: Math.floor(pauseDuration / (1000 * 60)),
-      resumedAt: new Date().toISOString()
+      resumedAt: new Date().toISOString(),
     });
   };
 
-  const getElapsedTime = (timeEntry: TimeEntry | null = activeTimeEntry, applyLocalPauseState: boolean = true): string => {
+  const getElapsedTime = (
+    timeEntry: TimeEntry | null = activeTimeEntry,
+    applyLocalPauseState: boolean = true,
+  ): string => {
     if (!timeEntry) return "00:00:00";
-    
+
     const startTime = new Date(timeEntry.startTime).getTime();
     const now = Date.now();
-    
+
     // Base elapsed time from start_time (the source of truth from database)
     let elapsedMs = now - startTime;
-    
+
     // Only apply local pause state if this is the current user's active timer
     // This ensures all users see the same base elapsed time from the database
-    if (applyLocalPauseState && activeTimeEntry && timeEntry.id === activeTimeEntry.id) {
+    if (
+      applyLocalPauseState &&
+      activeTimeEntry &&
+      timeEntry.id === activeTimeEntry.id
+    ) {
       elapsedMs -= totalPausedTime;
-      
+
       // If currently paused, subtract the current pause duration
       if (isTimerPaused && pausedAt) {
-        elapsedMs -= (now - pausedAt.getTime());
+        elapsedMs -= now - pausedAt.getTime();
       }
     }
-    
+
     // Ensure elapsed time is never negative
     elapsedMs = Math.max(0, elapsedMs);
-    
+
     const seconds = Math.floor((elapsedMs / 1000) % 60);
     const minutes = Math.floor((elapsedMs / (1000 * 60)) % 60);
     const hours = Math.floor(elapsedMs / (1000 * 60 * 60));
-    
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  const updateTimeEntryStatus = async (timeEntryId: string, status: string, reason?: string) => {
+  const updateTimeEntryStatus = async (
+    timeEntryId: string,
+    status: string,
+    reason?: string,
+  ) => {
     const updates: Partial<TimeEntry> = { status: status as TimeEntryStatus };
     if (reason) {
       updates.rejectionReason = reason;
@@ -2659,23 +3049,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   // Team functions
-  const addTeam = async (team: Omit<Team, 'id'>) => {
+  const addTeam = async (team: Omit<Team, "id">) => {
     if (!session?.user) return;
-    
+
     try {
       const { data, error } = await supabase
-        .from('teams')
+        .from("teams")
         .insert({
           auth_user_id: session.user.id,
           name: team.name,
           description: team.description,
-          color: team.color
+          color: team.color,
         })
         .select()
         .single();
 
       if (error) {
-        console.error('Error adding team:', error);
+        console.error("Error adding team:", error);
         return;
       }
 
@@ -2686,82 +3076,84 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           description: data.description || undefined,
           memberIds: team.memberIds || [],
           leaderId: team.leaderId,
-          color: data.color
+          color: data.color,
         };
-        setTeams(prev => [...prev, newTeam]);
+        setTeams((prev) => [...prev, newTeam]);
       }
     } catch (error) {
-      console.error('Error adding team:', error);
+      console.error("Error adding team:", error);
     }
   };
 
   const updateTeam = async (teamId: string, updates: Partial<Team>) => {
     if (!session?.user) return;
-    
+
     try {
       const dbUpdates: any = {};
-      
+
       if (updates.name !== undefined) dbUpdates.name = updates.name;
-      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.description !== undefined)
+        dbUpdates.description = updates.description;
       if (updates.color !== undefined) dbUpdates.color = updates.color;
 
       const { error } = await supabase
-        .from('teams')
+        .from("teams")
         .update(dbUpdates)
-        .eq('id', teamId);
+        .eq("id", teamId);
 
       if (error) {
-        console.error('Error updating team:', error);
+        console.error("Error updating team:", error);
         return;
       }
 
-      setTeams(prev => prev.map(team => 
-        team.id === teamId ? { ...team, ...updates } : team
-      ));
+      setTeams((prev) =>
+        prev.map((team) =>
+          team.id === teamId ? { ...team, ...updates } : team,
+        ),
+      );
     } catch (error) {
-      console.error('Error updating team:', error);
+      console.error("Error updating team:", error);
     }
   };
 
   const deleteTeam = async (teamId: string) => {
     if (!session?.user) return;
-    
+
     try {
-      const { error } = await supabase
-        .from('teams')
-        .delete()
-        .eq('id', teamId);
+      const { error } = await supabase.from("teams").delete().eq("id", teamId);
 
       if (error) {
-        console.error('Error deleting team:', error);
+        console.error("Error deleting team:", error);
         return;
       }
 
-      setTeams(prev => prev.filter(team => team.id !== teamId));
+      setTeams((prev) => prev.filter((team) => team.id !== teamId));
     } catch (error) {
-      console.error('Error deleting team:', error);
+      console.error("Error deleting team:", error);
     }
   };
 
   // Note functions
-  const addNote = async (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addNote = async (
+    note: Omit<Note, "id" | "createdAt" | "updatedAt">,
+  ) => {
     if (!session?.user) return;
-    
+
     try {
       const { data, error } = await supabase
-        .from('notes')
+        .from("notes")
         .insert({
           auth_user_id: session.user.id,
           user_id: note.userId,
           title: note.title,
           content: note.content,
-          archived: note.archived || false
+          archived: note.archived || false,
         })
         .select()
         .single();
 
       if (error) {
-        console.error('Error adding note:', error);
+        console.error("Error adding note:", error);
         return;
       }
 
@@ -2769,100 +3161,110 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const newNote: Note = {
           id: data.id,
           title: data.title,
-          content: data.content || '',
+          content: data.content || "",
           userId: data.user_id,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
-          archived: data.archived || false
+          archived: data.archived || false,
         };
-        setNotes(prev => [...prev, newNote]);
+        setNotes((prev) => [...prev, newNote]);
       }
     } catch (error) {
-      console.error('Error adding note:', error);
+      console.error("Error adding note:", error);
     }
   };
 
   const updateNote = async (noteId: string, updates: Partial<Note>) => {
     if (!session?.user) return;
-    
+
     try {
       const dbUpdates: any = {};
-      
+
       if (updates.title !== undefined) dbUpdates.title = updates.title;
       if (updates.content !== undefined) dbUpdates.content = updates.content;
       if (updates.archived !== undefined) dbUpdates.archived = updates.archived;
 
       const { error } = await supabase
-        .from('notes')
+        .from("notes")
         .update(dbUpdates)
-        .eq('id', noteId);
+        .eq("id", noteId);
 
       if (error) {
-        console.error('Error updating note:', error);
+        console.error("Error updating note:", error);
         return;
       }
 
-      setNotes(prev => prev.map(note => 
-        note.id === noteId ? { ...note, ...updates } : note
-      ));
+      setNotes((prev) =>
+        prev.map((note) =>
+          note.id === noteId ? { ...note, ...updates } : note,
+        ),
+      );
     } catch (error) {
-      console.error('Error updating note:', error);
+      console.error("Error updating note:", error);
     }
   };
 
   const deleteNote = async (noteId: string) => {
     if (!session?.user) return;
-    
+
     try {
-      const { error } = await supabase
-        .from('notes')
-        .delete()
-        .eq('id', noteId);
+      const { error } = await supabase.from("notes").delete().eq("id", noteId);
 
       if (error) {
-        console.error('Error deleting note:', error);
+        console.error("Error deleting note:", error);
         return;
       }
 
-      setNotes(prev => prev.filter(note => note.id !== noteId));
+      setNotes((prev) => prev.filter((note) => note.id !== noteId));
     } catch (error) {
-      console.error('Error deleting note:', error);
+      console.error("Error deleting note:", error);
     }
   };
 
   const getNotesByUser = (userId: string): Note[] => {
-    return notes.filter(note => note.userId === userId);
+    return notes.filter((note) => note.userId === userId);
   };
 
   // Additional placeholder implementations for other functions
-  const inviteUser = (email: string, name: string, role: string, options?: any) => {
-    console.log('Invite user functionality not yet implemented');
+  const inviteUser = (
+    email: string,
+    name: string,
+    role: string,
+    options?: any,
+  ) => {
+    console.log("Invite user functionality not yet implemented");
   };
 
   const updateManagerNotificationPreferences = (preferences: any) => {
-    console.log('Update manager notification preferences not yet implemented');
+    console.log("Update manager notification preferences not yet implemented");
   };
 
-  const convertProjectToTemplate = async (projectId: string, templateData: { name: string; description: string }) => {
+  const convertProjectToTemplate = async (
+    projectId: string,
+    templateData: { name: string; description: string },
+  ) => {
     try {
       // Get the authenticated user from Supabase
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
-        throw new Error('User not authenticated');
+        throw new Error("User not authenticated");
       }
 
       // Find the project
-      const project = projects.find(p => p.id === projectId);
+      const project = projects.find((p) => p.id === projectId);
       if (!project) {
-        throw new Error('Project not found');
+        throw new Error("Project not found");
       }
 
       // Find tasks for this project
-      const projectTasks = tasks.filter(t => t.projectId === projectId);
+      const projectTasks = tasks.filter((t) => t.projectId === projectId);
 
       // Create the template
       const { data: template, error: templateError } = await supabase
-        .from('project_templates')
+        .from("project_templates")
         .insert({
           name: templateData.name,
           description: templateData.description,
@@ -2871,7 +3273,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           allocated_hours: project.allocatedHours || 0,
           auth_user_id: user.id, // Use the actual Supabase auth user ID
           team_ids: project.teamIds || [],
-          usage_count: 0
+          usage_count: 0,
         })
         .select()
         .single();
@@ -2883,65 +3285,72 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const templateTasks = projectTasks.map((task, index) => ({
           template_id: template.id,
           name: task.title,
-          description: task.description || '',
+          description: task.description || "",
           priority: task.priority,
           estimated_hours: task.estimatedHours || 0,
           order_index: index,
-          auth_user_id: user.id // Use the actual Supabase auth user ID
+          auth_user_id: user.id, // Use the actual Supabase auth user ID
         }));
 
         const { error: tasksError } = await supabase
-          .from('project_template_tasks')
+          .from("project_template_tasks")
           .insert(templateTasks);
 
         if (tasksError) throw tasksError;
       }
 
-      console.log('Template created successfully:', template);
-      
+      console.log("Template created successfully:", template);
+
       // Trigger a refresh of any template lists
-      window.dispatchEvent(new CustomEvent('templateCreated'));
+      window.dispatchEvent(new CustomEvent("templateCreated"));
     } catch (error) {
-      console.error('Error converting project to template:', error);
+      console.error("Error converting project to template:", error);
       throw error;
     }
   };
 
   const watchProject = (projectId: string, userId: string) => {
-    console.log('Watch project not yet implemented');
+    console.log("Watch project not yet implemented");
   };
 
   const unwatchProject = (projectId: string, userId: string) => {
-    console.log('Unwatch project not yet implemented');
+    console.log("Unwatch project not yet implemented");
   };
 
-  const createProjectFromTemplate = async (templateId: string, projectData: any) => {
+  const createProjectFromTemplate = async (
+    templateId: string,
+    projectData: any,
+  ) => {
     if (!session?.user) return;
 
     try {
       // 1. Fetch the template
       const { data: templateData, error: templateError } = await supabase
-        .from('project_templates')
-        .select('*')
-        .eq('id', templateId)
+        .from("project_templates")
+        .select("*")
+        .eq("id", templateId)
         .single();
 
       if (templateError || !templateData) {
-        console.error('Error fetching template:', templateError);
-        toast({ title: "Error", description: "Template not found", variant: "destructive" });
+        console.error("Error fetching template:", templateError);
+        toast({
+          title: "Error",
+          description: "Template not found",
+          variant: "destructive",
+        });
         return;
       }
 
       // 2. Create the project
       const { data: projectRow, error: projectError } = await supabase
-        .from('projects')
+        .from("projects")
         .insert({
           auth_user_id: session.user.id,
           name: projectData.name,
-          description: templateData.description || '',
+          description: templateData.description || "",
           client_id: projectData.clientId,
-          status: 'todo',
-          service_type: templateData.service_type || 'project',
+          status: "todo",
+          service_type: templateData.service_type || "project",
           start_date: projectData.startDate || null,
           due_date: projectData.dueDate || null,
           allocated_hours: templateData.allocated_hours || 0,
@@ -2953,8 +3362,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .single();
 
       if (projectError || !projectRow) {
-        console.error('Error creating project from template:', projectError);
-        toast({ title: "Error", description: "Failed to create project", variant: "destructive" });
+        console.error("Error creating project from template:", projectError);
+        toast({
+          title: "Error",
+          description: "Failed to create project",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -2964,8 +3377,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         name: projectRow.name,
         description: projectRow.description,
         clientId: projectRow.client_id,
-        status: (projectRow.status as 'todo' | 'in-progress' | 'done') || 'todo',
-        serviceType: (projectRow.service_type as 'project' | 'bank-hours' | 'pay-as-you-go') || 'project',
+        status:
+          (projectRow.status as "todo" | "in-progress" | "done") || "todo",
+        serviceType:
+          (projectRow.service_type as
+            | "project"
+            | "bank-hours"
+            | "pay-as-you-go") || "project",
         startDate: projectRow.start_date || undefined,
         dueDate: projectRow.due_date || undefined,
         allocatedHours: projectRow.allocated_hours || undefined,
@@ -2975,32 +3393,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         ownerId: projectRow.owner_id || undefined,
         collaboratorIds: projectRow.collaborator_ids || [],
       };
-      setProjects(prev => [...prev, newProject]);
+      setProjects((prev) => [...prev, newProject]);
 
       // 3. Fetch template tasks
       const { data: templateTasks, error: tasksError } = await supabase
-        .from('project_template_tasks')
-        .select('*')
-        .eq('template_id', templateId)
-        .order('order_index');
+        .from("project_template_tasks")
+        .select("*")
+        .eq("template_id", templateId)
+        .order("order_index");
 
       if (tasksError) {
-        console.error('Error fetching template tasks:', tasksError);
+        console.error("Error fetching template tasks:", tasksError);
       }
 
       // 4. Create tasks from template tasks
       if (templateTasks && templateTasks.length > 0) {
         // Fetch all subtasks for all template tasks at once
-        const taskIds = templateTasks.map(t => t.id);
+        const taskIds = templateTasks.map((t) => t.id);
         const { data: allSubtasks } = await supabase
-          .from('project_template_subtasks')
-          .select('*')
-          .in('template_task_id', taskIds)
-          .order('order_index');
+          .from("project_template_subtasks")
+          .select("*")
+          .in("template_task_id", taskIds)
+          .order("order_index");
 
         // Group subtasks by template_task_id
         const subtasksByTaskId: Record<string, any[]> = {};
-        (allSubtasks || []).forEach(subtask => {
+        (allSubtasks || []).forEach((subtask) => {
           if (!subtasksByTaskId[subtask.template_task_id]) {
             subtasksByTaskId[subtask.template_task_id] = [];
           }
@@ -3008,9 +3426,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         });
 
         // Build all task inserts
-        const taskInserts = templateTasks.map(templateTask => {
+        const taskInserts = templateTasks.map((templateTask) => {
           const subtasks = subtasksByTaskId[templateTask.id] || [];
-          const checklist = subtasks.map(subtask => ({
+          const checklist = subtasks.map((subtask) => ({
             id: crypto.randomUUID(),
             text: subtask.name,
             completed: false,
@@ -3019,28 +3437,39 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           return {
             auth_user_id: session.user.id,
             title: templateTask.name,
-            description: templateTask.description || '',
+            description: templateTask.description || "",
             project_id: projectRow.id,
-            status: 'backlog',
-            priority: templateTask.priority || 'medium',
+            status: "backlog",
+            priority: templateTask.priority || "medium",
             estimated_hours: templateTask.estimated_hours || null,
             checklist: checklist.length > 0 ? checklist : [],
             order_index: templateTask.order_index,
           };
         });
 
-        console.log('Inserting tasks from template:', taskInserts.length, taskInserts);
+        console.log(
+          "Inserting tasks from template:",
+          taskInserts.length,
+          taskInserts,
+        );
 
         const { data: createdTasks, error: batchError } = await supabase
-          .from('tasks')
+          .from("tasks")
           .insert(taskInserts)
           .select();
 
         if (batchError) {
-          console.error('Error batch creating tasks from template:', batchError);
-          toast({ title: "Error", description: `Failed to create tasks: ${batchError.message}`, variant: "destructive" });
+          console.error(
+            "Error batch creating tasks from template:",
+            batchError,
+          );
+          toast({
+            title: "Error",
+            description: `Failed to create tasks: ${batchError.message}`,
+            variant: "destructive",
+          });
         } else {
-          console.log('Successfully created tasks:', createdTasks?.length);
+          console.log("Successfully created tasks:", createdTasks?.length);
         }
 
         // Refresh tasks
@@ -3049,18 +3478,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       // 5. Increment usage count
       await supabase
-        .from('project_templates')
+        .from("project_templates")
         .update({ usage_count: (templateData.usage_count || 0) + 1 })
-        .eq('id', templateId);
+        .eq("id", templateId);
 
       toast({
         title: "Project created",
         description: `Project "${projectData.name}" created from template with ${templateTasks?.length || 0} tasks.`,
       });
-
     } catch (error) {
-      console.error('Error creating project from template:', error);
-      toast({ title: "Error", description: "Failed to create project from template", variant: "destructive" });
+      console.error("Error creating project from template:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create project from template",
+        variant: "destructive",
+      });
     }
   };
 
@@ -3068,30 +3500,34 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     await updateTask(taskId, { status: newStatus as any });
   };
 
-  const reorderTasks = async (taskId: string, newIndex: number, newStatus?: string) => {
+  const reorderTasks = async (
+    taskId: string,
+    newIndex: number,
+    newStatus?: string,
+  ) => {
     if (!session?.user) {
       toast({
         title: "Authentication required",
         description: "Please log in to reorder tasks",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
-    
-    const task = tasks.find(t => t.id === taskId);
+
+    const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
     // Determine the target status (use new status if provided, otherwise keep current)
     const targetStatus = newStatus || task.status;
-    
+
     // Get all tasks in the target status
     const tasksInStatus = tasks
-      .filter(t => t.status === targetStatus)
+      .filter((t) => t.status === targetStatus)
       .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
 
     // Remove the task being moved if it's in this status already
-    const filteredTasks = tasksInStatus.filter(t => t.id !== taskId);
-    
+    const filteredTasks = tasksInStatus.filter((t) => t.id !== taskId);
+
     // Insert the task at the new position
     filteredTasks.splice(newIndex, 0, task);
 
@@ -3099,107 +3535,120 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const updates = filteredTasks.map((t, index) => ({
       id: t.id,
       order_index: index,
-      ...(t.id === taskId && newStatus ? { status: newStatus } : {})
+      ...(t.id === taskId && newStatus ? { status: newStatus } : {}),
     }));
 
     // Store previous state for rollback
     const previousTasks = [...tasks];
 
     // OPTIMISTIC UPDATE: Update local state immediately
-    setTasks(prev => prev.map(t => {
-      const update = updates.find(u => u.id === t.id);
-      if (update) {
-        return {
-          ...t,
-          orderIndex: update.order_index,
-          ...(update.status ? { status: update.status as TaskStatus } : {})
-        };
-      }
-      return t;
-    }));
+    setTasks((prev) =>
+      prev.map((t) => {
+        const update = updates.find((u) => u.id === t.id);
+        if (update) {
+          return {
+            ...t,
+            orderIndex: update.order_index,
+            ...(update.status ? { status: update.status as TaskStatus } : {}),
+          };
+        }
+        return t;
+      }),
+    );
 
     // Background database update
     try {
       // Batch update in database
       for (const update of updates) {
         const { error } = await supabase
-          .from('tasks')
-          .update({ 
+          .from("tasks")
+          .update({
             order_index: update.order_index,
-            ...(update.status ? { status: update.status } : {})
+            ...(update.status ? { status: update.status } : {}),
           })
-          .eq('id', update.id);
+          .eq("id", update.id);
 
         if (error) throw error;
       }
-      
+
       // Send notification for task updates if status changed
-      if (newStatus && newStatus !== task.status && task.projectId && session?.user?.id) {
-        const eventType = newStatus === 'done' ? 'task_completed' : 'status_changed';
+      if (
+        newStatus &&
+        newStatus !== task.status &&
+        task.projectId &&
+        session?.user?.id
+      ) {
+        const eventType =
+          newStatus === "done" ? "task_completed" : "status_changed";
         console.log(`🔔 Sending ${eventType} notification for task:`, taskId);
-        supabase.functions.invoke('send-task-notification', {
-          body: {
-            taskId,
-            projectId: task.projectId,
-            eventType,
-            userId: session.user.id,
-            oldStatus: task.status,
-            newStatus: newStatus,
-            changes: { status: newStatus }
-          }
-        }).then(({ error }) => {
-          if (error) {
-            console.error(`❌ Error sending ${eventType} notification:`, error);
-          } else {
-            console.log(`✅ ${eventType} notification sent successfully`);
-          }
-        });
+        supabase.functions
+          .invoke("send-task-notification", {
+            body: {
+              taskId,
+              projectId: task.projectId,
+              eventType,
+              userId: session.user.id,
+              oldStatus: task.status,
+              newStatus: newStatus,
+              changes: { status: newStatus },
+            },
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.error(
+                `❌ Error sending ${eventType} notification:`,
+                error,
+              );
+            } else {
+              console.log(`✅ ${eventType} notification sent successfully`);
+            }
+          });
       }
     } catch (error) {
-      console.error('Error reordering tasks:', error);
+      console.error("Error reordering tasks:", error);
       // ROLLBACK: Restore previous state on error
       setTasks(previousTasks);
       toast({
         title: "Error",
         description: "Failed to reorder task. Changes have been reverted.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const watchTask = (taskId: string, userId: string) => {
-    console.log('Watch task not yet implemented');
+    console.log("Watch task not yet implemented");
   };
 
   const unwatchTask = (taskId: string, userId: string) => {
-    console.log('Unwatch task not yet implemented');
+    console.log("Unwatch task not yet implemented");
   };
 
   const linkTasks = async (taskId: string, relatedTaskId: string) => {
     try {
       // Get current tasks to update their relatedTaskIds
-      const task1 = tasks.find(t => t.id === taskId);
-      const task2 = tasks.find(t => t.id === relatedTaskId);
-      
+      const task1 = tasks.find((t) => t.id === taskId);
+      const task2 = tasks.find((t) => t.id === relatedTaskId);
+
       if (!task1 || !task2) return;
-      
+
       // Update first task
       const task1RelatedIds = task1.relatedTaskIds || [];
       if (!task1RelatedIds.includes(relatedTaskId)) {
-        await updateTask(taskId, { 
-          relatedTaskIds: [...task1RelatedIds, relatedTaskId] 
+        await updateTask(taskId, {
+          relatedTaskIds: [...task1RelatedIds, relatedTaskId],
         });
       }
-      
+
       // Update second task
       const task2RelatedIds = task2.relatedTaskIds || [];
       if (!task2RelatedIds.includes(taskId)) {
-        await updateTask(relatedTaskId, { 
-          relatedTaskIds: [...task2RelatedIds, taskId] 
+        await updateTask(relatedTaskId, {
+          relatedTaskIds: [...task2RelatedIds, taskId],
         });
       }
     } catch (error) {
-      console.error('Error linking tasks:', error);
+      console.error("Error linking tasks:", error);
       throw error;
     }
   };
@@ -3207,50 +3656,53 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const unlinkTasks = async (taskId: string, relatedTaskId: string) => {
     try {
       // Get current tasks to update their relatedTaskIds
-      const task1 = tasks.find(t => t.id === taskId);
-      const task2 = tasks.find(t => t.id === relatedTaskId);
-      
+      const task1 = tasks.find((t) => t.id === taskId);
+      const task2 = tasks.find((t) => t.id === relatedTaskId);
+
       if (!task1 || !task2) return;
-      
+
       // Update first task
       const task1RelatedIds = task1.relatedTaskIds || [];
-      await updateTask(taskId, { 
-        relatedTaskIds: task1RelatedIds.filter(id => id !== relatedTaskId) 
+      await updateTask(taskId, {
+        relatedTaskIds: task1RelatedIds.filter((id) => id !== relatedTaskId),
       });
-      
-      // Update second task  
+
+      // Update second task
       const task2RelatedIds = task2.relatedTaskIds || [];
-      await updateTask(relatedTaskId, { 
-        relatedTaskIds: task2RelatedIds.filter(id => id !== taskId) 
+      await updateTask(relatedTaskId, {
+        relatedTaskIds: task2RelatedIds.filter((id) => id !== taskId),
       });
     } catch (error) {
-      console.error('Error unlinking tasks:', error);
+      console.error("Error unlinking tasks:", error);
       throw error;
     }
   };
 
-  const uploadTaskFile = async (taskId: string, file: File): Promise<string> => {
-    if (!session?.user) return '';
-    
+  const uploadTaskFile = async (
+    taskId: string,
+    file: File,
+  ): Promise<string> => {
+    if (!session?.user) return "";
+
     try {
       // Create a unique file path
       const fileName = `tasks/${taskId}/${Date.now()}-${file.name}`;
-      
+
       // Upload file to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('project-files')
+        .from("project-files")
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
       // Get the public URL for the file
       const { data: publicUrlData } = supabase.storage
-        .from('project-files')
+        .from("project-files")
         .getPublicUrl(uploadData.path);
 
       // Create a task file record in task_files table
       const { data: fileData, error: fileError } = await supabase
-        .from('task_files')
+        .from("task_files")
         .insert({
           task_id: taskId,
           auth_user_id: session.user.id,
@@ -3258,7 +3710,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           file_path: uploadData.path,
           file_size: file.size,
           mime_type: file.type,
-          is_external_link: false
+          is_external_link: false,
         })
         .select()
         .single();
@@ -3274,42 +3726,48 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           size: file.size,
           sizeKb: Math.round(file.size / 1024),
           uploadedAt: fileData.uploaded_at,
-          isExternalLink: false
+          isExternalLink: false,
         };
 
-        setTasks(prev => prev.map(task => 
-          task.id === taskId 
-            ? { ...task, files: [...(task.files || []), newFile] }
-            : task
-        ));
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === taskId
+              ? { ...task, files: [...(task.files || []), newFile] }
+              : task,
+          ),
+        );
       }
 
       return uploadData.path;
     } catch (error) {
-      console.error('Error uploading task file:', error);
+      console.error("Error uploading task file:", error);
       throw error;
     }
   };
 
-  const addTaskExternalLink = async (taskId: string, linkName: string, linkUrl: string) => {
+  const addTaskExternalLink = async (
+    taskId: string,
+    linkName: string,
+    linkUrl: string,
+  ) => {
     if (!session?.user) return;
-    
+
     try {
       const { data, error } = await supabase
-        .from('task_files')
+        .from("task_files")
         .insert({
           task_id: taskId,
           auth_user_id: session.user.id,
           name: linkName,
           external_url: linkUrl,
           is_external_link: true,
-          mime_type: 'application/link'
+          mime_type: "application/link",
         })
         .select()
         .single();
 
       if (error) {
-        console.error('Error adding external link:', error);
+        console.error("Error adding external link:", error);
         throw error;
       }
 
@@ -3317,59 +3775,68 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         const newFile: TaskFile = {
           id: data.id,
           name: data.name,
-          url: data.external_url || '',
-          externalUrl: data.external_url || '',
+          url: data.external_url || "",
+          externalUrl: data.external_url || "",
           isExternalLink: true,
           size: 0,
           sizeKb: 0,
-          uploadedAt: data.uploaded_at
+          uploadedAt: data.uploaded_at,
         };
 
-        setTasks(prev => prev.map(task => 
-          task.id === taskId 
-            ? { ...task, files: [...(task.files || []), newFile] }
-            : task
-        ));
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === taskId
+              ? { ...task, files: [...(task.files || []), newFile] }
+              : task,
+          ),
+        );
       }
     } catch (error) {
-      console.error('Error adding external link:', error);
+      console.error("Error adding external link:", error);
       throw error;
     }
   };
 
   const deleteTaskFile = async (taskId: string, fileId: string) => {
     if (!session?.user) return;
-    
+
     try {
       const { error } = await supabase
-        .from('task_files')
+        .from("task_files")
         .delete()
-        .eq('id', fileId);
+        .eq("id", fileId);
 
       if (error) {
-        console.error('Error deleting task file:', error);
+        console.error("Error deleting task file:", error);
         return;
       }
 
-      setTasks(prev => prev.map(task => 
-        task.id === taskId 
-          ? { ...task, files: (task.files || []).filter(f => f.id !== fileId) }
-          : task
-      ));
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                files: (task.files || []).filter((f) => f.id !== fileId),
+              }
+            : task,
+        ),
+      );
     } catch (error) {
-      console.error('Error deleting task file:', error);
+      console.error("Error deleting task file:", error);
     }
   };
 
-  const addTaskStatus = async (status: Omit<TaskStatusDefinition, 'id'>) => {
+  const addTaskStatus = async (status: Omit<TaskStatusDefinition, "id">) => {
     if (!currentUser) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) return;
 
       const { data, error } = await supabase
-        .from('task_status_definitions')
+        .from("task_status_definitions")
         .insert({
           auth_user_id: session.user.id,
           name: status.label,
@@ -3391,18 +3858,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         order: data.order_index,
       };
 
-      setTaskStatuses(prev => [...prev, newStatus]);
+      setTaskStatuses((prev) => [...prev, newStatus]);
     } catch (error) {
-      console.error('Error adding task status:', error);
+      console.error("Error adding task status:", error);
       throw error;
     }
   };
 
-  const updateTaskStatus = async (statusId: string, updates: Partial<TaskStatusDefinition>) => {
+  const updateTaskStatus = async (
+    statusId: string,
+    updates: Partial<TaskStatusDefinition>,
+  ) => {
     if (!currentUser) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) return;
 
       const updateData: any = {};
@@ -3412,20 +3884,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.order !== undefined) updateData.order_index = updates.order;
 
       const { error } = await supabase
-        .from('task_status_definitions')
+        .from("task_status_definitions")
         .update(updateData)
-        .eq('id', statusId)
-        .eq('auth_user_id', session.user.id);
+        .eq("id", statusId)
+        .eq("auth_user_id", session.user.id);
 
       if (error) throw error;
 
-      setTaskStatuses(prev => 
-        prev.map(status => 
-          status.id === statusId ? { ...status, ...updates } : status
-        )
+      setTaskStatuses((prev) =>
+        prev.map((status) =>
+          status.id === statusId ? { ...status, ...updates } : status,
+        ),
       );
     } catch (error) {
-      console.error('Error updating task status:', error);
+      console.error("Error updating task status:", error);
       throw error;
     }
   };
@@ -3434,20 +3906,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!currentUser) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) return;
 
       const { error } = await supabase
-        .from('task_status_definitions')
+        .from("task_status_definitions")
         .delete()
-        .eq('id', statusId)
-        .eq('auth_user_id', session.user.id);
+        .eq("id", statusId)
+        .eq("auth_user_id", session.user.id);
 
       if (error) throw error;
 
-      setTaskStatuses(prev => prev.filter(status => status.id !== statusId));
+      setTaskStatuses((prev) =>
+        prev.filter((status) => status.id !== statusId),
+      );
     } catch (error) {
-      console.error('Error deleting task status:', error);
+      console.error("Error deleting task status:", error);
       throw error;
     }
   };
@@ -3456,35 +3932,41 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!currentUser) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) return;
 
       // Update all statuses with new order
-      const updates = statuses.map((status, index) => 
+      const updates = statuses.map((status, index) =>
         supabase
-          .from('task_status_definitions')
+          .from("task_status_definitions")
           .update({ order_index: index })
-          .eq('id', status.id)
-          .eq('auth_user_id', session.user.id)
+          .eq("id", status.id)
+          .eq("auth_user_id", session.user.id),
       );
 
       await Promise.all(updates);
       setTaskStatuses(statuses);
     } catch (error) {
-      console.error('Error reordering task statuses:', error);
+      console.error("Error reordering task statuses:", error);
       throw error;
     }
   };
 
-  const addProjectStatus = async (status: Omit<ProjectStatusDefinition, 'id'>) => {
+  const addProjectStatus = async (
+    status: Omit<ProjectStatusDefinition, "id">,
+  ) => {
     if (!currentUser) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) return;
 
       const { data, error } = await supabase
-        .from('project_status_definitions')
+        .from("project_status_definitions")
         .insert({
           auth_user_id: session.user.id,
           name: status.label,
@@ -3506,22 +3988,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         isFinal: data.is_final || false,
       };
 
-      setProjectStatuses(prev => [...prev, newStatus]);
+      setProjectStatuses((prev) => [...prev, newStatus]);
     } catch (error) {
-      console.error('Error adding project status:', error);
+      console.error("Error adding project status:", error);
       throw error;
     }
   };
 
-  const updateProjectStatus = async (statusId: string, updates: Partial<ProjectStatusDefinition>) => {
+  const updateProjectStatus = async (
+    statusId: string,
+    updates: Partial<ProjectStatusDefinition>,
+  ) => {
     if (!currentUser) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) return;
 
       const { error } = await supabase
-        .from('project_status_definitions')
+        .from("project_status_definitions")
         .update({
           name: updates.label,
           color: updates.color,
@@ -3529,20 +4016,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           is_final: updates.isFinal,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', statusId)
-        .eq('auth_user_id', session.user.id);
+        .eq("id", statusId)
+        .eq("auth_user_id", session.user.id);
 
       if (error) throw error;
 
-      setProjectStatuses(prev => 
-        prev.map(status => 
-          status.id === statusId 
-            ? { ...status, ...updates }
-            : status
-        )
+      setProjectStatuses((prev) =>
+        prev.map((status) =>
+          status.id === statusId ? { ...status, ...updates } : status,
+        ),
       );
     } catch (error) {
-      console.error('Error updating project status:', error);
+      console.error("Error updating project status:", error);
       throw error;
     }
   };
@@ -3551,83 +4036,99 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!currentUser) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) return;
 
       const { error } = await supabase
-        .from('project_status_definitions')
+        .from("project_status_definitions")
         .delete()
-        .eq('id', statusId)
-        .eq('auth_user_id', session.user.id);
+        .eq("id", statusId)
+        .eq("auth_user_id", session.user.id);
 
       if (error) throw error;
 
-      setProjectStatuses(prev => prev.filter(status => status.id !== statusId));
+      setProjectStatuses((prev) =>
+        prev.filter((status) => status.id !== statusId),
+      );
     } catch (error) {
-      console.error('Error deleting project status:', error);
+      console.error("Error deleting project status:", error);
       throw error;
     }
   };
 
-  const reorderProjectStatuses = async (statuses: ProjectStatusDefinition[]) => {
+  const reorderProjectStatuses = async (
+    statuses: ProjectStatusDefinition[],
+  ) => {
     if (!currentUser) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) return;
 
       // Update the order in the database for each status
-      const updates = statuses.map((status, index) => 
+      const updates = statuses.map((status, index) =>
         supabase
-          .from('project_status_definitions')
+          .from("project_status_definitions")
           .update({ order_index: index })
-          .eq('id', status.id)
-          .eq('auth_user_id', session.user.id)
+          .eq("id", status.id)
+          .eq("auth_user_id", session.user.id),
       );
 
       await Promise.all(updates);
       setProjectStatuses(statuses);
     } catch (error) {
-      console.error('Error reordering project statuses:', error);
+      console.error("Error reordering project statuses:", error);
       throw error;
     }
   };
 
   // Comment functions
-  const addComment = async (taskId: string, userId: string, content: string, mentionedUserIds?: string[], images?: string[]): Promise<string> => {
-    if (!currentUser) throw new Error('No authenticated user');
+  const addComment = async (
+    taskId: string,
+    userId: string,
+    content: string,
+    mentionedUserIds?: string[],
+    images?: string[],
+  ): Promise<string> => {
+    if (!currentUser) throw new Error("No authenticated user");
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) {
-        console.error('No authenticated session found when adding comment');
-        throw new Error('No authenticated session');
+        console.error("No authenticated session found when adding comment");
+        throw new Error("No authenticated session");
       }
 
-      console.log('Adding comment with data:', {
+      console.log("Adding comment with data:", {
         task_id: taskId,
         auth_user_id: session.user.id,
         user_id: userId,
         content: content?.substring(0, 50),
         mentioned_user_ids: mentionedUserIds,
-        images: images?.length
+        images: images?.length,
       });
 
       const { data, error } = await supabase
-        .from('comments')
+        .from("comments")
         .insert({
           task_id: taskId,
           auth_user_id: session.user.id,
           user_id: userId,
           content,
           mentioned_user_ids: mentionedUserIds || [],
-          images: images || []
+          images: images || [],
         })
         .select()
         .single();
 
       if (error) {
-        console.error('Supabase error adding comment:', error);
+        console.error("Supabase error adding comment:", error);
         throw error;
       }
 
@@ -3637,107 +4138,124 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         content: data.content,
         timestamp: data.created_at,
         mentionedUserIds: data.mentioned_user_ids || [],
-        images: (data as any).images || []
+        images: (data as any).images || [],
       };
 
       // Update local state
-      setTasks(prev => prev.map(task => 
-        task.id === taskId 
-          ? { 
-              ...task, 
-              comments: [...(task.comments || []), newComment]
-            }
-          : task
-      ));
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                comments: [...(task.comments || []), newComment],
+              }
+            : task,
+        ),
+      );
 
       // Send Google Chat notification for the comment
       // Fetch the task's project_id directly from DB to avoid stale state issues
       const { data: taskData } = await supabase
-        .from('tasks')
-        .select('project_id')
-        .eq('id', taskId)
+        .from("tasks")
+        .select("project_id")
+        .eq("id", taskId)
         .single();
-      
+
       if (taskData?.project_id) {
-        console.log('🔔 Sending task_commented notification for task:', taskId, 'project:', taskData.project_id);
-        supabase.functions.invoke('send-task-notification', {
-          body: {
-            taskId,
-            projectId: taskData.project_id,
-            eventType: 'task_commented',
-            userId: session.user.id,
-            commentContent: content
-          }
-        }).then(({ error }) => {
-          if (error) {
-            console.error('❌ Error sending comment notification:', error);
-          } else {
-            console.log('✅ Comment notification sent successfully');
-          }
-        });
+        console.log(
+          "🔔 Sending task_commented notification for task:",
+          taskId,
+          "project:",
+          taskData.project_id,
+        );
+        supabase.functions
+          .invoke("send-task-notification", {
+            body: {
+              taskId,
+              projectId: taskData.project_id,
+              eventType: "task_commented",
+              userId: session.user.id,
+              commentContent: content,
+            },
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.error("❌ Error sending comment notification:", error);
+            } else {
+              console.log("✅ Comment notification sent successfully");
+            }
+          });
       } else {
-        console.log('⚠️ Could not find project for task:', taskId);
+        console.log("⚠️ Could not find project for task:", taskId);
       }
 
       return data.id;
     } catch (error) {
-      console.error('Error adding comment:', error);
+      console.error("Error adding comment:", error);
       throw error;
     }
   };
 
-  const updateComment = async (commentId: string, taskId: string, content: string): Promise<void> => {
-    if (!currentUser) throw new Error('No authenticated user');
+  const updateComment = async (
+    commentId: string,
+    taskId: string,
+    content: string,
+  ): Promise<void> => {
+    if (!currentUser) throw new Error("No authenticated user");
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) {
-        console.error('No authenticated session found when updating comment');
-        throw new Error('No authenticated session');
+        console.error("No authenticated session found when updating comment");
+        throw new Error("No authenticated session");
       }
 
       const now = new Date().toISOString();
-      
+
       const { error } = await supabase
-        .from('comments')
+        .from("comments")
         .update({
           content,
-          updated_at: now
+          updated_at: now,
         })
-        .eq('id', commentId)
-        .eq('auth_user_id', session.user.id); // Ensure user can only edit their own comments
+        .eq("id", commentId)
+        .eq("auth_user_id", session.user.id); // Ensure user can only edit their own comments
 
       if (error) {
-        console.error('Supabase error updating comment:', error);
+        console.error("Supabase error updating comment:", error);
         throw error;
       }
 
       // Update local state
-      setTasks(prev => prev.map(task => 
-        task.id === taskId 
-          ? { 
-              ...task, 
-              comments: (task.comments || []).map(comment =>
-                comment.id === commentId
-                  ? { ...comment, content, edited: true, editedAt: now }
-                  : comment
-              )
-            }
-          : task
-      ));
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                comments: (task.comments || []).map((comment) =>
+                  comment.id === commentId
+                    ? { ...comment, content, edited: true, editedAt: now }
+                    : comment,
+                ),
+              }
+            : task,
+        ),
+      );
     } catch (error) {
-      console.error('Error updating comment:', error);
+      console.error("Error updating comment:", error);
       throw error;
     }
   };
 
   // Message functions
-  const addMessage = async (message: Omit<Message, 'id'>) => {
+  const addMessage = async (message: Omit<Message, "id">) => {
     try {
       // For each recipient, create a separate database record
       const insertPromises = message.recipientIds.map(async (recipientId) => {
         const { data, error } = await supabase
-          .from('messages')
+          .from("messages")
           .insert({
             from_user_id: message.senderId,
             to_user_id: recipientId,
@@ -3747,7 +4265,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             read: false,
             auth_user_id: session?.user?.id || message.senderId,
             task_id: message.taskId,
-            project_id: message.projectId
+            project_id: message.projectId,
           })
           .select()
           .single();
@@ -3757,56 +4275,62 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       });
 
       const insertedMessages = await Promise.all(insertPromises);
-      
-      // Convert back to Message format and add to local state
-      const convertedMessages: Message[] = insertedMessages.map((dbMsg: any) => ({
-        id: dbMsg.id,
-        senderId: dbMsg.from_user_id,
-        recipientIds: [dbMsg.to_user_id],
-        content: dbMsg.content,
-        timestamp: dbMsg.timestamp,
-        read: dbMsg.read,
-        taskId: dbMsg.task_id,
-        projectId: dbMsg.project_id
-      }));
 
-      setMessages(prev => [...prev, ...convertedMessages]);
+      // Convert back to Message format and add to local state
+      const convertedMessages: Message[] = insertedMessages.map(
+        (dbMsg: any) => ({
+          id: dbMsg.id,
+          senderId: dbMsg.from_user_id,
+          recipientIds: [dbMsg.to_user_id],
+          content: dbMsg.content,
+          timestamp: dbMsg.timestamp,
+          read: dbMsg.read,
+          taskId: dbMsg.task_id,
+          projectId: dbMsg.project_id,
+        }),
+      );
+
+      setMessages((prev) => [...prev, ...convertedMessages]);
       return insertedMessages[0].id; // Return first message ID
     } catch (error) {
-      console.error('Error adding message:', error);
+      console.error("Error adding message:", error);
       // Fallback to local state only
       const newMessage: Message = {
         ...message,
-        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       };
-      setMessages(prev => [...prev, newMessage]);
+      setMessages((prev) => [...prev, newMessage]);
       return newMessage.id;
     }
   };
 
   const updateMessage = (messageId: string, updates: Partial<Message>) => {
-    setMessages(prev => prev.map(msg => 
-      msg.id === messageId ? { ...msg, ...updates } : msg
-    ));
+    setMessages((prev) =>
+      prev.map((msg) => (msg.id === messageId ? { ...msg, ...updates } : msg)),
+    );
   };
 
   const deleteMessage = (messageId: string) => {
-    setMessages(prev => prev.filter(msg => msg.id !== messageId));
+    setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
   };
 
-  const sendMessage = async (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
+  const sendMessage = async (
+    message: Omit<Message, "id" | "timestamp" | "read">,
+  ) => {
     return await addMessage({
       ...message,
       timestamp: new Date().toISOString(),
-      read: false
+      read: false,
     });
   };
 
-  const createMessage = async (message: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
+  const createMessage = async (
+    message: Omit<Message, "id" | "timestamp" | "read">,
+  ) => {
     return await addMessage({
       ...message,
       timestamp: new Date().toISOString(),
-      read: false
+      read: false,
     });
   };
 
@@ -3814,147 +4338,154 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       // Update database first to ensure persistence
       const { error } = await supabase
-        .from('messages')
+        .from("messages")
         .update({ read: true })
-        .eq('id', messageId);
+        .eq("id", messageId);
 
       if (error) {
-        console.error('Error marking message as read in database:', error);
+        console.error("Error marking message as read in database:", error);
         return;
       }
 
       // Update local state only after successful database update
       updateMessage(messageId, { read: true });
-      console.log('✅ Message marked as read:', messageId);
+      console.log("✅ Message marked as read:", messageId);
     } catch (error) {
-      console.error('Error marking message as read:', error);
+      console.error("Error marking message as read:", error);
     }
   };
 
   // Custom Role functions
-  const addCustomRole = async (role: Omit<CustomRole, 'id'>) => {
+  const addCustomRole = async (role: Omit<CustomRole, "id">) => {
     if (!session?.user) {
-      console.error('No session available for adding custom role');
+      console.error("No session available for adding custom role");
       return;
     }
-    
+
     try {
-      console.log('Adding custom role:', role.name);
+      console.log("Adding custom role:", role.name);
       const { data, error } = await supabase
-        .from('custom_roles')
+        .from("custom_roles")
         .insert({
           name: role.name,
           description: role.description,
           permissions: role.permissions,
           color: role.color,
-          auth_user_id: session.user.id
+          auth_user_id: session.user.id,
         })
         .select()
         .single();
-      
+
       if (error) {
-        console.error('Error adding custom role:', error);
+        console.error("Error adding custom role:", error);
         return;
       }
-      
+
       const newRole: CustomRole = {
         id: data.id,
         name: data.name,
-        description: data.description || '',
+        description: data.description || "",
         permissions: safeParseJson(data.permissions, {}),
-        color: data.color
+        color: data.color,
       };
-      
-      setCustomRoles(prev => [...prev, newRole]);
-      console.log('Custom role added successfully:', newRole.name);
+
+      setCustomRoles((prev) => [...prev, newRole]);
+      console.log("Custom role added successfully:", newRole.name);
     } catch (error) {
-      console.error('Error adding custom role:', error);
+      console.error("Error adding custom role:", error);
     }
   };
 
-  const updateCustomRole = async (roleId: string, updates: Partial<CustomRole>) => {
+  const updateCustomRole = async (
+    roleId: string,
+    updates: Partial<CustomRole>,
+  ) => {
     if (!session?.user) {
-      console.error('No session available for updating custom role');
+      console.error("No session available for updating custom role");
       return;
     }
-    
+
     try {
-      console.log('Updating custom role:', roleId);
+      console.log("Updating custom role:", roleId);
       const { data, error } = await supabase
-        .from('custom_roles')
+        .from("custom_roles")
         .update({
           name: updates.name,
           description: updates.description,
           permissions: updates.permissions,
           color: updates.color,
         })
-        .eq('id', roleId)
-        .eq('auth_user_id', session.user.id)
+        .eq("id", roleId)
+        .eq("auth_user_id", session.user.id)
         .select()
         .single();
-      
+
       if (error) {
-        console.error('Error updating custom role:', error);
+        console.error("Error updating custom role:", error);
         return;
       }
-      
+
       const updatedRole: CustomRole = {
         id: data.id,
         name: data.name,
-        description: data.description || '',
+        description: data.description || "",
         permissions: safeParseJson(data.permissions, {}),
-        color: data.color
+        color: data.color,
       };
-      
-      setCustomRoles(prev => prev.map(role => 
-        role.id === roleId ? updatedRole : role
-      ));
-      console.log('Custom role updated successfully:', updatedRole.name);
+
+      setCustomRoles((prev) =>
+        prev.map((role) => (role.id === roleId ? updatedRole : role)),
+      );
+      console.log("Custom role updated successfully:", updatedRole.name);
     } catch (error) {
-      console.error('Error updating custom role:', error);
+      console.error("Error updating custom role:", error);
     }
   };
 
   const deleteCustomRole = async (roleId: string) => {
     if (!session?.user) {
-      console.error('No session available for deleting custom role');
+      console.error("No session available for deleting custom role");
       return;
     }
-    
+
     try {
-      console.log('Deleting custom role:', roleId);
+      console.log("Deleting custom role:", roleId);
       const { error } = await supabase
-        .from('custom_roles')
+        .from("custom_roles")
         .delete()
-        .eq('id', roleId)
-        .eq('auth_user_id', session.user.id);
-      
+        .eq("id", roleId)
+        .eq("auth_user_id", session.user.id);
+
       if (error) {
-        console.error('Error deleting custom role:', error);
+        console.error("Error deleting custom role:", error);
         return;
       }
-      
-      setCustomRoles(prev => prev.filter(role => role.id !== roleId));
-      console.log('Custom role deleted successfully');
+
+      setCustomRoles((prev) => prev.filter((role) => role.id !== roleId));
+      console.log("Custom role deleted successfully");
     } catch (error) {
-      console.error('Error deleting custom role:', error);
+      console.error("Error deleting custom role:", error);
     }
   };
 
   // Template functions
-  const addProjectTemplate = async (template: Omit<ProjectTemplate, 'id' | 'createdAt' | 'usageCount'>) => {
+  const addProjectTemplate = async (
+    template: Omit<ProjectTemplate, "id" | "createdAt" | "usageCount">,
+  ) => {
     if (!currentUser) return;
 
     try {
       // Get current session to use the correct auth user ID
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) {
-        console.error('No session found');
+        console.error("No session found");
         return;
       }
 
       const { data, error } = await supabase
-        .from('project_templates')
+        .from("project_templates")
         .insert({
           auth_user_id: session.user.id,
           name: template.name,
@@ -3976,7 +4507,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         id: data.id,
         name: data.name,
         description: data.description,
-        serviceType: data.service_type as 'project' | 'bank-hours' | 'pay-as-you-go',
+        serviceType: data.service_type as
+          | "project"
+          | "bank-hours"
+          | "pay-as-you-go",
         defaultDuration: data.default_duration,
         allocatedHours: data.allocated_hours,
         customFields: data.custom_fields || [],
@@ -3988,22 +4522,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         usageCount: data.usage_count,
       };
 
-      setProjectTemplates(prev => [newTemplate, ...prev]);
+      setProjectTemplates((prev) => [newTemplate, ...prev]);
     } catch (error) {
-      console.error('Error adding project template:', error);
+      console.error("Error adding project template:", error);
       throw error;
     }
   };
 
-  const updateProjectTemplate = async (templateId: string, updates: Partial<ProjectTemplate>) => {
+  const updateProjectTemplate = async (
+    templateId: string,
+    updates: Partial<ProjectTemplate>,
+  ) => {
     if (!currentUser) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) return;
 
       const { error } = await supabase
-        .from('project_templates')
+        .from("project_templates")
         .update({
           name: updates.name,
           description: updates.description,
@@ -4015,20 +4554,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           tags: updates.tags,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', templateId)
-        .eq('auth_user_id', session.user.id);
+        .eq("id", templateId)
+        .eq("auth_user_id", session.user.id);
 
       if (error) throw error;
 
-      setProjectTemplates(prev => 
-        prev.map(template => 
-          template.id === templateId 
-            ? { ...template, ...updates }
-            : template
-        )
+      setProjectTemplates((prev) =>
+        prev.map((template) =>
+          template.id === templateId ? { ...template, ...updates } : template,
+        ),
       );
     } catch (error) {
-      console.error('Error updating project template:', error);
+      console.error("Error updating project template:", error);
       throw error;
     }
   };
@@ -4037,160 +4574,193 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!currentUser) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.user) return;
 
       const { error } = await supabase
-        .from('project_templates')
+        .from("project_templates")
         .delete()
-        .eq('id', templateId)
-        .eq('auth_user_id', session.user.id);
+        .eq("id", templateId)
+        .eq("auth_user_id", session.user.id);
 
       if (error) throw error;
 
-      setProjectTemplates(prev => prev.filter(template => template.id !== templateId));
+      setProjectTemplates((prev) =>
+        prev.filter((template) => template.id !== templateId),
+      );
     } catch (error) {
-      console.error('Error deleting project template:', error);
+      console.error("Error deleting project template:", error);
       throw error;
     }
   };
 
   // Purchase functions
-  const addPurchase = (purchase: Omit<Purchase, 'id'>) => {
-    console.log('Add purchase not yet implemented');
+  const addPurchase = (purchase: Omit<Purchase, "id">) => {
+    console.log("Add purchase not yet implemented");
   };
 
   const updatePurchase = (purchaseId: string, updates: Partial<Purchase>) => {
-    console.log('Update purchase not yet implemented');
+    console.log("Update purchase not yet implemented");
   };
 
   const deletePurchase = (purchaseId: string) => {
-    console.log('Delete purchase not yet implemented');
+    console.log("Delete purchase not yet implemented");
   };
 
   // Client Agreement functions
   const addClientAgreement = (agreement: any) => {
-    console.log('Add client agreement not yet implemented');
+    console.log("Add client agreement not yet implemented");
   };
 
   const updateClientAgreement = (agreementId: string, updates: any) => {
-    console.log('Update client agreement not yet implemented');
+    console.log("Update client agreement not yet implemented");
   };
 
   const deleteClientAgreement = (agreementId: string) => {
-    console.log('Delete client agreement not yet implemented');
+    console.log("Delete client agreement not yet implemented");
   };
 
   const getClientAgreements = (clientId: string) => {
-    console.log('Get client agreements not yet implemented');
+    console.log("Get client agreements not yet implemented");
     return [];
   };
 
   // Client File functions
-  const uploadClientFile = async (clientId: string, file: File): Promise<void> => {
-    console.log('Upload client file not yet implemented');
+  const uploadClientFile = async (
+    clientId: string,
+    file: File,
+  ): Promise<void> => {
+    console.log("Upload client file not yet implemented");
   };
 
   const deleteClientFile = (fileId: string) => {
-    console.log('Delete client file not yet implemented');
+    console.log("Delete client file not yet implemented");
   };
 
   const getClientFiles = (clientId: string) => {
-    console.log('Get client files not yet implemented');
+    console.log("Get client files not yet implemented");
     return [];
   };
 
   // Custom Field functions
-  const addCustomField = (field: Omit<CustomField, 'id' | 'createdAt' | 'updatedAt'>) => {
-    console.log('Add custom field not yet implemented');
+  const addCustomField = (
+    field: Omit<CustomField, "id" | "createdAt" | "updatedAt">,
+  ) => {
+    console.log("Add custom field not yet implemented");
   };
 
-  const updateCustomField = (fieldId: string, updates: Partial<CustomField>) => {
-    console.log('Update custom field not yet implemented');
+  const updateCustomField = (
+    fieldId: string,
+    updates: Partial<CustomField>,
+  ) => {
+    console.log("Update custom field not yet implemented");
   };
 
   const deleteCustomField = (fieldId: string) => {
-    console.log('Delete custom field not yet implemented');
+    console.log("Delete custom field not yet implemented");
   };
 
   const reorderCustomFields = (fields: CustomField[]) => {
-    console.log('Reorder custom fields not yet implemented');
+    console.log("Reorder custom fields not yet implemented");
   };
 
   // Dashboard and Report functions
-  const addCustomDashboard = (dashboard: Omit<CustomDashboard, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addCustomDashboard = (
+    dashboard: Omit<CustomDashboard, "id" | "createdAt" | "updatedAt">,
+  ) => {
     const newDashboard: CustomDashboard = {
       ...dashboard,
       id: Math.random().toString(36).substr(2, 9),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setCustomDashboards(prev => [...prev, newDashboard]);
+    setCustomDashboards((prev) => [...prev, newDashboard]);
   };
 
-  const updateCustomDashboard = (dashboardId: string, updates: Partial<CustomDashboard>) => {
-    setCustomDashboards(prev => 
-      prev.map(dashboard => 
-        dashboard.id === dashboardId 
+  const updateCustomDashboard = (
+    dashboardId: string,
+    updates: Partial<CustomDashboard>,
+  ) => {
+    setCustomDashboards((prev) =>
+      prev.map((dashboard) =>
+        dashboard.id === dashboardId
           ? { ...dashboard, ...updates, updatedAt: new Date().toISOString() }
-          : dashboard
-      )
+          : dashboard,
+      ),
     );
   };
 
   const deleteCustomDashboard = (dashboardId: string) => {
-    setCustomDashboards(prev => prev.filter(dashboard => dashboard.id !== dashboardId));
+    setCustomDashboards((prev) =>
+      prev.filter((dashboard) => dashboard.id !== dashboardId),
+    );
     // Also remove any reports that were only in this dashboard
-    setSavedReports(prev => prev.filter(report => 
-      customDashboards.some(d => d.id !== dashboardId && d.reportIds.includes(report.id))
-    ));
-  };
-
-  const setDefaultDashboard = (dashboardId: string) => {
-    setCustomDashboards(prev => 
-      prev.map(dashboard => ({
-        ...dashboard,
-        isDefault: dashboard.id === dashboardId,
-        updatedAt: new Date().toISOString()
-      }))
+    setSavedReports((prev) =>
+      prev.filter((report) =>
+        customDashboards.some(
+          (d) => d.id !== dashboardId && d.reportIds.includes(report.id),
+        ),
+      ),
     );
   };
 
-  const saveReport = (report: Omit<SavedReport, 'id' | 'createdAt' | 'updatedAt'>, dashboardId: string) => {
+  const setDefaultDashboard = (dashboardId: string) => {
+    setCustomDashboards((prev) =>
+      prev.map((dashboard) => ({
+        ...dashboard,
+        isDefault: dashboard.id === dashboardId,
+        updatedAt: new Date().toISOString(),
+      })),
+    );
+  };
+
+  const saveReport = (
+    report: Omit<SavedReport, "id" | "createdAt" | "updatedAt">,
+    dashboardId: string,
+  ) => {
     const newReport: SavedReport = {
       ...report,
       id: Math.random().toString(36).substr(2, 9),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    
-    setSavedReports(prev => [...prev, newReport]);
-    
+
+    setSavedReports((prev) => [...prev, newReport]);
+
     // Add report to dashboard
     updateCustomDashboard(dashboardId, {
-      reportIds: [...(customDashboards.find(d => d.id === dashboardId)?.reportIds || []), newReport.id]
+      reportIds: [
+        ...(customDashboards.find((d) => d.id === dashboardId)?.reportIds ||
+          []),
+        newReport.id,
+      ],
     });
   };
 
-  const updateSavedReport = (reportId: string, updates: Partial<SavedReport>) => {
-    setSavedReports(prev => 
-      prev.map(report => 
-        report.id === reportId 
+  const updateSavedReport = (
+    reportId: string,
+    updates: Partial<SavedReport>,
+  ) => {
+    setSavedReports((prev) =>
+      prev.map((report) =>
+        report.id === reportId
           ? { ...report, ...updates, updatedAt: new Date().toISOString() }
-          : report
-      )
+          : report,
+      ),
     );
   };
 
   const deleteSavedReport = (reportId: string) => {
-    setSavedReports(prev => prev.filter(report => report.id !== reportId));
+    setSavedReports((prev) => prev.filter((report) => report.id !== reportId));
     // Remove report from all dashboards
-    setCustomDashboards(prev => 
-      prev.map(dashboard => ({
+    setCustomDashboards((prev) =>
+      prev.map((dashboard) => ({
         ...dashboard,
-        reportIds: dashboard.reportIds.filter(id => id !== reportId),
-        updatedAt: new Date().toISOString()
-      }))
+        reportIds: dashboard.reportIds.filter((id) => id !== reportId),
+        updatedAt: new Date().toISOString(),
+      })),
     );
   };
 
@@ -4221,10 +4791,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     projectStatuses,
     customDashboards,
     savedReports,
-    
+
     login,
     logout,
-    
+
     // User functions
     addUser,
     updateUser,
@@ -4232,18 +4802,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     getUserById,
     inviteUser,
     updateManagerNotificationPreferences,
-    
+
     // Team functions
     addTeam,
     updateTeam,
     deleteTeam,
-    
+
     // Client functions
     addClient,
     updateClient,
     deleteClient,
     getClientById,
-    
+
     // Project functions
     addProject,
     updateProject,
@@ -4253,7 +4823,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     watchProject,
     unwatchProject,
     createProjectFromTemplate,
-    
+
     // Task functions
     addTask,
     updateTask,
@@ -4267,19 +4837,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     uploadTaskFile,
     addTaskExternalLink,
     deleteTaskFile,
-    
+
     // Task Status functions
     addTaskStatus,
     updateTaskStatus,
     deleteTaskStatus,
     reorderTaskStatuses,
-    
+
     // Project Status functions
     addProjectStatus,
     updateProjectStatus,
     deleteProjectStatus,
     reorderProjectStatuses,
-    
+
     // TimeEntry functions
     addTimeEntry,
     updateTimeEntry,
@@ -4290,7 +4860,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     resumeTimeTracking,
     getElapsedTime,
     updateTimeEntryStatus,
-    
+
     // Message functions
     addMessage,
     updateMessage,
@@ -4298,50 +4868,50 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     sendMessage,
     createMessage,
     markMessageAsRead,
-    
+
     // Comment functions
     addComment,
     updateComment,
-    
+
     // Note functions
     addNote,
     updateNote,
     deleteNote,
     getNotesByUser,
-    
+
     // Custom Role functions
     addCustomRole,
     updateCustomRole,
     deleteCustomRole,
-    
+
     // Template functions
     addProjectTemplate,
     updateProjectTemplate,
     deleteProjectTemplate,
     refreshTaskTemplates: loadTaskTemplates,
-    
+
     // Purchase functions
     addPurchase,
     updatePurchase,
     deletePurchase,
-    
+
     // Client Agreement functions
     addClientAgreement,
     updateClientAgreement,
     deleteClientAgreement,
     getClientAgreements,
-    
+
     // Client File functions
     uploadClientFile,
     deleteClientFile,
     getClientFiles,
-    
+
     // Custom Field functions
     addCustomField,
     updateCustomField,
     deleteCustomField,
     reorderCustomFields,
-    
+
     // Dashboard and Report functions
     addCustomDashboard,
     updateCustomDashboard,
@@ -4350,16 +4920,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     saveReport,
     updateSavedReport,
     deleteSavedReport,
-    
+
     // Task reordering
     reorderTasks,
   };
 
-  return (
-    <AppContext.Provider value={value}>
-      {children}
-    </AppContext.Provider>
-  );
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
 export default AppProvider;
