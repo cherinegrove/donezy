@@ -151,6 +151,34 @@ export const SCOPE_HIERARCHY: Record<RbacScope, number> = {
   all: 2,
 };
 
+// --- Valid Scopes per Resource ---
+export const RESOURCE_SCOPES: Record<RbacResource, RbacScope[]> = {
+  projects: ["own", "project", "all"],
+  tasks: ["own", "project", "all"],
+  time_entries: ["own", "project", "all"],
+  comments: ["own", "project", "all"],
+  clients: ["own", "project", "all"],
+
+  templates: ["own", "all"], // templates could be personal or platform-wide
+  users: ["own", "all"], // own profile or all users
+  teams: ["own", "all"],
+  notes: ["own", "all"],
+  messages: ["own", "all"],
+  dashboards: ["own", "all"],
+  settings: ["own", "all"],
+  notifications: ["own", "all"],
+
+  roles: ["all"],
+  permissions: ["all"],
+  statuses: ["all"],
+  custom_fields: ["all"],
+  analytics: ["all"],
+  billing: ["all"],
+  integrations: ["all"],
+  audit_logs: ["all"],
+  platform_settings: ["all"],
+};
+
 // --- Core Interfaces ---
 
 export interface RbacPermission {

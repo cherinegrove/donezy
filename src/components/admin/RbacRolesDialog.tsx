@@ -19,8 +19,13 @@ import {
 } from "@/components/ui/dialog";
 import { Edit, Plus, Save, X, AlertTriangle } from "lucide-react";
 import { roleService } from "@/services/rbac";
-import type { RbacRole, RbacPermission, RbacScope } from "@/types/rbac";
-import { RBAC_RESOURCES, RBAC_SCOPES } from "@/types/rbac";
+import type {
+  RbacRole,
+  RbacPermission,
+  RbacScope,
+  RbacResource,
+} from "@/types/rbac";
+import { RBAC_RESOURCES, RBAC_SCOPES, RESOURCE_SCOPES } from "@/types/rbac";
 import { useToast } from "@/hooks/use-toast";
 
 interface RbacRolesDialogProps {
@@ -127,13 +132,21 @@ export function RbacRolesDialog({
     }
   };
 
-  const togglePermission = (permissionId: string) => {
+  const togglePermission = (permissionId: string, resource: RbacResource) => {
     setFormData((prev) => {
       const next = { ...prev.selectedPermissions };
       if (next[permissionId]) {
         delete next[permissionId];
       } else {
-        next[permissionId] = "own"; // default scope upon activation
+        if (!RESOURCE_SCOPES[resource]) {
+          console.warn(
+            `[RBAC] Resource "${resource}" is missing from RESOURCE_SCOPES. Defaulting to ["all"]. Please configure in src/types/rbac.ts`,
+          );
+        }
+        const validScopes = RESOURCE_SCOPES[resource] || ["all"];
+        next[permissionId] = validScopes.includes("own")
+          ? "own"
+          : validScopes[0]; // pick first valid scope if own is not available
       }
       return { ...prev, selectedPermissions: next };
     });
@@ -268,6 +281,8 @@ export function RbacRolesDialog({
                     (r) => r.value === resource,
                   );
                   const displayName = resourceInfo?.label || resource;
+                  const isUnconfigured =
+                    !RESOURCE_SCOPES[resource as RbacResource];
 
                   return (
                     <AccordionItem
@@ -279,6 +294,15 @@ export function RbacRolesDialog({
                         <div className="flex items-center justify-between w-full pr-4">
                           <div className="flex items-center gap-2 font-medium">
                             {displayName}
+                            {isUnconfigured && (
+                              <Badge
+                                variant="destructive"
+                                className="text-[10px] h-4 px-1 pb-0.5 ml-2 font-medium"
+                                title="Configure scopes in src/types/rbac.ts"
+                              >
+                                ⚠ Dev: Missing Scope Config
+                              </Badge>
+                            )}
                           </div>
                           {selectedInResource > 0 && (
                             <Badge variant="secondary" className="font-sans">
@@ -310,7 +334,10 @@ export function RbacRolesDialog({
                                             !!formData.selectedPermissions[p.id]
                                           }
                                           onCheckedChange={() =>
-                                            togglePermission(p.id)
+                                            togglePermission(
+                                              p.id,
+                                              resource as RbacResource,
+                                            )
                                           }
                                         />
                                         <div className="flex flex-col flex-1">
@@ -346,7 +373,14 @@ export function RbacRolesDialog({
                                           }
                                           className="h-8 w-full px-2 py-1 text-xs rounded-md border border-input bg-transparent disabled:opacity-30 appearance-none cursor-pointer disabled:cursor-not-allowed"
                                         >
-                                          {RBAC_SCOPES.map((s) => (
+                                          {RBAC_SCOPES.filter((s) => {
+                                            const validScopes = RESOURCE_SCOPES[
+                                              resource as RbacResource
+                                            ] || ["all"];
+                                            return validScopes.includes(
+                                              s.value,
+                                            );
+                                          }).map((s) => (
                                             <option
                                               key={s.value}
                                               value={s.value}
