@@ -28,6 +28,7 @@ interface RoleRow {
 
 interface RolePermRow {
   role_id: string;
+  scope: string;
   permission: RbacPermission | null;
 }
 
@@ -72,6 +73,7 @@ export const userRoleService = {
         .select(
           `
           role_id,
+          scope,
           permission:rbac_permissions(*)
         `,
         )
@@ -82,8 +84,14 @@ export const userRoleService = {
           if (!permsByRole[rp.role_id]) {
             permsByRole[rp.role_id] = [];
           }
-          if (rp.permission) {
-            permsByRole[rp.role_id].push(rp.permission);
+          const permObj = Array.isArray(rp.permission)
+            ? rp.permission[0]
+            : rp.permission;
+          if (permObj) {
+            permsByRole[rp.role_id].push({
+              ...permObj,
+              scope: rp.scope as any,
+            });
           }
         }
       }
@@ -250,6 +258,7 @@ export const userRoleService = {
         .select(
           `
           role_id,
+          scope,
           permission:rbac_permissions(*)
         `,
         )
@@ -260,8 +269,14 @@ export const userRoleService = {
           if (!permsByRole[rp.role_id]) {
             permsByRole[rp.role_id] = [];
           }
-          if (rp.permission) {
-            permsByRole[rp.role_id].push(rp.permission);
+          const permObj = Array.isArray(rp.permission)
+            ? rp.permission[0]
+            : rp.permission;
+          if (permObj) {
+            permsByRole[rp.role_id].push({
+              ...permObj,
+              scope: rp.scope as any,
+            });
           }
         }
       }

@@ -15,7 +15,6 @@ import type {
 import type { User } from "@/types";
 import { SCOPE_HIERARCHY } from "@/types/rbac";
 
-
 // Re-export types for convenience
 export type {
   RbacPermission,
@@ -25,7 +24,6 @@ export type {
   RbacAction,
   PermissionContext,
 };
-
 
 // ============================================================
 // Core Permission Check
@@ -44,9 +42,14 @@ export function hasPermission(
   user: User | null | undefined,
   resource: RbacResource | "*",
   action: RbacAction | "*",
-  requiredScope: RbacScope = "own"
+  requiredScope: RbacScope = "own",
 ): boolean {
   if (!user) return false;
+
+  // LEGACY FALLBACK: allow platform_admin full access during migration
+  // if (user.systemRoles?.includes("platform_admin")) {
+  //   return true;
+  // }
 
   const roles = user.rbacRoles;
   if (!roles || roles.length === 0) return false;
@@ -97,7 +100,7 @@ export function canAccess(
   user: User | null | undefined,
   resource: RbacResource,
   action: RbacAction,
-  context: PermissionContext = {}
+  context: PermissionContext = {},
 ): boolean {
   if (!user) return false;
 
@@ -154,7 +157,7 @@ export function canAccess(
  */
 export function scopeIncludes(
   userScope: RbacScope,
-  requiredScope: RbacScope
+  requiredScope: RbacScope,
 ): boolean {
   return SCOPE_HIERARCHY[userScope] >= SCOPE_HIERARCHY[requiredScope];
 }
@@ -165,30 +168,44 @@ export function scopeIncludes(
 export function getEffectiveScope(
   user: User | null | undefined,
   resource: RbacResource,
-  action: RbacAction
+  action: RbacAction,
 ): RbacScope | null {
   if (!user) return null;
 
+  // LEGACY FALLBACK: allow platform_admin full access during migration
+  // if (user.systemRoles?.includes("platform_admin")) {
+  //   return "all";
+  // }
+
   const roles = user.rbacRoles;
-  if (!roles || roles.length === 0) return null;
+  console.log(`[RBAC Debug] getEffectiveScope checking ${resource}:${action} for user:`, user.name);
+
+  if (!roles || roles.length === 0) {
+    console.log(`[RBAC Debug] getEffectiveScope: No roles found array on user. User is null or empty.`);
+    return null;
+  }
 
   let highestScope: RbacScope | null = null;
 
   for (const role of roles) {
+    console.log(`[RBAC Debug] Checking Role: "${role.name}" (ID: ${role.id}). It has ${role.permissions?.length || 0} permissions attached.`);
     if (!role.permissions) continue;
 
     for (const perm of role.permissions) {
       if (perm.resource === resource && perm.action === action) {
+        console.log(`[RBAC Debug]   -> MATCHED: Role "${role.name}" Grants ${resource}:${action} with Scope "${perm.scope}"`);
         if (
           !highestScope ||
           SCOPE_HIERARCHY[perm.scope] > SCOPE_HIERARCHY[highestScope]
         ) {
           highestScope = perm.scope;
+          console.log(`[RBAC Debug]   -> SETTING NEW HIGHEST SCOPE: ${highestScope}`);
         }
       }
     }
   }
 
+  console.log(`[RBAC Debug] Final computed scope for ${resource}:${action} is -> ${highestScope}`);
   return highestScope;
 }
 
@@ -206,7 +223,7 @@ export function isRbacAdmin(user: User | null | undefined): boolean {
 
 /** Get all unique permissions across all user roles */
 export function getAllPermissions(
-  user: User | null | undefined
+  user: User | null | undefined,
 ): RbacPermission[] {
   if (!user?.rbacRoles) return [];
 

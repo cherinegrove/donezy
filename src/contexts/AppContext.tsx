@@ -27,6 +27,13 @@ import {
   TaskFile,
 } from "@/types";
 import { CustomDashboard, SavedReport } from "@/types/dashboard";
+import {
+  filterProjectsByScope,
+  filterTasksByScope,
+  filterTimeEntriesByScope,
+  filterClientsByScope,
+} from "@/utils/rbacFilters";
+import { hasPermission } from "@/lib/rbac";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import {
@@ -66,11 +73,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const { toast } = useToast();
   // State management
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const currentUserRef = React.useRef<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const projectsRef = React.useRef<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -177,8 +186,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Helper function to convert database users to User type
   const convertDbUserToUser = (dbUser: any): User => {
     return {
-      id: dbUser.auth_user_id, // Use auth_user_id as the id
-      auth_user_id: dbUser.auth_user_id,
+      id: dbUser.auth_user_id || dbUser.id, // Use auth_user_id as the id, fallback to profile id
+      auth_user_id: dbUser.auth_user_id || dbUser.id,
       name: dbUser.name,
       email: dbUser.email,
       avatar: dbUser.avatar || undefined,
@@ -243,12 +252,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         });
       }
 
-      // Load RBAC roles for all users
-      const allUserIds = data?.map((u: any) => u.auth_user_id) || [];
+      // Load RBAC roles for all users by pulling both auth IDs and profile IDs
+      const allUserIds = [
+        ...new Set(
+          [
+            ...(data?.map((u: any) => u.auth_user_id) || []),
+            ...(data?.map((u: any) => u.id) || []),
+            session?.user?.id, // Fetch roles assigned to the raw session ID just in case
+          ].filter(Boolean),
+        ),
+      ] as string[];
+
       let rbacRolesMap: Record<string, any[]> = {};
       try {
         rbacRolesMap =
           await userRoleService.getResolvedRolesForUsers(allUserIds);
+        console.log(
+          "[AppContext Debug] RBAC Data loaded from DB natively:",
+          rbacRolesMap,
+          "for UUIDs:",
+          allUserIds,
+        );
       } catch (rbacError) {
         // RBAC tables might not exist yet — gracefully degrade
         console.warn(
@@ -258,11 +282,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       const convertedUsers =
-        data?.map((dbUser: any) => ({
-          ...convertDbUserToUser(dbUser),
-          systemRoles: systemRolesMap[dbUser.auth_user_id] || [],
-          rbacRoles: rbacRolesMap[dbUser.auth_user_id] || [],
-        })) || [];
+        data?.map((dbUser: any) => {
+          // Merge roles from both ID types to ensure no data is lost
+          const combinedRbacRoles = [
+            ...(rbacRolesMap[dbUser.auth_user_id] || []),
+            ...(rbacRolesMap[dbUser.id] || []),
+          ];
+          // Remove potential duplicates by role.id
+          const uniqueRoles = Array.from(
+            new Map(combinedRbacRoles.map((r) => [r.id, r])).values(),
+          );
+
+          return {
+            ...convertDbUserToUser(dbUser),
+            systemRoles: systemRolesMap[dbUser.auth_user_id] || [],
+            rbacRoles: uniqueRoles,
+          };
+        }) || [];
       setUsers(convertedUsers);
 
       // Set current user based on auth_user_id match
@@ -271,20 +307,86 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       );
 
       if (sessionUserDb) {
+        const combinedRbacRoles = [
+          ...(rbacRolesMap[sessionUserDb.auth_user_id] || []),
+          ...(rbacRolesMap[sessionUserDb.id] || []),
+        ];
+        const uniqueRoles = Array.from(
+          new Map(combinedRbacRoles.map((r) => [r.id, r])).values(),
+        );
+
         const sessionUser = {
           ...convertDbUserToUser(sessionUserDb),
           systemRoles: systemRolesMap[sessionUserDb.auth_user_id] || [],
-          rbacRoles: rbacRolesMap[sessionUserDb.auth_user_id] || [],
+          rbacRoles: uniqueRoles,
         };
         setCurrentUser(sessionUser);
+        currentUserRef.current = sessionUser;
       } else {
+        console.warn("Session user not found in database users map");
+        setCurrentUser(null);
+        currentUserRef.current = null;
         // Fallback to email match
         const emailUser = convertedUsers.find(
           (u) => u.email === session.user.email,
         );
-        if (emailUser) {
-          setCurrentUser(emailUser);
+
+        let finalUser = emailUser;
+
+        if (!finalUser) {
+          console.warn(
+            "[AppContext Debug] User COMPLETELY missing from loaded users map. Fallback Stub activated for Session ID",
+            session.user.id,
+          );
+
+          console.log(session);
+          finalUser = {
+            id: session.user.id,
+            auth_user_id: session.user.id,
+            name:
+              session.user.user_metadata?.full_name ||
+              session.user.email?.split("@")[0] ||
+              "Unknown",
+            email: session.user.email || "",
+            roleId: "user",
+            systemRoles: [],
+            rbacRoles: rbacRolesMap[session.user.id] || [], // Try to attach roles anyway
+          } as User;
+        } else {
+          console.log(
+            "[AppContext Debug] Email Match Found! Assigned User:",
+            finalUser.auth_user_id,
+            "| Email:",
+            finalUser.email,
+          );
         }
+
+        // It's highly likely the active session.user.id has roles assigned
+        const sessionRoles = rbacRolesMap[session.user.id] || [];
+        console.log(
+          `[AppContext Debug] Did we find direct assigned roles for session token? (${session.user.id}):`,
+          sessionRoles,
+        );
+
+        if (sessionRoles.length > 0) {
+          const combined = [...finalUser.rbacRoles, ...sessionRoles];
+          finalUser.rbacRoles = Array.from(
+            new Map(combined.map((r) => [r.id, r])).values(),
+          );
+        }
+
+        // Patch auth_user_id to ensure writes use the true session ID going forward
+        if (session.user.id && finalUser.auth_user_id !== session.user.id) {
+          finalUser.auth_user_id = session.user.id;
+        }
+
+        console.log(
+          "[AppContext Debug] FINAL USER IN CONTEXT:",
+          JSON.parse(JSON.stringify(finalUser)),
+        );
+
+        setCurrentUser(finalUser);
+        currentUserRef.current = finalUser;
       }
     } catch (error) {
       console.error("Error loading users:", error);
@@ -314,7 +416,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           status: (client.status as "active" | "inactive") || "active",
         })) || [];
 
-      setClients(convertedClients);
+      const clientProjectsMap: Record<string, Project[]> = {};
+      projectsRef.current.forEach((p) => {
+        if (p.clientId) {
+          if (!clientProjectsMap[p.clientId])
+            clientProjectsMap[p.clientId] = [];
+          clientProjectsMap[p.clientId].push(p);
+        }
+      });
+
+      const filtered = filterClientsByScope(
+        convertedClients,
+        currentUserRef.current,
+        clientProjectsMap,
+      );
+      setClients(filtered);
     } catch (error) {
       console.error("Error loading clients:", error);
     }
@@ -354,7 +470,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           google_chat_settings: project.google_chat_settings || undefined,
         })) || [];
 
-      setProjects(convertedProjects);
+      const filtered = filterProjectsByScope(
+        convertedProjects,
+        currentUserRef.current,
+      );
+      console.log(filtered);
+      setProjects(filtered);
+      projectsRef.current = filtered;
     } catch (error) {
       console.error("Error loading projects:", error);
     }
@@ -465,7 +587,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           orderIndex: task.order_index || 0,
         })) || [];
 
-      setTasks(convertedTasks);
+      const projectsMap = Object.fromEntries(
+        projectsRef.current.map((p) => [p.id, p]),
+      );
+      const filtered = filterTasksByScope(
+        convertedTasks,
+        currentUserRef.current,
+        projectsMap,
+      );
+      setTasks(filtered);
     } catch (error) {
       console.error("Error loading tasks:", error);
     }
@@ -508,14 +638,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           timerStatus: entry.timer_status || undefined,
         })) || [];
 
-      setTimeEntries(convertedTimeEntries);
+      const projectsMap = Object.fromEntries(
+        projectsRef.current.map((p) => [p.id, p]),
+      );
+      const filtered = filterTimeEntriesByScope(
+        convertedTimeEntries,
+        currentUserRef.current,
+        projectsMap,
+      );
+      setTimeEntries(filtered);
 
       if (!currentAuthUserId) {
         return;
       }
 
       // Only detect ACTIVE timers (not paused ones) for the main activeTimeEntry
-      const activeEntries = convertedTimeEntries.filter(
+      const activeEntries = filtered.filter(
         (entry) =>
           !entry.endTime &&
           (entry as any).timerStatus === "active" &&
@@ -1126,10 +1264,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (userId && userId !== loadedForUserIdRef.current) {
       loadedForUserIdRef.current = userId;
       // Use setTimeout to prevent potential auth deadlocks
-      setTimeout(() => {
-        loadUsers();
+      setTimeout(async () => {
+        await loadUsers();
+        await loadProjects(); // Dependancy for filtering clients, tasks, time_entries
+
+        console.log("load");
+
         loadClients();
-        loadProjects();
         loadTasks();
         loadTimeEntries();
         loadTeams();
@@ -1330,6 +1471,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const updateUser = async (userId: string, updates: Partial<User>) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "users", "edit")) {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to edit users",
+        variant: "destructive",
+      });
+      return;
+    }
 
     console.log("📝 updateUser called with:", { userId, updates });
 
@@ -1401,6 +1550,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteUser = async (userId: string) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "users", "delete")) {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to delete users",
+        variant: "destructive",
+      });
+      return;
+    }
 
     console.log("🗑️ Attempting to delete user with ID:", userId);
     const userToDelete = users.find((u) => u.auth_user_id === userId);
@@ -1444,6 +1601,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     console.log("🔵 addClient called with:", client);
     if (!session?.user) {
       console.log("❌ No session/user, returning early");
+      return;
+    }
+    if (!hasPermission(currentUserRef.current, "clients", "create")) {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to create clients",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -1490,6 +1655,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const updateClient = async (clientId: string, updates: Partial<Client>) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "clients", "edit")) {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to edit clients",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const dbUpdates: any = {};
@@ -1523,6 +1696,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteClient = async (clientId: string) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "clients", "delete")) {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to delete clients",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -1548,6 +1729,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Project functions
   const addProject = async (project: Omit<Project, "id">) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "projects", "create")) {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to create projects",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const { data, error } = await supabase
@@ -1608,6 +1797,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updates: Partial<Project>,
   ) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "projects", "edit")) {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to edit projects",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       const dbUpdates: any = {};
@@ -1665,6 +1862,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         error: "You must be logged in to delete projects",
       };
     }
+    if (!hasPermission(currentUserRef.current, "projects", "delete")) {
+      return {
+        success: false,
+        error: "You do not have permission to delete projects",
+      };
+    }
 
     try {
       const { error } = await supabase
@@ -1716,6 +1919,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     if (!session?.user) {
       console.log("❌ No session or user found");
+      return undefined;
+    }
+    if (!hasPermission(currentUserRef.current, "tasks", "create")) {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to create tasks",
+        variant: "destructive",
+      });
       return undefined;
     }
 
@@ -1826,6 +2037,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updates: Partial<Task>,
   ): Promise<string | undefined> => {
     if (!session?.user) return undefined;
+    if (!hasPermission(currentUserRef.current, "tasks", "edit")) {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to edit tasks",
+        variant: "destructive",
+      });
+      return undefined;
+    }
 
     try {
       // Get current task for comparison
@@ -2164,6 +2383,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteTask = async (taskId: string): Promise<boolean> => {
     if (!session?.user) return false;
+    if (!hasPermission(currentUserRef.current, "tasks", "delete")) {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to delete tasks",
+        variant: "destructive",
+      });
+      return false;
+    }
 
     try {
       // Delete related records first to avoid foreign key constraint violations
@@ -2214,6 +2441,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Time Entry functions
   const addTimeEntry = async (timeEntry: Omit<TimeEntry, "id">) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "time_entries", "perform")) {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to add time entries",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       // SAFEGUARD: If creating a new ACTIVE timer (no endTime), ensure all other active timers are stopped first
@@ -2310,6 +2545,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updates: Partial<TimeEntry>,
   ) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "time_entries", "perform")) {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to edit time entries",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       // Get the current entry for comparison (for logging changes)
@@ -2459,6 +2702,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteTimeEntry = async (timeEntryId: string) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "time_entries", "manage")) {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to delete time entries",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       // Soft-delete: mark as cancelled instead of hard-deleting
