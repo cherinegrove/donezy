@@ -347,17 +347,28 @@ ON CONFLICT (role_id, permission_id) DO NOTHING;
 INSERT INTO rbac_role_permissions (role_id, permission_id, scope)
 SELECT '00000000-0000-0000-0000-000000000002', p.id,
   CASE 
-    WHEN p.name LIKE 'projects:%' THEN 'own'
-    WHEN p.name LIKE 'tasks:%' THEN 'project'
-    WHEN p.name LIKE 'time_entries:%' THEN 'own'
-    WHEN p.name LIKE 'notes:%' THEN 'project'
-    WHEN p.name LIKE 'messages:%' THEN 'project'
-    WHEN p.name LIKE 'comments:%' THEN 'project'
-    WHEN p.name LIKE 'analytics:%' THEN 'project'
-    WHEN p.name LIKE 'dashboards:%' THEN 'project'
-    WHEN p.name LIKE 'audit_logs:%' THEN 'project'
+    -- projects: valid scopes ["own", "all"]
+    WHEN p.name LIKE 'projects:%'     THEN 'own'
+    -- tasks: valid scopes ["own", "project", "all"]
+    WHEN p.name LIKE 'tasks:%'        THEN 'project'
+    -- time_entries: valid scopes ["own", "project", "all"] — owner can see project entries
+    WHEN p.name LIKE 'time_entries:%' THEN 'project'
+    -- notes: valid scopes ["own", "all"] — NO "project" scope
+    WHEN p.name LIKE 'notes:%'        THEN 'own'
+    -- messages: valid scopes ["own", "all"] — NO "project" scope
+    WHEN p.name LIKE 'messages:%'     THEN 'own'
+    -- comments: valid scopes ["own", "project", "all"]
+    WHEN p.name LIKE 'comments:%'     THEN 'project'
+    -- analytics: valid scopes ["all"] ONLY
+    WHEN p.name LIKE 'analytics:%'    THEN 'all'
+    -- dashboards: valid scopes ["own", "all"] — NO "project" scope
+    WHEN p.name LIKE 'dashboards:%'   THEN 'own'
+    -- audit_logs: valid scopes ["all"] ONLY
+    WHEN p.name LIKE 'audit_logs:%'   THEN 'all'
+    -- notifications: valid scopes ["own", "all"]
     WHEN p.name LIKE 'notifications:%' THEN 'own'
-    WHEN p.name LIKE 'settings:%' THEN 'own'
+    -- settings: valid scopes ["own", "all"]
+    WHEN p.name LIKE 'settings:%'     THEN 'own'
     ELSE 'own'
   END
 FROM rbac_permissions p
@@ -383,17 +394,28 @@ ON CONFLICT (role_id, permission_id) DO NOTHING;
 INSERT INTO rbac_role_permissions (role_id, permission_id, scope)
 SELECT '00000000-0000-0000-0000-000000000003', p.id,
   CASE 
-    WHEN p.name LIKE 'projects:%' THEN 'own'
-    WHEN p.name LIKE 'tasks:%' THEN 'project'
+    -- projects: valid scopes ["own", "all"]
+    WHEN p.name LIKE 'projects:%'     THEN 'own'
+    -- tasks: valid scopes ["own", "project", "all"]
+    WHEN p.name LIKE 'tasks:%'        THEN 'project'
+    -- time_entries: valid scopes ["own", "project", "all"]
     WHEN p.name LIKE 'time_entries:%' THEN 'own'
-    WHEN p.name LIKE 'notes:%' THEN 'project'
-    WHEN p.name LIKE 'messages:%' THEN 'project'
-    WHEN p.name LIKE 'comments:%' THEN 'project'
-    WHEN p.name LIKE 'analytics:%' THEN 'own'
-    WHEN p.name LIKE 'dashboards:%' THEN 'own'
-    WHEN p.name LIKE 'audit_logs:%' THEN 'own'
+    -- notes: valid scopes ["own", "all"] — NO "project" scope
+    WHEN p.name LIKE 'notes:%'        THEN 'own'
+    -- messages: valid scopes ["own", "all"] — NO "project" scope
+    WHEN p.name LIKE 'messages:%'     THEN 'own'
+    -- comments: valid scopes ["own", "project", "all"]
+    WHEN p.name LIKE 'comments:%'     THEN 'project'
+    -- analytics: valid scopes ["all"] ONLY
+    WHEN p.name LIKE 'analytics:%'    THEN 'all'
+    -- dashboards: valid scopes ["own", "all"]
+    WHEN p.name LIKE 'dashboards:%'   THEN 'own'
+    -- audit_logs: valid scopes ["all"] ONLY
+    WHEN p.name LIKE 'audit_logs:%'   THEN 'all'
+    -- notifications: valid scopes ["own", "all"]
     WHEN p.name LIKE 'notifications:%' THEN 'own'
-    WHEN p.name LIKE 'settings:%' THEN 'own'
+    -- settings: valid scopes ["own", "all"]
+    WHEN p.name LIKE 'settings:%'     THEN 'own'
     ELSE 'own'
   END
 FROM rbac_permissions p

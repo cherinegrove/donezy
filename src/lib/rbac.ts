@@ -42,7 +42,7 @@ export function hasPermission(
   user: User | null | undefined,
   resource: RbacResource | "*",
   action: RbacAction | "*",
-  requiredScope: RbacScope = "own",
+  requiredScope: RbacScope = "all",
 ): boolean {
   if (!user) return false;
 
@@ -178,34 +178,26 @@ export function getEffectiveScope(
   // }
 
   const roles = user.rbacRoles;
-  console.log(`[RBAC Debug] getEffectiveScope checking ${resource}:${action} for user:`, user.name);
 
-  if (!roles || roles.length === 0) {
-    console.log(`[RBAC Debug] getEffectiveScope: No roles found array on user. User is null or empty.`);
-    return null;
-  }
+  if (!roles || roles.length === 0) return null;
 
   let highestScope: RbacScope | null = null;
 
   for (const role of roles) {
-    console.log(`[RBAC Debug] Checking Role: "${role.name}" (ID: ${role.id}). It has ${role.permissions?.length || 0} permissions attached.`);
     if (!role.permissions) continue;
 
     for (const perm of role.permissions) {
       if (perm.resource === resource && perm.action === action) {
-        console.log(`[RBAC Debug]   -> MATCHED: Role "${role.name}" Grants ${resource}:${action} with Scope "${perm.scope}"`);
         if (
           !highestScope ||
           SCOPE_HIERARCHY[perm.scope] > SCOPE_HIERARCHY[highestScope]
         ) {
           highestScope = perm.scope;
-          console.log(`[RBAC Debug]   -> SETTING NEW HIGHEST SCOPE: ${highestScope}`);
         }
       }
     }
   }
 
-  console.log(`[RBAC Debug] Final computed scope for ${resource}:${action} is -> ${highestScope}`);
   return highestScope;
 }
 

@@ -153,11 +153,11 @@ export const SCOPE_HIERARCHY: Record<RbacScope, number> = {
 
 // --- Valid Scopes per Resource ---
 export const RESOURCE_SCOPES: Record<RbacResource, RbacScope[]> = {
-  projects: ["own", "project", "all"],
+  projects: ["own", "all"],
   tasks: ["own", "project", "all"],
   time_entries: ["own", "project", "all"],
   comments: ["own", "project", "all"],
-  clients: ["own", "project", "all"],
+  clients: ["own", "all"],
 
   templates: ["own", "all"], // templates could be personal or platform-wide
   users: ["own", "all"], // own profile or all users

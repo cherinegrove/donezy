@@ -267,12 +267,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       try {
         rbacRolesMap =
           await userRoleService.getResolvedRolesForUsers(allUserIds);
-        console.log(
-          "[AppContext Debug] RBAC Data loaded from DB natively:",
-          rbacRolesMap,
-          "for UUIDs:",
-          allUserIds,
-        );
       } catch (rbacError) {
         // RBAC tables might not exist yet — gracefully degrade
         console.warn(
@@ -323,10 +317,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setCurrentUser(sessionUser);
         currentUserRef.current = sessionUser;
       } else {
-        console.warn("Session user not found in database users map");
-        setCurrentUser(null);
-        currentUserRef.current = null;
-        // Fallback to email match
+        // Primary match by auth_user_id failed — fallback to email match
+        console.warn(
+          "Session user not found in database users map by auth_user_id. Trying email fallback.",
+        );
         const emailUser = convertedUsers.find(
           (u) => u.email === session.user.email,
         );
@@ -334,12 +328,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         let finalUser = emailUser;
 
         if (!finalUser) {
+          // Last resort: create a stub user from session data
           console.warn(
-            "[AppContext Debug] User COMPLETELY missing from loaded users map. Fallback Stub activated for Session ID",
+            "User missing from DB entirely. Creating stub from session.",
             session.user.id,
           );
-
-          console.log(session);
           finalUser = {
             id: session.user.id,
             auth_user_id: session.user.id,
@@ -350,40 +343,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             email: session.user.email || "",
             roleId: "user",
             systemRoles: [],
-            rbacRoles: rbacRolesMap[session.user.id] || [], // Try to attach roles anyway
+            rbacRoles: rbacRolesMap[session.user.id] || [],
           } as User;
-        } else {
-          console.log(
-            "[AppContext Debug] Email Match Found! Assigned User:",
-            finalUser.auth_user_id,
-            "| Email:",
-            finalUser.email,
-          );
         }
 
-        // It's highly likely the active session.user.id has roles assigned
+        // Merge in any roles keyed directly by the session auth ID
         const sessionRoles = rbacRolesMap[session.user.id] || [];
-        console.log(
-          `[AppContext Debug] Did we find direct assigned roles for session token? (${session.user.id}):`,
-          sessionRoles,
-        );
-
         if (sessionRoles.length > 0) {
-          const combined = [...finalUser.rbacRoles, ...sessionRoles];
+          const combined = [...(finalUser.rbacRoles || []), ...sessionRoles];
           finalUser.rbacRoles = Array.from(
             new Map(combined.map((r) => [r.id, r])).values(),
           );
         }
 
-        // Patch auth_user_id to ensure writes use the true session ID going forward
+        // Patch auth_user_id to ensure writes use the true session ID
         if (session.user.id && finalUser.auth_user_id !== session.user.id) {
           finalUser.auth_user_id = session.user.id;
         }
-
-        console.log(
-          "[AppContext Debug] FINAL USER IN CONTEXT:",
-          JSON.parse(JSON.stringify(finalUser)),
-        );
 
         setCurrentUser(finalUser);
         currentUserRef.current = finalUser;
@@ -474,7 +450,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         convertedProjects,
         currentUserRef.current,
       );
-      console.log(filtered);
       setProjects(filtered);
       projectsRef.current = filtered;
     } catch (error) {
@@ -1268,8 +1243,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         await loadUsers();
         await loadProjects(); // Dependancy for filtering clients, tasks, time_entries
 
-        console.log("load");
-
         loadClients();
         loadTasks();
         loadTimeEntries();
@@ -1392,6 +1365,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // User functions
   const addUser = async (user: Omit<User, "id">) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "users", "create", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to create users.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to create users.",
+      );
+    }
 
     try {
       // For new user invitations, don't set auth_user_id yet - they'll get it when they sign up
@@ -1471,13 +1454,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const updateUser = async (userId: string, updates: Partial<User>) => {
     if (!session?.user) return;
-    if (!hasPermission(currentUserRef.current, "users", "edit")) {
+    if (!hasPermission(currentUserRef.current, "users", "edit", "own")) {
       toast({
         title: "Permission denied",
         description: "You do not have permission to edit users",
         variant: "destructive",
       });
-      return;
+      throw new Error(
+        "Permission denied: You do not have permission to edit users",
+      );
     }
 
     console.log("📝 updateUser called with:", { userId, updates });
@@ -1550,13 +1535,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteUser = async (userId: string) => {
     if (!session?.user) return;
-    if (!hasPermission(currentUserRef.current, "users", "delete")) {
+    if (!hasPermission(currentUserRef.current, "users", "delete", "own")) {
       toast({
         title: "Permission denied",
         description: "You do not have permission to delete users",
         variant: "destructive",
       });
-      return;
+      throw new Error(
+        "Permission denied: You do not have permission to delete users",
+      );
     }
 
     console.log("🗑️ Attempting to delete user with ID:", userId);
@@ -1603,13 +1590,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.log("❌ No session/user, returning early");
       return;
     }
-    if (!hasPermission(currentUserRef.current, "clients", "create")) {
+    if (!hasPermission(currentUserRef.current, "clients", "create", "own")) {
       toast({
         title: "Permission denied",
         description: "You do not have permission to create clients",
         variant: "destructive",
       });
-      return;
+      throw new Error(
+        "Permission denied: You do not have permission to create clients",
+      );
     }
 
     try {
@@ -1655,13 +1644,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const updateClient = async (clientId: string, updates: Partial<Client>) => {
     if (!session?.user) return;
-    if (!hasPermission(currentUserRef.current, "clients", "edit")) {
+    if (!hasPermission(currentUserRef.current, "clients", "edit", "own")) {
       toast({
         title: "Permission denied",
         description: "You do not have permission to edit clients",
         variant: "destructive",
       });
-      return;
+      throw new Error(
+        "Permission denied: You do not have permission to edit clients",
+      );
     }
 
     try {
@@ -1696,13 +1687,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteClient = async (clientId: string) => {
     if (!session?.user) return;
-    if (!hasPermission(currentUserRef.current, "clients", "delete")) {
+    if (!hasPermission(currentUserRef.current, "clients", "delete", "own")) {
       toast({
         title: "Permission denied",
         description: "You do not have permission to delete clients",
         variant: "destructive",
       });
-      return;
+      throw new Error(
+        "Permission denied: You do not have permission to delete clients",
+      );
     }
 
     try {
@@ -1729,13 +1722,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Project functions
   const addProject = async (project: Omit<Project, "id">) => {
     if (!session?.user) return;
-    if (!hasPermission(currentUserRef.current, "projects", "create")) {
+    if (!hasPermission(currentUserRef.current, "projects", "create", "own")) {
       toast({
         title: "Permission denied",
         description: "You do not have permission to create projects",
         variant: "destructive",
       });
-      return;
+      throw new Error(
+        "Permission denied: You do not have permission to create projects",
+      );
     }
 
     try {
@@ -1797,13 +1792,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updates: Partial<Project>,
   ) => {
     if (!session?.user) return;
-    if (!hasPermission(currentUserRef.current, "projects", "edit")) {
+    if (!hasPermission(currentUserRef.current, "projects", "edit", "own")) {
       toast({
         title: "Permission denied",
         description: "You do not have permission to edit projects",
         variant: "destructive",
       });
-      return;
+      throw new Error(
+        "Permission denied: You do not have permission to edit projects",
+      );
     }
 
     try {
@@ -1862,7 +1859,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         error: "You must be logged in to delete projects",
       };
     }
-    if (!hasPermission(currentUserRef.current, "projects", "delete")) {
+    if (!hasPermission(currentUserRef.current, "projects", "delete", "own")) {
       return {
         success: false,
         error: "You do not have permission to delete projects",
@@ -1921,13 +1918,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.log("❌ No session or user found");
       return undefined;
     }
-    if (!hasPermission(currentUserRef.current, "tasks", "create")) {
+    if (!hasPermission(currentUserRef.current, "tasks", "create", "project")) {
       toast({
         title: "Permission denied",
         description: "You do not have permission to create tasks",
         variant: "destructive",
       });
-      return undefined;
+      throw new Error(
+        "Permission denied: You do not have permission to create tasks",
+      );
     }
 
     console.log("🟢 Session user ID:", session.user.id);
@@ -2037,13 +2036,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updates: Partial<Task>,
   ): Promise<string | undefined> => {
     if (!session?.user) return undefined;
-    if (!hasPermission(currentUserRef.current, "tasks", "edit")) {
+    if (!hasPermission(currentUserRef.current, "tasks", "edit", "project")) {
       toast({
         title: "Permission denied",
         description: "You do not have permission to edit tasks",
         variant: "destructive",
       });
-      return undefined;
+      throw new Error(
+        "Permission denied: You do not have permission to edit tasks",
+      );
     }
 
     try {
@@ -2383,13 +2384,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteTask = async (taskId: string): Promise<boolean> => {
     if (!session?.user) return false;
-    if (!hasPermission(currentUserRef.current, "tasks", "delete")) {
+    if (!hasPermission(currentUserRef.current, "tasks", "delete", "project")) {
       toast({
         title: "Permission denied",
         description: "You do not have permission to delete tasks",
         variant: "destructive",
       });
-      return false;
+      throw new Error(
+        "Permission denied: You do not have permission to delete tasks",
+      );
     }
 
     try {
@@ -2441,13 +2444,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Time Entry functions
   const addTimeEntry = async (timeEntry: Omit<TimeEntry, "id">) => {
     if (!session?.user) return;
-    if (!hasPermission(currentUserRef.current, "time_entries", "perform")) {
+    if (
+      !hasPermission(currentUserRef.current, "time_entries", "perform", "own")
+    ) {
       toast({
         title: "Permission denied",
         description: "You do not have permission to add time entries",
         variant: "destructive",
       });
-      return;
+      throw new Error(
+        "Permission denied: You do not have permission to add time entries",
+      );
     }
 
     try {
@@ -2545,13 +2552,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updates: Partial<TimeEntry>,
   ) => {
     if (!session?.user) return;
-    if (!hasPermission(currentUserRef.current, "time_entries", "perform")) {
+    if (
+      !hasPermission(currentUserRef.current, "time_entries", "perform", "own")
+    ) {
       toast({
         title: "Permission denied",
         description: "You do not have permission to edit time entries",
         variant: "destructive",
       });
-      return;
+      throw new Error(
+        "Permission denied: You do not have permission to edit time entries",
+      );
     }
 
     try {
@@ -2708,7 +2719,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         description: "You do not have permission to delete time entries",
         variant: "destructive",
       });
-      return;
+      throw new Error(
+        "Permission denied: You do not have permission to delete time entries",
+      );
     }
 
     try {
@@ -2786,6 +2799,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     resumeFromElapsedMs?: number,
   ) => {
     if (!session?.user || !currentUser) return;
+    if (
+      !hasPermission(currentUserRef.current, "time_entries", "perform", "own")
+    ) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to track time.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to track time.",
+      );
+    }
 
     // Prevent race conditions - if already starting a timer, ignore this call
     if (isStartingTimer.current) {
@@ -2977,6 +3002,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const stopTimeTracking = async (notes?: string) => {
     if (!activeTimeEntry) return;
+    if (
+      !hasPermission(currentUserRef.current, "time_entries", "perform", "own")
+    ) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to track time.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to track time.",
+      );
+    }
 
     const endTime = new Date();
     const startTime = new Date(activeTimeEntry.startTime);
@@ -3180,6 +3217,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const pauseTimeTracking = async () => {
     if (!activeTimeEntry || isTimerPaused) return;
+    if (
+      !hasPermission(currentUserRef.current, "time_entries", "perform", "own")
+    ) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to track time.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to track time.",
+      );
+    }
 
     // Prevent duplicate pause calls (race condition guard)
     if (isPausingTimer.current) {
@@ -3211,6 +3260,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const resumeTimeTracking = async () => {
     if (!activeTimeEntry || !isTimerPaused || !pausedAt) return;
+    if (
+      !hasPermission(currentUserRef.current, "time_entries", "perform", "own")
+    ) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to track time.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to track time.",
+      );
+    }
 
     console.log("▶️ Resuming paused timer:", activeTimeEntry.id);
 
@@ -3302,6 +3363,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Team functions
   const addTeam = async (team: Omit<Team, "id">) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "teams", "create", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to create teams.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to create teams.",
+      );
+    }
 
     try {
       const { data, error } = await supabase
@@ -3338,6 +3409,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const updateTeam = async (teamId: string, updates: Partial<Team>) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "teams", "edit", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to edit teams.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to edit teams.",
+      );
+    }
 
     try {
       const dbUpdates: any = {};
@@ -3369,6 +3450,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteTeam = async (teamId: string) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "teams", "delete", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to delete teams.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to delete teams.",
+      );
+    }
 
     try {
       const { error } = await supabase.from("teams").delete().eq("id", teamId);
@@ -3389,6 +3480,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     note: Omit<Note, "id" | "createdAt" | "updatedAt">,
   ) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "notes", "create", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to create notes.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to create notes.",
+      );
+    }
 
     try {
       const { data, error } = await supabase
@@ -3427,6 +3528,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const updateNote = async (noteId: string, updates: Partial<Note>) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "notes", "edit", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to edit notes.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to edit notes.",
+      );
+    }
 
     try {
       const dbUpdates: any = {};
@@ -3457,6 +3568,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteNote = async (noteId: string) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "notes", "delete", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to delete notes.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to delete notes.",
+      );
+    }
 
     try {
       const { error } = await supabase.from("notes").delete().eq("id", noteId);
@@ -3487,6 +3608,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const updateManagerNotificationPreferences = (preferences: any) => {
+    if (!hasPermission(currentUserRef.current, "settings", "edit", "own")) {
+      toast({
+        title: "Permission denied",
+        description:
+          "You don't have permission to update notification preferences.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to update notification preferences.",
+      );
+    }
     console.log("Update manager notification preferences not yet implemented");
   };
 
@@ -3494,6 +3626,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     projectId: string,
     templateData: { name: string; description: string },
   ) => {
+    if (
+      !hasPermission(currentUserRef.current, "projects", "edit", "own") ||
+      !hasPermission(currentUserRef.current, "templates", "create", "own")
+    ) {
+      toast({
+        title: "Permission denied",
+        description:
+          "You don't have permission to convert projects to templates.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to convert projects to templates.",
+      );
+    }
+
     try {
       // Get the authenticated user from Supabase
       const {
@@ -3573,6 +3720,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     projectData: any,
   ) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "projects", "create", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to create projects.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to create projects.",
+      );
+    }
 
     try {
       // 1. Fetch the template
@@ -3764,6 +3921,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       });
       return;
     }
+    if (!hasPermission(currentUserRef.current, "tasks", "edit", "project")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to reorder tasks.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to reorder tasks.",
+      );
+    }
 
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
@@ -3934,6 +4101,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     file: File,
   ): Promise<string> => {
     if (!session?.user) return "";
+    if (!hasPermission(currentUserRef.current, "tasks", "edit", "project")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to upload files to tasks.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to upload files to tasks.",
+      );
+    }
 
     try {
       // Create a unique file path
@@ -4002,6 +4179,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     linkUrl: string,
   ) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "tasks", "edit", "project")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to add links to tasks.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to add links to tasks.",
+      );
+    }
 
     try {
       const { data, error } = await supabase
@@ -4050,6 +4237,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteTaskFile = async (taskId: string, fileId: string) => {
     if (!session?.user) return;
+    if (!hasPermission(currentUserRef.current, "tasks", "edit", "project")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to delete task files.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to delete task files.",
+      );
+    }
 
     try {
       const { error } = await supabase
@@ -4079,6 +4276,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const addTaskStatus = async (status: Omit<TaskStatusDefinition, "id">) => {
     if (!currentUser) return;
+    if (!hasPermission(currentUserRef.current, "statuses", "create")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to create task statuses.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to create task statuses.",
+      );
+    }
 
     try {
       const {
@@ -4121,6 +4328,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updates: Partial<TaskStatusDefinition>,
   ) => {
     if (!currentUser) return;
+    if (!hasPermission(currentUserRef.current, "statuses", "edit")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to edit task statuses.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to edit task statuses.",
+      );
+    }
 
     try {
       const {
@@ -4155,6 +4372,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteTaskStatus = async (statusId: string) => {
     if (!currentUser) return;
+    if (!hasPermission(currentUserRef.current, "statuses", "delete")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to delete task statuses.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to delete task statuses.",
+      );
+    }
 
     try {
       const {
@@ -4181,6 +4408,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const reorderTaskStatuses = async (statuses: TaskStatusDefinition[]) => {
     if (!currentUser) return;
+    if (!hasPermission(currentUserRef.current, "statuses", "edit")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to reorder task statuses.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to reorder task statuses.",
+      );
+    }
 
     try {
       const {
@@ -4209,6 +4446,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     status: Omit<ProjectStatusDefinition, "id">,
   ) => {
     if (!currentUser) return;
+    if (!hasPermission(currentUserRef.current, "statuses", "create")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to create project statuses.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to create project statuses.",
+      );
+    }
 
     try {
       const {
@@ -4251,6 +4498,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updates: Partial<ProjectStatusDefinition>,
   ) => {
     if (!currentUser) return;
+    if (!hasPermission(currentUserRef.current, "statuses", "edit")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to edit project statuses.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to edit project statuses.",
+      );
+    }
 
     try {
       const {
@@ -4285,6 +4542,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteProjectStatus = async (statusId: string) => {
     if (!currentUser) return;
+    if (!hasPermission(currentUserRef.current, "statuses", "delete")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to delete project statuses.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to delete project statuses.",
+      );
+    }
 
     try {
       const {
@@ -4313,6 +4580,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     statuses: ProjectStatusDefinition[],
   ) => {
     if (!currentUser) return;
+    if (!hasPermission(currentUserRef.current, "statuses", "edit")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to reorder project statuses.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to reorder project statuses.",
+      );
+    }
 
     try {
       const {
@@ -4346,6 +4623,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     images?: string[],
   ): Promise<string> => {
     if (!currentUser) throw new Error("No authenticated user");
+    if (
+      !hasPermission(currentUserRef.current, "comments", "create", "project")
+    ) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to add comments.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to add comments.",
+      );
+    }
 
     try {
       const {
@@ -4355,15 +4644,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         console.error("No authenticated session found when adding comment");
         throw new Error("No authenticated session");
       }
-
-      console.log("Adding comment with data:", {
-        task_id: taskId,
-        auth_user_id: session.user.id,
-        user_id: userId,
-        content: content?.substring(0, 50),
-        mentioned_user_ids: mentionedUserIds,
-        images: images?.length,
-      });
 
       const { data, error } = await supabase
         .from("comments")
@@ -4453,6 +4733,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     content: string,
   ): Promise<void> => {
     if (!currentUser) throw new Error("No authenticated user");
+    if (!hasPermission(currentUserRef.current, "comments", "edit", "project")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to edit comments.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to edit comments.",
+      );
+    }
 
     try {
       const {
@@ -4502,6 +4792,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Message functions
   const addMessage = async (message: Omit<Message, "id">) => {
+    if (!hasPermission(currentUserRef.current, "messages", "create", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to send messages.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to send messages.",
+      );
+    }
+
     try {
       // For each recipient, create a separate database record
       const insertPromises = message.recipientIds.map(async (recipientId) => {
@@ -4612,9 +4913,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.error("No session available for adding custom role");
       return;
     }
+    if (!hasPermission(currentUserRef.current, "roles", "create")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to create roles.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to create roles.",
+      );
+    }
 
     try {
-      console.log("Adding custom role:", role.name);
       const { data, error } = await supabase
         .from("custom_roles")
         .insert({
@@ -4641,7 +4951,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       };
 
       setCustomRoles((prev) => [...prev, newRole]);
-      console.log("Custom role added successfully:", newRole.name);
     } catch (error) {
       console.error("Error adding custom role:", error);
     }
@@ -4655,9 +4964,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.error("No session available for updating custom role");
       return;
     }
+    if (!hasPermission(currentUserRef.current, "roles", "edit")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to edit roles.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to edit roles.",
+      );
+    }
 
     try {
-      console.log("Updating custom role:", roleId);
       const { data, error } = await supabase
         .from("custom_roles")
         .update({
@@ -4687,7 +5005,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setCustomRoles((prev) =>
         prev.map((role) => (role.id === roleId ? updatedRole : role)),
       );
-      console.log("Custom role updated successfully:", updatedRole.name);
     } catch (error) {
       console.error("Error updating custom role:", error);
     }
@@ -4698,9 +5015,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       console.error("No session available for deleting custom role");
       return;
     }
+    if (!hasPermission(currentUserRef.current, "roles", "delete")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to delete roles.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to delete roles.",
+      );
+    }
 
     try {
-      console.log("Deleting custom role:", roleId);
       const { error } = await supabase
         .from("custom_roles")
         .delete()
@@ -4713,7 +5039,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
 
       setCustomRoles((prev) => prev.filter((role) => role.id !== roleId));
-      console.log("Custom role deleted successfully");
     } catch (error) {
       console.error("Error deleting custom role:", error);
     }
@@ -4724,6 +5049,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     template: Omit<ProjectTemplate, "id" | "createdAt" | "usageCount">,
   ) => {
     if (!currentUser) return;
+    if (!hasPermission(currentUserRef.current, "templates", "create", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to create project templates.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to create project templates.",
+      );
+    }
 
     try {
       // Get current session to use the correct auth user ID
@@ -4785,6 +5120,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     updates: Partial<ProjectTemplate>,
   ) => {
     if (!currentUser) return;
+    if (!hasPermission(currentUserRef.current, "templates", "edit", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to edit project templates.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to edit project templates.",
+      );
+    }
 
     try {
       const {
@@ -4823,6 +5168,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteProjectTemplate = async (templateId: string) => {
     if (!currentUser) return;
+    if (!hasPermission(currentUserRef.current, "templates", "delete", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to delete project templates.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to delete project templates.",
+      );
+    }
 
     try {
       const {
@@ -4862,14 +5217,44 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Client Agreement functions
   const addClientAgreement = (agreement: any) => {
+    if (!hasPermission(currentUserRef.current, "clients", "edit", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to add client agreements.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to add client agreements.",
+      );
+    }
     console.log("Add client agreement not yet implemented");
   };
 
   const updateClientAgreement = (agreementId: string, updates: any) => {
+    if (!hasPermission(currentUserRef.current, "clients", "edit", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to edit client agreements.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to edit client agreements.",
+      );
+    }
     console.log("Update client agreement not yet implemented");
   };
 
   const deleteClientAgreement = (agreementId: string) => {
+    if (!hasPermission(currentUserRef.current, "clients", "edit", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to delete client agreements.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to delete client agreements.",
+      );
+    }
     console.log("Delete client agreement not yet implemented");
   };
 
@@ -4883,10 +5268,30 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     clientId: string,
     file: File,
   ): Promise<void> => {
+    if (!hasPermission(currentUserRef.current, "clients", "edit", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to upload client files.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to upload client files.",
+      );
+    }
     console.log("Upload client file not yet implemented");
   };
 
   const deleteClientFile = (fileId: string) => {
+    if (!hasPermission(currentUserRef.current, "clients", "edit", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to delete client files.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to delete client files.",
+      );
+    }
     console.log("Delete client file not yet implemented");
   };
 
@@ -4899,6 +5304,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const addCustomField = (
     field: Omit<CustomField, "id" | "createdAt" | "updatedAt">,
   ) => {
+    if (!hasPermission(currentUserRef.current, "custom_fields", "create")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to create custom fields.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to create custom fields.",
+      );
+    }
     console.log("Add custom field not yet implemented");
   };
 
@@ -4906,14 +5321,44 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     fieldId: string,
     updates: Partial<CustomField>,
   ) => {
+    if (!hasPermission(currentUserRef.current, "custom_fields", "edit")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to edit custom fields.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to edit custom fields.",
+      );
+    }
     console.log("Update custom field not yet implemented");
   };
 
   const deleteCustomField = (fieldId: string) => {
+    if (!hasPermission(currentUserRef.current, "custom_fields", "delete")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to delete custom fields.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to delete custom fields.",
+      );
+    }
     console.log("Delete custom field not yet implemented");
   };
 
   const reorderCustomFields = (fields: CustomField[]) => {
+    if (!hasPermission(currentUserRef.current, "custom_fields", "edit")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to reorder custom fields.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to reorder custom fields.",
+      );
+    }
     console.log("Reorder custom fields not yet implemented");
   };
 
@@ -4921,6 +5366,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const addCustomDashboard = (
     dashboard: Omit<CustomDashboard, "id" | "createdAt" | "updatedAt">,
   ) => {
+    if (!hasPermission(currentUserRef.current, "dashboards", "create", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to create dashboards.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to create dashboards.",
+      );
+    }
     const newDashboard: CustomDashboard = {
       ...dashboard,
       id: Math.random().toString(36).substr(2, 9),
@@ -4934,6 +5389,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     dashboardId: string,
     updates: Partial<CustomDashboard>,
   ) => {
+    if (!hasPermission(currentUserRef.current, "dashboards", "edit", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to edit dashboards.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to edit dashboards.",
+      );
+    }
     setCustomDashboards((prev) =>
       prev.map((dashboard) =>
         dashboard.id === dashboardId
@@ -4944,6 +5409,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const deleteCustomDashboard = (dashboardId: string) => {
+    if (!hasPermission(currentUserRef.current, "dashboards", "delete", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to delete dashboards.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to delete dashboards.",
+      );
+    }
     setCustomDashboards((prev) =>
       prev.filter((dashboard) => dashboard.id !== dashboardId),
     );
@@ -4958,6 +5433,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const setDefaultDashboard = (dashboardId: string) => {
+    if (!hasPermission(currentUserRef.current, "dashboards", "edit", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to set the default dashboard.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to set the default dashboard.",
+      );
+    }
     setCustomDashboards((prev) =>
       prev.map((dashboard) => ({
         ...dashboard,
@@ -4971,6 +5456,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     report: Omit<SavedReport, "id" | "createdAt" | "updatedAt">,
     dashboardId: string,
   ) => {
+    if (!hasPermission(currentUserRef.current, "dashboards", "create", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to save reports.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to save reports.",
+      );
+    }
     const newReport: SavedReport = {
       ...report,
       id: Math.random().toString(36).substr(2, 9),
@@ -4994,6 +5489,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     reportId: string,
     updates: Partial<SavedReport>,
   ) => {
+    if (!hasPermission(currentUserRef.current, "dashboards", "edit", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to update reports.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to update reports.",
+      );
+    }
     setSavedReports((prev) =>
       prev.map((report) =>
         report.id === reportId
@@ -5004,6 +5509,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const deleteSavedReport = (reportId: string) => {
+    if (!hasPermission(currentUserRef.current, "dashboards", "delete", "own")) {
+      toast({
+        title: "Permission denied",
+        description: "You don't have permission to delete reports.",
+        variant: "destructive",
+      });
+      throw new Error(
+        "Permission denied: You don't have permission to delete reports.",
+      );
+    }
     setSavedReports((prev) => prev.filter((report) => report.id !== reportId));
     // Remove report from all dashboards
     setCustomDashboards((prev) =>

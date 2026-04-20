@@ -36,7 +36,6 @@ export function filterProjectsByScope(
   if (!user) return [];
 
   const scope = getEffectiveScope(user, "projects", "view");
-  console.log(scope);
   if (!scope) return [];
   if (scope === "all") return projects;
 
