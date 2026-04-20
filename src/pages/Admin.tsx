@@ -48,7 +48,7 @@ import RbacRoles from "@/components/admin/RbacRoles";
 
 // Helper to check if user has admin system role
 const hasAdminRole = (user: any) => {
-  return true;
+  // return true;
 
   return (
     user?.systemRoles?.includes("platform_admin") ||
