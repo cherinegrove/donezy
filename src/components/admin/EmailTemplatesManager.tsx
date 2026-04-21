@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Mail, Send, Edit, Loader2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Mail, Send, Edit, Loader2, Braces } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,7 +17,7 @@ interface EmailTemplate {
   name: string;
   subject: string;
   content: string;
-  type: 'task_due_today' | 'task_reminder' | 'task_overdue' | 'task_assignment' | 'project_added' | 'task_collaborator' | 'mentioned';
+  type: 'task_due_today' | 'task_reminder' | 'task_overdue' | 'task_assignment' | 'project_added' | 'task_collaborator' | 'mentioned' | 'awaiting_feedback' | 'weekly_roundup';
   isActive: boolean;
 }
 
@@ -174,6 +175,50 @@ Best regards,
 {{company_name}} Team`,
     type: 'mentioned',
     isActive: true
+  },
+  {
+    id: 'awaiting_feedback',
+    name: 'Awaiting Feedback',
+    subject: 'Following up on {{task_title}} – feedback needed',
+    content: `Hi {{feedback_who}},
+
+Quick check-in on {{task_title}}.
+
+We're waiting on: {{feedback_what}}
+From: {{feedback_who}}
+Impact: {{feedback_why}}
+Need by: {{feedback_when}}
+
+Can you help us get this by {{feedback_when}}?
+
+Thanks,
+{{user_name}}`,
+    type: 'awaiting_feedback',
+    isActive: true
+  },
+  {
+    id: 'weekly_roundup',
+    name: 'Weekly Roundup',
+    subject: 'Your Weekly Project Roundup – {{week_range}}',
+    content: `Hi {{user_name}},
+
+Here's your weekly project roundup for {{week_range}}.
+
+✅ Tasks Completed This Week ({{completed_count}})
+{{completed_tasks}}
+
+🔄 Tasks Currently in Progress ({{in_progress_count}})
+{{in_progress_tasks}}
+
+⏳ Friendly Reminder That I Am Waiting on Feedback ({{awaiting_count}})
+{{awaiting_feedback_tasks}}
+
+{{closing_message}}
+
+Warm Regards,
+{{sender_name}}`,
+    type: 'weekly_roundup',
+    isActive: true
   }
 ];
 
@@ -315,7 +360,7 @@ export const EmailTemplatesManager = () => {
 
     try {
       // Replace template variables with sample data
-      const sampleData = {
+      const sampleData: Record<string, string> = {
         user_name: "John Doe",
         task_title: "Sample Task",
         project_name: "Sample Project", 
@@ -328,7 +373,12 @@ export const EmailTemplatesManager = () => {
         context_type: "task comment",
         context_title: "Sample Task",
         mention_message: "Hey @john, can you check this out?",
-        project_description: "This is a sample project for testing"
+        project_description: "This is a sample project for testing",
+        // Awaiting feedback variables
+        feedback_what: "Approval on the revised mockups",
+        feedback_who: "Client / Design Lead",
+        feedback_why: "Blocking development start",
+        feedback_when: "Friday, March 28",
       };
 
       let processedSubject = selectedTemplate.subject;
@@ -374,6 +424,8 @@ export const EmailTemplatesManager = () => {
       case 'project_added': return 'bg-green-100 text-green-800';
       case 'task_collaborator': return 'bg-purple-100 text-purple-800';
       case 'mentioned': return 'bg-orange-100 text-orange-800';
+      case 'awaiting_feedback': return 'bg-amber-100 text-amber-800';
+      case 'weekly_roundup': return 'bg-teal-100 text-teal-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -444,6 +496,73 @@ export const EmailTemplatesManager = () => {
                     {isEditing ? 'Edit' : 'Preview'}: {selectedTemplate.name}
                   </h3>
                   <div className="flex gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Braces className="h-4 w-4 mr-1" />
+                          Variables
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80" align="end">
+                        <h4 className="font-medium mb-3 text-sm">Available Variables</h4>
+                        {selectedTemplate.type === 'awaiting_feedback' ? (
+                          <div className="text-sm space-y-2">
+                            {[
+                              ['{{user_name}}', 'Your name (the sender)'],
+                              ['{{task_title}}', 'The task name'],
+                              ['{{project_name}}', 'Project the task belongs to'],
+                              ['{{feedback_what}}', "What you're waiting on"],
+                              ['{{feedback_who}}', 'Who you need it from'],
+                              ['{{feedback_why}}', 'Why it matters / impact'],
+                              ['{{feedback_when}}', "Date it's needed by"],
+                            ].map(([code, desc]) => (
+                              <div key={code} className="flex items-start gap-2">
+                                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono shrink-0">{code}</code>
+                                <span className="text-muted-foreground text-xs">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : selectedTemplate.type === 'weekly_roundup' ? (
+                          <div className="text-sm space-y-2">
+                            {[
+                              ['{{user_name}}', "Recipient's name"],
+                              ['{{sender_name}}', 'Your name (who sends the roundup)'],
+                              ['{{week_range}}', 'Week date range (e.g. Mar 17 – Mar 23)'],
+                              ['{{completed_tasks}}', 'Bullet list of completed tasks'],
+                              ['{{completed_count}}', 'Number of completed tasks'],
+                              ['{{in_progress_tasks}}', 'Bullet list of in-progress tasks'],
+                              ['{{in_progress_count}}', 'Number of in-progress tasks'],
+                              ['{{awaiting_feedback_tasks}}', 'Bullet list of awaiting feedback tasks'],
+                              ['{{awaiting_count}}', 'Number of awaiting feedback tasks'],
+                              ['{{closing_message}}', 'Optional closing note or CTA'],
+                            ].map(([code, desc]) => (
+                              <div key={code} className="flex items-start gap-2">
+                                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono shrink-0">{code}</code>
+                                <span className="text-muted-foreground text-xs">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm space-y-2">
+                            {[
+                              ['{{user_name}}', "Recipient's name"],
+                              ['{{task_title}}', 'Task title'],
+                              ['{{project_name}}', 'Project name'],
+                              ['{{due_date}}', 'Due date'],
+                              ['{{priority}}', 'Task priority'],
+                              ['{{company_name}}', 'Company name'],
+                              ['{{mention_by}}', 'Person who mentioned you'],
+                              ['{{context_type}}', 'Where you were mentioned'],
+                            ].map(([code, desc]) => (
+                              <div key={code} className="flex items-start gap-2">
+                                <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono shrink-0">{code}</code>
+                                <span className="text-muted-foreground text-xs">{desc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </PopoverContent>
+                    </Popover>
                     {!isEditing && (
                       <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                         <Edit className="h-4 w-4 mr-1" />
@@ -499,6 +618,8 @@ export const EmailTemplatesManager = () => {
                           <SelectItem value="project_added">Added to Project</SelectItem>
                           <SelectItem value="task_collaborator">Task Collaborator</SelectItem>
                           <SelectItem value="mentioned">Mentioned</SelectItem>
+                          <SelectItem value="awaiting_feedback">Awaiting Feedback</SelectItem>
+                          <SelectItem value="weekly_roundup">Weekly Roundup</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -566,19 +687,6 @@ export const EmailTemplatesManager = () => {
                     </div>
                   </div>
 
-                    <div className="bg-muted p-3 rounded text-sm">
-                      <h4 className="font-medium mb-2">Available Variables:</h4>
-                      <div className="text-muted-foreground space-y-1">
-                        <p><code>{'{{user_name}}'}</code> - Recipient's name</p>
-                        <p><code>{'{{task_title}}'}</code> - Task title</p>
-                        <p><code>{'{{project_name}}'}</code> - Project name</p>
-                        <p><code>{'{{due_date}}'}</code> - Due date</p>
-                        <p><code>{'{{priority}}'}</code> - Task priority</p>
-                        <p><code>{'{{company_name}}'}</code> - Company name</p>
-                        <p><code>{'{{mention_by}}'}</code> - Person who mentioned you</p>
-                        <p><code>{'{{context_type}}'}</code> - Where you were mentioned (task/comment)</p>
-                      </div>
-                    </div>
                 </div>
               </>
             ) : (

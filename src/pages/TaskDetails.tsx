@@ -2,8 +2,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Task } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 
 // Inline the dialog to avoid circular dep — lazy-load the heavy EditTaskDialog chunk
 import React, { lazy, Suspense } from "react";
@@ -16,19 +17,23 @@ export default function TaskDetails() {
   const navigate = useNavigate();
   const { tasks } = useAppContext();
   const [fetchedTask, setFetchedTask] = useState<Task | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const hasFetched = useRef(false);
 
-  const localTask = tasks.find(t => t.id === taskId);
-  const task = localTask || fetchedTask;
-
-  // Fetch from Supabase if not found in local state
+  // Always fetch from DB immediately on mount for reliable deep-linking.
+  // This avoids depending on the app context tasks array being populated first.
   useEffect(() => {
-    if (localTask || !taskId || isLoading) return;
+    if (!taskId || hasFetched.current) return;
+    hasFetched.current = true;
+
     const fetchTask = async () => {
-      setIsLoading(true);
       try {
-        const { supabase } = await import("@/integrations/supabase/client");
-        const { data, error } = await supabase.from('tasks').select('*').eq('id', taskId).single();
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('id', taskId)
+          .single();
+
         if (!error && data) {
           setFetchedTask({
             id: data.id,
@@ -57,10 +62,15 @@ export default function TaskDetails() {
         setIsLoading(false);
       }
     };
-    fetchTask();
-  }, [taskId, localTask, isLoading]);
 
-  if (isLoading) {
+    fetchTask();
+  }, [taskId]);
+
+  // Also check local context — prefer it once loaded (has richer relational data)
+  const localTask = tasks.find(t => t.id === taskId);
+  const task = localTask || fetchedTask;
+
+  if (isLoading && !task) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>

@@ -22,39 +22,21 @@ import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { TaskStatus } from "@/types";
 import { toast } from "sonner";
 import { CollaboratorSelect } from "./CollaboratorSelect";
 import { StatusSelect } from "./StatusSelect";
 import { UrgentSelect } from "./UrgentSelect";
 import { AssigneeSelect } from "./AssigneeSelect";
-import {
-  CalendarIcon,
-  Plus,
-  Trash2,
-  CheckCircle2,
-  File,
-  Link as LinkIcon,
-  ExternalLink,
-} from "lucide-react";
+import { CalendarIcon, Plus, Trash2, CheckCircle2, File, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { VoiceDescriptionButton } from "./VoiceDescriptionButton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RelatedTasksSection } from "./RelatedTasksSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useNativeFieldConfigs } from "@/hooks/useNativeFieldConfigs";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -65,31 +47,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 // Define schema for task form
-const createTaskSchema = (fieldRequirements: {
-  [fieldName: string]: boolean;
-}) => {
+const createTaskSchema = (fieldRequirements: { [fieldName: string]: boolean }) => {
   const baseSchema = {
     title: z.string().min(1, { message: "Title is required" }),
-    description: fieldRequirements.description
-      ? z.string().min(1, { message: "Description is required" })
-      : z.string(),
+    description: fieldRequirements.description ? z.string().min(1, { message: "Description is required" }) : z.string(),
     clientId: z.string().min(1, { message: "Client is required" }),
     projectId: z.string().min(1, { message: "Project is required" }),
-    assigneeId: fieldRequirements.assigneeId
-      ? z.string().min(1, { message: "Assignee is required" })
-      : z.string().optional(),
+    assigneeId: fieldRequirements.assigneeId ? z.string().min(1, { message: "Assignee is required" }) : z.string().optional(),
     collaboratorIds: z.array(z.string()).optional(),
     relatedTaskIds: z.array(z.string()).optional(),
-    status: fieldRequirements.status
-      ? z.string().min(1, { message: "Status is required" })
-      : z.string().min(1, { message: "Status is required" }),
-    priority: fieldRequirements.priority
-      ? z.string().min(1, { message: "Priority is required" })
-      : z.string().min(1, { message: "Priority is required" }),
+    status: fieldRequirements.status ? z.string().min(1, { message: "Status is required" }) : z.string().min(1, { message: "Status is required" }),
+    priority: fieldRequirements.priority ? z.string().min(1, { message: "Priority is required" }) : z.string().min(1, { message: "Priority is required" }),
     startDate: z.string().optional(),
-    dueDate: fieldRequirements.dueDate
-      ? z.string().min(1, { message: "Due date is required" })
-      : z.string().optional(),
+    dueDate: fieldRequirements.dueDate ? z.string().min(1, { message: "Due date is required" }) : z.string().optional(),
     reminderDate: z.string().optional(),
     estimatedHours: z.number().optional(),
     customFields: z.record(z.string(), z.any()),
@@ -106,12 +76,12 @@ interface TaskTemplate {
   id: string;
   name: string;
   description: string;
-  defaultPriority: "low" | "medium" | "high";
+  defaultPriority: 'low' | 'medium' | 'high';
   defaultStatus: TaskStatus;
   customFields?: any[];
   fieldOrder?: string[];
   usageCount: number;
-  type: "task_template" | "project_template_task";
+  type: 'task_template' | 'project_template_task';
   taskTitle?: string;
   taskDescription?: string;
   checklist?: Array<{ id: string; text: string; completed: boolean }>;
@@ -129,16 +99,11 @@ function normalizeOptions(rawOptions: any): { label: string; value: string }[] {
   if (!Array.isArray(rawOptions)) {
     return [];
   }
-
+  
   return rawOptions
-    .filter(
-      (opt) =>
-        opt &&
-        (typeof opt === "string" ||
-          (typeof opt === "object" && (opt.value || opt.label))),
-    )
-    .map((opt) => {
-      if (typeof opt === "string") {
+    .filter(opt => opt && (typeof opt === 'string' || (typeof opt === 'object' && (opt.value || opt.label))))
+    .map(opt => {
+      if (typeof opt === 'string') {
         return { label: opt, value: opt };
       }
       return {
@@ -153,48 +118,34 @@ export function CreateTaskDialog({
   onOpenChange,
   defaultProjectId,
 }: CreateTaskDialogProps) {
-  const {
-    projects,
-    users,
-    tasks,
-    customFields,
-    addTask,
-    clients,
-    currentUser,
-    taskTemplates,
-    projectStatuses,
-  } = useAppContext();
+  const { projects, users, tasks, customFields, addTask, clients, currentUser, taskTemplates, projectStatuses } = useAppContext();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [clientProjects, setClientProjects] = useState<typeof projects>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("default");
   const [activeTab, setActiveTab] = useState("details");
-  const [checklist, setChecklist] = useState<
-    Array<{ id: string; text: string; completed: boolean }>
-  >([]);
+  const [checklist, setChecklist] = useState<Array<{ id: string; text: string; completed: boolean }>>([]);
   const [relatedTaskIds, setRelatedTaskIds] = useState<string[]>([]);
-  const [tempLinks, setTempLinks] = useState<
-    Array<{ id: string; name: string; url: string }>
-  >([]);
+  const [tempLinks, setTempLinks] = useState<Array<{ id: string; name: string; url: string }>>([]);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [linkName, setLinkName] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
-
+  
   // Fetch native field configurations
-  const { isFieldRequired, isFieldHidden } = useNativeFieldConfigs("tasks");
-
+  const { isFieldRequired, isFieldHidden } = useNativeFieldConfigs('tasks');
+  
   // Create field requirements object based on native field configs
   const fieldRequirements = {
-    description: isFieldRequired("description"),
-    assigneeId: isFieldRequired("assigneeId"),
-    status: isFieldRequired("status"),
-    priority: isFieldRequired("priority"),
-    dueDate: isFieldRequired("dueDate"),
+    description: isFieldRequired('description'),
+    assigneeId: isFieldRequired('assigneeId'),
+    status: isFieldRequired('status'),
+    priority: isFieldRequired('priority'),
+    dueDate: isFieldRequired('dueDate'),
   };
-
+  
   const schema = createTaskSchema(fieldRequirements);
-
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  
   const form = useForm<TaskFormData>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -214,39 +165,31 @@ export function CreateTaskDialog({
       customFields: {},
     },
   });
-
+  
   // Get template custom fields
   const getTemplateCustomFields = () => {
-    if (
-      !selectedTemplate ||
-      selectedTemplate === "default" ||
-      customFields.length === 0
-    ) {
+    if (!selectedTemplate || selectedTemplate === "default" || customFields.length === 0) {
       return [];
     }
-
-    const template = taskTemplates.find((t) => t.id === selectedTemplate);
-    if (
-      !template ||
-      !template.customFields ||
-      template.customFields.length === 0
-    ) {
+    
+    const template = taskTemplates.find(t => t.id === selectedTemplate);
+    if (!template || !template.customFields || template.customFields.length === 0) {
       return [];
     }
-
+    
     return template.customFields;
   };
 
   const templateCustomFields = getTemplateCustomFields();
-
+  
   // Apply template when selected
   useEffect(() => {
-    const template = taskTemplates.find((t) => t.id === selectedTemplate);
+    const template = taskTemplates.find(t => t.id === selectedTemplate);
     if (template) {
       // Apply new template fields (task_title, task_description, checklist, links)
       // Note: DB uses snake_case, raw data is passed without transformation
       const templateData = template as any;
-
+      
       if (templateData.task_title) {
         form.setValue("title", templateData.task_title);
       }
@@ -255,66 +198,57 @@ export function CreateTaskDialog({
       } else {
         form.setValue("description", template.description || "");
       }
-
+      
       // Apply checklist from template
       if (templateData.checklist && Array.isArray(templateData.checklist)) {
-        setChecklist(
-          templateData.checklist.map((item: any) => ({
-            ...item,
-            id: crypto.randomUUID(), // Generate new IDs for the task
-          })),
-        );
+        setChecklist(templateData.checklist.map((item: any) => ({
+          ...item,
+          id: crypto.randomUUID(), // Generate new IDs for the task
+        })));
       } else {
         setChecklist([]);
       }
-
+      
       // Apply links from template
       if (templateData.links && Array.isArray(templateData.links)) {
-        setTempLinks(
-          templateData.links.map((link: any) => ({
-            ...link,
-            id: crypto.randomUUID(), // Generate new IDs for the task
-          })),
-        );
+        setTempLinks(templateData.links.map((link: any) => ({
+          ...link,
+          id: crypto.randomUUID(), // Generate new IDs for the task
+        })));
       } else {
         setTempLinks([]);
       }
-
+      
       form.setValue("priority", templateData.default_priority || "medium");
       form.setValue("status", templateData.default_status || "todo");
-
+      
       // Reset custom fields
       form.setValue("customFields", {});
-
+      
       // Apply template's custom fields
-      const customFieldsFromTemplate =
-        templateData.include_custom_fields || templateData.customFields;
-      if (
-        selectedTemplate !== "default" &&
-        customFieldsFromTemplate &&
-        customFieldsFromTemplate.length > 0
-      ) {
+      const customFieldsFromTemplate = templateData.include_custom_fields || templateData.customFields;
+      if (selectedTemplate !== "default" && customFieldsFromTemplate && customFieldsFromTemplate.length > 0) {
         const customFieldsValue: Record<string, any> = {};
         customFieldsFromTemplate.forEach((field: any) => {
           switch (field.type) {
-            case "text":
-              customFieldsValue[field.id] = "";
+            case 'text':
+              customFieldsValue[field.id] = '';
               break;
-            case "number":
+            case 'number':
               customFieldsValue[field.id] = 0;
               break;
-            case "date":
-              customFieldsValue[field.id] = "";
+            case 'date':
+              customFieldsValue[field.id] = '';
               break;
-            case "dropdown":
-            case "select":
-              customFieldsValue[field.id] = "";
+            case 'dropdown':
+            case 'select':
+              customFieldsValue[field.id] = '';
               break;
             default:
-              customFieldsValue[field.id] = "";
+              customFieldsValue[field.id] = '';
           }
         });
-
+        
         form.setValue("customFields", customFieldsValue);
       }
     }
@@ -325,22 +259,22 @@ export function CreateTaskDialog({
     if (templateId === "default" || !currentUser) return;
 
     try {
-      const template = taskTemplates.find((t) => t.id === templateId);
-      if (template && template.type === "task_template") {
+      const template = taskTemplates.find(t => t.id === templateId);
+      if (template && template.type === 'task_template') {
         await supabase
-          .from("task_templates")
-          .update({
+          .from('task_templates')
+          .update({ 
             usage_count: template.usageCount + 1,
-            updated_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           })
-          .eq("id", templateId)
-          .eq("auth_user_id", currentUser.auth_user_id);
+          .eq('id', templateId)
+          .eq('auth_user_id', currentUser.auth_user_id);
       }
     } catch (error) {
-      console.error("Error updating template usage:", error);
+      console.error('Error updating template usage:', error);
     }
   };
-
+  
   // Filter projects by selected client
   useEffect(() => {
     const clientId = form.watch("clientId");
@@ -348,33 +282,29 @@ export function CreateTaskDialog({
       setClientProjects(projects);
       return;
     }
-
+    
     // Filter projects by client and exclude completed projects
-    const filteredProjects = projects.filter((project) => {
+    const filteredProjects = projects.filter(project => {
       if (project.clientId !== clientId) return false;
-      const projectStatus = projectStatuses.find(
-        (s) => s.value === project.status,
-      );
+      const projectStatus = projectStatuses.find(s => s.value === project.status);
       return !projectStatus?.isFinal;
     });
     setClientProjects(filteredProjects);
-
+    
     if (clientId !== selectedClientId) {
       form.setValue("projectId", "");
       setSelectedClientId(clientId);
     }
   }, [form.watch("clientId"), projects, selectedClientId, projectStatuses]);
-
+  
   const onSubmit = async (data: TaskFormData) => {
     setIsSubmitting(true);
-
+    
     try {
       // Check if project is completed
-      const selectedProject = projects.find((p) => p.id === data.projectId);
+      const selectedProject = projects.find(p => p.id === data.projectId);
       if (selectedProject) {
-        const projectStatus = projectStatuses.find(
-          (s) => s.value === selectedProject.status,
-        );
+        const projectStatus = projectStatuses.find(s => s.value === selectedProject.status);
         if (projectStatus?.isFinal) {
           toast.error("Cannot create tasks for completed projects");
           setIsSubmitting(false);
@@ -403,31 +333,28 @@ export function CreateTaskDialog({
       // Add links after task is created
       if (taskId && tempLinks.length > 0 && currentUser) {
         for (const link of tempLinks) {
-          await supabase.from("task_files").insert({
+          await supabase.from('task_files').insert({
             task_id: taskId,
             name: link.name,
             external_url: link.url,
             is_external_link: true,
-            mime_type: "text/uri-list",
+            mime_type: 'text/uri-list',
             auth_user_id: currentUser.auth_user_id,
           });
         }
       }
 
       if (taskId && data.assigneeId && currentUser) {
-        const { error } = await supabase.functions.invoke(
-          "send-task-assignment-notification",
-          {
-            body: {
-              assignedUserId: data.assigneeId,
-              taskId,
-              mentionerName: currentUser.name,
-            },
-          },
-        );
+        const { error } = await supabase.functions.invoke('send-task-assignment-notification', {
+          body: {
+            assignedUserId: data.assigneeId,
+            taskId,
+            mentionerName: currentUser.name
+          }
+        });
 
         if (error) {
-          console.error("Error calling edge function:", error);
+          console.error('Error calling edge function:', error);
         }
       }
 
@@ -441,34 +368,28 @@ export function CreateTaskDialog({
       setTempLinks([]);
       onOpenChange(false);
     } catch (error) {
-      console.error("Error during task creation:", error);
-      toast.error(error.message || "Failed to create task. Please try again.");
+      console.error('Error during task creation:', error);
+      toast.error("Failed to create task. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
-
+  
   // Get tasks from selected project for related task selection
-  const projectTasks = form.watch("projectId")
-    ? tasks.filter((task) => task.projectId === form.watch("projectId"))
+  const projectTasks = form.watch("projectId") 
+    ? tasks.filter(task => task.projectId === form.watch("projectId"))
     : tasks;
-
+  
   // Get current template
-  const currentTemplate = taskTemplates.find((t) => t.id === selectedTemplate);
-
+  const currentTemplate = taskTemplates.find(t => t.id === selectedTemplate);
+  
   // Order fields based on template
-  const orderedFieldsToShow =
-    currentTemplate &&
-    currentTemplate.fieldOrder &&
-    currentTemplate.fieldOrder.length > 0 &&
-    selectedTemplate !== "default"
-      ? (currentTemplate.fieldOrder
-          .map((fieldId) =>
-            templateCustomFields.find((f: any) => f.id === fieldId),
-          )
-          .filter(Boolean) as typeof templateCustomFields)
-      : templateCustomFields;
-
+  const orderedFieldsToShow = currentTemplate && currentTemplate.fieldOrder && currentTemplate.fieldOrder.length > 0 && selectedTemplate !== "default"
+    ? currentTemplate.fieldOrder
+        .map(fieldId => templateCustomFields.find((f: any) => f.id === fieldId))
+        .filter(Boolean) as typeof templateCustomFields
+    : templateCustomFields;
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
@@ -481,10 +402,7 @@ export function CreateTaskDialog({
             {/* Template Selection - Always at top */}
             <div className="space-y-2">
               <Label>Task Template</Label>
-              <Select
-                value={selectedTemplate}
-                onValueChange={setSelectedTemplate}
-              >
+              <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a template" />
                 </SelectTrigger>
@@ -512,11 +430,7 @@ export function CreateTaskDialog({
                   render={({ field }) => (
                     <div className="space-y-2">
                       <Label htmlFor="title">Title *</Label>
-                      <Input
-                        id="title"
-                        placeholder="Enter task title"
-                        {...field}
-                      />
+                      <Input id="title" placeholder="Enter task title" {...field} />
                       <FormMessage />
                     </div>
                   )}
@@ -527,32 +441,28 @@ export function CreateTaskDialog({
                   name="description"
                   render={({ field }) => (
                     <div className="space-y-2">
-                      <Label htmlFor="description">
-                        Description {isFieldRequired("description") && "*"}
-                      </Label>
-                      <Textarea
-                        id="description"
-                        placeholder="Enter task description"
-                        {...field}
-                        rows={5}
-                      />
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="description">Description {isFieldRequired('description') && '*'}</Label>
+                        <VoiceDescriptionButton
+                          onTranscript={(text) => field.onChange(text)}
+                          existingText={field.value}
+                        />
+                      </div>
+                      <Textarea id="description" placeholder="Enter task description or use the mic to dictate..." {...field} rows={5} />
                       <FormMessage />
                     </div>
                   )}
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {!isFieldHidden("clientId") && (
+                  {!isFieldHidden('clientId') && (
                     <FormField
                       control={form.control}
                       name="clientId"
                       render={({ field }) => (
                         <div className="space-y-2">
                           <Label>Client *</Label>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                          >
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a client" />
                             </SelectTrigger>
@@ -570,15 +480,13 @@ export function CreateTaskDialog({
                     />
                   )}
 
-                  {!isFieldHidden("assigneeId") && (
+                  {!isFieldHidden('assigneeId') && (
                     <FormField
                       control={form.control}
                       name="assigneeId"
                       render={({ field }) => (
                         <div className="space-y-2">
-                          <Label>
-                            Owner {isFieldRequired("assigneeId") && "*"}
-                          </Label>
+                          <Label>Owner {isFieldRequired('assigneeId') && '*'}</Label>
                           <AssigneeSelect field={field} />
                           <FormMessage />
                         </div>
@@ -588,26 +496,16 @@ export function CreateTaskDialog({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {!isFieldHidden("projectId") && (
+                  {!isFieldHidden('projectId') && (
                     <FormField
                       control={form.control}
                       name="projectId"
                       render={({ field }) => (
                         <div className="space-y-2">
                           <Label>Project *</Label>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            disabled={!form.watch("clientId")}
-                          >
+                          <Select onValueChange={field.onChange} value={field.value} disabled={!form.watch("clientId")}>
                             <SelectTrigger>
-                              <SelectValue
-                                placeholder={
-                                  form.watch("clientId")
-                                    ? "Select a project"
-                                    : "Select a client first"
-                                }
-                              />
+                              <SelectValue placeholder={form.watch("clientId") ? "Select a project" : "Select a client first"} />
                             </SelectTrigger>
                             <SelectContent>
                               {clientProjects.map((project) => (
@@ -623,7 +521,7 @@ export function CreateTaskDialog({
                     />
                   )}
 
-                  {!isFieldHidden("collaboratorIds") && (
+                  {!isFieldHidden('collaboratorIds') && (
                     <FormField
                       control={form.control}
                       name="collaboratorIds"
@@ -639,7 +537,7 @@ export function CreateTaskDialog({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {!isFieldHidden("priority") && (
+                  {!isFieldHidden('priority') && (
                     <FormField
                       control={form.control}
                       name="priority"
@@ -652,15 +550,13 @@ export function CreateTaskDialog({
                     />
                   )}
 
-                  {!isFieldHidden("status") && (
+                  {!isFieldHidden('status') && (
                     <FormField
                       control={form.control}
                       name="status"
                       render={({ field }) => (
                         <div className="space-y-2">
-                          <Label>
-                            Status {isFieldRequired("status") && "*"}
-                          </Label>
+                          <Label>Status {isFieldRequired('status') && '*'}</Label>
                           <StatusSelect field={field} />
                           <FormMessage />
                         </div>
@@ -670,15 +566,13 @@ export function CreateTaskDialog({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {!isFieldHidden("dueDate") && (
+                  {!isFieldHidden('dueDate') && (
                     <FormField
                       control={form.control}
                       name="dueDate"
                       render={({ field }) => (
                         <div className="space-y-2">
-                          <Label>
-                            Due Date {isFieldRequired("dueDate") && "*"}
-                          </Label>
+                          <Label>Due Date {isFieldRequired('dueDate') && '*'}</Label>
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button
@@ -686,22 +580,14 @@ export function CreateTaskDialog({
                                 className="w-full justify-start text-left font-normal"
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value
-                                  ? format(new Date(field.value), "PPP")
-                                  : "No due date"}
+                                {field.value ? format(new Date(field.value), "PPP") : "No due date"}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
                               <Calendar
                                 mode="single"
-                                selected={
-                                  field.value
-                                    ? new Date(field.value)
-                                    : undefined
-                                }
-                                onSelect={(date) =>
-                                  field.onChange(date?.toISOString())
-                                }
+                                selected={field.value ? new Date(field.value) : undefined}
+                                onSelect={(date) => field.onChange(date?.toISOString())}
                                 initialFocus
                               />
                             </PopoverContent>
@@ -712,7 +598,7 @@ export function CreateTaskDialog({
                     />
                   )}
 
-                  {!isFieldHidden("reminderDate") && (
+                  {!isFieldHidden('reminderDate') && (
                     <FormField
                       control={form.control}
                       name="reminderDate"
@@ -726,22 +612,14 @@ export function CreateTaskDialog({
                                 className="w-full justify-start text-left font-normal"
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value
-                                  ? format(new Date(field.value), "PPP")
-                                  : "No reminder set"}
+                                {field.value ? format(new Date(field.value), "PPP") : "No reminder set"}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
                               <Calendar
                                 mode="single"
-                                selected={
-                                  field.value
-                                    ? new Date(field.value)
-                                    : undefined
-                                }
-                                onSelect={(date) =>
-                                  field.onChange(date?.toISOString())
-                                }
+                                selected={field.value ? new Date(field.value) : undefined}
+                                onSelect={(date) => field.onChange(date?.toISOString())}
                                 initialFocus
                               />
                             </PopoverContent>
@@ -755,7 +633,7 @@ export function CreateTaskDialog({
                     />
                   )}
                 </div>
-
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -770,13 +648,7 @@ export function CreateTaskDialog({
                           step="0.5"
                           placeholder="Enter estimated hours"
                           value={field.value ?? ""}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value
-                                ? parseFloat(e.target.value)
-                                : undefined,
-                            )
-                          }
+                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                         />
                         <FormMessage />
                       </div>
@@ -791,25 +663,18 @@ export function CreateTaskDialog({
                       <CheckCircle2 className="h-4 w-4" />
                       Checklist
                     </h3>
-
+                    
                     {/* Add New Item */}
                     <div className="flex gap-2 mb-3">
                       <Input
                         placeholder="Add a checklist item..."
                         onKeyPress={(e) => {
-                          if (e.key === "Enter") {
+                          if (e.key === 'Enter') {
                             e.preventDefault();
                             const input = e.currentTarget;
                             if (input.value.trim()) {
-                              setChecklist([
-                                ...checklist,
-                                {
-                                  id: crypto.randomUUID(),
-                                  text: input.value.trim(),
-                                  completed: false,
-                                },
-                              ]);
-                              input.value = "";
+                              setChecklist([...checklist, { id: crypto.randomUUID(), text: input.value.trim(), completed: false }]);
+                              input.value = '';
                             }
                           }
                         }}
@@ -818,18 +683,10 @@ export function CreateTaskDialog({
                         type="button"
                         size="icon"
                         onClick={(e) => {
-                          const input = e.currentTarget
-                            .previousElementSibling as HTMLInputElement;
+                          const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
                           if (input && input.value.trim()) {
-                            setChecklist([
-                              ...checklist,
-                              {
-                                id: crypto.randomUUID(),
-                                text: input.value.trim(),
-                                completed: false,
-                              },
-                            ]);
-                            input.value = "";
+                            setChecklist([...checklist, { id: crypto.randomUUID(), text: input.value.trim(), completed: false }]);
+                            input.value = '';
                           }
                         }}
                       >
@@ -854,8 +711,7 @@ export function CreateTaskDialog({
                               checked={item.completed}
                               onCheckedChange={(checked) => {
                                 const newChecklist = [...checklist];
-                                newChecklist[index].completed =
-                                  checked as boolean;
+                                newChecklist[index].completed = checked as boolean;
                                 setChecklist(newChecklist);
                               }}
                               className="mt-0.5"
@@ -868,9 +724,7 @@ export function CreateTaskDialog({
                                 setChecklist(newChecklist);
                               }}
                               className={`flex-1 border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0 ${
-                                item.completed
-                                  ? "line-through text-muted-foreground"
-                                  : ""
+                                item.completed ? "line-through text-muted-foreground" : ""
                               }`}
                             />
                             <Button
@@ -879,9 +733,7 @@ export function CreateTaskDialog({
                               size="icon"
                               className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={() => {
-                                setChecklist(
-                                  checklist.filter((_, i) => i !== index),
-                                );
+                                setChecklist(checklist.filter((_, i) => i !== index));
                               }}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
@@ -893,7 +745,7 @@ export function CreateTaskDialog({
                   </div>
                 </div>
 
-                {!isFieldHidden("relatedTaskIds") && (
+                {!isFieldHidden('relatedTaskIds') && (
                   <FormField
                     control={form.control}
                     name="relatedTaskIds"
@@ -933,11 +785,9 @@ export function CreateTaskDialog({
                       if (!field || !field.id) {
                         return null;
                       }
-
-                      const fieldOptions = normalizeOptions(
-                        field.options || [],
-                      );
-
+                      
+                      const fieldOptions = normalizeOptions(field.options || []);
+                      
                       return (
                         <FormField
                           key={field.id}
@@ -945,49 +795,28 @@ export function CreateTaskDialog({
                           name={`customFields.${field.id}`}
                           render={({ field: formField }) => (
                             <div className="space-y-2">
-                              <Label>
-                                {field.name} {field.required && "*"}
-                              </Label>
-                              {field.type === "text" ? (
-                                <Input
-                                  {...formField}
-                                  placeholder={`Enter ${field.name}`}
-                                />
-                              ) : field.type === "number" ? (
-                                <Input
-                                  type="number"
-                                  {...formField}
-                                  placeholder={`Enter ${field.name}`}
-                                />
-                              ) : field.type === "date" ? (
+                              <Label>{field.name} {field.required && '*'}</Label>
+                              {field.type === 'text' ? (
+                                <Input {...formField} placeholder={`Enter ${field.name}`} />
+                              ) : field.type === 'number' ? (
+                                <Input type="number" {...formField} placeholder={`Enter ${field.name}`} />
+                              ) : field.type === 'date' ? (
                                 <Input type="date" {...formField} />
-                              ) : field.type === "dropdown" ||
-                                field.type === "select" ? (
-                                <Select
-                                  onValueChange={formField.onChange}
-                                  value={formField.value}
-                                >
+                              ) : field.type === 'dropdown' || field.type === 'select' ? (
+                                <Select onValueChange={formField.onChange} value={formField.value}>
                                   <SelectTrigger>
-                                    <SelectValue
-                                      placeholder={`Select ${field.name}`}
-                                    />
+                                    <SelectValue placeholder={`Select ${field.name}`} />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {fieldOptions.map((option) => (
-                                      <SelectItem
-                                        key={option.value}
-                                        value={option.value}
-                                      >
+                                      <SelectItem key={option.value} value={option.value}>
                                         {option.label}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
                               ) : (
-                                <Input
-                                  {...formField}
-                                  placeholder={`Enter ${field.name}`}
-                                />
+                                <Input {...formField} placeholder={`Enter ${field.name}`} />
                               )}
                               <FormMessage />
                             </div>
@@ -1027,12 +856,9 @@ export function CreateTaskDialog({
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center gap-2">
-                      <Dialog
-                        open={isLinkDialogOpen}
-                        onOpenChange={setIsLinkDialogOpen}
-                      >
-                        <Button
-                          variant="outline"
+                      <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
+                        <Button 
+                          variant="outline" 
                           type="button"
                           onClick={() => setIsLinkDialogOpen(true)}
                         >
@@ -1065,8 +891,8 @@ export function CreateTaskDialog({
                             </div>
                           </div>
                           <DialogFooter>
-                            <Button
-                              variant="outline"
+                            <Button 
+                              variant="outline" 
                               type="button"
                               onClick={() => {
                                 setIsLinkDialogOpen(false);
@@ -1076,13 +902,11 @@ export function CreateTaskDialog({
                             >
                               Cancel
                             </Button>
-                            <Button
+                            <Button 
                               type="button"
                               onClick={() => {
                                 if (!linkName.trim() || !linkUrl.trim()) {
-                                  toast.error(
-                                    "Please provide both a name and URL for the link.",
-                                  );
+                                  toast.error("Please provide both a name and URL for the link.");
                                   return;
                                 }
                                 const newLink = {
@@ -1107,28 +931,18 @@ export function CreateTaskDialog({
                     {tempLinks.length > 0 ? (
                       <div className="space-y-2">
                         {tempLinks.map((link) => (
-                          <div
-                            key={link.id}
+                          <div 
+                            key={link.id} 
                             className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
                             onClick={() => {
-                              const formattedUrl = link.url.match(
-                                /^https?:\/\//,
-                              )
-                                ? link.url
-                                : `https://${link.url}`;
-                              window.open(
-                                formattedUrl,
-                                "_blank",
-                                "noopener,noreferrer",
-                              );
+                              const formattedUrl = link.url.match(/^https?:\/\//) ? link.url : `https://${link.url}`;
+                              window.open(formattedUrl, '_blank', 'noopener,noreferrer');
                             }}
                           >
                             <div className="flex items-center gap-3 flex-1">
                               <ExternalLink className="h-4 w-4" />
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">
-                                  {link.name}
-                                </p>
+                                <p className="font-medium truncate">{link.name}</p>
                                 <p className="text-sm text-muted-foreground">
                                   {(() => {
                                     try {
@@ -1143,8 +957,8 @@ export function CreateTaskDialog({
                             <div className="flex items-center gap-2">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
+                                  <Button 
+                                    variant="ghost" 
                                     size="sm"
                                     type="button"
                                     onClick={(e) => e.stopPropagation()}
@@ -1153,32 +967,18 @@ export function CreateTaskDialog({
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const formattedUrl = link.url.match(
-                                        /^https?:\/\//,
-                                      )
-                                        ? link.url
-                                        : `https://${link.url}`;
-                                      window.open(
-                                        formattedUrl,
-                                        "_blank",
-                                        "noopener,noreferrer",
-                                      );
-                                    }}
-                                  >
+                                  <DropdownMenuItem onClick={(e) => {
+                                    e.stopPropagation();
+                                    const formattedUrl = link.url.match(/^https?:\/\//) ? link.url : `https://${link.url}`;
+                                    window.open(formattedUrl, '_blank', 'noopener,noreferrer');
+                                  }}>
                                     <ExternalLink className="h-4 w-4 mr-2" />
                                     Open Link
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem
+                                  <DropdownMenuItem 
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setTempLinks(
-                                        tempLinks.filter(
-                                          (l) => l.id !== link.id,
-                                        ),
-                                      );
+                                      setTempLinks(tempLinks.filter(l => l.id !== link.id));
                                       toast.success("Link removed");
                                     }}
                                     className="text-destructive"

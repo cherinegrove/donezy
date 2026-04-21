@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -40,6 +39,16 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Dashboards = lazy(() => import("./pages/Dashboards"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Activity = lazy(() => import("./pages/Activity"));
+
+// Admin Portal (multi-tenant)
+const AdminPortalLayout = lazy(() => import("./components/admin-portal/AdminPortalLayout").then(m => ({ default: m.AdminPortalLayout })));
+const AdminPortalDashboard = lazy(() => import("./pages/admin-portal/AdminPortalDashboard"));
+const AdminPortalAccounts = lazy(() => import("./pages/admin-portal/AdminPortalAccounts"));
+const AdminPortalAccountDetail = lazy(() => import("./pages/admin-portal/AdminPortalAccountDetail"));
+const AdminPortalFinancials = lazy(() => import("./pages/admin-portal/AdminPortalFinancials"));
+const AdminPortalNotifications = lazy(() => import("./pages/admin-portal/AdminPortalNotifications"));
+const AdminPortalAuditLog = lazy(() => import("./pages/admin-portal/AdminPortalAuditLog"));
+const AdminPortalSettings = lazy(() => import("./pages/admin-portal/AdminPortalSettings"));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -253,6 +262,17 @@ const App = () => {
                   <Route path="/auth/v1/verify" element={<AuthVerify />} />
                   <Route path="/portal/:token" element={<ClientPortal />} />
                   
+                  {/* Admin Portal (multi-tenant) - separate layout */}
+                  <Route path="/admin-portal" element={<ProtectedRoute element={<AdminPortalLayout />} />}>
+                    <Route index element={<AdminPortalDashboard />} />
+                    <Route path="/admin-portal/accounts" element={<AdminPortalAccounts />} />
+                    <Route path="/admin-portal/accounts/:accountId" element={<AdminPortalAccountDetail />} />
+                    <Route path="/admin-portal/financials" element={<AdminPortalFinancials />} />
+                    <Route path="/admin-portal/notifications" element={<AdminPortalNotifications />} />
+                    <Route path="/admin-portal/audit-log" element={<AdminPortalAuditLog />} />
+                    <Route path="/admin-portal/settings" element={<AdminPortalSettings />} />
+                  </Route>
+                  
                   {/* Protected routes */}
                   <Route path="/" element={<ProtectedRoute element={<AppLayout />} />}>
                     <Route index element={<Home />} />
@@ -296,8 +316,10 @@ const App = () => {
                     />
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/activity" element={<Activity />} />
-                    <Route path="*" element={<NotFound />} />
                   </Route>
+                  
+                  {/* Catch-all 404 route - must be last */}
+                  <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
               <Toaster />
