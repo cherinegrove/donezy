@@ -224,7 +224,15 @@ export function AIChatbot() {
                   : "bg-muted text-foreground"
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              <p 
+                className="text-sm whitespace-pre-wrap"
+                dangerouslySetInnerHTML={{
+                  __html: message.content
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\[(.*?)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" class="underline hover:text-primary" target="_blank" rel="noopener noreferrer">$1</a>')
+                    .replace(/•/g, '•')
+                }}
+              />
               <p className="text-xs opacity-60 mt-1">
                 {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </p>
