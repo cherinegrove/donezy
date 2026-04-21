@@ -21,8 +21,35 @@ export function AIChatbot() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userName, setUserName] = useState("Your");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Get user's name for personalized header
+  useEffect(() => {
+    const fetchUserName = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', user.id)
+            .single();
+          
+          if (profile?.full_name) {
+            // Get first name only
+            const firstName = profile.full_name.split(' ')[0];
+            setUserName(firstName + "'s");
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user name:", error);
+        // Keep default "Your" if fetch fails
+      }
+    };
+    fetchUserName();
+  }, []);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -145,7 +172,7 @@ export function AIChatbot() {
         <div className="flex items-center gap-2">
           <span className="text-2xl">🤖</span>
           <div>
-            <h3 className="font-semibold text-sm">Donezy Assistant</h3>
+            <h3 className="font-semibold text-sm">{userName} Assistant</h3>
             <p className="text-xs text-muted-foreground">Your productivity coach</p>
           </div>
         </div>
@@ -174,7 +201,7 @@ export function AIChatbot() {
           <div className="text-center py-8">
             <p className="text-2xl mb-2">👋</p>
             <p className="text-sm text-muted-foreground mb-4">
-              Hi! I'm your Donezy assistant. I can help you manage tasks, track time, and stay productive.
+              Hi! I'm your personal assistant. I can help you manage tasks, track time, and stay productive.
             </p>
             <div className="text-xs text-muted-foreground space-y-1">
               <p>Try asking me:</p>
