@@ -1,0 +1,301 @@
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { RbacRolesDialog } from "./RbacRolesDialog";
+import { Shield, Plus, Edit, Trash2, Info, User } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { roleService, permissionService } from "@/services/rbac";
+import type { RbacRole, RbacPermission } from "@/types/rbac";
+import { RBAC_RESOURCES } from "@/types/rbac";
+import { useToast } from "@/hooks/use-toast";
+
+export default function RbacRoles() {
+  const { toast } = useToast();
+  const [roles, setRoles] = useState<RbacRole[]>([]);
+  const [permissionsByResource, setPermissionsByResource] = useState<
+    Record<string, RbacPermission[]>
+  >({});
+
+  const [loading, setLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingRole, setEditingRole] = useState<RbacRole | null>(null);
+
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [fetchedRoles, fetchedPerms] = await Promise.all([
+        roleService.getAll(),
+        permissionService.getGroupedByResource(),
+      ]);
+      setRoles(fetchedRoles);
+      setPermissionsByResource(fetchedPerms);
+    } catch (err) {
+      console.error("Failed to load RBAC data", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleCreateRole = () => {
+    setIsCreating(true);
+    setEditingRole(null);
+  };
+
+  const handleEditRole = (role: RbacRole) => {
+    setEditingRole(role);
+    setIsCreating(false);
+  };
+
+  const handleDeleteRole = (roleId: string, roleName: string) => {
+    setDeleteTarget({ id: roleId, name: roleName });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await roleService.delete(deleteTarget.id);
+      toast({
+        title: "Role deleted",
+        description: `"${deleteTarget.name}" has been removed.`,
+      });
+      await loadData();
+    } catch (err) {
+      console.error("Failed to delete role", err);
+      toast({
+        title: "Delete failed",
+        description: "This may be a system role that cannot be deleted.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      setIsCreating(false);
+      setEditingRole(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="py-10 text-center text-muted-foreground">
+        Loading RBAC roles...
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Role Management</h2>
+          <p className="text-muted-foreground mt-1">
+            Create and manage custom roles with feature-specific permissions
+            based on the new RBAC engine.
+          </p>
+        </div>
+        {!isCreating && !editingRole && (
+          <Button onClick={handleCreateRole}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Role
+          </Button>
+        )}
+      </div>
+
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Role Permissions:</strong> Roles aggregate permissions that
+          allow specific actions on resources, applying at various scopes (own,
+          project, all).
+        </AlertDescription>
+      </Alert>
+
+      {/* Create/Edit Role Dialog */}
+      <RbacRolesDialog
+        open={isCreating || !!editingRole}
+        onOpenChange={handleDialogClose}
+        role={editingRole}
+        permissionsByResource={permissionsByResource}
+        onSuccess={async () => {
+          await loadData();
+          handleDialogClose(false);
+        }}
+      />
+
+      {/* Role List Table */}
+      <div className="rounded-md border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Role</TableHead>
+              <TableHead>Permissions</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {roles.length > 0 ? (
+              roles.map((role) => (
+                <TableRow key={role.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-3 h-3 rounded-full shrink-0"
+                        style={{ backgroundColor: role.color || "#10b981" }}
+                      />
+                      <div className="flex items-center gap-2">
+                        {role.is_system ? (
+                          <Shield className="h-4 w-4 text-amber-500 shrink-0" />
+                        ) : (
+                          <User className="h-4 w-4 text-primary shrink-0" />
+                        )}
+                        <span className="font-medium text-base">
+                          {role.name}
+                        </span>
+                        {role.is_system && (
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] uppercase font-normal px-1.5 py-0"
+                          >
+                            System
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    {role.description}
+                  </TableCell>
+                  <TableCell width="55%">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        {role.permissions.length} total permissions
+                      </span>
+                      {role.permissions.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(
+                            role.permissions.reduce(
+                              (acc, p) => {
+                                if (!acc[p.resource]) acc[p.resource] = 0;
+                                acc[p.resource]++;
+                                return acc;
+                              },
+                              {} as Record<string, number>,
+                            ),
+                          )
+                            .map(([res, count]) => ({
+                              res,
+                              count,
+                              displayName:
+                                RBAC_RESOURCES.find((r) => r.value === res)
+                                  ?.label || res,
+                            }))
+                            .sort((a, b) =>
+                              a.displayName.localeCompare(b.displayName),
+                            )
+                            .map(({ res, count, displayName }) => (
+                              <Badge key={res} variant="outline">
+                                {displayName} ({count})
+                              </Badge>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditRole(role)}
+                      >
+                        <Edit className="h-3.5 w-3.5 mr-1.5" /> Edit
+                      </Button>
+                      {!role.is_system && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteRole(role.id, role.name)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  No roles found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Role</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete{" "}
+              <span className="font-medium text-foreground">
+                {deleteTarget?.name}
+              </span>
+              ? Users assigned to this role will lose its permissions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
