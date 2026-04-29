@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Filter, X, Save, Star, Clock } from "lucide-react";
 import {
@@ -43,14 +43,12 @@ interface EnhancedFilterBarProps {
 
 const PRESETS_STORAGE_KEY = "filter-presets";
 
-export function EnhancedFilterBar({
-  filters,
+export function EnhancedFilterBar({ 
+  filters, 
   onFilterChange,
   presetKey = "default",
 }: EnhancedFilterBarProps) {
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
-    {},
-  );
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [presets, setPresets] = useState<FilterPreset[]>([]);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [presetName, setPresetName] = useState("");
@@ -60,9 +58,7 @@ export function EnhancedFilterBar({
   // Load presets from localStorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(
-        `${PRESETS_STORAGE_KEY}-${presetKey}`,
-      );
+      const stored = localStorage.getItem(`${PRESETS_STORAGE_KEY}-${presetKey}`);
       if (stored) {
         setPresets(JSON.parse(stored));
       }
@@ -74,10 +70,7 @@ export function EnhancedFilterBar({
   // Save presets to localStorage
   const savePresets = (newPresets: FilterPreset[]) => {
     try {
-      localStorage.setItem(
-        `${PRESETS_STORAGE_KEY}-${presetKey}`,
-        JSON.stringify(newPresets),
-      );
+      localStorage.setItem(`${PRESETS_STORAGE_KEY}-${presetKey}`, JSON.stringify(newPresets));
       setPresets(newPresets);
     } catch (error) {
       console.error("Failed to save presets:", error);
@@ -91,32 +84,30 @@ export function EnhancedFilterBar({
 
   const handleFilterChange = (filterId: string, value: string) => {
     const newActiveFilters = { ...activeFilters };
-
+    
     if (!newActiveFilters[filterId]) {
       newActiveFilters[filterId] = [];
     }
-
+    
     if (!newActiveFilters[filterId].includes(value)) {
       newActiveFilters[filterId] = [...newActiveFilters[filterId], value];
     }
-
+    
     setActiveFilters(newActiveFilters);
     onFilterChange(newActiveFilters);
   };
 
   const removeFilter = (filterId: string, value: string) => {
     const newActiveFilters = { ...activeFilters };
-
+    
     if (newActiveFilters[filterId]) {
-      newActiveFilters[filterId] = newActiveFilters[filterId].filter(
-        (v) => v !== value,
-      );
-
+      newActiveFilters[filterId] = newActiveFilters[filterId].filter(v => v !== value);
+      
       if (newActiveFilters[filterId].length === 0) {
         delete newActiveFilters[filterId];
       }
     }
-
+    
     setActiveFilters(newActiveFilters);
     onFilterChange(newActiveFilters);
   };
@@ -146,7 +137,7 @@ export function EnhancedFilterBar({
     savePresets([...presets, newPreset]);
     setIsSaveDialogOpen(false);
     setPresetName("");
-
+    
     toast({
       title: "Preset saved",
       description: `Filter preset "${presetName}" has been saved`,
@@ -156,7 +147,7 @@ export function EnhancedFilterBar({
   const loadPreset = (preset: FilterPreset) => {
     setActiveFilters(preset.filters);
     onFilterChange(preset.filters);
-
+    
     toast({
       title: "Preset loaded",
       description: `Loaded filter preset "${preset.name}"`,
@@ -164,9 +155,9 @@ export function EnhancedFilterBar({
   };
 
   const deletePreset = (presetId: string) => {
-    const updated = presets.filter((p) => p.id !== presetId);
+    const updated = presets.filter(p => p.id !== presetId);
     savePresets(updated);
-
+    
     toast({
       title: "Preset deleted",
       description: "Filter preset has been removed",
@@ -174,32 +165,36 @@ export function EnhancedFilterBar({
   };
 
   const getActiveBadges = () => {
-    const badges: {
-      filterId: string;
-      filterName: string;
-      value: string;
-      label: string;
-    }[] = [];
-
+    const badges: { filterId: string; filterName: string; value: string; label: string }[] = [];
+    
     Object.entries(activeFilters).forEach(([filterId, values]) => {
-      const filter = filters.find((f) => f.id === filterId);
-
+      const filter = filters.find(f => f.id === filterId);
+      
       if (filter) {
-        values.forEach((value) => {
-          const option = filter.options.find((o) => o.id === value);
+        values.forEach(value => {
+          const option = filter.options.find(o => o.id === value);
           if (option) {
             badges.push({
               filterId,
               filterName: filter.name,
               value,
-              label: option.label,
+              label: option.label
             });
           }
         });
       }
     });
-
+    
     return badges;
+  };
+
+  const getFilteredOptions = (filter: FilterOption) => {
+    const searchTerm = searchTerms[filter.id] || "";
+    if (!searchTerm) return filter.options;
+
+    return filter.options.filter(option =>
+      option.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   };
 
   const activeBadges = getActiveBadges();
@@ -220,16 +215,11 @@ export function EnhancedFilterBar({
             </PopoverTrigger>
             <PopoverContent className="w-64 p-2" align="start">
               <div className="grid gap-1">
-                <h4 className="font-medium text-sm px-2 py-1">
-                  Saved Filter Presets
-                </h4>
+                <h4 className="font-medium text-sm px-2 py-1">Saved Filter Presets</h4>
                 <Separator />
                 <div className="mt-1 space-y-1">
-                  {presets.map((preset) => (
-                    <div
-                      key={preset.id}
-                      className="flex items-center justify-between px-2 py-1 hover:bg-accent rounded-sm"
-                    >
+                  {presets.map(preset => (
+                    <div key={preset.id} className="flex items-center justify-between px-2 py-1 hover:bg-accent rounded-sm">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -256,33 +246,102 @@ export function EnhancedFilterBar({
         )}
 
         {/* Filter options */}
-        {filters.map((filter) => (
-          <FilterOptionMenu
-            key={filter.id}
-            filter={filter}
-            searchTerm={searchTerms[filter.id] || ""}
-            onSearchChange={(value) =>
-              setSearchTerms((prev) => ({ ...prev, [filter.id]: value }))
-            }
-            onSelect={handleFilterChange}
-          />
-        ))}
+        {filters.map(filter => {
+          const filteredOptions = getFilteredOptions(filter);
+          const autocomplete = useSmartAutocomplete({
+            options: filter.options.map(opt => ({ id: opt.id, label: opt.label })),
+          });
 
+          return (
+            <Popover key={filter.id}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                  {filter.name}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2" align="start">
+                <div className="grid gap-2">
+                  <h4 className="font-medium text-sm px-2 py-1">{filter.name}</h4>
+                  
+                  {/* Search input */}
+                  <Input
+                    placeholder={`Search ${filter.name.toLowerCase()}...`}
+                    value={searchTerms[filter.id] || ""}
+                    onChange={(e) => setSearchTerms(prev => ({ ...prev, [filter.id]: e.target.value }))}
+                    className="h-8"
+                  />
+                  
+                  <Separator />
+                  
+                  {/* Recent searches */}
+                  {autocomplete.recentSearches.length > 0 && !searchTerms[filter.id] && (
+                    <>
+                      <div className="px-2">
+                        <p className="text-xs text-muted-foreground mb-1">Recent</p>
+                        <div className="grid gap-1">
+                          {autocomplete.recentSearches.map(recent => (
+                            <Button
+                              key={recent.id}
+                              variant="ghost"
+                              size="sm"
+                              className="justify-start font-normal"
+                              onClick={() => {
+                                handleFilterChange(filter.id, recent.id);
+                                autocomplete.addToRecent(recent);
+                              }}
+                            >
+                              <Clock className="mr-2 h-3 w-3 text-muted-foreground" />
+                              {recent.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                      <Separator />
+                    </>
+                  )}
+                  
+                  {/* Options list */}
+                  <div className="grid gap-1 max-h-64 overflow-y-auto">
+                    {filteredOptions.length > 0 ? (
+                      filteredOptions.map(option => (
+                        <Button
+                          key={option.id}
+                          variant="ghost"
+                          size="sm"
+                          className="justify-start font-normal"
+                          onClick={() => {
+                            handleFilterChange(filter.id, option.id);
+                            autocomplete.addToRecent({ id: option.id, label: option.label });
+                          }}
+                        >
+                          {option.label}
+                        </Button>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground px-2 py-2">No results found</p>
+                    )}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          );
+        })}
+        
         {/* Action buttons */}
         {hasActiveFilters && (
           <>
-            <Button
-              variant="outline"
-              size="sm"
+            <Button 
+              variant="outline" 
+              size="sm" 
               onClick={() => setIsSaveDialogOpen(true)}
               className="text-muted-foreground h-9"
             >
               <Save className="mr-2 h-3 w-3" />
               Save
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
+            <Button 
+              variant="ghost" 
+              size="sm" 
               onClick={clearAllFilters}
               className="text-muted-foreground h-9"
             >
@@ -291,15 +350,13 @@ export function EnhancedFilterBar({
           </>
         )}
       </div>
-
+      
       {/* Active filters as badges */}
       {hasActiveFilters && (
         <div className="flex flex-wrap gap-1">
           {activeBadges.map((badge, index) => (
             <Badge key={index} variant="secondary" className="px-2 py-1">
-              <span className="text-xs text-muted-foreground mr-1">
-                {badge.filterName}:
-              </span>
+              <span className="text-xs text-muted-foreground mr-1">{badge.filterName}:</span>
               <span className="mr-1">{badge.label}</span>
               <Button
                 variant="ghost"
@@ -337,10 +394,7 @@ export function EnhancedFilterBar({
             />
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsSaveDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={saveCurrentPreset}>
@@ -351,111 +405,5 @@ export function EnhancedFilterBar({
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function FilterOptionMenu({
-  filter,
-  searchTerm,
-  onSearchChange,
-  onSelect,
-}: {
-  filter: FilterOption;
-  searchTerm: string;
-  onSearchChange: (term: string) => void;
-  onSelect: (filterId: string, value: string) => void;
-}) {
-  const autocompleteOptions = useMemo(
-    () => filter.options.map((opt) => ({ id: opt.id, label: opt.label })),
-    [filter.options],
-  );
-
-  const autocomplete = useSmartAutocomplete({
-    options: autocompleteOptions,
-  });
-
-  const filteredOptions = filter.options.filter(
-    (option) =>
-      !searchTerm ||
-      option.label.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9">
-          {filter.name}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-64 p-2" align="start">
-        <div className="grid gap-2">
-          <h4 className="font-medium text-sm px-2 py-1">{filter.name}</h4>
-
-          {/* Search input */}
-          <Input
-            placeholder={`Search ${filter.name.toLowerCase()}...`}
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="h-8"
-          />
-
-          <Separator />
-
-          {/* Recent searches */}
-          {autocomplete.recentSearches.length > 0 && !searchTerm && (
-            <>
-              <div className="px-2">
-                <p className="text-xs text-muted-foreground mb-1">Recent</p>
-                <div className="grid gap-1">
-                  {autocomplete.recentSearches.map((recent) => (
-                    <Button
-                      key={recent.id}
-                      variant="ghost"
-                      size="sm"
-                      className="justify-start font-normal"
-                      onClick={() => {
-                        onSelect(filter.id, recent.id);
-                        autocomplete.addToRecent(recent);
-                      }}
-                    >
-                      <Clock className="mr-2 h-3 w-3 text-muted-foreground" />
-                      {recent.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              <Separator />
-            </>
-          )}
-
-          {/* Options list */}
-          <div className="grid gap-1 max-h-64 overflow-y-auto">
-            {filteredOptions.length > 0 ? (
-              filteredOptions.map((option) => (
-                <Button
-                  key={option.id}
-                  variant="ghost"
-                  size="sm"
-                  className="justify-start font-normal"
-                  onClick={() => {
-                    onSelect(filter.id, option.id);
-                    autocomplete.addToRecent({
-                      id: option.id,
-                      label: option.label,
-                    });
-                  }}
-                >
-                  {option.label}
-                </Button>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground px-2 py-2">
-                No results found
-              </p>
-            )}
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
   );
 }

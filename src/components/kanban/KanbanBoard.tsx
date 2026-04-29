@@ -2,25 +2,10 @@ import { Task, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
 import { useState, useEffect, lazy, Suspense } from "react";
-const EditTaskDialog = lazy(() =>
-  import("../tasks/EditTaskDialog").then((m) => ({
-    default: m.EditTaskDialog,
-  })),
-);
+const EditTaskDialog = lazy(() => import("../tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { TaskStatusPromptDialog } from "../tasks/TaskStatusPromptDialog";
-import {
-  Settings,
-  Edit2,
-  CheckSquare,
-  Trash2,
-  GripVertical,
-} from "lucide-react";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from "@hello-pangea/dnd";
+import { Settings, Edit2, CheckSquare, Trash2, GripVertical } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -32,24 +17,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 
 type ViewMode = "list" | "kanban";
-type DisplayOption =
-  | "project"
-  | "client"
-  | "assignee"
-  | "dueDate"
-  | "priority"
-  | "status"
-  | "collaborators";
+type DisplayOption = "project" | "client" | "assignee" | "dueDate" | "priority" | "status" | "collaborators";
 
 interface KanbanBoardProps {
   tasks?: Task[];
@@ -59,25 +32,11 @@ interface KanbanBoardProps {
   onTaskOpen?: (taskId: string) => void;
 }
 
-export function KanbanBoard({
-  tasks: propTasks,
-  projectId,
-  viewMode = "kanban",
-  onBulkEdit,
-  onTaskOpen,
-}: KanbanBoardProps) {
-  const {
-    moveTask,
-    reorderTasks,
-    tasks: allTasks,
-    deleteTask,
-    taskStatuses,
-  } = useAppContext();
+export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", onBulkEdit, onTaskOpen }: KanbanBoardProps) {
+  const { moveTask, reorderTasks, tasks: allTasks, deleteTask, taskStatuses } = useAppContext();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [nestedSelectedTask, setNestedSelectedTask] = useState<Task | null>(
-    null,
-  );
+  const [nestedSelectedTask, setNestedSelectedTask] = useState<Task | null>(null);
   const [isNestedDialogOpen, setIsNestedDialogOpen] = useState(false);
   const [statusPromptTask, setStatusPromptTask] = useState<Task | null>(null);
   const [newStatus, setNewStatus] = useState<string>("");
@@ -88,13 +47,13 @@ export function KanbanBoard({
     todo: "var(--kanban-todo)",
     "in-progress": "var(--kanban-in-progress)",
     review: "var(--kanban-review)",
-    done: "var(--kanban-done)",
+    done: "var(--kanban-done)"
   });
 
   // Load saved kanban colors on mount and listen for changes
   useEffect(() => {
     const loadColors = () => {
-      const savedColors = localStorage.getItem("kanbanColors");
+      const savedColors = localStorage.getItem('kanbanColors');
       if (savedColors) {
         try {
           const parsedColors = JSON.parse(savedColors);
@@ -103,19 +62,19 @@ export function KanbanBoard({
             todo: "var(--kanban-todo)",
             "in-progress": "var(--kanban-in-progress)",
             review: "var(--kanban-review)",
-            done: "var(--kanban-done)",
+            done: "var(--kanban-done)"
           };
-
+          
           // Update colorMap with saved colors
           parsedColors.forEach((color: { name: string; value: string }) => {
             if (color.name in colorMap) {
               colorMap[color.name as TaskStatus] = color.value;
             }
           });
-
+          
           setColumnColors(colorMap);
         } catch (e) {
-          console.error("Error parsing kanban colors from localStorage", e);
+          console.error('Error parsing kanban colors from localStorage', e);
         }
       }
     };
@@ -125,51 +84,51 @@ export function KanbanBoard({
 
     // Listen for storage changes (when colors are saved from settings)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "kanbanColors") {
+      if (e.key === 'kanbanColors') {
         loadColors();
       }
     };
 
-    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener('storage', handleStorageChange);
 
     // Also listen for custom event (for same-tab updates)
     const handleColorsUpdate = () => {
       loadColors();
     };
 
-    window.addEventListener("kanbanColorsUpdated", handleColorsUpdate);
+    window.addEventListener('kanbanColorsUpdated', handleColorsUpdate);
 
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("kanbanColorsUpdated", handleColorsUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('kanbanColorsUpdated', handleColorsUpdate);
     };
   }, []);
-
+  
   // Task selection functionality
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
-
+  
   // Global display options for all task cards - load from localStorage
   const [displayOptions, setDisplayOptions] = useState<DisplayOption[]>(() => {
-    const saved = localStorage.getItem("kanban-display-options");
+    const saved = localStorage.getItem('kanban-display-options');
     return saved ? JSON.parse(saved) : ["project", "client", "assignee"];
   });
-
+  
   // If tasks were passed in as props, use those
   // Otherwise, if projectId was provided, filter all tasks for that project
   // If neither, use all tasks
-  const tasks = propTasks
-    ? propTasks
+  const tasks = propTasks 
+    ? propTasks 
     : projectId
-      ? allTasks.filter((task) => task.projectId === projectId)
-      : allTasks;
-
+    ? allTasks.filter(task => task.projectId === projectId)
+    : allTasks;
+  
   const columns: { id: TaskStatus; title: string }[] = taskStatuses
     .sort((a, b) => a.order - b.order)
-    .map((status) => ({
+    .map(status => ({
       id: status.value as TaskStatus,
-      title: status.label,
+      title: status.label
     }));
-
+  
   // Helper function to sort tasks by due date (soonest first, null dates at the end)
   const sortByDueDate = (a: Task, b: Task) => {
     // If neither has a due date, maintain original order
@@ -182,23 +141,20 @@ export function KanbanBoard({
   };
 
   // Prepare tasks by status and sort by due date (soonest first)
-  const tasksByStatus = columns.reduce(
-    (acc, column) => {
-      acc[column.id] = tasks
-        .filter((task) => task.status === column.id)
-        .sort(sortByDueDate);
-      return acc;
-    },
-    {} as Record<TaskStatus, Task[]>,
-  );
-
+  const tasksByStatus = columns.reduce((acc, column) => {
+    acc[column.id] = tasks
+      .filter(task => task.status === column.id)
+      .sort(sortByDueDate);
+    return acc;
+  }, {} as Record<TaskStatus, Task[]>);
+  
   // Drag and drop handler using @hello-pangea/dnd
   const handleDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
-
+    
     // Dropped outside any droppable area
     if (!destination) return;
-
+    
     // Same position, no change
     if (
       source.droppableId === destination.droppableId &&
@@ -206,19 +162,18 @@ export function KanbanBoard({
     ) {
       return;
     }
-
+    
     const sourceStatus = source.droppableId as TaskStatus;
     const destinationStatus = destination.droppableId as TaskStatus;
-
+    
     // Check if we need to prompt for additional info (backlog, in-progress, or awaiting feedback/review statuses)
-    const needsPrompt =
-      destinationStatus === "backlog" ||
-      destinationStatus === "in-progress" ||
-      destinationStatus === "review" ||
-      destinationStatus === "awaiting-feedback";
-
+    const needsPrompt = destinationStatus === "backlog" || 
+                        destinationStatus === "in-progress" || 
+                        destinationStatus === "review" ||
+                        destinationStatus === "awaiting-feedback";
+    
     if (needsPrompt && sourceStatus !== destinationStatus) {
-      const task = tasks.find((t) => t.id === draggableId);
+      const task = tasks.find(t => t.id === draggableId);
       if (task) {
         setStatusPromptTask(task);
         setNewStatus(destinationStatus);
@@ -227,13 +182,13 @@ export function KanbanBoard({
         return;
       }
     }
-
+    
     // Reorder task
     if (reorderTasks) {
       await reorderTasks(
         draggableId,
         destination.index,
-        sourceStatus !== destinationStatus ? destinationStatus : undefined,
+        sourceStatus !== destinationStatus ? destinationStatus : undefined
       );
     }
   };
@@ -248,10 +203,8 @@ export function KanbanBoard({
       };
 
       if (data.backlogReason) updates.backlog_reason = data.backlogReason;
-      if (data.awaitingFeedbackDetails)
-        updates.awaiting_feedback_details = data.awaitingFeedbackDetails;
-      if (data.dueDateChangeReason)
-        updates.due_date_change_reason = data.dueDateChangeReason;
+      if (data.awaitingFeedbackDetails) updates.awaiting_feedback_details = data.awaitingFeedbackDetails;
+      if (data.dueDateChangeReason) updates.due_date_change_reason = data.dueDateChangeReason;
       if (data.newDueDate) {
         updates.due_date = data.newDueDate;
         updates.last_due_date_change = new Date().toISOString();
@@ -282,7 +235,7 @@ export function KanbanBoard({
       });
     }
   };
-
+  
   const handleTaskClick = (task: Task, event?: React.MouseEvent) => {
     // If Ctrl/Cmd key is pressed or there are already selected tasks, toggle selection
     if (event?.ctrlKey || event?.metaKey || selectedTaskIds.length > 0) {
@@ -306,10 +259,10 @@ export function KanbanBoard({
 
   // Task selection functions
   const handleTaskSelection = (taskId: string) => {
-    setSelectedTaskIds((prev) =>
-      prev.includes(taskId)
-        ? prev.filter((id) => id !== taskId)
-        : [...prev, taskId],
+    setSelectedTaskIds(prev => 
+      prev.includes(taskId) 
+        ? prev.filter(id => id !== taskId)
+        : [...prev, taskId]
     );
   };
 
@@ -317,7 +270,7 @@ export function KanbanBoard({
     if (selectedTaskIds.length === tasks.length) {
       setSelectedTaskIds([]);
     } else {
-      setSelectedTaskIds(tasks.map((task) => task.id));
+      setSelectedTaskIds(tasks.map(task => task.id));
     }
   };
 
@@ -328,7 +281,7 @@ export function KanbanBoard({
   const handleEdit = () => {
     if (selectedTaskIds.length === 1) {
       // Single task edit
-      const task = tasks.find((t) => t.id === selectedTaskIds[0]);
+      const task = tasks.find(t => t.id === selectedTaskIds[0]);
       if (task) {
         setSelectedTask(task);
         setIsEditDialogOpen(true);
@@ -344,12 +297,8 @@ export function KanbanBoard({
   };
 
   const handleDelete = () => {
-    if (
-      confirm(
-        `Are you sure you want to delete ${selectedTaskIds.length} task${selectedTaskIds.length > 1 ? "s" : ""}?`,
-      )
-    ) {
-      selectedTaskIds.forEach((taskId) => {
+    if (confirm(`Are you sure you want to delete ${selectedTaskIds.length} task${selectedTaskIds.length > 1 ? 's' : ''}?`)) {
+      selectedTaskIds.forEach(taskId => {
         deleteTask(taskId);
       });
       clearSelection();
@@ -358,12 +307,12 @@ export function KanbanBoard({
 
   // Toggle display option for all cards
   const toggleDisplayOption = (option: DisplayOption) => {
-    const newOptions = displayOptions.includes(option)
-      ? displayOptions.filter((opt) => opt !== option)
+    const newOptions = displayOptions.includes(option) 
+      ? displayOptions.filter(opt => opt !== option)
       : [...displayOptions, option];
-
+    
     setDisplayOptions(newOptions);
-    localStorage.setItem("kanban-display-options", JSON.stringify(newOptions));
+    localStorage.setItem('kanban-display-options', JSON.stringify(newOptions));
   };
 
   // Render toolbar with selection controls and display options
@@ -376,7 +325,11 @@ export function KanbanBoard({
               <Badge variant="secondary">
                 {selectedTaskIds.length} selected
               </Badge>
-              <Button size="sm" onClick={handleEdit} className="h-9">
+              <Button
+                size="sm"
+                onClick={handleEdit}
+                className="h-9"
+              >
                 <Edit2 className="h-4 w-4 mr-2" />
                 {selectedTaskIds.length === 1 ? "Edit Task" : "Edit Selected"}
               </Button>
@@ -395,9 +348,7 @@ export function KanbanBoard({
                 onClick={handleSelectAll}
                 className="h-9"
               >
-                {selectedTaskIds.length === tasks.length
-                  ? "Deselect All"
-                  : "Select All"}
+                {selectedTaskIds.length === tasks.length ? "Deselect All" : "Select All"}
               </Button>
               <Button
                 variant="ghost"
@@ -410,95 +361,95 @@ export function KanbanBoard({
             </>
           )}
         </div>
-
-        <DropdownMenu>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="h-9">
                     <Settings className="h-4 w-4 mr-2" />
                     Display Options
                   </Button>
                 </DropdownMenuTrigger>
-              </TooltipTrigger>
-              <TooltipContent>
-                Configure what information is displayed on task cards
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Display Options</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem
-              checked={displayOptions.includes("project")}
-              onCheckedChange={() => toggleDisplayOption("project")}
-            >
-              Project
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={displayOptions.includes("client")}
-              onCheckedChange={() => toggleDisplayOption("client")}
-            >
-              Client
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={displayOptions.includes("assignee")}
-              onCheckedChange={() => toggleDisplayOption("assignee")}
-            >
-              Owner
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={displayOptions.includes("collaborators")}
-              onCheckedChange={() => toggleDisplayOption("collaborators")}
-            >
-              Collaborators
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={displayOptions.includes("dueDate")}
-              onCheckedChange={() => toggleDisplayOption("dueDate")}
-            >
-              Due Date
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={displayOptions.includes("priority")}
-              onCheckedChange={() => toggleDisplayOption("priority")}
-            >
-              Priority
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={displayOptions.includes("status")}
-              onCheckedChange={() => toggleDisplayOption("status")}
-            >
-              Status
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>Display Options</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("project")}
+                    onCheckedChange={() => toggleDisplayOption("project")}
+                  >
+                    Project
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("client")}
+                    onCheckedChange={() => toggleDisplayOption("client")}
+                  >
+                    Client
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("assignee")}
+                    onCheckedChange={() => toggleDisplayOption("assignee")}
+                  >
+                    Owner
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("collaborators")}
+                    onCheckedChange={() => toggleDisplayOption("collaborators")}
+                  >
+                    Collaborators
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("dueDate")}
+                    onCheckedChange={() => toggleDisplayOption("dueDate")}
+                  >
+                    Due Date
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("priority")}
+                    onCheckedChange={() => toggleDisplayOption("priority")}
+                  >
+                    Priority
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={displayOptions.includes("status")}
+                    onCheckedChange={() => toggleDisplayOption("status")}
+                  >
+                    Status
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TooltipTrigger>
+            <TooltipContent>
+              Configure what information is displayed on task cards
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     );
   };
-
+  
   // Render list view with drag-and-drop
   if (viewMode === "list") {
     // Sort tasks by due date (soonest first)
     const sortedTasks = [...tasks].sort(sortByDueDate);
-
+    
     return (
       <div className="w-full">
         {renderToolbar()}
-
+        
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="list-view">
             {(provided) => (
-              <div
+              <div 
                 ref={provided.innerRef}
                 {...provided.droppableProps}
                 className="space-y-2"
               >
                 {sortedTasks.map((task, index) => (
-                  <Draggable
-                    key={task.id}
-                    draggableId={task.id}
+                  <Draggable 
+                    key={task.id} 
+                    draggableId={task.id} 
                     index={index}
                     isDragDisabled={selectedTaskIds.length > 0}
                   >
@@ -506,18 +457,18 @@ export function KanbanBoard({
                       <div
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className={`group ${snapshot.isDragging ? "opacity-50" : ""}`}
+                        className={`group ${snapshot.isDragging ? 'opacity-50' : ''}`}
                       >
                         <div className="flex items-center gap-2">
-                          <div
+                          <div 
                             {...provided.dragHandleProps}
                             className="cursor-move p-1 hover:bg-muted rounded opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <GripVertical className="h-4 w-4 text-muted-foreground" />
                           </div>
                           <div className="flex-1">
-                            <TaskCard
-                              task={task}
+                            <TaskCard 
+                              task={task} 
                               onClick={(e) => handleTaskClick(task, e)}
                               displayOptions={displayOptions}
                               isSelected={selectedTaskIds.includes(task.id)}
@@ -531,19 +482,17 @@ export function KanbanBoard({
                   </Draggable>
                 ))}
                 {provided.placeholder}
-
+                
                 {sortedTasks.length === 0 && (
                   <div className="border-2 border-dashed border-muted rounded-md p-8 flex items-center justify-center bg-background/40">
-                    <p className="text-sm text-muted-foreground">
-                      No tasks found
-                    </p>
+                    <p className="text-sm text-muted-foreground">No tasks found</p>
                   </div>
                 )}
               </div>
             )}
           </Droppable>
         </DragDropContext>
-
+        
         {selectedTask && (
           <EditTaskDialog
             task={selectedTask}
@@ -551,7 +500,7 @@ export function KanbanBoard({
             onOpenChange={setIsEditDialogOpen}
           />
         )}
-
+        
         {nestedSelectedTask && (
           <EditTaskDialog
             task={nestedSelectedTask}
@@ -572,18 +521,21 @@ export function KanbanBoard({
       </div>
     );
   }
-
+  
   // Default: Render Kanban view with drag-and-drop
   return (
     <div className="w-full">
       {renderToolbar()}
-
+      
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="overflow-x-auto">
           <div className="flex gap-3 pb-4">
             {columns.map((column) => (
-              <div key={column.id} className="w-[250px] flex-shrink-0">
-                <div
+              <div
+                key={column.id}
+                className="w-[250px] flex-shrink-0"
+              >
+                <div 
                   className="rounded-lg p-2 h-full"
                   style={{ backgroundImage: columnColors[column.id] }}
                 >
@@ -593,22 +545,20 @@ export function KanbanBoard({
                       {tasksByStatus[column.id].length}
                     </span>
                   </div>
-
+                  
                   <Droppable droppableId={column.id}>
                     {(provided, snapshot) => (
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
                         className={`space-y-2 min-h-[400px] max-h-[70vh] overflow-y-auto transition-colors ${
-                          snapshot.isDraggingOver
-                            ? "bg-background/10 rounded-md"
-                            : ""
+                          snapshot.isDraggingOver ? 'bg-background/10 rounded-md' : ''
                         }`}
                       >
                         {tasksByStatus[column.id].map((task, index) => (
-                          <Draggable
-                            key={task.id}
-                            draggableId={task.id}
+                          <Draggable 
+                            key={task.id} 
+                            draggableId={task.id} 
                             index={index}
                             isDragDisabled={selectedTaskIds.length > 0}
                           >
@@ -617,10 +567,10 @@ export function KanbanBoard({
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                className={`${snapshot.isDragging ? "opacity-50" : ""}`}
+                                className={`${snapshot.isDragging ? 'opacity-50' : ''}`}
                               >
-                                <TaskCard
-                                  task={task}
+                                <TaskCard 
+                                  task={task} 
                                   onClick={(e) => handleTaskClick(task, e)}
                                   displayOptions={displayOptions}
                                   isSelected={selectedTaskIds.includes(task.id)}
@@ -632,12 +582,10 @@ export function KanbanBoard({
                           </Draggable>
                         ))}
                         {provided.placeholder}
-
+                        
                         {tasksByStatus[column.id].length === 0 && (
                           <div className="border-2 border-dashed border-muted rounded-md h-20 flex items-center justify-center bg-background/40">
-                            <p className="text-sm text-muted-foreground">
-                              Drop tasks here
-                            </p>
+                            <p className="text-sm text-muted-foreground">Drop tasks here</p>
                           </div>
                         )}
                       </div>
@@ -649,7 +597,7 @@ export function KanbanBoard({
           </div>
         </div>
       </DragDropContext>
-
+      
       {selectedTask && (
         <EditTaskDialog
           task={selectedTask}
@@ -657,7 +605,7 @@ export function KanbanBoard({
           onOpenChange={setIsEditDialogOpen}
         />
       )}
-
+      
       {nestedSelectedTask && (
         <EditTaskDialog
           task={nestedSelectedTask}
