@@ -1,4 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useRbac } from "@/hooks/useRbac";
+import { filterProjectsByScope } from "@/utils/rbacFilters";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
@@ -24,7 +27,8 @@ import { ModernToolbar, ModernToolbarSection } from "@/components/common/ModernT
 const Projects = () => {
   console.log("Projects component: Starting render");
   
-  const { projects, tasks, clients, teams, users, deleteProject } = useAppContext();
+  const { projects, tasks, clients, teams, users, deleteProject, currentUser } = useAppContext();
+  const { can } = useRbac();
 
   // Listen for template creation events to refresh the templates list
   useEffect(() => {
@@ -114,8 +118,10 @@ const Projects = () => {
 
   console.log("Projects component: Helper functions defined");
 
-  // Apply filters and search to projects
-  const filteredProjects = projects.filter(project => {
+  // Apply RBAC scope filter first, then search/dropdown filters
+  const scopedProjects = filterProjectsByScope(projects, currentUser);
+
+  const filteredProjects = scopedProjects.filter(project => {
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -267,23 +273,27 @@ const Projects = () => {
                 </TabsTrigger>
               </TabsList>
               {activeTab === "projects" ? (
-                <Button size="sm" className="w-full sm:w-auto" onClick={() => {
-                  console.log("Projects component: Create project button clicked");
-                  setIsCreateDialogOpen(true);
-                }}>
-                  <Plus className="mr-1 sm:mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">New Project</span>
-                  <span className="sm:hidden">New</span>
-                </Button>
+                <PermissionGuard resource="projects" action="create">
+                  <Button size="sm" className="w-full sm:w-auto" onClick={() => {
+                    console.log("Projects component: Create project button clicked");
+                    setIsCreateDialogOpen(true);
+                  }}>
+                    <Plus className="mr-1 sm:mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">New Project</span>
+                    <span className="sm:hidden">New</span>
+                  </Button>
+                </PermissionGuard>
               ) : (
-                <Button size="sm" className="w-full sm:w-auto" onClick={() => {
-                  console.log("Projects component: Create template button clicked");
-                  setIsCreateTemplateDialogOpen(true);
-                }}>
-                  <Plus className="mr-1 sm:mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">New Template</span>
-                  <span className="sm:hidden">New</span>
-                </Button>
+                <PermissionGuard resource="templates" action="create">
+                  <Button size="sm" className="w-full sm:w-auto" onClick={() => {
+                    console.log("Projects component: Create template button clicked");
+                    setIsCreateTemplateDialogOpen(true);
+                  }}>
+                    <Plus className="mr-1 sm:mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">New Template</span>
+                    <span className="sm:hidden">New</span>
+                  </Button>
+                </PermissionGuard>
               )}
             </div>
           </div>
@@ -319,10 +329,10 @@ const Projects = () => {
                 projects={filteredProjects}
                 getProjectProgress={getProjectProgress}
                 getClientName={getClientName}
-                onEdit={handleEditProject}
-                onDelete={handleDeleteProject}
+                onEdit={can("projects", "edit") ? handleEditProject : undefined}
+                onDelete={can("projects", "delete") ? handleDeleteProject : undefined}
                 onCardClick={handleCardClick}
-                onCreateProject={() => setIsCreateDialogOpen(true)}
+                onCreateProject={can("projects", "create") ? () => setIsCreateDialogOpen(true) : undefined}
               />
             </div>
           </TabsContent>

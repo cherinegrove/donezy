@@ -1,7 +1,10 @@
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
+import { useRbac } from "@/hooks/useRbac";
+import { filterClientsByScope } from "@/utils/rbacFilters";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { Client } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -44,7 +47,8 @@ import { MoreVertical, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Clients() {
-  const { clients, deleteClient } = useAppContext();
+  const { clients, projects, deleteClient, currentUser } = useAppContext();
+  const { can } = useRbac();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
@@ -56,7 +60,23 @@ export default function Clients() {
 
   console.log("Clients page rendering with clients:", clients);
 
-  const filteredClients = clients.filter((client) => {
+  const clientProjectsMap = useMemo(() => {
+    const map: Record<string, typeof projects> = {};
+    projects.forEach((p) => {
+      if (p.clientId) {
+        if (!map[p.clientId]) map[p.clientId] = [];
+        map[p.clientId].push(p);
+      }
+    });
+    return map;
+  }, [projects]);
+
+  const scopedClients = useMemo(
+    () => filterClientsByScope(clients, currentUser, clientProjectsMap),
+    [clients, currentUser, clientProjectsMap],
+  );
+
+  const filteredClients = scopedClients.filter((client) => {
     const searchRegex = new RegExp(searchTerm, "i");
     const nameMatch = searchRegex.test(client.name);
     const emailMatch = searchRegex.test(client.email);
@@ -98,7 +118,9 @@ export default function Clients() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Clients</h1>
-        <Button onClick={() => setAddDialogOpen(true)}>Add Client</Button>
+        <PermissionGuard resource="clients" action="create">
+          <Button onClick={() => setAddDialogOpen(true)}>Add Client</Button>
+        </PermissionGuard>
       </div>
 
       <div className="flex items-center space-x-4 mb-4">
@@ -157,26 +179,32 @@ export default function Clients() {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setEditingClient(client)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteClient(client)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {(can("clients", "edit") || can("clients", "delete")) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {can("clients", "edit") && (
+                          <DropdownMenuItem onClick={() => setEditingClient(client)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
+                        {can("clients", "delete") && (
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteClient(client)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </TableCell>
               </TableRow>
             ))

@@ -1,3 +1,5 @@
+import type { RbacRole } from "./rbac";
+
 export interface User {
   auth_user_id: string;
   id: string; // Alias for auth_user_id for backward compatibility
@@ -6,14 +8,15 @@ export interface User {
   avatar?: string;
   roleId: string; // References either built-in role or custom role
   systemRoles?: string[]; // System roles like 'platform_admin', 'support_admin'
-  status?: 'active' | 'inactive' | 'deleted';
+  rbacRoles?: RbacRole[]; // New RBAC roles with full permissions
+  status?: "active" | "inactive" | "deleted";
   organizationId?: string;
   teamIds?: string[];
   jobTitle?: string;
   clientId?: string;
   phone?: string;
-  employmentType?: 'full-time' | 'part-time' | 'contract';
-  billingType?: 'hourly' | 'monthly';
+  employmentType?: "full-time" | "part-time" | "contract";
+  billingType?: "hourly" | "monthly";
   hourlyRate?: number;
   monthlyRate?: number;
   billingRate?: number;
@@ -95,9 +98,9 @@ export interface Client {
   createdAt: string;
   billableRate?: number;
   currency?: string;
-  serviceType?: 'retainer' | 'payasyougo' | 'bank-hours';
+  serviceType?: "retainer" | "payasyougo" | "bank-hours";
   allocatedHours?: number;
-  status?: 'active' | 'inactive';
+  status?: "active" | "inactive";
   memberIds?: string[];
 }
 
@@ -107,7 +110,7 @@ export interface Project {
   description: string;
   clientId: string;
   status: string;
-  serviceType: 'project' | 'bank-hours' | 'pay-as-you-go';
+  serviceType: "project" | "bank-hours" | "pay-as-you-go";
   startDate?: string;
   dueDate?: string;
   allocatedHours?: number;
@@ -121,7 +124,14 @@ export interface Project {
   google_chat_settings?: any;
 }
 
-export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'awaiting-feedback' | 'done' | string;
+export type TaskStatus =
+  | "backlog"
+  | "todo"
+  | "in-progress"
+  | "review"
+  | "awaiting-feedback"
+  | "done"
+  | string;
 
 export interface TaskStatusDefinition {
   id: string;
@@ -176,7 +186,7 @@ export interface Task {
   assigneeId?: string;
   collaboratorIds?: string[];
   status: TaskStatus;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  priority: "low" | "medium" | "high" | "urgent";
   startDate?: string;
   dueDate?: string;
   reminderDate?: string;
@@ -200,7 +210,13 @@ export interface Task {
   lastDueDateChange?: string;
 }
 
-export type TimeEntryStatus = 'pending' | 'approved' | 'rejected' | 'approved-billable' | 'approved-non-billable' | 'declined';
+export type TimeEntryStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "approved-billable"
+  | "approved-non-billable"
+  | "declined";
 
 export interface TimeEntry {
   id: string;
@@ -249,7 +265,7 @@ export interface ProjectTemplate {
   id: string;
   name: string;
   description: string;
-  serviceType: 'project' | 'bank-hours' | 'pay-as-you-go';
+  serviceType: "project" | "bank-hours" | "pay-as-you-go";
   defaultDuration: number;
   allocatedHours: number;
   tasks: TemplateTask[];
@@ -261,13 +277,13 @@ export interface ProjectTemplate {
   structure?: {
     name: string;
     description: string;
-    serviceType: 'project' | 'bank-hours' | 'pay-as-you-go';
+    serviceType: "project" | "bank-hours" | "pay-as-you-go";
     allocatedHours: number;
     tasks: {
       title: string;
       description: string;
       status: TaskStatus;
-      priority: 'low' | 'medium' | 'high' | 'urgent';
+      priority: "low" | "medium" | "high" | "urgent";
       estimatedHours?: number;
     }[];
   };
@@ -277,7 +293,7 @@ export interface ProjectTemplate {
 export interface TemplateTask {
   title: string;
   description: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  priority: "low" | "medium" | "high" | "urgent";
   estimatedHours?: number;
   subtasks?: TemplateTask[];
   status?: TaskStatus;
@@ -315,7 +331,7 @@ export interface TaskLog {
 export interface ClientAgreement {
   id: string;
   clientId: string;
-  serviceType: 'retainer' | 'payasyougo' | 'bank-hours';
+  serviceType: "retainer" | "payasyougo" | "bank-hours";
   startDate: string;
   endDate?: string;
   allocatedHours?: number;
@@ -323,7 +339,7 @@ export interface ClientAgreement {
   rate: number;
   currency: string;
   description: string;
-  status: 'active' | 'completed' | 'cancelled';
+  status: "active" | "completed" | "cancelled";
 }
 
 export interface ClientFile {
@@ -334,7 +350,15 @@ export interface ClientFile {
   uploadedAt: string;
 }
 
-export type CustomFieldType = 'text' | 'textarea' | 'date' | 'dropdown' | 'multiselect' | 'checkbox' | 'number' | 'select';
+export type CustomFieldType =
+  | "text"
+  | "textarea"
+  | "date"
+  | "dropdown"
+  | "multiselect"
+  | "checkbox"
+  | "number"
+  | "select";
 
 export interface CustomField {
   id: string;
@@ -342,7 +366,7 @@ export interface CustomField {
   type: CustomFieldType;
   description?: string;
   required: boolean;
-  applicableTo: ('projects' | 'tasks')[];
+  applicableTo: ("projects" | "tasks")[];
   options?: string[];
   defaultValue?: any;
   order: number;
@@ -351,23 +375,23 @@ export interface CustomField {
   reportable: boolean;
 }
 
-export type NotificationTimeframe = 'same-day' | '1-day' | '3-days' | '1-week';
-export type AccessLevel = 'none' | 'view' | 'create' | 'edit' | 'delete';
-export type BillingType = 'hourly' | 'monthly';
-export type EmploymentType = 'full-time' | 'part-time' | 'contract';
-export type Role = 'admin' | 'manager' | 'developer' | 'client';
-export type ClientRole = 'primary' | 'secondary' | 'viewer';
+export type NotificationTimeframe = "same-day" | "1-day" | "3-days" | "1-week";
+export type AccessLevel = "none" | "view" | "create" | "edit" | "delete";
+export type BillingType = "hourly" | "monthly";
+export type EmploymentType = "full-time" | "part-time" | "contract";
+export type Role = "admin" | "manager" | "developer" | "client";
+export type ClientRole = "primary" | "secondary" | "viewer";
 
 export interface AccountSubscription {
   id: string;
   user_id: string;
-  plan_type: 'free' | 'paid';
+  plan_type: "free" | "paid";
   max_users: number;
   max_guests: number;
   additional_guests: number;
   monthly_cost: number;
   stripe_subscription_id?: string;
-  status: 'active' | 'cancelled' | 'past_due';
+  status: "active" | "cancelled" | "past_due";
   created_at: string;
   updated_at: string;
 }
@@ -382,31 +406,35 @@ export interface AccountLimits {
 }
 
 // Utility functions for permission checking
-export const hasPermission = (userRole: CustomRole | undefined, feature: string, requiredLevel: AccessLevel): boolean => {
+export const hasPermission = (
+  userRole: CustomRole | undefined,
+  feature: string,
+  requiredLevel: AccessLevel,
+): boolean => {
   if (!userRole) return false;
-  
+
   const userLevel = userRole.permissions[feature];
-  if (!userLevel || userLevel === 'none') return false;
-  
-  const levels = ['none', 'view', 'create', 'edit', 'delete'];
+  if (!userLevel || userLevel === "none") return false;
+
+  const levels = ["none", "view", "create", "edit", "delete"];
   const userLevelIndex = levels.indexOf(userLevel);
   const requiredLevelIndex = levels.indexOf(requiredLevel);
-  
+
   return userLevelIndex >= requiredLevelIndex;
 };
 
 export const getGuestPermissions = (): Record<string, AccessLevel> => {
   return {
-    dashboard: 'none',
-    projects: 'view',
-    tasks: 'edit',
-    timeTracking: 'none',
-    clients: 'none',
-    teams: 'none',
-    users: 'none',
-    reports: 'none',
-    messages: 'none',
-    notes: 'none',
-    settings: 'none'
+    dashboard: "none",
+    projects: "view",
+    tasks: "edit",
+    timeTracking: "none",
+    clients: "none",
+    teams: "none",
+    users: "none",
+    reports: "none",
+    messages: "none",
+    notes: "none",
+    settings: "none",
   };
 };

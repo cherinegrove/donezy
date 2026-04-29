@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -79,7 +80,6 @@ const Users = () => {
 
   // Filter users based on their type (internal or client users by clientId)
   // Also filter out deleted users
-  const internalUsers = users.filter(user => !user.clientId && user.status !== 'deleted');
   const clientUsers = users.filter(user => user.clientId && user.status !== 'deleted');
 
   // Apply client filter for client users
@@ -136,10 +136,12 @@ const Users = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => handleCreateUser(activeTab === "client")}>
-            <Plus className="h-4 w-4 mr-2" />
-            {activeTab === "client" ? "Add Client User" : "Add User"}
-          </Button>
+          <PermissionGuard resource="users" action="create">
+            <Button onClick={() => handleCreateUser(activeTab === "client")}>
+              <Plus className="h-4 w-4 mr-2" />
+              {activeTab === "client" ? "Add Client User" : "Add User"}
+            </Button>
+          </PermissionGuard>
         </div>
       </div>
 
@@ -200,23 +202,27 @@ const Users = () => {
                                   {customRoles.find(r => r.id === member.roleId)?.name || 'Unknown'}
                                 </span>
                                 <div className="flex items-center gap-1">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm"
-                                    onClick={() => handleEditUser(member)}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                    <span className="sr-only">Edit</span>
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm"
-                                    onClick={() => handleDeleteUser(member)}
-                                    className="text-destructive hover:text-destructive"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">Delete</span>
-                                  </Button>
+                                  <PermissionGuard resource="users" action="edit">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleEditUser(member)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                      <span className="sr-only">Edit</span>
+                                    </Button>
+                                  </PermissionGuard>
+                                  <PermissionGuard resource="users" action="delete">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeleteUser(member)}
+                                      className="text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                      <span className="sr-only">Delete</span>
+                                    </Button>
+                                  </PermissionGuard>
                                 </div>
                               </div>
                             </div>

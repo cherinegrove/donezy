@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import React, { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AppProvider } from "./contexts/AppContext";
+import { AppProvider, useAppContext } from "./contexts/AppContext";
+import { useRbac } from "./hooks/useRbac";
+import type { RbacResource, RbacAction } from "./types/rbac";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 import ConfirmInvite from "./pages/ConfirmInvite";
 import { AuthVerify } from '@/components/auth/AuthVerify';
@@ -177,6 +179,35 @@ const PublicRoute = ({ element }: { element: React.ReactNode }) => {
   return <>{element}</>;
 };
 
+// RBAC-aware route guard — must render inside AppProvider
+const RbacRoute = ({
+  element,
+  requireAdmin = false,
+  resource,
+  action,
+}: {
+  element: React.ReactNode;
+  requireAdmin?: boolean;
+  resource?: RbacResource;
+  action?: RbacAction;
+}) => {
+  const { isAdmin, can } = useRbac();
+  const { currentUser, session } = useAppContext();
+
+  // Wait for currentUser to load before making an auth decision
+  if (session && !currentUser) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (requireAdmin && !isAdmin()) return <Navigate to="/" replace />;
+  if (resource && action && !can(resource, action)) return <Navigate to="/" replace />;
+  return <>{element}</>;
+};
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -281,40 +312,31 @@ const App = () => {
                     <Route path="/tasks" element={<Tasks />} />
                     <Route path="/tasks/:taskId" element={<TaskDetails />} />
                     <Route path="/notes" element={<Notes />} />
-                    <Route 
-                      path="/clients" 
-                      element={
-                        <ProtectedRoute 
-                          element={<Clients />} 
-                          allowedRoles={['admin', 'manager', 'developer']} 
-                        />
-                      } 
+                    <Route
+                      path="/clients"
+                      element={<RbacRoute element={<Clients />} resource="clients" action="view" />}
                     />
                     <Route path="/clients/:clientId" element={<ClientDetails />} />
-                    <Route 
-                      path="/team" 
-                      element={
-                        <ProtectedRoute 
-                          element={<Team />} 
-                          allowedRoles={['admin', 'manager']} 
-                        />
-                      } 
+                    <Route
+                      path="/team"
+                      element={<RbacRoute element={<Team />} resource="teams" action="view" />}
                     />
                     <Route path="/time" element={<TimeTracking />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/reports" element={<Navigate to="/analytics" replace />} />
-                    <Route path="/dashboards" element={<Dashboards />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route 
-                      path="/admin" 
-                      element={
-                        <ProtectedRoute 
-                          element={<Admin />} 
-                          allowedRoles={['admin']} 
-                        />
-                      } 
+                    <Route
+                      path="/dashboards"
+                      element={<RbacRoute element={<Dashboards />} resource="dashboards" action="view" />}
                     />
-                    <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route
+                      path="/admin"
+                      element={<RbacRoute element={<Admin />} requireAdmin />}
+                    />
+                    <Route
+                      path="/analytics"
+                      element={<RbacRoute element={<Analytics />} resource="analytics" action="view" />}
+                    />
                     <Route path="/activity" element={<Activity />} />
                   </Route>
                   

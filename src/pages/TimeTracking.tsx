@@ -58,9 +58,12 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Textarea } from "@/components/ui/textarea";
 import { generateClientMonthlyReportCSV, generateClientDetailedReportCSV, downloadCSV } from "@/utils/exportUtils";
 import { TimeEntryEventLog } from "@/components/time/TimeEntryEventLog";
+import { useRbac } from "@/hooks/useRbac";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 
 const TimeTracking = () => {
   const { timeEntries, users, tasks, projects, clients, startTimeTracking, activeTimeEntry, currentUser, updateTimeEntryStatus, stopTimeTracking, isTimerPaused, pauseTimeTracking, resumeTimeTracking, getElapsedTime, customRoles, pausedTimeEntries } = useAppContext();
+  const { can } = useRbac();
   const [activeTab, setActiveTab] = useState("active");
   const [isAddEntryDialogOpen, setIsAddEntryDialogOpen] = useState(false);
   const [selectedTimeEntry, setSelectedTimeEntry] = useState<TimeEntry | undefined>(undefined);
@@ -89,9 +92,7 @@ const TimeTracking = () => {
   
   // Check if current user is admin using systemRoles (consolidated role system)
   const isAdminUser = () => {
-    if (!currentUser) return false;
-    return currentUser.systemRoles?.includes('platform_admin') || 
-           currentUser.systemRoles?.includes('support_admin');
+    return can("time_entries", "view", "all");
   };
 
   // isSuperAdmin is same as isAdminUser now (consolidated)
@@ -1032,23 +1033,7 @@ const TimeTracking = () => {
   // Checks if current user can approve/decline a time entry
   // Super admins (platform_admin, support_admin) can always change time entry status
   const canApproveTimeEntry = () => {
-    if (!currentUser) return false;
-    
-    const roleIdLower = currentUser.roleId?.toLowerCase()?.trim();
-    
-    // Check for direct admin role (case-insensitive)
-    if (roleIdLower === 'admin') return true;
-    
-    // Check for system roles (platform_admin, support_admin)
-    const systemRoles = currentUser.systemRoles || [];
-    if (systemRoles.includes('platform_admin') || systemRoles.includes('support_admin')) {
-      console.log('✅ User has system admin role:', systemRoles);
-      return true;
-    }
-    
-    // Check for custom role with Admin name
-    const userRole = customRoles.find(r => r.id === currentUser.roleId);
-    return userRole?.name?.toLowerCase() === 'admin';
+    return can("time_entries", "manage");
   };
   
   const handleEditTimeEntry = (entry: TimeEntry) => {
@@ -1202,22 +1187,26 @@ const TimeTracking = () => {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => {
-            console.log('🟢 START TIMER BUTTON CLICKED');
-            setIsStartTimerDialogOpen(true);
-          }}>
-            <Play className="h-4 w-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Start Timer</span>
-            <span className="sm:hidden">Start</span>
-          </Button>
-          <Button size="sm" className="w-full sm:w-auto" onClick={() => {
-            console.log('🟢 ADD MANUAL ENTRY BUTTON CLICKED');
-            handleAddNewEntry();
-          }}>
-            <Plus className="h-4 w-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Add Manual Entry</span>
-            <span className="sm:hidden">Add Entry</span>
-          </Button>
+          <PermissionGuard resource="time_entries" action="create">
+            <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => {
+              console.log('🟢 START TIMER BUTTON CLICKED');
+              setIsStartTimerDialogOpen(true);
+            }}>
+              <Play className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Start Timer</span>
+              <span className="sm:hidden">Start</span>
+            </Button>
+          </PermissionGuard>
+          <PermissionGuard resource="time_entries" action="create">
+            <Button size="sm" className="w-full sm:w-auto" onClick={() => {
+              console.log('🟢 ADD MANUAL ENTRY BUTTON CLICKED');
+              handleAddNewEntry();
+            }}>
+              <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Add Manual Entry</span>
+              <span className="sm:hidden">Add Entry</span>
+            </Button>
+          </PermissionGuard>
         </div>
       </div>
       
