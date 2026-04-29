@@ -149,7 +149,7 @@ const {
   };
   
   // Handle submit
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!currentUser) {
       toast({
         title: "Error",
@@ -191,6 +191,7 @@ const {
       duration,
       notes,
       status,
+      billable,
       manuallyAdded: isNewEntry || (timeEntry?.manuallyAdded ?? true),
       edited: isNewEntry ? false : true
     };
@@ -198,7 +199,7 @@ const {
     try {
       if (timeEntry && !isNewEntry) {
         // Update existing entry
-        updateTimeEntry(timeEntry.id, timeEntryData);
+        await updateTimeEntry(timeEntry.id, timeEntryData);
         
         toast({
           title: "Time entry updated",
@@ -206,7 +207,7 @@ const {
         });
       } else {
         // Add new entry
-        addTimeEntry({
+        await addTimeEntry({
           ...timeEntryData,
           manuallyAdded: true
         });
@@ -219,9 +220,10 @@ const {
       
       onClose();
     } catch (error) {
+      console.error("Error saving time entry:", error);
       toast({
         title: "Error",
-        description: "There was a problem saving the time entry",
+        description: error instanceof Error ? error.message : "There was a problem saving the time entry",
         variant: "destructive",
       });
     }
