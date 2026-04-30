@@ -1050,7 +1050,294 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     return () => subscription.unsubscribe();
   }, []);
+}, []);
 
+  // ============================================
+  // REALTIME SUBSCRIPTIONS - INSTANT UPDATES
+  // ============================================
+  useEffect(() => {
+    if (!session?.user) return;
+
+    console.log('🔴 Setting up realtime subscriptions...');
+
+    // Subscribe to tasks table changes
+    const tasksChannel = supabase
+      .channel('tasks-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'tasks'
+        },
+        async (payload) => {
+          console.log('📋 Task change:', payload.eventType, payload.new?.title);
+          
+          if (payload.eventType === 'INSERT') {
+            // New task created - fetch full data
+            const { data: fullTask } = await supabase
+              .from('tasks')
+              .select('*')
+              .eq('id', payload.new.id)
+              .single();
+            
+            if (fullTask) {
+              const convertedTask = {
+                id: fullTask.id,
+                title: fullTask.title,
+                description: fullTask.description || '',
+                projectId: fullTask.project_id,
+                assigneeId: fullTask.assignee_id || undefined,
+                status: fullTask.status || 'backlog',
+                priority: fullTask.priority || 'medium',
+                dueDate: fullTask.due_date || undefined,
+                estimatedHours: fullTask.estimated_hours || undefined,
+                actualHours: fullTask.actual_hours || undefined,
+                createdAt: fullTask.created_at,
+                watcherIds: fullTask.watcher_ids || [],
+                comments: [],
+                collaboratorIds: fullTask.collaborator_ids || [],
+                relatedTaskIds: fullTask.related_task_ids || [],
+                checklist: fullTask.checklist || [],
+                files: [],
+                backlogReason: fullTask.backlog_reason || undefined,
+                tags: fullTask.tags || [],
+                urgent: fullTask.urgent || false,
+                clientId: fullTask.client_id || undefined,
+                repeatSchedule: fullTask.repeat_schedule || undefined,
+                parentTaskId: fullTask.parent_task_id || undefined
+              };
+              
+              setTasks(prev => [convertedTask, ...prev]);
+              
+              toast({
+                title: "New Task",
+                description: `"${fullTask.title}" was created`,
+              });
+            }
+          } 
+          else if (payload.eventType === 'UPDATE') {
+            // Task updated
+            const updated = payload.new;
+            
+            setTasks(prev => prev.map(task => 
+              task.id === updated.id 
+                ? {
+                    ...task,
+                    title: updated.title,
+                    description: updated.description || '',
+                    status: updated.status || task.status,
+                    priority: updated.priority || task.priority,
+                    assigneeId: updated.assignee_id || undefined,
+                    dueDate: updated.due_date || undefined,
+                    estimatedHours: updated.estimated_hours || undefined,
+                    actualHours: updated.actual_hours || undefined,
+                    watcherIds: updated.watcher_ids || [],
+                    collaboratorIds: updated.collaborator_ids || [],
+                    relatedTaskIds: updated.related_task_ids || [],
+                    checklist: updated.checklist || [],
+                    backlogReason: updated.backlog_reason || undefined,
+                    tags: updated.tags || [],
+                    urgent: updated.urgent || false,
+                    clientId: updated.client_id || undefined,
+                  }
+                : task
+            ));
+          } 
+          else if (payload.eventType === 'DELETE') {
+            // Task deleted
+            setTasks(prev => prev.filter(task => task.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to comments table changes
+    const commentsChannel = supabase
+      .channel('comments-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'comments'
+        },
+        async (payload) => {
+          console.log('💬 Comment change:', payload.eventType);
+          
+          if (payload.eventType === 'INSERT') {
+            // New comment added
+            const newComment = payload.new;
+            
+            const convertedComment = {
+              id: newComment.id,
+              userId: newComment.user_id,
+              content: newComment.content,
+              timestamp: newComment.created_at,
+              mentionedUserIds: newComment.mentioned_user_ids || [],
+              images: newComment.images || [],
+              edited: false
+            };
+            
+            setTasks(prev => prev.map(task => 
+              task.id === newComment.task_id
+                ? { ...task, comments: [...task.comments, convertedComment] }
+                : task
+            ));
+            
+            setComments(prev => [...prev, newComment]);
+            
+            toast({
+              title: "New Comment",
+              description: "Someone commented on a task",
+            });
+          }
+          else if (payload.eventType === 'UPDATE') {
+            // Comment edited
+            const updated = payload.new;
+            const isEdited = updated.updated_at && updated.created_at !== updated.updated_at;
+            
+            setTasks(prev => prev.map(task => 
+              task.id === updated.task_id
+                ? {
+                    ...task,
+                    comments: task.comments.map(comment =>
+                      comment.id === updated.id
+                        ? {
+                            ...comment,
+                            content: updated.content,
+                            edited: isEdited,
+                            editedAt: isEdited ? updated.updated_at : undefined
+                          }
+                        : comment
+                    )
+                  }
+                : task
+            ));
+          }
+          else if (payload.eventType === 'DELETE') {
+            // Comment deleted
+            const deleted = payload.old;
+            
+            setTasks(prev => prev.map(task => 
+              task.id === deleted.task_id
+                ? { ...task, comments: task.comments.filter(c => c.id !== deleted.id) }
+                : task
+            ));
+            
+            setComments(prev => prev.filter(c => c.id !== deleted.id));
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to projects table changes
+    const projectsChannel = supabase
+      .channel('projects-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'projects'
+        },
+        async (payload) => {
+          console.log('📁 Project change:', payload.eventType, payload.new?.name);
+          
+          if (payload.eventType === 'INSERT') {
+            const newProject = payload.new;
+            
+            const convertedProject = {
+              id: newProject.id,
+              name: newProject.name,
+              description: newProject.description || '',
+              clientId: newProject.client_id,
+              status: newProject.status || 'active',
+              startDate: newProject.start_date || undefined,
+              endDate: newProject.end_date || undefined,
+              createdAt: newProject.created_at,
+              budget: newProject.budget || undefined,
+              teamIds: newProject.team_ids || [],
+              watcherIds: newProject.watcher_ids || [],
+              ownerId: newProject.owner_id || undefined,
+              collaboratorIds: newProject.collaborator_ids || [],
+              google_chat_settings: newProject.google_chat_settings || undefined
+            };
+            
+            setProjects(prev => [convertedProject, ...prev]);
+            
+            toast({
+              title: "New Project",
+              description: `"${newProject.name}" was created`,
+            });
+          }
+          else if (payload.eventType === 'UPDATE') {
+            const updated = payload.new;
+            
+            setProjects(prev => prev.map(project =>
+              project.id === updated.id
+                ? {
+                    ...project,
+                    name: updated.name,
+                    description: updated.description || '',
+                    status: updated.status || project.status,
+                    startDate: updated.start_date || undefined,
+                    endDate: updated.end_date || undefined,
+                    budget: updated.budget || undefined,
+                    teamIds: updated.team_ids || [],
+                    watcherIds: updated.watcher_ids || [],
+                    collaboratorIds: updated.collaborator_ids || [],
+                  }
+                : project
+            ));
+          }
+          else if (payload.eventType === 'DELETE') {
+            setProjects(prev => prev.filter(p => p.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to time_entries table changes
+    const timeEntriesChannel = supabase
+      .channel('time-entries-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'time_entries'
+        },
+        async (payload) => {
+          console.log('⏱️ Time entry change:', payload.eventType);
+          
+          // Reload time entries on any change
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            await loadTimeEntries();
+          }
+          else if (payload.eventType === 'DELETE') {
+            setTimeEntries(prev => prev.filter(entry => entry.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      console.log('🔵 Cleaning up realtime subscriptions...');
+      tasksChannel.unsubscribe();
+      commentsChannel.unsubscribe();
+      projectsChannel.unsubscribe();
+      timeEntriesChannel.unsubscribe();
+    };
+  }, [session?.user, toast]);
+
+  // ============================================
+  // END REALTIME SUBSCRIPTIONS
+  // ============================================
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    // ... rest of the code
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
