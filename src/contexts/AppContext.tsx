@@ -1336,8 +1336,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // ============================================
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // ... rest of the code
-  const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
