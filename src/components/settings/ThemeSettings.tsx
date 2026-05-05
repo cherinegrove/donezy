@@ -157,7 +157,7 @@ export function ThemeSettings({ userId }: ThemeSettingsProps) {
                   htmlFor="theme-custom"
                   className="flex items-center cursor-pointer"
                 >
-                  <div className="w-8 h-8 rounded-full mr-2 bg-gradient-to-r from-purple-400 via-pink-500 to-red-500" />
+                  <div className="w-8 h-8 rounded-full mr-2 bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600" />
                   <span>Custom</span>
                 </Label>
               </div>
