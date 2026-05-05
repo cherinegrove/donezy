@@ -437,19 +437,12 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     try {
       const endTime = new Date();
       const startTime = selectedTimer.startTime;
-      
-      let actualElapsedMs: number;
-      if (selectedTimer.isPaused) {
-        actualElapsedMs = selectedTimer.elapsed;
-      } else if (selectedTimer.isActive) {
-        actualElapsedMs = endTime.getTime() - startTime.getTime() - (selectedTimer.totalPausedTime || 0);
-      } else {
-        actualElapsedMs = selectedTimer.elapsed;
-      }
-      
-      const durationMinutes = Math.floor(actualElapsedMs / (1000 * 60));
 
       if (selectedTimer.isLocalOnly) {
+        // Local-only timer - calculate simple duration
+        const actualElapsedMs = endTime.getTime() - startTime.getTime() - (selectedTimer.totalPausedTime || 0);
+        const durationMinutes = Math.floor(actualElapsedMs / (1000 * 60));
+        
         const task = tasks.find(t => t.id === selectedTimer.taskId);
         const project = projects.find(p => p.id === task?.projectId);
         await addTimeEntry({
@@ -465,22 +458,9 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           status: 'pending',
         });
       } else {
-        if (activeTimeEntry && selectedTimer.id === activeTimeEntry.id) {
-          await stopTimeTracking(notes);
-        } else {
-          const { error } = await supabase
-            .from('time_entries')
-            .update({ end_time: endTime.toISOString(), duration: durationMinutes, notes: notes || null, timer_status: 'completed' })
-            .eq('id', selectedTimer.id);
-          if (error) throw error;
-          await supabase.from('time_entry_events').insert({
-            time_entry_id: selectedTimer.id,
-            event_type: 'stopped',
-            event_timestamp: endTime.toISOString(),
-            auth_user_id: currentUser.auth_user_id,
-            details: { notes, durationMinutes, source: 'timer_box_paused_save' },
-          });
-        }
+        // ✅ FIX: ALWAYS use stopTimeTracking for database-backed timers
+        // This ensures event-based duration calculation (pause time excluded)
+        await stopTimeTracking(notes);
       }
 
       // Only remove from UI after successful save
