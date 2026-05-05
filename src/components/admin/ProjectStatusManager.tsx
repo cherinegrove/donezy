@@ -35,7 +35,7 @@ export function ProjectStatusManager() {
     { value: "bg-yellow-500", label: "Yellow" },
     { value: "bg-green-500", label: "Green" },
     { value: "bg-blue-500", label: "Blue" },
-    { value: "bg-purple-500", label: "Purple" },
+    { value: "bg-black", label: "Black" },
     { value: "bg-pink-500", label: "Pink" },
   ];
 
