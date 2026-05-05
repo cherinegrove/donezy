@@ -1050,7 +1050,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     return () => subscription.unsubscribe();
   }, []);
-}, []);
 
   // ============================================
   // REALTIME SUBSCRIPTIONS - INSTANT UPDATES
