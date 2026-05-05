@@ -33,7 +33,7 @@ const NOTE_COLORS = {
   blue: "bg-blue-100 border-blue-200", 
   green: "bg-green-100 border-green-200",
   pink: "bg-pink-100 border-pink-200",
-  purple: "bg-purple-100 border-purple-200",
+  gray: "bg-gray-100 border-gray-200",
   orange: "bg-orange-100 border-orange-200",
 };
 
