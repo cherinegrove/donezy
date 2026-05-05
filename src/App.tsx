@@ -41,6 +41,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Dashboards = lazy(() => import("./pages/Dashboards"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Activity = lazy(() => import("./pages/Activity"));
+const Messages = lazy(() => import("./pages/Messages"));
 
 // Admin Portal (multi-tenant)
 const AdminPortalLayout = lazy(() => import("./components/admin-portal/AdminPortalLayout").then(m => ({ default: m.AdminPortalLayout })));
@@ -309,9 +310,18 @@ const App = () => {
                     <Route index element={<Home />} />
                     <Route path="/projects" element={<Projects />} />
                     <Route path="/projects/:projectId" element={<ProjectDetails />} />
-                    <Route path="/tasks" element={<Tasks />} />
-                    <Route path="/tasks/:taskId" element={<TaskDetails />} />
-                    <Route path="/notes" element={<Notes />} />
+                    <Route
+                      path="/tasks"
+                      element={<RbacRoute element={<Tasks />} resource="tasks" action="view" />}
+                    />
+                    <Route
+                      path="/tasks/:taskId"
+                      element={<RbacRoute element={<TaskDetails />} resource="tasks" action="view" />}
+                    />
+                    <Route
+                      path="/notes"
+                      element={<RbacRoute element={<Notes />} resource="notes" action="view" />}
+                    />
                     <Route
                       path="/clients"
                       element={<RbacRoute element={<Clients />} resource="clients" action="view" />}
@@ -321,14 +331,23 @@ const App = () => {
                       path="/team"
                       element={<RbacRoute element={<Team />} resource="teams" action="view" />}
                     />
-                    <Route path="/time" element={<TimeTracking />} />
-                    <Route path="/notifications" element={<Notifications />} />
+                    <Route
+                      path="/time"
+                      element={<RbacRoute element={<TimeTracking />} resource="time_entries" action="view" />}
+                    />
+                    <Route
+                      path="/notifications"
+                      element={<RbacRoute element={<Notifications />} resource="notifications" action="view" />}
+                    />
                     <Route path="/reports" element={<Navigate to="/analytics" replace />} />
                     <Route
                       path="/dashboards"
                       element={<RbacRoute element={<Dashboards />} resource="dashboards" action="view" />}
                     />
-                    <Route path="/settings" element={<Settings />} />
+                    <Route
+                      path="/settings"
+                      element={<RbacRoute element={<Settings />} resource="settings" action="view" />}
+                    />
                     <Route
                       path="/admin"
                       element={<RbacRoute element={<Admin />} requireAdmin />}
@@ -337,7 +356,14 @@ const App = () => {
                       path="/analytics"
                       element={<RbacRoute element={<Analytics />} resource="analytics" action="view" />}
                     />
-                    <Route path="/activity" element={<Activity />} />
+                    <Route
+                      path="/activity"
+                      element={<RbacRoute element={<Activity />} resource="audit_logs" action="view" />}
+                    />
+                    <Route
+                      path="/messages"
+                      element={<RbacRoute element={<Messages />} resource="messages" action="view" />}
+                    />
                   </Route>
                   
                   {/* Catch-all 404 route - must be last */}

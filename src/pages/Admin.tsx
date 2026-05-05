@@ -45,6 +45,7 @@ import AdminRoles from "@/components/admin/AdminRoles";
 import RbacPermissions from "@/components/admin/RbacPermissions";
 import RbacResources from "@/components/admin/RbacResources";
 import RbacRoles from "@/components/admin/RbacRoles";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 
 // Helper to check if user has admin system role
 const hasAdminRole = (user: any) => {
@@ -227,7 +228,9 @@ const Admin = () => {
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">
-          <AdminUsers />
+          <PermissionGuard resource="users" action="view">
+            <AdminUsers />
+          </PermissionGuard>
         </TabsContent>
 
         <TabsContent value="time-audit" className="space-y-6">
@@ -247,7 +250,9 @@ const Admin = () => {
         </TabsContent>
 
         <TabsContent value="teams" className="space-y-6">
-          <AdminTeams />
+          <PermissionGuard resource="teams" action="manage">
+            <AdminTeams />
+          </PermissionGuard>
         </TabsContent>
 
         <TabsContent value="activity" className="space-y-6">
@@ -255,7 +260,9 @@ const Admin = () => {
         </TabsContent>
 
         <TabsContent value="roles" className="space-y-6">
-          <AdminRoles />
+          <PermissionGuard resource="roles" action="view">
+            <AdminRoles />
+          </PermissionGuard>
         </TabsContent>
 
         <TabsContent value="rbac-roles" className="space-y-6">

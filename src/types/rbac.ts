@@ -187,6 +187,7 @@ export interface RbacPermission {
   resource: RbacResource;
   action: RbacAction;
   description?: string;
+  is_hidden?: boolean;
   created_at?: string;
   updated_at?: string;
 }

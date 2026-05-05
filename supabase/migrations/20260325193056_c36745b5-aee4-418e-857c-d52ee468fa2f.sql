@@ -1,1 +1,0 @@
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS weekly_roundup_settings JSONB DEFAULT NULL;

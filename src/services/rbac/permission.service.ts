@@ -8,9 +8,26 @@ import type { RbacPermission, RbacResource, RbacAction } from "@/types/rbac";
 
 export const permissionService = {
   /**
-   * Get all permissions
+   * Get visible permissions only (is_hidden = false).
+   * Use this everywhere in the UI.
    */
   async getAll(): Promise<RbacPermission[]> {
+    const { data, error } = await supabase
+      .from("rbac_permissions")
+      .select("*")
+      .order("resource")
+      .order("action");
+
+    if (error) throw error;
+
+    return ((data as RbacPermission[]) || []).filter((p) => !p.is_hidden);
+  },
+
+  /**
+   * Get ALL permissions including hidden ones.
+   * Only used internally (e.g. seeding, migration checks).
+   */
+  async getAllIncludingHidden(): Promise<RbacPermission[]> {
     const { data, error } = await supabase
       .from("rbac_permissions")
       .select("*")
@@ -23,7 +40,7 @@ export const permissionService = {
   },
 
   /**
-   * Get permissions grouped by resource
+   * Get visible permissions grouped by resource.
    */
   async getGroupedByResource(): Promise<Record<string, RbacPermission[]>> {
     const permissions = await this.getAll();

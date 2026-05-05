@@ -1465,7 +1465,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
       if (updates.roleId !== undefined) dbUpdates.role = updates.roleId;
       if (updates.status !== undefined) dbUpdates.status = updates.status;
-      if (updates.teamIds !== undefined) dbUpdates.team_ids = updates.teamIds;
+      if (updates.teamIds !== undefined) {
+        if (!hasPermission(currentUserRef.current, "teams", "manage", "own")) {
+          throw new Error("Permission denied: You do not have permission to manage team members");
+        }
+        dbUpdates.team_ids = updates.teamIds;
+      }
       if (updates.jobTitle !== undefined)
         dbUpdates.job_title = updates.jobTitle;
       if (updates.clientId !== undefined)
@@ -4645,12 +4650,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const updateMessage = (messageId: string, updates: Partial<Message>) => {
+    if (!hasPermission(currentUserRef.current, "messages", "edit", "own")) {
+      throw new Error("Permission denied: You don't have permission to edit messages.");
+    }
     setMessages((prev) =>
       prev.map((msg) => (msg.id === messageId ? { ...msg, ...updates } : msg)),
     );
   };
 
   const deleteMessage = (messageId: string) => {
+    if (!hasPermission(currentUserRef.current, "messages", "delete", "own")) {
+      throw new Error("Permission denied: You don't have permission to delete messages.");
+    }
     setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
   };
 
