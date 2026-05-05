@@ -98,22 +98,22 @@ export function AIChatbot() {
       const [tasksData, projectsData, timeEntriesData, profileData] = await Promise.all([
         supabase
           .from('tasks')
-          .select('id, title, status, priority, due_date, estimated_hours, project_id, assignee_id')
-          .or(`assignee_id.eq.${user.id},owner_id.eq.${user.id}`)
+          .select('id, title, status, priority, due_date, estimated_hours, project_id, assignee_id, owner_id')
+          .or(`assignee_id.eq.${user.id},owner_id.eq.${user.id},auth_user_id.eq.${user.id}`)
           .order('created_at', { ascending: false })
           .limit(50),
         
         supabase
           .from('projects')
           .select('id, name, status, budget, start_date, due_date')
-          .or(`owner_id.eq.${user.id}`)
+          .or(`owner_id.eq.${user.id},auth_user_id.eq.${user.id}`)
           .order('created_at', { ascending: false })
           .limit(20),
         
         supabase
           .from('time_entries')
           .select('id, duration, start_time, end_time, task_id')
-          .eq('user_id', user.id)
+          .or(`user_id.eq.${user.id},auth_user_id.eq.${user.id}`)
           .gte('start_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Last 7 days
           .order('start_time', { ascending: false })
           .limit(100),
