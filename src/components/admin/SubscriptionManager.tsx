@@ -415,7 +415,7 @@ export function SubscriptionManager() {
                 <Button 
                   onClick={handleUpgradeToPaid}
                   disabled={checkoutLoading}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  className="bg-gradient-to-r from-gray-600 to-black hover:from-gray-700 hover:to-gray-900"
                 >
                   {checkoutLoading ? (
                     <>
