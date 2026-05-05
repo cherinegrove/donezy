@@ -1,76 +1,81 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* ========================================== */
+    /* BLACK & WHITE THEME - Light Mode */
+    /* ========================================== */
+    
+    --background: 0 0% 100%;  /* White background */
+    --foreground: 0 0% 0%;    /* Black text */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;        /* White cards */
+    --card-foreground: 0 0% 0%;  /* Black text on cards */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;     /* White popovers */
+    --popover-foreground: 0 0% 0%;  /* Black text on popovers */
 
-    --primary: 270 50% 40%;
-    --primary-foreground: 210 40% 98%;
+    /* PRIMARY = BLACK (was purple) */
+    --primary: 0 0% 0%;       /* Pure black (was 270 50% 40% purple) */
+    --primary-foreground: 0 0% 100%;  /* White text on black */
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* SECONDARY = Light gray */
+    --secondary: 0 0% 96%;    /* Very light gray */
+    --secondary-foreground: 0 0% 0%;  /* Black text */
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* MUTED = Light gray */
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;  /* Dark gray text */
 
-    --accent: 270 50% 40%;
-    --accent-foreground: 210 40% 98%;
+    /* ACCENT = BLACK (was purple) */
+    --accent: 0 0% 0%;        /* Pure black (was 270 50% 40% purple) */
+    --accent-foreground: 0 0% 100%;  /* White text on black */
 
+    /* DESTRUCTIVE = Keep red for errors */
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
+    /* SUCCESS = Keep green */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
 
+    /* WARNING = Keep orange */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* BORDERS & INPUTS */
+    --border: 0 0% 90%;       /* Light gray border */
+    --input: 0 0% 90%;        /* Light gray input border */
+    --ring: 0 0% 0%;          /* Black focus ring */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 270 50% 40%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 270 50% 40%;
-
-    --sidebar-accent-foreground: 0 0% 98%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* SIDEBAR = BLACK */
+    --sidebar-background: 0 0% 0%;  /* Pure black (was 98% white) */
+    --sidebar-foreground: 0 0% 100%;  /* White text (was dark gray) */
+    --sidebar-primary: 0 0% 0%;  /* Black (was purple) */
+    --sidebar-primary-foreground: 0 0% 100%;  /* White text */
+    --sidebar-accent: 0 0% 20%;  /* Dark gray for hover */
+    --sidebar-accent-foreground: 0 0% 100%;  /* White text */
+    --sidebar-border: 0 0% 20%;  /* Dark gray border */
+    --sidebar-ring: 0 0% 100%;  /* White ring */
     
-    --task-card-bg: 0 0% 100%;
+    --task-card-bg: 0 0% 100%;  /* White task cards */
     
-    /* Custom theme variables with updated button color */
-    --button-primary-color: #8E44AD;
-    --button-text-color: #FFFFFF;
-    --sidebar-background-color: #1A1F2C;
-    --sidebar-text-color: #FFFFFF;
+    /* Custom theme variables - BLACK & WHITE */
+    --button-primary-color: #000000;  /* Black (was #8E44AD purple) */
+    --button-text-color: #FFFFFF;     /* White */
+    --sidebar-background-color: #000000;  /* Black (was #1A1F2C) */
+    --sidebar-text-color: #FFFFFF;    /* White */
     
-    /* Kanban gradient colors based on #663399 */
-    --kanban-backlog: linear-gradient(135deg, #e6ddf2 0%, #f0ebf7 100%);
-    --kanban-todo: linear-gradient(135deg, #d4c4e8 0%, #e6ddf2 100%);
-    --kanban-in-progress: linear-gradient(135deg, #b89dd6 0%, #d4c4e8 100%);
-    --kanban-review: linear-gradient(135deg, #9975c4 0%, #b89dd6 100%);
-    --kanban-done: linear-gradient(135deg, #8861b3 0%, #9975c4 100%);
+    /* Kanban gradient colors - BLACK & GRAY gradients (was purple) */
+    --kanban-backlog: linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%);  /* Very light gray */
+    --kanban-todo: linear-gradient(135deg, #e8e8e8 0%, #f0f0f0 100%);     /* Light gray */
+    --kanban-in-progress: linear-gradient(135deg, #d0d0d0 0%, #e0e0e0 100%);  /* Medium gray */
+    --kanban-review: linear-gradient(135deg, #b0b0b0 0%, #c8c8c8 100%);   /* Darker gray */
+    --kanban-done: linear-gradient(135deg, #909090 0%, #a8a8a8 100%);     /* Dark gray */
     
     /* Smooth transitions */
     --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -85,47 +90,61 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* ========================================== */
+    /* BLACK & WHITE THEME - Dark Mode */
+    /* ========================================== */
+    
+    --background: 0 0% 0%;    /* Pure black background */
+    --foreground: 0 0% 100%;  /* White text */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 10%;         /* Very dark gray cards */
+    --card-foreground: 0 0% 100%;  /* White text */
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 10%;      /* Very dark gray */
+    --popover-foreground: 0 0% 100%;  /* White text */
 
-    --primary: 270 50% 40%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* PRIMARY = WHITE (inverted for dark mode) */
+    --primary: 0 0% 100%;     /* Pure white (was purple) */
+    --primary-foreground: 0 0% 0%;  /* Black text on white */
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    /* SECONDARY = Dark gray */
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    /* MUTED = Dark gray */
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 270 50% 40%;
-    --accent-foreground: 210 40% 98%;
+    /* ACCENT = WHITE (inverted for dark mode) */
+    --accent: 0 0% 100%;      /* Pure white (was purple) */
+    --accent-foreground: 0 0% 0%;  /* Black text on white */
 
+    /* DESTRUCTIVE = Keep red */
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
+    /* SUCCESS = Keep green */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
 
+    /* WARNING = Keep orange */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 270 50% 40%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 270 50% 40%;
+    /* BORDERS & INPUTS */
+    --border: 0 0% 20%;       /* Dark gray */
+    --input: 0 0% 20%;
+    --ring: 0 0% 100%;        /* White focus ring */
+    
+    /* SIDEBAR = Slightly lighter than background */
+    --sidebar-background: 0 0% 5%;  /* Very dark gray */
+    --sidebar-foreground: 0 0% 100%;  /* White text */
+    --sidebar-primary: 0 0% 100%;  /* White */
+    --sidebar-primary-foreground: 0 0% 0%;  /* Black text */
+    --sidebar-accent: 0 0% 15%;  /* Dark gray for hover */
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-border: 0 0% 15%;
+    --sidebar-ring: 0 0% 100%;
   }
 }
 
