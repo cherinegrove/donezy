@@ -2176,6 +2176,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     try {
       // Delete related records first to avoid foreign key constraint violations
+      
       // Delete messages linked to this task
       await supabase.from('messages').delete().eq('task_id', taskId);
       
@@ -2187,6 +2188,28 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       
       // Delete comments
       await supabase.from('comments').delete().eq('task_id', taskId);
+      
+      // ✅ FIX: Delete time entries and their events (was missing!)
+      const { data: timeEntries } = await supabase
+        .from('time_entries')
+        .select('id')
+        .eq('task_id', taskId);
+      
+      if (timeEntries && timeEntries.length > 0) {
+        const timeEntryIds = timeEntries.map(te => te.id);
+        
+        // Delete time entry events first
+        await supabase
+          .from('time_entry_events')
+          .delete()
+          .in('time_entry_id', timeEntryIds);
+        
+        // Then delete time entries
+        await supabase
+          .from('time_entries')
+          .delete()
+          .eq('task_id', taskId);
+      }
       
       // Now delete the task
       const { error } = await supabase
