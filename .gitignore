@@ -30,3 +30,4 @@ dist-ssr
 supabase/.branches
 supabase/.temp
 supabase/dump.sql
+supabase/seed.sql

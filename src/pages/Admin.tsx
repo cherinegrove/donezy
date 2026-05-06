@@ -26,43 +26,25 @@ import {
   Settings,
   ShieldAlert,
   Users,
-  CheckSquare,
-  Folder,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Clients from "@/pages/Clients";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { SystemPreferences } from "@/components/admin/SystemPreferences";
 import { DefaultNotificationSettings } from "@/components/admin/DefaultNotificationSettings";
 import { EmailTemplatesManager } from "@/components/admin/EmailTemplatesManager";
 
-import AdminRoles from "@/components/admin/AdminRoles";
 import RbacPermissions from "@/components/admin/RbacPermissions";
 import RbacResources from "@/components/admin/RbacResources";
 import RbacRoles from "@/components/admin/RbacRoles";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
-
-// Helper to check if user has admin system role
-const hasAdminRole = (user: any) => {
-  // return true;
-
-  return (
-    user?.systemRoles?.includes("platform_admin") ||
-    user?.systemRoles?.includes("support_admin")
-  );
-};
+import { useRbac } from "@/hooks/useRbac";
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("overview");
-  const { currentUser, users } = useAppContext();
+  const { users } = useAppContext();
+  const { isAdmin } = useRbac();
 
-  // Check admin access using systemRoles
-  if (!hasAdminRole(currentUser)) {
+  if (!isAdmin()) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
@@ -103,10 +85,7 @@ const Admin = () => {
           <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="activity">Activity Log</TabsTrigger>
-          <TabsTrigger value="roles">Roles</TabsTrigger>
           <TabsTrigger value="rbac-roles">RBAC Roles</TabsTrigger>
-          <TabsTrigger value="permissions">RBAC Permissions</TabsTrigger>
-          <TabsTrigger value="resources">RBAC Resources</TabsTrigger>
           <TabsTrigger value="account-settings">Account Settings</TabsTrigger>
         </TabsList>
 
@@ -257,12 +236,6 @@ const Admin = () => {
 
         <TabsContent value="activity" className="space-y-6">
           <AdminActivity />
-        </TabsContent>
-
-        <TabsContent value="roles" className="space-y-6">
-          <PermissionGuard resource="roles" action="view">
-            <AdminRoles />
-          </PermissionGuard>
         </TabsContent>
 
         <TabsContent value="rbac-roles" className="space-y-6">
