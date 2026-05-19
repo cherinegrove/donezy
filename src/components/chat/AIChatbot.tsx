@@ -90,9 +90,59 @@ export function AIChatbot() {
     setIsLoading(true);
 
     try {
-      // Call Supabase Edge Function
+      // ✅ FIX: Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // ✅ FIX: Fetch user's context (tasks, projects, time entries)
+      const [tasksData, projectsData, timeEntriesData, profileData] = await Promise.all([
+        supabase
+          .from('tasks')
+          .select('id, title, status, priority, due_date, estimated_hours, project_id, assignee_id, owner_id')
+          .or(`assignee_id.eq.${user.id},owner_id.eq.${user.id},auth_user_id.eq.${user.id}`)
+          .order('created_at', { ascending: false })
+          .limit(50),
+        
+        supabase
+          .from('projects')
+          .select('id, name, status, budget, start_date, due_date')
+          .or(`owner_id.eq.${user.id},auth_user_id.eq.${user.id}`)
+          .order('created_at', { ascending: false })
+          .limit(20),
+        
+        supabase
+          .from('time_entries')
+          .select('id, duration, start_time, end_time, task_id')
+          .or(`user_id.eq.${user.id},auth_user_id.eq.${user.id}`)
+          .gte('start_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Last 7 days
+          .order('start_time', { ascending: false })
+          .limit(100),
+        
+        supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', user.id)
+          .single()
+      ]);
+
+      // ✅ FIX: Build user context
+      const userContext = {
+        userId: user.id,
+        userEmail: profileData.data?.email || '',
+        userName: profileData.data?.full_name || '',
+        tasks: tasksData.data || [],
+        projects: projectsData.data || [],
+        timeEntries: timeEntriesData.data || [],
+        currentDate: new Date().toISOString(),
+      };
+
+      // ✅ FIX: Call Edge Function with full context
       const { data, error } = await supabase.functions.invoke("ai-chatbot", {
-        body: { message: text, chatHistory: messages },
+        body: { 
+          message: text, 
+          chatHistory: messages,
+          userContext: userContext  // ✅ Now includes user data!
+        },
       });
 
       if (error) throw error;
@@ -113,6 +163,8 @@ export function AIChatbot() {
         errorMessage += "The AI assistant needs to be set up. Please contact support.";
       } else if (error.message?.includes("API key")) {
         errorMessage += "API configuration is missing. Please contact support.";
+      } else if (error.message?.includes("Not authenticated")) {
+        errorMessage += "Please refresh the page and try again.";
       } else {
         errorMessage += "Please try again in a moment.";
       }

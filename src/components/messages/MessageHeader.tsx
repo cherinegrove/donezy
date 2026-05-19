@@ -116,7 +116,7 @@ export function MessageHeader({
             )}
             
             {task && (
-              <Badge variant="outline" className="bg-purple-50">
+              <Badge variant="outline" className="bg-gray-50">
                 <Link to={`/projects/${task.projectId}?taskId=${task.id}`} className="hover:underline">
                   Task: {task.title}
                 </Link>

@@ -90,7 +90,7 @@ export default function AdminPortalAccounts() {
   const tierStyles: Record<string, string> = {
     free: "bg-muted text-muted-foreground",
     starter: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-    pro: "bg-purple-500/10 text-purple-600 border-purple-500/20",
+    pro: "bg-black/10 text-black border-black/20",
     enterprise: "bg-orange-500/10 text-orange-600 border-orange-500/20",
   };
 

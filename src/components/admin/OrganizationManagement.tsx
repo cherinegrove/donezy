@@ -208,7 +208,7 @@ export default function OrganizationManagement() {
   const getPlanBadgeColor = (plan: string) => {
     switch (plan) {
       case 'enterprise':
-        return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
+        return 'bg-black/10 text-black border-black/20';
       case 'pro':
         return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
       case 'starter':

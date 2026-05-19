@@ -29,7 +29,7 @@ export function DataImportManager() {
       title: "Import Tasks", 
       description: "Bulk import tasks with assignments and custom fields",
       icon: CheckSquare,
-      color: "bg-purple-50 border-purple-200 text-purple-800",
+      color: "bg-gray-50 border-gray-200 text-gray-800",
       fields: ["Title", "Description", "Project", "Assignee", "Priority", "Status"]
     },
     {

@@ -46,7 +46,7 @@ const COLOR_OPTIONS = [
   { name: "blue", class: "bg-blue-100 border-blue-200", label: "Blue" },
   { name: "green", class: "bg-green-100 border-green-200", label: "Green" },
   { name: "pink", class: "bg-pink-100 border-pink-200", label: "Pink" },
-  { name: "purple", class: "bg-purple-100 border-purple-200", label: "Purple" },
+  { name: "gray", class: "bg-gray-100 border-gray-200", label: "Gray" },
   { name: "orange", class: "bg-orange-100 border-orange-200", label: "Orange" },
 ];
 
