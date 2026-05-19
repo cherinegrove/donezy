@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
 import { Plus, Sparkles } from "lucide-react";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { useAppContext } from "@/contexts/AppContext";
 import { WidgetContainer } from "@/components/analytics/WidgetContainer";
 import { RiskSuccessWidget } from "@/components/analytics/RiskSuccessWidget";
@@ -457,10 +458,12 @@ export default function Analytics() {
                 dateRange={customDateRange}
                 onDateRangeChange={setCustomDateRange}
               />
-              <Button onClick={() => setAddWidgetOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Widget
-              </Button>
+              <PermissionGuard resource="analytics" action="view">
+                <Button onClick={() => setAddWidgetOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Widget
+                </Button>
+              </PermissionGuard>
             </div>
           </div>
         </div>
@@ -508,10 +511,12 @@ export default function Analytics() {
             <p className="text-muted-foreground mb-6">
               Add widgets to create your personalized analytics view
             </p>
-            <Button onClick={() => setAddWidgetOpen(true)} size="lg">
-              <Plus className="h-5 w-5 mr-2" />
-              Add Your First Widget
-            </Button>
+            <PermissionGuard resource="analytics" action="view">
+              <Button onClick={() => setAddWidgetOpen(true)} size="lg">
+                <Plus className="h-5 w-5 mr-2" />
+                Add Your First Widget
+              </Button>
+            </PermissionGuard>
           </div>
         )}
       </div>

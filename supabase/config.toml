@@ -1,13 +1,8 @@
-project_id = "puwxkygdlclcbyxrtppd"
-
 [auth]
 enabled = true
-image = "supabase/gotrue:v2.151.0"
-site_url = "https://thriving-chaja-l0v4bl3-ea1c47bc.lovableproject.com"
-additional_redirect_urls = ["https://app.donezy.io", "https://app.donezy.io/confirm", "https://app.donezy.io/set-password", "https://app.donezy.io/reset-password", "https://app.donezy.io/email-confirmation", "http://localhost:3000", "https://localhost:3000", "http://localhost:3000/confirm", "http://localhost:3000/set-password", "http://localhost:3000/reset-password", "http://localhost:3000/email-confirmation", "https://localhost:3000/confirm", "https://localhost:3000/set-password", "https://localhost:3000/reset-password", "https://localhost:3000/email-confirmation", "https://*.lovableproject.com", "https://*.lovableproject.com/confirm", "https://*.lovableproject.com/email-confirmation", "https://*.lovableproject.com/set-password", "https://*.lovableproject.com/reset-password"]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000", "http://localhost:3000/confirm", "http://localhost:3000/set-password", "http://localhost:3000/reset-password", "http://localhost:3000/email-confirmation"]
 jwt_expiry = 3600
-refresh_token_rotation_enabled = true
-security_refresh_token_reuse_interval = 10
 enable_signup = true
 
 [auth.email]
@@ -15,16 +10,13 @@ enable_signup = true
 double_confirm_changes = true
 enable_confirmations = true
 
-[database]
-port = 5432
-shadow_port = 5433
-
 [db]
-shadow_port = 5433
+port = 54332
+shadow_port = 54333
 
 [api]
 enabled = true
-port = 54321
+port = 54331
 schemas = ["public", "storage", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
@@ -73,7 +65,6 @@ verify_jwt = false
 
 [storage]
 enabled = true
-image = "supabase/storage-api:v1.0.6"
 file_size_limit = "52428800"
 
 [storage.buckets.videos]
@@ -91,6 +82,15 @@ public = false
 file_size_limit = "52428800"
 allowed_mime_types = ["*"]
 
+[studio]
+enabled = true
+port = 54336
+
+[inbucket]
+enabled = true
+smtp_port = 54338
+pop3_port = 54339
+port = 54334
+
 [edge_runtime]
 enabled = true
-ip_version = "dual"

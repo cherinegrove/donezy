@@ -1,8 +1,11 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
+import { useRbac } from "@/hooks/useRbac";
+import { filterTasksByScope } from "@/utils/rbacFilters";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { TaskStatus, Task } from "@/types";
 
 import { Button } from "@/components/ui/button";
@@ -42,7 +45,17 @@ type TaskViewMode = "list" | "kanban" | "timeline";
 
 export default function Tasks() {
   const { tasks, projects, users, clients, currentUser, taskStatuses } = useAppContext();
+  const { can } = useRbac();
   const navigate = useNavigate();
+
+  const projectsMap = useMemo(
+    () => Object.fromEntries(projects.map((p) => [p.id, p])),
+    [projects],
+  );
+  const scopedTasks = useMemo(
+    () => filterTasksByScope(tasks, currentUser, projectsMap),
+    [tasks, currentUser, projectsMap],
+  );
   
   // Auto-generate recurring tasks on page load
   useEffect(() => {
@@ -106,9 +119,9 @@ export default function Tasks() {
     },
   ];
 
-  // Filter tasks based on all filters
+  // Filter tasks based on all filters (scopedTasks already filtered by RBAC scope)
   React.useEffect(() => {
-    const filtered = tasks.filter(task => {
+    const filtered = scopedTasks.filter(task => {
       // Apply "My Tasks Only" filter first
       if (showMyTasksOnly && currentUser) {
         const isMyTask = task.assigneeId === currentUser.auth_user_id || 
@@ -173,7 +186,7 @@ export default function Tasks() {
     });
     
     setFilteredTasks(filtered);
-  }, [tasks, activeFilters, startDate, dueDate, projects, statusFilter, showMyTasksOnly, currentUser]);
+  }, [scopedTasks, activeFilters, startDate, dueDate, projects, statusFilter, showMyTasksOnly, currentUser]);
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setActiveFilters(filters);
@@ -240,23 +253,29 @@ export default function Tasks() {
             </TabsList>
             {activeTab === "tasks" ? (
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setIsBulkImportOpen(true)}>
-                  <Upload className="mr-1 sm:mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Import Tasks</span>
-                  <span className="sm:hidden">Import</span>
-                </Button>
-                <Button size="sm" className="flex-1 sm:flex-none" onClick={() => setIsCreateTaskOpen(true)}>
-                  <Plus className="mr-1 sm:mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">New Task</span>
-                  <span className="sm:hidden">New</span>
-                </Button>
+                <PermissionGuard resource="tasks" action="import">
+                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setIsBulkImportOpen(true)}>
+                    <Upload className="mr-1 sm:mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Import Tasks</span>
+                    <span className="sm:hidden">Import</span>
+                  </Button>
+                </PermissionGuard>
+                <PermissionGuard resource="tasks" action="create">
+                  <Button size="sm" className="flex-1 sm:flex-none" onClick={() => setIsCreateTaskOpen(true)}>
+                    <Plus className="mr-1 sm:mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">New Task</span>
+                    <span className="sm:hidden">New</span>
+                  </Button>
+                </PermissionGuard>
               </div>
             ) : (
-              <Button size="sm" onClick={() => setIsCreateTemplateOpen(true)}>
-                <Plus className="mr-1 sm:mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">New Template</span>
-                <span className="sm:hidden">New</span>
-              </Button>
+              <PermissionGuard resource="templates" action="create">
+                <Button size="sm" onClick={() => setIsCreateTemplateOpen(true)}>
+                  <Plus className="mr-1 sm:mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">New Template</span>
+                  <span className="sm:hidden">New</span>
+                </Button>
+              </PermissionGuard>
             )}
           </div>
         </div>
@@ -364,14 +383,16 @@ export default function Tasks() {
                       ? "Try adjusting your filters"
                       : "Create a new task to get started"}
                   </p>
-                  <Button 
-                    variant="default" 
-                    className="mt-4" 
-                    onClick={() => setIsCreateTaskOpen(true)}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Task
-                  </Button>
+                  <PermissionGuard resource="tasks" action="create">
+                    <Button
+                      variant="default"
+                      className="mt-4"
+                      onClick={() => setIsCreateTaskOpen(true)}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create Task
+                    </Button>
+                  </PermissionGuard>
                 </CardContent>
               </Card>
             ) : (

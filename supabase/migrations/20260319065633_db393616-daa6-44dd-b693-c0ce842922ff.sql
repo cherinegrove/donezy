@@ -1,1 +1,0 @@
-ALTER TABLE public.google_chat_thread_mappings ADD CONSTRAINT google_chat_thread_mappings_thread_key_unique UNIQUE (thread_key);
