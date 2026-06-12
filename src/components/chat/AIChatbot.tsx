@@ -16,7 +16,6 @@ export function AIChatbot() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -35,34 +34,27 @@ export function AIChatbot() {
     setIsLoading(true);
 
     try {
-      // Get authenticated user
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("Not authenticated");
-      }
+      if (!user) throw new Error("Not authenticated");
 
-      console.log('👤 Fetching data for user:', user.id);
+      console.log('👤 User:', user.id);
 
-      // Get user profile
+      // Get profile
       const { data: profileData } = await supabase
         .from('profiles')
         .select('full_name, email')
         .eq('id', user.id)
         .single();
 
-      // Build date ranges
-      const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
-      const weekStart = new Date(today.getTime() - today.getDay() * 24 * 60 * 60 * 1000)
+      const today = new Date().toISOString().split('T')[0];
+      const weekStart = new Date(new Date().getTime() - new Date().getDay() * 24 * 60 * 60 * 1000)
         .toISOString().split('T')[0];
 
-      console.log('📅 Date range:', { today: todayStr, weekStart });
-
-      // ✅ FETCH TASKS - Check ALL user ID fields!
+      // FETCH TASKS - Only use columns that EXIST
       const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
-        .select('id, title, status, priority, due_date, estimated_hours, actual_hours')
-        .or(`assignee_id.eq.${user.id},owner_id.eq.${user.id},auth_user_id.eq.${user.id}`)
+        .select('id, title, status, priority, due_date, estimated_hours, actual_hours, auth_user_id, assignee_id')
+        .or(`assignee_id.eq.${user.id},auth_user_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
       if (tasksError) {
@@ -72,34 +64,32 @@ export function AIChatbot() {
 
       console.log('✅ Tasks fetched:', tasksData?.length || 0);
 
-      // ✅ FETCH PROJECTS
+      // FETCH PROJECTS
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('id, name, status')
-        .or(`owner_id.eq.${user.id},auth_user_id.eq.${user.id}`);
+        .eq('auth_user_id', user.id);
 
       if (projectsError) {
         console.error('❌ Projects error:', projectsError);
-        throw projectsError;
       }
 
       console.log('✅ Projects fetched:', projectsData?.length || 0);
 
-      // ✅ FETCH TIME ENTRIES
+      // FETCH TIME ENTRIES
       const { data: timeEntriesData, error: timeError } = await supabase
         .from('time_entries')
         .select('duration, start_time')
-        .or(`user_id.eq.${user.id},auth_user_id.eq.${user.id}`)
+        .eq('auth_user_id', user.id)
         .gte('start_time', weekStart);
 
       if (timeError) {
         console.error('❌ Time entries error:', timeError);
-        throw timeError;
       }
 
       console.log('✅ Time entries fetched:', timeEntriesData?.length || 0);
 
-      // ✅ FETCH MESSAGES (notifications)
+      // FETCH MESSAGES
       const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
         .select('id')
@@ -110,38 +100,24 @@ export function AIChatbot() {
         console.error('❌ Messages error:', messagesError);
       }
 
-      console.log('✅ Unread messages:', messagesData?.length || 0);
+      console.log('✅ Messages fetched:', messagesData?.length || 0);
 
-      // ✅ FETCH REMINDERS
-      const { data: remindersData, error: remindersError } = await supabase
-        .from('task_reminders')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('sent', false);
-
-      if (remindersError) {
-        console.error('❌ Reminders error:', remindersError);
-      }
-
-      console.log('✅ Reminders:', remindersData?.length || 0);
-
-      // Build typed data
+      // Build data
       const allTasks = tasksData || [];
       const allProjects = projectsData || [];
       const allTimeEntries = timeEntriesData || [];
 
       // Categorize tasks
-      const tasksDueToday = allTasks.filter(t => t.due_date?.split('T')[0] === todayStr);
-      const tasksOverdue = allTasks.filter(t => t.due_date && t.due_date < todayStr && t.status !== 'done');
+      const tasksDueToday = allTasks.filter(t => t.due_date?.split('T')[0] === today);
+      const tasksOverdue = allTasks.filter(t => t.due_date && t.due_date < today && t.status !== 'done');
       const tasksInProgress = allTasks.filter(t => t.status === 'in-progress');
       const tasksUrgent = allTasks.filter(t => t.priority === 'high' && t.status !== 'done');
 
-      // Calculate hours
       const hoursThisWeek = Math.round(
         allTimeEntries.reduce((sum, te) => sum + (te.duration || 0), 0) / 60
       );
 
-      // Build user context
+      // Build context
       const userContext = {
         userId: user.id,
         userName: profileData?.full_name || 'User',
@@ -165,19 +141,17 @@ export function AIChatbot() {
           unread: messagesData || [],
         },
         reminders: {
-          count: remindersData?.length || 0,
-          upcoming: remindersData || [],
+          count: 0,
+          upcoming: [],
         },
       };
 
-      console.log('📊 USER CONTEXT BUILT:', {
+      console.log('📊 CONTEXT BUILT:', {
         totalTasks: userContext.stats.totalTasks,
         dueToday: userContext.tasks.dueToday.length,
         overdue: userContext.tasks.overdue.length,
-        notifications: userContext.notifications.count,
       });
 
-      // Call Edge Function
       console.log('🔄 Calling Edge Function...');
       const { data, error } = await supabase.functions.invoke("ai-chatbot", {
         body: {
@@ -192,27 +166,27 @@ export function AIChatbot() {
         throw error;
       }
 
-      console.log('✅ Response received from AI');
+      console.log('✅ Response received');
 
       const assistantMessage: Message = {
         role: "assistant",
-        content: data?.response || "I received your message but couldn't generate a response. Please try again.",
+        content: data?.response || "I couldn't generate a response.",
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: any) {
-      console.error("❌ Chat error:", error);
+      console.error("❌ Error:", error);
 
       toast({
         title: "Error",
-        description: error.message || "Unable to connect to chatbot",
+        description: error.message,
         variant: "destructive",
       });
 
       const errorMessage: Message = {
         role: "assistant",
-        content: `Error: ${error.message}. Check browser console for details.`,
+        content: `Error: ${error.message}`,
         timestamp: new Date(),
       };
 
@@ -232,7 +206,6 @@ export function AIChatbot() {
       <button
         onClick={() => setIsOpen(true)}
         className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-110 transition-transform flex items-center justify-center z-50"
-        aria-label="Open AI Assistant"
       >
         <span className="text-2xl">💬</span>
       </button>
@@ -241,13 +214,12 @@ export function AIChatbot() {
 
   return (
     <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-background border border-border rounded-lg shadow-2xl flex flex-col z-50">
-      {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-muted/50">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🤖</span>
           <div>
             <h3 className="font-semibold text-sm">Donezy Assistant</h3>
-            <p className="text-xs text-muted-foreground">Your productivity helper</p>
+            <p className="text-xs text-muted-foreground">Your helper</p>
           </div>
         </div>
         <button
@@ -258,17 +230,11 @@ export function AIChatbot() {
         </button>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background/50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
-          <div className="text-center py-8 space-y-2">
+          <div className="text-center py-8">
             <p className="text-3xl">👋</p>
-            <p className="text-sm text-muted-foreground">
-              Hi! I can help you with your tasks and projects.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Try: "Show my tasks due today" or "What's overdue?"
-            </p>
+            <p className="text-sm text-muted-foreground">Ask about your tasks!</p>
           </div>
         )}
 
@@ -280,11 +246,11 @@ export function AIChatbot() {
             <div
               className={`max-w-[85%] rounded-lg px-4 py-2 ${
                 message.role === "user"
-                  ? "bg-primary text-primary-foreground rounded-br-none"
-                  : "bg-muted text-foreground rounded-bl-none"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-foreground"
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
               <p className="text-xs opacity-60 mt-1">
                 {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </p>
@@ -294,7 +260,7 @@ export function AIChatbot() {
 
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-muted rounded-lg rounded-bl-none px-4 py-2">
+            <div className="bg-muted rounded-lg px-4 py-2">
               <div className="flex gap-1">
                 <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></span>
                 <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
@@ -307,24 +273,22 @@ export function AIChatbot() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <form onSubmit={handleSubmit} className="p-4 border-t border-border bg-background">
+      <form onSubmit={handleSubmit} className="p-4 border-t border-border">
         <div className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask me anything..."
+            placeholder="Ask me..."
             className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
             disabled={isLoading}
-            autoFocus
           />
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity text-sm font-medium"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 text-sm"
           >
-            {isLoading ? "..." : "Send"}
+            Send
           </button>
         </div>
       </form>
