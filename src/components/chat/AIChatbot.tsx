@@ -34,15 +34,15 @@ export function AIChatbot() {
     setIsLoading(true);
 
     try {
-      console.log('🎯 Starting sendMessage...');
+      console.log('🎯 sendMessage called with:', text);
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      console.log('👤 User authenticated:', user.id);
+      console.log('👤 User:', user.id);
 
-      // Simple test - just send the message
-      const requestData = {
+      // Create request body
+      const requestBody = {
         message: text,
         chatHistory: messages.slice(-5),
         userContext: {
@@ -52,28 +52,37 @@ export function AIChatbot() {
         }
       };
 
-      console.log('📤 Sending to Edge Function:', JSON.stringify(requestData, null, 2));
+      console.log('📤 Request body:', requestBody);
+      console.log('📤 Body as string:', JSON.stringify(requestBody));
 
+      // Call Edge Function with explicit headers
       const { data, error } = await supabase.functions.invoke("ai-chatbot", {
-        body: requestData,
+        body: requestBody,
+        headers: {
+          "Content-Type": "application/json",
+        }
       });
 
-      console.log('📥 Response from Edge Function:', { data, error });
+      console.log('📥 Response:', { data, error });
 
       if (error) {
-        console.error('❌ Edge function error:', error);
+        console.error('❌ Error:', error);
         throw error;
+      }
+
+      if (!data || !data.response) {
+        throw new Error('No response from chatbot');
       }
 
       const assistantMessage: Message = {
         role: "assistant",
-        content: data?.response || "I couldn't generate a response.",
+        content: data.response,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: any) {
-      console.error("❌ Error:", error);
+      console.error("❌ Exception:", error);
 
       toast({
         title: "Error",
