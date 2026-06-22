@@ -41,26 +41,93 @@ export function AIChatbot() {
 
       console.log('👤 User:', user.id);
 
-      // Create request body
-      const requestBody = {
-        message: text,
-        chatHistory: messages.slice(-5),
-        userContext: {
-          userId: user.id,
-          userName: user.email || 'User',
-          stats: { totalTasks: 0 }
-        }
+      // Get profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', user.id)
+        .single();
+
+      const today = new Date().toISOString().split('T')[0];
+      const weekStart = new Date(new Date().getTime() - new Date().getDay() * 24 * 60 * 60 * 1000)
+        .toISOString().split('T')[0];
+
+      // FETCH TASKS
+      const { data: tasksData, error: tasksError } = await supabase
+        .from('tasks')
+        .select('id, title, status, priority, due_date, estimated_hours, actual_hours, auth_user_id, assignee_id')
+        .or(`assignee_id.eq.${user.id},auth_user_id.eq.${user.id}`)
+        .order('created_at', { ascending: false });
+
+      if (tasksError) console.error('❌ Tasks error:', tasksError);
+      console.log('✅ Tasks fetched:', tasksData?.length || 0);
+
+      // FETCH PROJECTS
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select('id, name, status')
+        .eq('auth_user_id', user.id);
+
+      if (projectsError) console.error('❌ Projects error:', projectsError);
+      console.log('✅ Projects fetched:', projectsData?.length || 0);
+
+      // FETCH TIME ENTRIES
+      const { data: timeEntriesData, error: timeError } = await supabase
+        .from('time_entries')
+        .select('duration, start_time')
+        .eq('auth_user_id', user.id)
+        .gte('start_time', weekStart);
+
+      if (timeError) console.error('❌ Time entries error:', timeError);
+      console.log('✅ Time entries fetched:', timeEntriesData?.length || 0);
+
+      // Build data
+      const allTasks = tasksData || [];
+      const allProjects = projectsData || [];
+      const allTimeEntries = timeEntriesData || [];
+
+      // Categorize tasks
+      const tasksDueToday = allTasks.filter(t => t.due_date?.split('T')[0] === today);
+      const tasksOverdue = allTasks.filter(t => t.due_date && t.due_date < today && t.status !== 'done');
+      const tasksInProgress = allTasks.filter(t => t.status === 'in-progress');
+      const tasksUrgent = allTasks.filter(t => t.priority === 'high' && t.status !== 'done');
+
+      const hoursThisWeek = Math.round(
+        allTimeEntries.reduce((sum, te) => sum + (te.duration || 0), 0) / 60
+      );
+
+      // Build context
+      const userContext = {
+        userId: user.id,
+        userName: profileData?.full_name || 'User',
+        userEmail: profileData?.email || user.email,
+        stats: {
+          totalTasks: allTasks.length,
+          completedTasks: allTasks.filter(t => t.status === 'done').length,
+          activeProjects: allProjects.filter(p => p.status === 'in-progress').length,
+          hoursLoggedThisWeek: hoursThisWeek,
+        },
+        tasks: {
+          all: allTasks,
+          dueToday: tasksDueToday,
+          overdue: tasksOverdue,
+          inProgress: tasksInProgress,
+          urgent: tasksUrgent,
+        },
+        projects: allProjects,
       };
 
-      console.log('📤 Request body:', requestBody);
+      console.log('📊 CONTEXT BUILT:', {
+        totalTasks: userContext.stats.totalTasks,
+        dueToday: userContext.tasks.dueToday.length,
+        overdue: userContext.tasks.overdue.length,
+      });
 
       // Get auth token
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      console.log('🔑 Auth token:', token ? 'YES' : 'NO');
-
-      // Use fetch directly instead of supabase.functions.invoke
+      console.log('🔄 Calling Edge Function...');
       const response = await fetch(
         'https://puwxkygdlclcbyxrtppd.supabase.co/functions/v1/ai-chatbot',
         {
@@ -69,7 +136,11 @@ export function AIChatbot() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
           },
-          body: JSON.stringify(requestBody),
+          body: JSON.stringify({
+            message: text,
+            chatHistory: messages.slice(-5),
+            userContext: userContext,
+          }),
         }
       );
 
@@ -82,7 +153,7 @@ export function AIChatbot() {
       }
 
       const data = await response.json();
-      console.log('📥 Response data:', data);
+      console.log('✅ Response received');
 
       if (!data || !data.response) {
         throw new Error('No response from chatbot');
@@ -139,7 +210,7 @@ export function AIChatbot() {
           <span className="text-2xl">🤖</span>
           <div>
             <h3 className="font-semibold text-sm">Donezy Assistant</h3>
-            <p className="text-xs text-muted-foreground">Your helper</p>
+            <p className="text-xs text-muted-foreground">Your productivity helper</p>
           </div>
         </div>
         <button
@@ -154,7 +225,10 @@ export function AIChatbot() {
         {messages.length === 0 && (
           <div className="text-center py-8">
             <p className="text-3xl">👋</p>
-            <p className="text-sm text-muted-foreground">Ask about your tasks!</p>
+            <p className="text-sm text-muted-foreground mb-2">Ask about your tasks!</p>
+            <p className="text-xs text-muted-foreground">
+              Try: "What should I work on today?" or "Show my overdue tasks"
+            </p>
           </div>
         )}
 
