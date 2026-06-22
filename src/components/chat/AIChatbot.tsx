@@ -53,22 +53,36 @@ export function AIChatbot() {
       };
 
       console.log('📤 Request body:', requestBody);
-      console.log('📤 Body as string:', JSON.stringify(requestBody));
 
-      // Call Edge Function with explicit headers
-      const { data, error } = await supabase.functions.invoke("ai-chatbot", {
-        body: requestBody,
-        headers: {
-          "Content-Type": "application/json",
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      console.log('🔑 Auth token:', token ? 'YES' : 'NO');
+
+      // Use fetch directly instead of supabase.functions.invoke
+      const response = await fetch(
+        'https://puwxkygdlclcbyxrtppd.supabase.co/functions/v1/ai-chatbot',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(requestBody),
         }
-      });
+      );
 
-      console.log('📥 Response:', { data, error });
+      console.log('📥 Response status:', response.status);
 
-      if (error) {
-        console.error('❌ Error:', error);
-        throw error;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
+
+      const data = await response.json();
+      console.log('📥 Response data:', data);
 
       if (!data || !data.response) {
         throw new Error('No response from chatbot');
