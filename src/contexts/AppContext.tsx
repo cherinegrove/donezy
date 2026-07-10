@@ -461,13 +461,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (!session?.user) return;
 
     try {
-      // Load tasks in parallel with comments and files, with reasonable limits
+      // Load tasks in parallel with comments and files
+      // Note: No limit on tasks — admin users need to see all tasks across all projects
       const [tasksResult, commentsResult, filesResult] = await Promise.all([
         supabase
           .from("tasks")
           .select("*")
-          .order("created_at", { ascending: false })
-          .limit(500),
+          .order("created_at", { ascending: false }),
         supabase
           .from("comments")
           .select("*")
