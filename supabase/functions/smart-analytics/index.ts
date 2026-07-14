@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.7";
 
 const corsHeaders = {
@@ -6,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -15,9 +14,9 @@ serve(async (req) => {
     const { analysisType, data } = await req.json();
     console.log(`Smart Analytics request - Type: ${analysisType}`);
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error("ANTHROPIC_API_KEY is not configured");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -189,21 +188,22 @@ Keep feedback constructive, balanced, and actionable. Always be encouraging whil
         throw new Error("Invalid analysis type");
     }
 
-    console.log(`Calling Lovable AI with model: google/gemini-2.5-flash`);
+    console.log(`Calling Anthropic with model: claude-sonnet-5`);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "claude-sonnet-5",
+        max_tokens: 2048,
+        system: `${systemPrompt}\n\nRespond with ONLY the JSON object described above — no markdown code fences, no commentary before or after it.`,
         messages: [
-          { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        response_format: { type: "json_object" },
       }),
     });
 
@@ -215,20 +215,27 @@ Keep feedback constructive, balanced, and actionable. Always be encouraging whil
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
-        console.error("Payment required");
-        return new Response(
-          JSON.stringify({ error: "Payment required, please add funds to your Lovable AI workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+      console.error("Anthropic error:", response.status, errorText);
+      throw new Error(`Anthropic error: ${response.status}`);
     }
 
     const aiResponse = await response.json();
-    const content = aiResponse.choices[0].message.content;
+    const textBlock = Array.isArray(aiResponse.content)
+      ? aiResponse.content.find((block: any) => block.type === "text")
+      : undefined;
+    let content = textBlock?.text?.trim();
+
+    if (!content) {
+      throw new Error("Anthropic returned an empty response");
+    }
+
+    // Claude sometimes wraps JSON in a markdown code fence despite instructions not to.
+    const fenceMatch = content.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+    if (fenceMatch) {
+      content = fenceMatch[1];
+    }
+
     const analysis = JSON.parse(content);
 
     console.log(`Analysis completed successfully for type: ${analysisType}`);

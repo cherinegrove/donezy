@@ -1058,10 +1058,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       } = await supabase.auth.getSession();
       if (!session?.user) return;
 
+      const { data: orgMemberships } = await supabase
+        .from("user_organizations")
+        .select("organization_id")
+        .eq("user_id", session.user.id);
+      const orgIds = (orgMemberships || []).map((o) => o.organization_id);
+
       const { data, error } = await supabase
         .from("task_status_definitions")
         .select("*")
-        .eq("auth_user_id", session.user.id)
+        .or(
+          [
+            `auth_user_id.eq.${session.user.id}`,
+            ...(orgIds.length > 0 ? [`organization_id.in.(${orgIds.join(",")})`] : []),
+          ].join(","),
+        )
         .order("order_index");
 
       if (error) {
@@ -1094,10 +1105,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       } = await supabase.auth.getSession();
       if (!session?.user) return;
 
+      const { data: orgMemberships } = await supabase
+        .from("user_organizations")
+        .select("organization_id")
+        .eq("user_id", session.user.id);
+      const orgIds = (orgMemberships || []).map((o) => o.organization_id);
+
       const { data, error } = await supabase
         .from("project_status_definitions")
         .select("*")
-        .eq("auth_user_id", session.user.id)
+        .or(
+          [
+            `auth_user_id.eq.${session.user.id}`,
+            ...(orgIds.length > 0 ? [`organization_id.in.(${orgIds.join(",")})`] : []),
+          ].join(","),
+        )
         .order("order_index");
 
       if (error) {
@@ -1363,14 +1385,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                 parentTaskId: fullTask.parent_task_id || undefined
               };
               
-              setTasks(prev => [convertedTask, ...prev]);
-              
-              toast({
-                title: "New Task",
-                description: `"${fullTask.title}" was created`,
+              // addTask already appends the task to local state right after the
+              // insert succeeds, so this event usually arrives for a task we
+              // already have (skip re-adding it) — except when the task was
+              // created by someone else, where this is the only place it's added.
+              let wasNew = false;
+              setTasks(prev => {
+                if (prev.some(t => t.id === convertedTask.id)) return prev;
+                wasNew = true;
+                return [convertedTask, ...prev];
               });
+
+              if (wasNew) {
+                toast({
+                  title: "New Task",
+                  description: `"${fullTask.title}" was created`,
+                });
+              }
             }
-          } 
+          }
           else if (payload.eventType === 'UPDATE') {
             // Task updated
             const updated = payload.new;
@@ -1434,18 +1467,28 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
               edited: false
             };
             
-            setTasks(prev => prev.map(task => 
-              task.id === newComment.task_id
-                ? { ...task, comments: [...task.comments, convertedComment] }
-                : task
-            ));
-            
-            setComments(prev => [...prev, newComment]);
-            
-            toast({
-              title: "New Comment",
-              description: "Someone commented on a task",
-            });
+            // addComment already appends the comment to local state right after
+            // the insert succeeds, so this event usually arrives for a comment
+            // we already have (skip re-adding it) — except when it was added by
+            // someone else, where this is the only place it's added.
+            let wasNew = false;
+            setTasks(prev => prev.map(task => {
+              if (task.id !== newComment.task_id) return task;
+              if (task.comments.some(c => c.id === convertedComment.id)) return task;
+              wasNew = true;
+              return { ...task, comments: [...task.comments, convertedComment] };
+            }));
+
+            setComments(prev =>
+              prev.some(c => c.id === newComment.id) ? prev : [...prev, newComment]
+            );
+
+            if (wasNew) {
+              toast({
+                title: "New Comment",
+                description: "Someone commented on a task",
+              });
+            }
           }
           else if (payload.eventType === 'UPDATE') {
             // Comment edited
@@ -4443,10 +4486,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       } = await supabase.auth.getSession();
       if (!session?.user) return;
 
+      const { data: orgMembership } = await supabase
+        .from("user_organizations")
+        .select("organization_id")
+        .eq("user_id", session.user.id)
+        .limit(1)
+        .maybeSingle();
+
       const { data, error } = await supabase
         .from("task_status_definitions")
         .insert({
           auth_user_id: session.user.id,
+          organization_id: orgMembership?.organization_id ?? null,
           name: status.label,
           value: status.value,
           color: status.color,
@@ -4499,8 +4550,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const { error } = await supabase
         .from("task_status_definitions")
         .update(updateData)
-        .eq("id", statusId)
-        .eq("auth_user_id", session.user.id);
+        .eq("id", statusId);
 
       if (error) throw error;
 
@@ -4532,8 +4582,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const { error } = await supabase
         .from("task_status_definitions")
         .delete()
-        .eq("id", statusId)
-        .eq("auth_user_id", session.user.id);
+        .eq("id", statusId);
 
       if (error) throw error;
 
@@ -4565,8 +4614,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         supabase
           .from("task_status_definitions")
           .update({ order_index: index })
-          .eq("id", status.id)
-          .eq("auth_user_id", session.user.id),
+          .eq("id", status.id),
       );
 
       await Promise.all(updates);
@@ -4593,10 +4641,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       } = await supabase.auth.getSession();
       if (!session?.user) return;
 
+      const { data: orgMembership } = await supabase
+        .from("user_organizations")
+        .select("organization_id")
+        .eq("user_id", session.user.id)
+        .limit(1)
+        .maybeSingle();
+
       const { data, error } = await supabase
         .from("project_status_definitions")
         .insert({
           auth_user_id: session.user.id,
+          organization_id: orgMembership?.organization_id ?? null,
           name: status.label,
           color: status.color,
           order_index: status.order,
@@ -4649,8 +4705,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           is_final: updates.isFinal,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", statusId)
-        .eq("auth_user_id", session.user.id);
+        .eq("id", statusId);
 
       if (error) throw error;
 
@@ -4682,8 +4737,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       const { error } = await supabase
         .from("project_status_definitions")
         .delete()
-        .eq("id", statusId)
-        .eq("auth_user_id", session.user.id);
+        .eq("id", statusId);
 
       if (error) throw error;
 
@@ -4717,8 +4771,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         supabase
           .from("project_status_definitions")
           .update({ order_index: index })
-          .eq("id", status.id)
-          .eq("auth_user_id", session.user.id),
+          .eq("id", status.id),
       );
 
       await Promise.all(updates);
