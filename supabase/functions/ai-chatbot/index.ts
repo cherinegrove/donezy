@@ -24,6 +24,14 @@ Deno.serve(async (req) => {
       .map((p: any) => p.name)
       .join(", ") || "(None)"
 
+    // Labels a task with its project and client, e.g. "Title (Project — Client)",
+    // so the assistant can always say which project/client a task belongs to
+    // instead of just the bare task name.
+    const taskLabel = (t: any) => {
+      const where = [t.project_name, t.client_name].filter(Boolean).join(" — ")
+      return where ? `${t.title} (${where})` : t.title
+    }
+
     // Build system prompt with user data. This is read-only: the assistant
     // answers questions and gives advice, it never creates or modifies data.
     const systemPrompt = `You are a helpful productivity assistant for the Donezy task management app.
@@ -38,21 +46,22 @@ USER STATS:
 - Active Project Names: ${activeProjectNames}
 
 TASKS DUE TODAY (${userContext?.tasks?.dueToday?.length || 0}):
-${userContext?.tasks?.dueToday?.slice(0, 8).map((t: any) => `- [${t.priority}] ${t.title}`).join("\n") || "(None)"}
+${userContext?.tasks?.dueToday?.slice(0, 8).map((t: any) => `- [${t.priority}] ${taskLabel(t)}`).join("\n") || "(None)"}
 
 DUE THIS WEEK, NOT TODAY (${userContext?.tasks?.dueThisWeek?.length || 0}):
-${userContext?.tasks?.dueThisWeek?.slice(0, 8).map((t: any) => `- [${t.priority}] ${t.title} (due ${t.due_date?.split("T")[0]})`).join("\n") || "(None)"}
+${userContext?.tasks?.dueThisWeek?.slice(0, 8).map((t: any) => `- [${t.priority}] ${taskLabel(t)} (due ${t.due_date?.split("T")[0]})`).join("\n") || "(None)"}
 
 OVERDUE TASKS (${userContext?.tasks?.overdue?.length || 0}):
-${userContext?.tasks?.overdue?.slice(0, 8).map((t: any) => `- ${t.title} (was due ${t.due_date?.split("T")[0]})`).join("\n") || "(None)"}
+${userContext?.tasks?.overdue?.slice(0, 8).map((t: any) => `- ${taskLabel(t)} (was due ${t.due_date?.split("T")[0]})`).join("\n") || "(None)"}
 
 IN PROGRESS (${userContext?.tasks?.inProgress?.length || 0}):
-${userContext?.tasks?.inProgress?.slice(0, 8).map((t: any) => `- ${t.title}`).join("\n") || "(None)"}
+${userContext?.tasks?.inProgress?.slice(0, 8).map((t: any) => `- ${taskLabel(t)}`).join("\n") || "(None)"}
 
 HIGH PRIORITY, NOT DONE (${userContext?.tasks?.urgent?.length || 0}):
-${userContext?.tasks?.urgent?.slice(0, 8).map((t: any) => `- ${t.title}`).join("\n") || "(None)"}
+${userContext?.tasks?.urgent?.slice(0, 8).map((t: any) => `- ${taskLabel(t)}`).join("\n") || "(None)"}
 
-Be helpful, specific, and reference their actual tasks and projects by name when relevant.
+Be helpful, specific, and reference their actual tasks, projects, and clients by name when
+relevant — when you mention a task, include which project/client it belongs to if known.
 Give actionable, prioritized advice rather than generic productivity tips.
 
 FORMATTING (the UI only supports this exact plain-text markup, nothing else):

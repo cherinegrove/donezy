@@ -126,7 +126,7 @@ export function AIChatbot() {
       // see elsewhere in the app.
       const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
-        .select('id, title, status, priority, due_date, estimated_hours, actual_hours, auth_user_id, assignee_id')
+        .select('id, title, status, priority, due_date, estimated_hours, actual_hours, auth_user_id, assignee_id, project_id')
         .or(`assignee_id.eq.${user.id},auth_user_id.eq.${user.id},collaborator_ids.cs.{${user.id}},watcher_ids.cs.{${user.id}}`)
         .order('created_at', { ascending: false });
 
@@ -144,10 +144,23 @@ export function AIChatbot() {
       }
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
-        .select('id, name, status')
+        .select('id, name, status, client_id')
         .or(projectFilters.join(','));
 
       if (projectsError) console.error('Projects fetch error:', projectsError);
+
+      // FETCH CLIENTS — so tasks/projects can be labeled with the client they
+      // belong to, not just the project name.
+      const clientFilters = [`auth_user_id.eq.${user.id}`];
+      if (orgIds.length > 0) {
+        clientFilters.push(`organization_id.in.(${orgIds.join(',')})`);
+      }
+      const { data: clientsData, error: clientsError } = await supabase
+        .from('clients')
+        .select('id, name')
+        .or(clientFilters.join(','));
+
+      if (clientsError) console.error('Clients fetch error:', clientsError);
 
       // FETCH TIME ENTRIES
       const { data: timeEntriesData, error: timeError } = await supabase
@@ -159,9 +172,24 @@ export function AIChatbot() {
       if (timeError) console.error('Time entries fetch error:', timeError);
 
       // Build data
-      const allTasks = tasksData || [];
       const allProjects = projectsData || [];
+      const allClients = clientsData || [];
       const allTimeEntries = timeEntriesData || [];
+
+      const projectsById = new Map(allProjects.map((p) => [p.id, p]));
+      const clientsById = new Map(allClients.map((c) => [c.id, c.name]));
+
+      // Attach project/client names to each task so the assistant can mention
+      // them, not just the bare task title.
+      const allTasks = (tasksData || []).map((t) => {
+        const project = t.project_id ? projectsById.get(t.project_id) : undefined;
+        const clientName = project?.client_id ? clientsById.get(project.client_id) : undefined;
+        return {
+          ...t,
+          project_name: project?.name,
+          client_name: clientName,
+        };
+      });
 
       // Categorize tasks
       const tasksDueToday = allTasks.filter(t => t.due_date?.split('T')[0] === today);
