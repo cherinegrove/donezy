@@ -431,81 +431,90 @@ const TimeTracking = () => {
   
   // Filter time entries based on selected filters and date range
   // Exclude active/unsaved timers (entries without endTime) - they belong in Active Timers section
-  const filteredTimeEntries = timeEntries.filter(entry => {
-    // Skip entries without endTime - these are active/unsaved timers
-    if (!entry.endTime) {
-      return false;
-    }
-    
-    // Get task and project (but don't filter out if missing)
-    const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
-    const project = task ? projects.find(p => p.id === task.projectId) : 
-                   (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
-    
-    // For non-admins, always filter to only their own entries
-    if (!isAdminUser()) {
-      if (entry.userId !== currentUser?.id) {
+  //
+  // Memoized: this does an O(entries * (tasks + projects)) scan (a .find() per
+  // entry against both lists) — with 1000+ time entries that's expensive enough
+  // to noticeably block the main thread if it reruns on every render, which
+  // previously happened on every state change anywhere in the app, not just
+  // when something relevant to this list actually changed.
+  const filteredTimeEntries = useMemo(() => {
+    const admin = isAdminUser();
+    return timeEntries.filter(entry => {
+      // Skip entries without endTime - these are active/unsaved timers
+      if (!entry.endTime) {
         return false;
       }
-    } else {
-      // Check user filter (only for admins)
-      if (selectedFilters.user?.length > 0 && !selectedFilters.user.includes(entry.userId)) {
-        return false;
-      }
-    }
-    
-    // Check project filter - only apply if we have projects and the filter is set
-    if (selectedFilters.project?.length > 0) {
-      const entryProjectId = task?.projectId || entry.projectId;
-      if (!entryProjectId || !selectedFilters.project.includes(entryProjectId)) {
-        return false;
-      }
-    }
-    
-    // Check client filter - try multiple ways to get client ID
-    if (selectedFilters.client?.length > 0) {
-      const entryClientId = project?.clientId || entry.clientId;
-      if (!entryClientId || !selectedFilters.client.includes(entryClientId)) {
-        return false;
-      }
-    }
-    
-    // Check status filter
-    if (selectedFilters.status?.length > 0) {
-      const entryStatus = entry.status || 'pending';
-      // Map approved-billable and approved-non-billable to "approved"
-      const normalizedStatus = entryStatus.startsWith('approved') ? 'approved' : entryStatus;
-      if (!selectedFilters.status.includes(normalizedStatus)) {
-        return false;
-      }
-    }
-    
-    // Check date range
-    if (dateRange.from || dateRange.to) {
-      const entryDate = new Date(entry.startTime);
-      
-      if (dateRange.from && dateRange.to) {
-        // Use startOfDay for from and endOfDay for to to include the entire day
-        const inRange = isWithinInterval(entryDate, { 
-          start: startOfDay(dateRange.from), 
-          end: endOfDay(dateRange.to) 
-        });
-        if (!inRange) {
+
+      // Get task and project (but don't filter out if missing)
+      const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
+      const project = task ? projects.find(p => p.id === task.projectId) :
+                     (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
+
+      // For non-admins, always filter to only their own entries
+      if (!admin) {
+        if (entry.userId !== currentUser?.id) {
           return false;
         }
-      } else if (dateRange.from) {
-        if (entryDate < startOfDay(dateRange.from)) {
-          return false;
-        }
-      } else if (dateRange.to) {
-        if (entryDate > endOfDay(dateRange.to)) {
+      } else {
+        // Check user filter (only for admins)
+        if (selectedFilters.user?.length > 0 && !selectedFilters.user.includes(entry.userId)) {
           return false;
         }
       }
-    }
-    
-    return true;
-  });
+
+      // Check project filter - only apply if we have projects and the filter is set
+      if (selectedFilters.project?.length > 0) {
+        const entryProjectId = task?.projectId || entry.projectId;
+        if (!entryProjectId || !selectedFilters.project.includes(entryProjectId)) {
+          return false;
+        }
+      }
+
+      // Check client filter - try multiple ways to get client ID
+      if (selectedFilters.client?.length > 0) {
+        const entryClientId = project?.clientId || entry.clientId;
+        if (!entryClientId || !selectedFilters.client.includes(entryClientId)) {
+          return false;
+        }
+      }
+
+      // Check status filter
+      if (selectedFilters.status?.length > 0) {
+        const entryStatus = entry.status || 'pending';
+        // Map approved-billable and approved-non-billable to "approved"
+        const normalizedStatus = entryStatus.startsWith('approved') ? 'approved' : entryStatus;
+        if (!selectedFilters.status.includes(normalizedStatus)) {
+          return false;
+        }
+      }
+
+      // Check date range
+      if (dateRange.from || dateRange.to) {
+        const entryDate = new Date(entry.startTime);
+
+        if (dateRange.from && dateRange.to) {
+          // Use startOfDay for from and endOfDay for to to include the entire day
+          const inRange = isWithinInterval(entryDate, {
+            start: startOfDay(dateRange.from),
+            end: endOfDay(dateRange.to)
+          });
+          if (!inRange) {
+            return false;
+          }
+        } else if (dateRange.from) {
+          if (entryDate < startOfDay(dateRange.from)) {
+            return false;
+          }
+        } else if (dateRange.to) {
+          if (entryDate > endOfDay(dateRange.to)) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [timeEntries, tasks, projects, currentUser, selectedFilters, dateRange]);
   
   // Fetch manual adjustments for filtered time entries
   useEffect(() => {

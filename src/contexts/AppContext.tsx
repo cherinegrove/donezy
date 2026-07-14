@@ -2332,7 +2332,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           start_time: timeEntry.startTime,
           end_time: timeEntry.endTime,
           duration: timeEntry.duration,
-          notes: timeEntry.description,
+          notes: timeEntry.description ?? timeEntry.notes,
           status: timeEntry.status || 'pending',
           rejection_reason: timeEntry.rejectionReason,
           timer_status: timerStatus
