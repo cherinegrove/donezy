@@ -38,6 +38,53 @@ interface HistoryLog {
   details: any;
 }
 
+interface AwaitingFeedbackData {
+  what: string;
+  who: string;
+  why: string;
+  when: string; // ISO date string
+}
+
+// Awaiting-feedback details are stored as a JSON string ({what, who, why, when})
+// when set via the status-change prompt, but as a plain string when added via
+// this component's own free-text "Add Update" flow. Handle both so we never
+// show the user raw JSON text.
+function parseAwaitingFeedbackDetails(details?: string | null): AwaitingFeedbackData | null {
+  if (!details) return null;
+  try {
+    const parsed = JSON.parse(details);
+    if (parsed && typeof parsed === "object" && "what" in parsed) return parsed;
+  } catch {}
+  return { what: details, who: "", why: "", when: "" };
+}
+
+function AwaitingFeedbackDisplay({ details }: { details?: string | null }) {
+  const parsed = parseAwaitingFeedbackDetails(details);
+  if (!parsed) return null;
+
+  const rows = [
+    { label: "What", value: parsed.what },
+    { label: "Who", value: parsed.who },
+    { label: "Why", value: parsed.why },
+    {
+      label: "Need by",
+      value: parsed.when ? format(new Date(parsed.when), "PPP") : "",
+    },
+  ].filter((r) => r.value);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="space-y-1">
+      {rows.map((r) => (
+        <p key={r.label} className="text-sm">
+          <span className="text-muted-foreground">{r.label}:</span> {r.value}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 export function StatusHistorySection({
   taskId,
   currentStatus,
@@ -270,9 +317,9 @@ export function StatusHistorySection({
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Awaiting Feedback Details:</span>
               </div>
-              <p className="text-sm text-muted-foreground pl-6">
-                {currentAwaitingFeedbackDetails}
-              </p>
+              <div className="pl-6">
+                <AwaitingFeedbackDisplay details={currentAwaitingFeedbackDetails} />
+              </div>
             </div>
           )}
 
@@ -367,12 +414,7 @@ export function StatusHistorySection({
                             </p>
                           )}
                           {log.details.awaitingFeedbackDetails && (
-                            <p className="text-sm">
-                              <span className="text-muted-foreground">
-                                Details:
-                              </span>{" "}
-                              {log.details.awaitingFeedbackDetails}
-                            </p>
+                            <AwaitingFeedbackDisplay details={log.details.awaitingFeedbackDetails} />
                           )}
                           {log.details.note && !log.details.backlogReason && !log.details.awaitingFeedbackDetails && (
                             <p className="text-sm">
