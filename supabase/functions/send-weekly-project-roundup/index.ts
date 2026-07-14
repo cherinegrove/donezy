@@ -256,7 +256,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const projectHealth = determineHealth(awaitingTasks.length);
 
-    const appUrl = Deno.env.get("APP_URL") ?? "https://donezy.lovable.app";
+    const appUrl = Deno.env.get("APP_URL") ?? "https://app.donezy.io";
     const portalLink = portalRes.data?.token ? `${appUrl}/client/${portalRes.data.token}` : null;
 
     const clientName = Array.isArray(project.clients)

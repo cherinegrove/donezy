@@ -45,10 +45,6 @@ const handler = async (req: Request): Promise<Response> => {
     if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
       redirectUrl = `${origin}/confirm`;
     }
-    // Handle Lovable preview URLs
-    else if (origin && origin.includes('lovableproject.com')) {
-      redirectUrl = `${origin}/confirm`;
-    }
     // Handle custom domains or other production URLs
     else if (origin && !origin.includes('supabase')) {
       redirectUrl = `${origin}/confirm`;
