@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -6,6 +6,69 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+}
+
+const QUICK_PROMPTS = [
+  { label: "Overdue", prompt: "What tasks are overdue?" },
+  { label: "Due today", prompt: "What's due today?" },
+  { label: "This week", prompt: "What's coming up this week?" },
+  { label: "Notifications", prompt: "What do I need to pay attention to right now — anything overdue, urgent, or awaiting my action?" },
+];
+
+// Renders **bold** and "- "/"* " bullet lists from the assistant's plain-text
+// response. Deliberately minimal (not a full markdown parser) since the
+// system prompt only ever asks the model for these two constructs.
+function renderInline(line: string, keyPrefix: string) {
+  const parts = line.split(/(\*\*[^*]+\*\*)/g).filter((p) => p !== "");
+  return parts.map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={`${keyPrefix}-${i}`}>{part.slice(2, -2)}</strong>
+    ) : (
+      <Fragment key={`${keyPrefix}-${i}`}>{part}</Fragment>
+    ),
+  );
+}
+
+function FormattedMessage({ content }: { content: string }) {
+  const lines = content.split("\n");
+  const blocks: { type: "bullets" | "text"; lines: string[] }[] = [];
+
+  for (const line of lines) {
+    const isBullet = /^\s*[-*]\s+/.test(line);
+    const lastBlock = blocks[blocks.length - 1];
+    if (isBullet && lastBlock?.type === "bullets") {
+      lastBlock.lines.push(line.replace(/^\s*[-*]\s+/, ""));
+    } else if (isBullet) {
+      blocks.push({ type: "bullets", lines: [line.replace(/^\s*[-*]\s+/, "")] });
+    } else if (lastBlock?.type === "text") {
+      lastBlock.lines.push(line);
+    } else {
+      blocks.push({ type: "text", lines: [line] });
+    }
+  }
+
+  return (
+    <div className="text-sm space-y-1.5">
+      {blocks.map((block, bi) =>
+        block.type === "bullets" ? (
+          <ul key={bi} className="list-disc pl-4 space-y-0.5">
+            {block.lines.map((l, li) => (
+              <li key={li}>{renderInline(l, `${bi}-${li}`)}</li>
+            ))}
+          </ul>
+        ) : (
+          <p key={bi} className="whitespace-pre-wrap">
+            {block.lines.map((l, li) => (
+              <Fragment key={li}>
+                {li > 0 && <br />}
+                {renderInline(l, `${bi}-${li}`)}
+              </Fragment>
+            ))}
+          </p>
+        ),
+      )}
+    </div>
+  );
 }
 
 export function AIChatbot() {
@@ -34,12 +97,8 @@ export function AIChatbot() {
     setIsLoading(true);
 
     try {
-      console.log('🎯 sendMessage called with:', text);
-      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
-
-      console.log('👤 User:', user.id);
 
       // Get profile
       const { data: profileData } = await supabase
@@ -51,25 +110,44 @@ export function AIChatbot() {
       const today = new Date().toISOString().split('T')[0];
       const weekStart = new Date(new Date().getTime() - new Date().getDay() * 24 * 60 * 60 * 1000)
         .toISOString().split('T')[0];
+      const weekEnd = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
+        .toISOString().split('T')[0];
 
-      // FETCH TASKS
+      // Which organizations does the user belong to? Needed so the assistant
+      // sees shared/org-visible projects, not just ones the user owns directly.
+      const { data: orgMemberships } = await supabase
+        .from('user_organizations')
+        .select('organization_id')
+        .eq('user_id', user.id);
+      const orgIds = (orgMemberships || []).map((o) => o.organization_id);
+
+      // FETCH TASKS — anything the user owns, is assigned to, collaborates on,
+      // or watches (not just tasks they created), matching what they'd actually
+      // see elsewhere in the app.
       const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
         .select('id, title, status, priority, due_date, estimated_hours, actual_hours, auth_user_id, assignee_id')
-        .or(`assignee_id.eq.${user.id},auth_user_id.eq.${user.id}`)
+        .or(`assignee_id.eq.${user.id},auth_user_id.eq.${user.id},collaborator_ids.cs.{${user.id}},watcher_ids.cs.{${user.id}}`)
         .order('created_at', { ascending: false });
 
-      if (tasksError) console.error('❌ Tasks error:', tasksError);
-      console.log('✅ Tasks fetched:', tasksData?.length || 0);
+      if (tasksError) console.error('Tasks fetch error:', tasksError);
 
-      // FETCH PROJECTS
+      // FETCH PROJECTS — owned, collaborated on, watched, or shared via the
+      // user's organization membership.
+      const projectFilters = [
+        `auth_user_id.eq.${user.id}`,
+        `collaborator_ids.cs.{${user.id}}`,
+        `watcher_ids.cs.{${user.id}}`,
+      ];
+      if (orgIds.length > 0) {
+        projectFilters.push(`organization_id.in.(${orgIds.join(',')})`);
+      }
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('id, name, status')
-        .eq('auth_user_id', user.id);
+        .or(projectFilters.join(','));
 
-      if (projectsError) console.error('❌ Projects error:', projectsError);
-      console.log('✅ Projects fetched:', projectsData?.length || 0);
+      if (projectsError) console.error('Projects fetch error:', projectsError);
 
       // FETCH TIME ENTRIES
       const { data: timeEntriesData, error: timeError } = await supabase
@@ -78,8 +156,7 @@ export function AIChatbot() {
         .eq('auth_user_id', user.id)
         .gte('start_time', weekStart);
 
-      if (timeError) console.error('❌ Time entries error:', timeError);
-      console.log('✅ Time entries fetched:', timeEntriesData?.length || 0);
+      if (timeError) console.error('Time entries fetch error:', timeError);
 
       // Build data
       const allTasks = tasksData || [];
@@ -88,6 +165,10 @@ export function AIChatbot() {
 
       // Categorize tasks
       const tasksDueToday = allTasks.filter(t => t.due_date?.split('T')[0] === today);
+      const tasksDueThisWeek = allTasks.filter(t => {
+        const d = t.due_date?.split('T')[0];
+        return d && d > today && d <= weekEnd && t.status !== 'done';
+      });
       const tasksOverdue = allTasks.filter(t => t.due_date && t.due_date < today && t.status !== 'done');
       const tasksInProgress = allTasks.filter(t => t.status === 'in-progress');
       const tasksUrgent = allTasks.filter(t => t.priority === 'high' && t.status !== 'done');
@@ -110,6 +191,7 @@ export function AIChatbot() {
         tasks: {
           all: allTasks,
           dueToday: tasksDueToday,
+          dueThisWeek: tasksDueThisWeek,
           overdue: tasksOverdue,
           inProgress: tasksInProgress,
           urgent: tasksUrgent,
@@ -117,17 +199,10 @@ export function AIChatbot() {
         projects: allProjects,
       };
 
-      console.log('📊 CONTEXT BUILT:', {
-        totalTasks: userContext.stats.totalTasks,
-        dueToday: userContext.tasks.dueToday.length,
-        overdue: userContext.tasks.overdue.length,
-      });
-
       // Get auth token
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      console.log('🔄 Calling Edge Function...');
       const response = await fetch(
         'https://puwxkygdlclcbyxrtppd.supabase.co/functions/v1/ai-chatbot',
         {
@@ -138,22 +213,19 @@ export function AIChatbot() {
           },
           body: JSON.stringify({
             message: text,
-            chatHistory: messages.slice(-5),
+            chatHistory: messages.slice(-10),
             userContext: userContext,
           }),
         }
       );
 
-      console.log('📥 Response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Response error:', errorText);
+        console.error('ai-chatbot response error:', errorText);
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('✅ Response received');
 
       if (!data || !data.response) {
         throw new Error('No response from chatbot');
@@ -167,7 +239,7 @@ export function AIChatbot() {
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: any) {
-      console.error("❌ Exception:", error);
+      console.error("AIChatbot sendMessage error:", error);
 
       toast({
         title: "Error",
@@ -227,7 +299,7 @@ export function AIChatbot() {
             <p className="text-3xl">👋</p>
             <p className="text-sm text-muted-foreground mb-2">Ask about your tasks!</p>
             <p className="text-xs text-muted-foreground">
-              Try: "What should I work on today?" or "Show my overdue tasks"
+              Try a quick question below, or type your own.
             </p>
           </div>
         )}
@@ -244,7 +316,11 @@ export function AIChatbot() {
                   : "bg-muted text-foreground"
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              {message.role === "assistant" ? (
+                <FormattedMessage content={message.content} />
+              ) : (
+                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              )}
               <p className="text-xs opacity-60 mt-1">
                 {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </p>
@@ -267,7 +343,21 @@ export function AIChatbot() {
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 border-t border-border">
+      <div className="px-4 pt-3 flex flex-wrap gap-1.5 border-t border-border">
+        {QUICK_PROMPTS.map((qp) => (
+          <button
+            key={qp.label}
+            type="button"
+            disabled={isLoading}
+            onClick={() => sendMessage(qp.prompt)}
+            className="text-xs px-2.5 py-1 rounded-full border border-border bg-muted/50 hover:bg-muted disabled:opacity-50 text-foreground"
+          >
+            {qp.label}
+          </button>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit} className="p-4 pt-3">
         <div className="flex gap-2">
           <input
             type="text"
