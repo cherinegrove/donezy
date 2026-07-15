@@ -1936,7 +1936,29 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             }
           });
         }
-        
+
+        // Notify the assignee (in-app/email), if one was set on creation
+        if (data.assignee_id) {
+          const projectName = projects.find(p => p.id === data.project_id)?.name;
+          supabase.functions.invoke('dispatch-notification', {
+            body: {
+              eventType: 'task_assigned',
+              actorId: session.user.id,
+              taskId: data.id,
+              recipientIds: [data.assignee_id],
+              context: {
+                taskTitle: data.title,
+                actorName: currentUser?.name,
+                projectName
+              }
+            }
+          }).then(({ error }) => {
+            if (error) {
+              console.error('Error dispatching task_assigned notification:', error);
+            }
+          });
+        }
+
         return data.id;
       }
       
@@ -2158,6 +2180,37 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         changesSummary.due_date = updates.dueDate || 'No due date';
       }
 
+      const notifyProjectName = currentTask.projectId
+        ? projects.find(p => p.id === currentTask.projectId)?.name
+        : undefined;
+      const notifyTaskTitle = updates.title ?? currentTask.title;
+
+      // Detect an assignee change once so it can fire its own dedicated
+      // task_assigned notification, and be excluded from the broader
+      // status/update notifications fired later in this same call — nobody
+      // should get both "you were assigned" and "task updated" for one edit.
+      const assigneeChanged = updates.assigneeId !== undefined && updates.assigneeId !== currentTask.assigneeId && !!updates.assigneeId;
+
+      if (assigneeChanged) {
+        supabase.functions.invoke('dispatch-notification', {
+          body: {
+            eventType: 'task_assigned',
+            actorId: session.user.id,
+            taskId,
+            recipientIds: [updates.assigneeId],
+            context: {
+              taskTitle: notifyTaskTitle,
+              actorName: currentUser?.name,
+              projectName: notifyProjectName
+            }
+          }
+        }).then(({ error }) => {
+          if (error) {
+            console.error('Error dispatching task_assigned notification:', error);
+          }
+        });
+      }
+
       // Send notification for task completion
       if (updates.status === 'done' && currentTask.status !== 'done' && currentTask.projectId) {
         console.log('🔔 Sending task_completed notification for task:', taskId);
@@ -2176,8 +2229,28 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             console.log('✅ Completion notification sent successfully');
           }
         });
+
+        supabase.functions.invoke('dispatch-notification', {
+          body: {
+            eventType: 'task_status_changed',
+            actorId: session.user.id,
+            taskId,
+            excludeRecipientIds: assigneeChanged ? [updates.assigneeId] : [],
+            context: {
+              taskTitle: notifyTaskTitle,
+              actorName: currentUser?.name,
+              projectName: notifyProjectName,
+              oldStatus: currentTask.status,
+              newStatus: updates.status
+            }
+          }
+        }).then(({ error }) => {
+          if (error) {
+            console.error('Error dispatching task_status_changed notification:', error);
+          }
+        });
       }
-      
+
       // Send notification for status changes (not to done)
       if (updates.status && updates.status !== 'done' && updates.status !== currentTask.status && currentTask.projectId) {
         console.log('🔔 Sending status_changed notification for task:', taskId);
@@ -2198,8 +2271,28 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             console.log('✅ Status change notification sent successfully');
           }
         });
+
+        supabase.functions.invoke('dispatch-notification', {
+          body: {
+            eventType: 'task_status_changed',
+            actorId: session.user.id,
+            taskId,
+            excludeRecipientIds: assigneeChanged ? [updates.assigneeId] : [],
+            context: {
+              taskTitle: notifyTaskTitle,
+              actorName: currentUser?.name,
+              projectName: notifyProjectName,
+              oldStatus: currentTask.status,
+              newStatus: updates.status
+            }
+          }
+        }).then(({ error }) => {
+          if (error) {
+            console.error('Error dispatching task_status_changed notification:', error);
+          }
+        });
       }
-      
+
       // Send notification for other task updates (when no status change)
       if (currentTask.projectId && !updates.status && Object.keys(changesSummary).length > 0) {
         console.log('🔔 Sending task_updated notification for task:', taskId);
@@ -2216,6 +2309,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             console.error('❌ Error sending update notification:', error);
           } else {
             console.log('✅ Update notification sent successfully');
+          }
+        });
+
+        supabase.functions.invoke('dispatch-notification', {
+          body: {
+            eventType: 'task_updated',
+            actorId: session.user.id,
+            taskId,
+            excludeRecipientIds: assigneeChanged ? [updates.assigneeId] : [],
+            context: {
+              taskTitle: notifyTaskTitle,
+              actorName: currentUser?.name,
+              projectName: notifyProjectName,
+              changesSummary: Object.entries(changesSummary).map(([key, value]) => `${key}: ${value}`).join(', ')
+            }
+          }
+        }).then(({ error }) => {
+          if (error) {
+            console.error('Error dispatching task_updated notification:', error);
           }
         });
       }
@@ -3519,6 +3631,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             console.log(`✅ ${eventType} notification sent successfully`);
           }
         });
+
+        const reorderProjectName = projects.find(p => p.id === task.projectId)?.name;
+        supabase.functions.invoke('dispatch-notification', {
+          body: {
+            eventType: 'task_status_changed',
+            actorId: session.user.id,
+            taskId,
+            context: {
+              taskTitle: task.title,
+              actorName: currentUser?.name,
+              projectName: reorderProjectName,
+              oldStatus: task.status,
+              newStatus
+            }
+          }
+        }).then(({ error }) => {
+          if (error) {
+            console.error('Error dispatching task_status_changed notification:', error);
+          }
+        });
       }
     } catch (error) {
       console.error('Error reordering tasks:', error);
@@ -4029,10 +4161,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       // Fetch the task's project_id directly from DB to avoid stale state issues
       const { data: taskData } = await supabase
         .from('tasks')
-        .select('project_id')
+        .select('project_id, title')
         .eq('id', taskId)
         .single();
-      
+
       if (taskData?.project_id) {
         console.log('🔔 Sending task_commented notification for task:', taskId, 'project:', taskData.project_id);
         supabase.functions.invoke('send-task-notification', {
@@ -4052,6 +4184,54 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         });
       } else {
         console.log('⚠️ Could not find project for task:', taskId);
+      }
+
+      const commentProjectName = taskData?.project_id
+        ? projects.find(p => p.id === taskData.project_id)?.name
+        : undefined;
+      const commentPreview = content.length > 100 ? `${content.slice(0, 100)}...` : content;
+
+      // In-app/email for assignee/collaborators/watchers, excluding anyone
+      // explicitly @mentioned (they get the more specific "mentioned" event)
+      supabase.functions.invoke('dispatch-notification', {
+        body: {
+          eventType: 'task_commented',
+          actorId: session.user.id,
+          taskId,
+          excludeRecipientIds: mentionedUserIds || [],
+          context: {
+            taskTitle: taskData?.title,
+            actorName: currentUser?.name,
+            projectName: commentProjectName,
+            commentPreview
+          }
+        }
+      }).then(({ error }) => {
+        if (error) {
+          console.error('Error dispatching task_commented notification:', error);
+        }
+      });
+
+      // In-app/email for anyone explicitly @mentioned in the comment
+      if (mentionedUserIds && mentionedUserIds.length > 0) {
+        supabase.functions.invoke('dispatch-notification', {
+          body: {
+            eventType: 'mentioned',
+            actorId: session.user.id,
+            taskId,
+            recipientIds: mentionedUserIds,
+            context: {
+              taskTitle: taskData?.title,
+              actorName: currentUser?.name,
+              projectName: commentProjectName,
+              commentPreview
+            }
+          }
+        }).then(({ error }) => {
+          if (error) {
+            console.error('Error dispatching mentioned notification:', error);
+          }
+        });
       }
 
       return data.id;
