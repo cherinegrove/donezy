@@ -27,13 +27,14 @@ interface EditTimeEntryDialogProps {
 
 export function EditTimeEntryDialog({ isOpen, onClose, timeEntry, isNewEntry = false }: EditTimeEntryDialogProps) {
   const { toast } = useToast();
-const { 
-    projects, 
-    tasks, 
-    clients, 
-    currentUser, 
-    addTimeEntry, 
+const {
+    projects,
+    tasks,
+    clients,
+    currentUser,
+    addTimeEntry,
     updateTimeEntry,
+    addTask,
     getTaskById
   } = useAppContext();
   
@@ -148,8 +149,11 @@ const {
     return `${hours}h ${mins}m`;
   };
   
-  // Handle submit
-  const handleSubmit = async () => {
+  // Handle submit. When createTaskAfter is true, a new task is created from
+  // this entry's project + notes (used as the title) and the entry is linked
+  // to it — lets most manual entries end up tied to a task, with an easy way
+  // to skip it for entries that don't need one (meetings, etc.).
+  const handleSubmit = async (createTaskAfter = false) => {
     if (!currentUser) {
       toast({
         title: "Error",
@@ -158,7 +162,7 @@ const {
       });
       return;
     }
-    
+
     if (!clientId) {
       toast({
         title: "Error",
@@ -167,7 +171,7 @@ const {
       });
       return;
     }
-    
+
     if (duration <= 0) {
       toast({
         title: "Error",
@@ -176,10 +180,28 @@ const {
       });
       return;
     }
-    
+
+    if (createTaskAfter && !projectId) {
+      toast({
+        title: "Error",
+        description: "Select a project first — a task has to belong to a project.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (createTaskAfter && !notes.trim()) {
+      toast({
+        title: "Error",
+        description: "Add a note describing the work — it becomes the task title.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const startDateTime = new Date(`${startDate}T${startTime}`);
     const endDateTime = new Date(`${endDate}T${endTime}`);
-    
+
     // Create or update time entry
     const timeEntryData = {
       taskId: taskId || undefined,
@@ -195,29 +217,62 @@ const {
       manuallyAdded: isNewEntry || (timeEntry?.manuallyAdded ?? true),
       edited: isNewEntry ? false : true
     };
-    
+
     try {
+      let savedEntryId: string | undefined;
+
       if (timeEntry && !isNewEntry) {
         // Update existing entry
         await updateTimeEntry(timeEntry.id, timeEntryData);
-        
+        savedEntryId = timeEntry.id;
+
         toast({
           title: "Time entry updated",
           description: "Your time entry has been updated successfully."
         });
       } else {
         // Add new entry
-        await addTimeEntry({
+        const newEntry = await addTimeEntry({
           ...timeEntryData,
           manuallyAdded: true
         });
-        
+        savedEntryId = newEntry?.id;
+
         toast({
           title: "Time entry added",
           description: "Your time entry has been added successfully."
         });
       }
-      
+
+      if (createTaskAfter && savedEntryId) {
+        try {
+          const newTaskId = await addTask({
+            title: notes.trim(),
+            description: "",
+            projectId,
+            assigneeId: currentUser.auth_user_id,
+            status: "done",
+            priority: "medium",
+            subtasks: [],
+          });
+
+          if (newTaskId) {
+            await updateTimeEntry(savedEntryId, { taskId: newTaskId });
+            toast({
+              title: "Task created",
+              description: `"${notes.trim()}" was created and linked to this time entry.`,
+            });
+          }
+        } catch (taskError) {
+          console.error("Error creating task for time entry:", taskError);
+          toast({
+            title: "Time entry saved, but task creation failed",
+            description: "You can create the task manually and link it from the entry.",
+            variant: "destructive",
+          });
+        }
+      }
+
       onClose();
     } catch (error) {
       console.error("Error saving time entry:", error);
@@ -403,11 +458,27 @@ const {
           </div>
         </div>
         
+        {!taskId && (
+          <p className="text-xs text-muted-foreground -mt-2">
+            No task linked yet. Select a project and add a note above, then use
+            "Save and Create Task" — or just save if this doesn't need one (e.g. a meeting).
+          </p>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>
+          {!taskId && (
+            <Button
+              variant="outline"
+              onClick={() => handleSubmit(true)}
+              disabled={!projectId || !notes.trim()}
+            >
+              Save and Create Task
+            </Button>
+          )}
+          <Button onClick={() => handleSubmit(false)}>
             {isNewEntry ? "Add Entry" : "Save Changes"}
           </Button>
         </DialogFooter>
