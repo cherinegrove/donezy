@@ -17,7 +17,7 @@ interface CommentSectionProps {
 }
 
 export function CommentSection({ taskId }: CommentSectionProps) {
-  const { tasks, users, currentUser, addComment, updateComment, createMessage } = useAppContext();
+  const { tasks, users, currentUser, addComment, updateComment } = useAppContext();
   const [comment, setComment] = useState("");
   const [pendingImages, setPendingImages] = useState<{ file: File; preview: string }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -170,58 +170,9 @@ export function CommentSection({ taskId }: CommentSectionProps) {
             : "Your comment was added",
       });
 
-      // Handle notifications in background (don't block on these)
-      // For mentions
-      if (task) {
-        for (const userId of mentionedUserIds) {
-          if (userId !== currentUser.auth_user_id) {
-            supabase.functions.invoke("send-mention-notification", {
-              body: {
-                mentionedUserId: userId,
-                mentionerName: currentUser.name,
-                messageContent: commentContent,
-                taskId,
-              },
-            }).catch(err => console.error("Error sending mention notification:", err));
-          }
-        }
-
-        // For task assignee
-        if (
-          task.assigneeId &&
-          task.assigneeId !== currentUser.auth_user_id &&
-          !mentionedUserIds.includes(task.assigneeId)
-        ) {
-          createMessage({
-            senderId: currentUser.auth_user_id,
-            recipientIds: [task.assigneeId],
-            content: `New comment on task "${task.title}" you're assigned to`,
-            commentId: commentId,
-            taskId: taskId,
-            projectId: task.projectId,
-          }).catch(err => console.error("Error creating message for assignee:", err));
-        }
-
-        // For collaborators
-        if (task.collaboratorIds && task.collaboratorIds.length > 0) {
-          for (const collaboratorId of task.collaboratorIds) {
-            if (
-              collaboratorId !== currentUser.auth_user_id &&
-              collaboratorId !== task.assigneeId &&
-              !mentionedUserIds.includes(collaboratorId)
-            ) {
-              createMessage({
-                senderId: currentUser.auth_user_id,
-                recipientIds: [collaboratorId],
-                content: `New comment on task "${task.title}" you're collaborating on`,
-                commentId: commentId,
-                taskId: taskId,
-                projectId: task.projectId,
-              }).catch(err => console.error("Error creating message for collaborator:", err));
-            }
-          }
-        }
-      }
+      // Notification dispatch (mentions, assignee, collaborators) now happens
+      // server-side from addComment via dispatch-notification, respecting
+      // each recipient's own notification preferences.
     } catch (error) {
       console.error("Error adding comment:", error);
       // Don't clear form on error - user can retry
