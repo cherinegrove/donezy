@@ -18,6 +18,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppContext } from "@/contexts/AppContext";
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -164,7 +165,9 @@ export function CreateTaskDialog({
     currentUser,
     taskTemplates,
     projectStatuses,
+    startTimeTracking,
   } = useAppContext();
+  const navigate = useNavigate();
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [clientProjects, setClientProjects] = useState<typeof projects>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("default");
@@ -366,7 +369,7 @@ export function CreateTaskDialog({
     }
   }, [form.watch("clientId"), projects, selectedClientId, projectStatuses]);
 
-  const onSubmit = async (data: TaskFormData) => {
+  const onSubmit = async (data: TaskFormData, startTimerAfterSave = false) => {
     setIsSubmitting(true);
 
     try {
@@ -434,7 +437,23 @@ export function CreateTaskDialog({
 
       await updateTemplateUsage(selectedTemplate);
 
-      toast.success("Task created successfully");
+      const viewTaskAction = taskId
+        ? { label: "View Task", onClick: () => navigate(`/tasks/${taskId}`) }
+        : undefined;
+
+      if (taskId && startTimerAfterSave) {
+        try {
+          await startTimeTracking(taskId, data.projectId || undefined);
+          toast.success("Task created and timer started", { action: viewTaskAction });
+        } catch (timerError) {
+          console.error("Error starting timer for new task:", timerError);
+          toast.success("Task created successfully", { action: viewTaskAction });
+          toast.error("Task saved, but the timer couldn't be started — start it manually from the task.");
+        }
+      } else {
+        toast.success("Task created successfully", { action: viewTaskAction });
+      }
+
       form.reset();
       setSelectedTemplate("default");
       setChecklist([]);
@@ -1017,6 +1036,14 @@ export function CreateTaskDialog({
                     disabled={isSubmitting}
                   >
                     Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isSubmitting}
+                    onClick={form.handleSubmit((data) => onSubmit(data, true))}
+                  >
+                    {isSubmitting ? "Creating..." : "Save and Start Timer"}
                   </Button>
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? "Creating..." : "Create Task"}
