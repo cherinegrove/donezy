@@ -627,11 +627,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
 
-      // Only detect ACTIVE timers (not paused ones) for the main activeTimeEntry
+      // Detect the user's current timer session: prefer a truly ACTIVE (running)
+      // entry, but fall back to a PAUSED one if that's all that exists — a paused
+      // timer is still the "current" session, just not ticking right now.
       const activeEntries = filtered.filter(
         (entry) =>
           !entry.endTime &&
           (entry as any).timerStatus === "active" &&
+          (entry.userId === currentAuthUserId ||
+            entry.authUserId === currentAuthUserId ||
+            entry.userId === currentAuthUserId.toString()),
+      );
+      const pausedCurrentEntries = filtered.filter(
+        (entry) =>
+          !entry.endTime &&
+          (entry as any).timerStatus === "paused" &&
           (entry.userId === currentAuthUserId ||
             entry.authUserId === currentAuthUserId ||
             entry.userId === currentAuthUserId.toString()),
@@ -661,14 +671,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
         setActiveTimeEntry(keepTimer);
         setTimeout(() => loadTimeEntries(), 1000);
-      } else if (activeEntries.length === 1) {
-        setActiveTimeEntry(activeEntries[0]);
+      } else if (activeEntries.length === 1 || pausedCurrentEntries.length >= 1) {
+        const primaryEntry =
+          activeEntries.length === 1
+            ? activeEntries[0]
+            : pausedCurrentEntries.sort(
+                (a, b) =>
+                  new Date(b.startTime).getTime() -
+                  new Date(a.startTime).getTime(),
+              )[0];
+        setActiveTimeEntry(primaryEntry);
 
         try {
           const { data: allEvents, error: eventsError } = await supabase
             .from("time_entry_events")
             .select("event_type, details, event_timestamp")
-            .eq("time_entry_id", activeEntries[0].id)
+            .eq("time_entry_id", primaryEntry.id)
             .order("event_timestamp", { ascending: true });
 
           if (!eventsError && allEvents && allEvents.length > 0) {
