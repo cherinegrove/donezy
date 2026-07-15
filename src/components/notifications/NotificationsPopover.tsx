@@ -1,5 +1,6 @@
 
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Popover,
   PopoverContent,
@@ -14,22 +15,34 @@ import { Check } from "lucide-react";
 
 export function NotificationsPopover({ children }: { children?: React.ReactNode }) {
   const { messages, currentUser, markMessageAsRead } = useAppContext();
-  
+  const navigate = useNavigate();
+  const [open, setOpen] = React.useState(false);
+
   // Get unread notifications for current user
-  const unreadNotifications = currentUser 
-    ? messages.filter(msg => 
-        msg.recipientIds.includes(currentUser.auth_user_id) && 
+  const unreadNotifications = currentUser
+    ? messages.filter(msg =>
+        msg.recipientIds.includes(currentUser.auth_user_id) &&
         !msg.read
       )
     : [];
-    
+
   const handleMarkAsRead = async (messageId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent popover from closing
     await markMessageAsRead(messageId);
   };
-  
+
+  const handleNotificationClick = async (notification: typeof unreadNotifications[number]) => {
+    await markMessageAsRead(notification.id);
+    setOpen(false);
+    if (notification.taskId) {
+      navigate(`/tasks/${notification.taskId}`);
+    } else if (notification.projectId) {
+      navigate(`/projects/${notification.projectId}`);
+    }
+  };
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         {children || (
           <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
@@ -48,27 +61,34 @@ export function NotificationsPopover({ children }: { children?: React.ReactNode 
         <ScrollArea className="h-80">
           {unreadNotifications.length > 0 ? (
             <div className="space-y-1">
-              {unreadNotifications.map(notification => (
-                <div key={notification.id} className="p-4 border-b last:border-0 hover:bg-muted/50">
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                      <p className="text-sm break-words whitespace-pre-wrap">{notification.content}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
-                      </p>
+              {unreadNotifications.map(notification => {
+                const isClickable = Boolean(notification.taskId || notification.projectId);
+                return (
+                  <div
+                    key={notification.id}
+                    onClick={isClickable ? () => handleNotificationClick(notification) : undefined}
+                    className={`p-4 border-b last:border-0 hover:bg-muted/50 ${isClickable ? "cursor-pointer" : ""}`}
+                  >
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <p className="text-sm break-words whitespace-pre-wrap">{notification.content}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleMarkAsRead(notification.id, e)}
+                        className="ml-2 h-8 shrink-0"
+                      >
+                        <Check className="h-4 w-4 mr-1" />
+                        <span>Read</span>
+                      </Button>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={(e) => handleMarkAsRead(notification.id, e)}
-                      className="ml-2 h-8 shrink-0"
-                    >
-                      <Check className="h-4 w-4 mr-1" />
-                      <span>Read</span>
-                    </Button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="p-8 text-center">
