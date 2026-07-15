@@ -416,23 +416,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         return;
       }
       
-      // Only detect ACTIVE timers (not paused ones) for the main activeTimeEntry
-      const activeEntries = convertedTimeEntries.filter(entry => 
+      // Detect the user's current timer session: prefer a truly ACTIVE (running)
+      // entry, but fall back to a PAUSED one if that's all that exists — a paused
+      // timer is still the "current" session, just not ticking right now.
+      const activeEntries = convertedTimeEntries.filter(entry =>
         !entry.endTime && (entry as any).timerStatus === 'active' && (
-          entry.userId === currentAuthUserId || 
+          entry.userId === currentAuthUserId ||
           entry.authUserId === currentAuthUserId ||
           entry.userId === currentAuthUserId.toString()
         )
       );
-      
+      const pausedCurrentEntries = convertedTimeEntries.filter(entry =>
+        !entry.endTime && (entry as any).timerStatus === 'paused' && (
+          entry.userId === currentAuthUserId ||
+          entry.authUserId === currentAuthUserId ||
+          entry.userId === currentAuthUserId.toString()
+        )
+      );
+
       if (activeEntries.length > 1) {
         // Keep the most recent one, stop the others
-        const sortedActive = activeEntries.sort((a, b) => 
+        const sortedActive = activeEntries.sort((a, b) =>
           new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
         );
         const keepTimer = sortedActive[0];
         const stopTimers = sortedActive.slice(1);
-        
+
         for (const timer of stopTimers) {
           const duration = Math.floor((Date.now() - new Date(timer.startTime).getTime()) / (1000 * 60));
           await supabase
@@ -440,17 +449,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             .update({ end_time: new Date().toISOString(), duration: Math.max(1, duration) })
             .eq('id', timer.id);
         }
-        
+
         setActiveTimeEntry(keepTimer);
         setTimeout(() => loadTimeEntries(), 1000);
-      } else if (activeEntries.length === 1) {
-        setActiveTimeEntry(activeEntries[0]);
-        
+      } else if (activeEntries.length === 1 || pausedCurrentEntries.length >= 1) {
+        const primaryEntry = activeEntries.length === 1
+          ? activeEntries[0]
+          : pausedCurrentEntries.sort((a, b) =>
+              new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+            )[0];
+        setActiveTimeEntry(primaryEntry);
+
         try {
           const { data: allEvents, error: eventsError } = await supabase
             .from('time_entry_events')
             .select('event_type, details, event_timestamp')
-            .eq('time_entry_id', activeEntries[0].id)
+            .eq('time_entry_id', primaryEntry.id)
             .order('event_timestamp', { ascending: true });
           
           if (!eventsError && allEvents && allEvents.length > 0) {
