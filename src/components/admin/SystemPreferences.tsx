@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Globe, DollarSign, Bell, Plus, Trash2 } from "lucide-react";
+import { Settings, Globe, DollarSign, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAppContext } from "@/contexts/AppContext";
 
 const TIMEZONES = [
   { value: "UTC", label: "(UTC+00:00) Coordinated Universal Time" },
@@ -31,34 +32,92 @@ const DEFAULT_CURRENCIES = [
 
 export function SystemPreferences() {
   const { toast } = useToast();
+  const { currentUser } = useAppContext();
   const [selectedTimezone, setSelectedTimezone] = useState("UTC");
   const [currencies, setCurrencies] = useState(DEFAULT_CURRENCIES);
   const [newCurrency, setNewCurrency] = useState({ code: "", name: "", symbol: "" });
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Settings live in organizations.settings (jsonb) so they persist and apply
+  // org-wide, instead of the old useState-only version whose Save did nothing.
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!currentUser?.organizationId) return;
+      const { data, error } = await supabase
+        .from("organizations")
+        .select("settings")
+        .eq("id", currentUser.organizationId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error loading organization settings:", error);
+        return;
+      }
+      const settings = (data?.settings as any) || {};
+      if (settings.defaultTimezone) setSelectedTimezone(settings.defaultTimezone);
+      if (Array.isArray(settings.currencies) && settings.currencies.length > 0) {
+        setCurrencies(settings.currencies);
+      }
+    };
+    loadSettings();
+  }, [currentUser?.organizationId]);
 
   const handleAddCurrency = () => {
     if (newCurrency.code && newCurrency.name && newCurrency.symbol) {
       setCurrencies([...currencies, { ...newCurrency }]);
       setNewCurrency({ code: "", name: "", symbol: "" });
-      toast({
-        title: "Currency Added",
-        description: `${newCurrency.name} (${newCurrency.code}) has been added.`
-      });
     }
   };
 
   const handleRemoveCurrency = (code: string) => {
     setCurrencies(currencies.filter(c => c.code !== code));
-    toast({
-      title: "Currency Removed",
-      description: `Currency ${code} has been removed.`
-    });
   };
 
-  const handleSavePreferences = () => {
-    toast({
-      title: "Preferences Saved",
-      description: "System preferences have been updated successfully."
-    });
+  const handleSavePreferences = async () => {
+    if (!currentUser?.organizationId) {
+      toast({
+        title: "Error",
+        description: "No organization found for your account.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { data: existing } = await supabase
+        .from("organizations")
+        .select("settings")
+        .eq("id", currentUser.organizationId)
+        .maybeSingle();
+
+      const merged = {
+        ...((existing?.settings as any) || {}),
+        defaultTimezone: selectedTimezone,
+        currencies,
+      };
+
+      const { error } = await supabase
+        .from("organizations")
+        .update({ settings: merged })
+        .eq("id", currentUser.organizationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Preferences Saved",
+        description: "Account settings have been updated for your organization."
+      });
+    } catch (error) {
+      console.error("Error saving organization settings:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -66,9 +125,9 @@ export function SystemPreferences() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Settings className="h-5 w-5 text-primary" />
-          System Preferences
+          Account Settings
         </CardTitle>
-        <CardDescription>Configure global system preferences and settings</CardDescription>
+        <CardDescription>Default timezone and currencies for your organization</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Timezone Selection */}
@@ -149,8 +208,8 @@ export function SystemPreferences() {
 
         {/* Save Button */}
         <div className="flex justify-end pt-4">
-          <Button onClick={handleSavePreferences}>
-            Save Preferences
+          <Button onClick={handleSavePreferences} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save Settings"}
           </Button>
         </div>
       </CardContent>
