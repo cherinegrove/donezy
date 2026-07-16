@@ -416,7 +416,7 @@ export function CreateTaskDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit((data) => onSubmit(data, false))} className="space-y-4">
             {/* Template Selection - Always at top */}
             <div className="space-y-2">
               <Label>Task Template</Label>
