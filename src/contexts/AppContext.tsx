@@ -2280,7 +2280,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           projectId: data.project_id,
           assigneeId: data.assignee_id || undefined,
           status: (data.status as TaskStatus) || "backlog",
-          priority: (data.priority as "low" | "medium" | "high") || "medium",
+          priority: (data.priority as "low" | "medium" | "high" | "urgent") || "medium",
           dueDate: data.due_date || undefined,
           estimatedHours: data.estimated_hours || undefined,
           actualHours: data.actual_hours || undefined,

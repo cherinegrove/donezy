@@ -1,11 +1,33 @@
 import { useState, useEffect, useRef, Fragment } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
+import { useAppContext } from "@/contexts/AppContext";
+import { hasPermission } from "@/lib/rbac";
+
+interface ProposedAction {
+  type: "create_task";
+  title: string;
+  description?: string;
+  projectId: string;
+  projectName: string;
+  assigneeId?: string;
+  assigneeName?: string;
+  dueDate?: string;
+  priority?: "low" | "medium" | "high" | "urgent";
+}
+
+type ActionStatus = "pending" | "confirmed" | "cancelled" | "error";
 
 interface Message {
+  id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  proposedAction?: ProposedAction;
+  actionStatus?: ActionStatus;
+  actionError?: string;
 }
 
 const QUICK_PROMPTS = [
@@ -77,16 +99,76 @@ export function AIChatbot() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Synchronous double-submit guard: holds message ids whose Confirm is
+  // in flight. A disabled prop alone can't stop two clicks landing before
+  // the re-render, so this is checked/set before any await.
+  const inFlightActionsRef = useRef<Set<string>>(new Set());
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { addTask, users, currentUser } = useAppContext();
+
+  const canCreateTasks = hasPermission(currentUser, "tasks", "create", "project");
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const setMessageAction = (
+    messageId: string,
+    actionStatus: ActionStatus,
+    actionError?: string,
+  ) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, actionStatus, actionError } : m)),
+    );
+  };
+
+  const confirmAction = async (message: Message) => {
+    const action = message.proposedAction;
+    if (!action || message.actionStatus !== "pending") return;
+    if (inFlightActionsRef.current.has(message.id)) return;
+    inFlightActionsRef.current.add(message.id);
+
+    try {
+      const taskId = await addTask({
+        title: action.title,
+        description: action.description ?? "",
+        projectId: action.projectId,
+        assigneeId: action.assigneeId,
+        status: "backlog",
+        priority: action.priority ?? "medium",
+        dueDate: action.dueDate,
+        subtasks: [],
+        watcherIds: [],
+        collaboratorIds: [],
+        relatedTaskIds: [],
+        checklist: [],
+      });
+
+      if (!taskId) throw new Error("Task was not created");
+
+      setMessageAction(message.id, "confirmed");
+      sonnerToast.success(`Task created in ${action.projectName}`, {
+        action: { label: "View Task", onClick: () => navigate(`/tasks/${taskId}`) },
+      });
+    } catch (error: any) {
+      console.error("Error creating task from chat:", error);
+      setMessageAction(message.id, "error", error.message);
+    } finally {
+      inFlightActionsRef.current.delete(message.id);
+    }
+  };
+
+  const cancelAction = (message: Message) => {
+    if (message.actionStatus !== "pending") return;
+    setMessageAction(message.id, "cancelled");
+  };
+
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
 
     const userMessage: Message = {
+      id: crypto.randomUUID(),
       role: "user",
       content: text,
       timestamp: new Date(),
@@ -241,8 +323,9 @@ export function AIChatbot() {
           },
           body: JSON.stringify({
             message: text,
-            chatHistory: messages.slice(-10),
+            chatHistory: messages.slice(-10).map((m) => ({ role: m.role, content: m.content })),
             userContext: userContext,
+            teamMembers: users.map((u) => ({ id: u.auth_user_id, name: u.name })),
           }),
         }
       );
@@ -259,10 +342,17 @@ export function AIChatbot() {
         throw new Error('No response from chatbot');
       }
 
+      const proposedAction: ProposedAction | undefined =
+        data.proposedAction?.type === "create_task" ? data.proposedAction : undefined;
+
       const assistantMessage: Message = {
+        id: crypto.randomUUID(),
         role: "assistant",
         content: data.response,
         timestamp: new Date(),
+        ...(proposedAction
+          ? { proposedAction, actionStatus: "pending" as ActionStatus }
+          : {}),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -276,6 +366,7 @@ export function AIChatbot() {
       });
 
       const errorMessage: Message = {
+        id: crypto.randomUUID(),
         role: "assistant",
         content: `Error: ${error.message}`,
         timestamp: new Date(),
@@ -325,16 +416,16 @@ export function AIChatbot() {
         {messages.length === 0 && (
           <div className="text-center py-8">
             <p className="text-3xl">👋</p>
-            <p className="text-sm text-muted-foreground mb-2">Ask about your tasks!</p>
+            <p className="text-sm text-muted-foreground mb-2">Ask about your tasks — or create one!</p>
             <p className="text-xs text-muted-foreground">
-              Try a quick question below, or type your own.
+              Try "Create a task to send the proposal to Acme by Friday", or a quick question below.
             </p>
           </div>
         )}
 
-        {messages.map((message, index) => (
+        {messages.map((message) => (
           <div
-            key={index}
+            key={message.id}
             className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
@@ -349,6 +440,66 @@ export function AIChatbot() {
               ) : (
                 <p className="text-sm whitespace-pre-wrap">{message.content}</p>
               )}
+
+              {message.proposedAction && (
+                <div className="mt-2 rounded-md border border-border bg-background p-3 space-y-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    New task
+                  </p>
+                  <p className="text-sm font-medium">{message.proposedAction.title}</p>
+                  {message.proposedAction.description && (
+                    <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                      {message.proposedAction.description}
+                    </p>
+                  )}
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <p>Project: {message.proposedAction.projectName}</p>
+                    {message.proposedAction.assigneeName && (
+                      <p>Assignee: {message.proposedAction.assigneeName}</p>
+                    )}
+                    {message.proposedAction.dueDate && (
+                      <p>Due: {message.proposedAction.dueDate}</p>
+                    )}
+                    <p>Priority: {message.proposedAction.priority ?? "medium"}</p>
+                  </div>
+
+                  {message.actionStatus === "pending" && canCreateTasks && (
+                    <div className="flex gap-2 pt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => confirmAction(message)}
+                        className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:opacity-90"
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => cancelAction(message)}
+                        className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                  {message.actionStatus === "pending" && !canCreateTasks && (
+                    <p className="text-xs text-destructive pt-1">
+                      Your role doesn't have permission to create tasks.
+                    </p>
+                  )}
+                  {message.actionStatus === "confirmed" && (
+                    <p className="text-xs text-green-600 dark:text-green-400 pt-1">✓ Task created</p>
+                  )}
+                  {message.actionStatus === "cancelled" && (
+                    <p className="text-xs text-muted-foreground pt-1">Cancelled — nothing was created</p>
+                  )}
+                  {message.actionStatus === "error" && (
+                    <p className="text-xs text-destructive pt-1">
+                      Couldn't create the task: {message.actionError || "unknown error"}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <p className="text-xs opacity-60 mt-1">
                 {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </p>
