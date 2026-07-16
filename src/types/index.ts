@@ -71,6 +71,7 @@ export interface User {
     canViewClients?: boolean;
     canViewReports?: boolean;
   };
+  createdAt?: string;
 }
 
 export interface Team {

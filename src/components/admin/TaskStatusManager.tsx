@@ -138,7 +138,7 @@ export function TaskStatusManager() {
           <div>
             <CardTitle>Task Status Management</CardTitle>
             <CardDescription>
-              Manage task statuses for Kanban board. Drag to reorder, click to edit or delete, and customize colors.
+              Manage task statuses for the Kanban board. Drag to reorder, click to edit or delete. The name you set here is what shows everywhere in the app.
             </CardDescription>
           </div>
           
@@ -174,10 +174,6 @@ export function TaskStatusManager() {
                           className="text-muted-foreground hover:text-foreground"
                         >
                           <GripVertical className="h-4 w-4" />
-                        </div>
-                        
-                        <div className="w-12 h-8 flex items-center justify-center">
-                          <div className={`w-6 h-6 rounded ${status.color}`} />
                         </div>
                         
                         {editingId === status.id ? (

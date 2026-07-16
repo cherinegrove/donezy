@@ -16,12 +16,14 @@ interface EmailTemplate {
   is_active: boolean;
 }
 
-async function getEmailTemplate(supabase: any, templateType: string, authUserId: string): Promise<EmailTemplate | null> {
+// Templates are looked up by type alone: the table's UNIQUE(type) constraint
+// makes them global, and scoping by auth_user_id meant admin-edited templates
+// only ever applied when the admin was personally the recipient.
+async function getEmailTemplate(supabase: any, templateType: string): Promise<EmailTemplate | null> {
   const { data, error } = await supabase
     .from('email_templates')
     .select('*')
     .eq('type', templateType)
-    .eq('auth_user_id', authUserId)
     .maybeSingle();
 
   if (error) {
@@ -162,7 +164,7 @@ serve(async (req) => {
       );
     }
     
-    const template = await getEmailTemplate(supabase, 'mentioned', mentionedUserId);
+    const template = await getEmailTemplate(supabase, 'mentioned');
     const isActive = template ? template.is_active : true;
     
     let emailSent = false;

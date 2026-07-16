@@ -99,7 +99,9 @@ export function StatusHistorySection({
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [updateText, setUpdateText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const { users, currentUser, updateTask } = useAppContext();
+  const { users, currentUser, updateTask, taskStatuses } = useAppContext();
+  const statusLabel = (value: string): string =>
+    taskStatuses.find((s) => s.value === value)?.label || value;
   const { toast } = useToast();
 
   useEffect(() => {
@@ -376,7 +378,7 @@ export function StatusHistorySection({
                                 )}
                                 className="text-xs"
                               >
-                                {log.details.oldStatus}
+                                {statusLabel(log.details.oldStatus)}
                               </Badge>
                               {" → "}
                               <Badge
@@ -385,7 +387,7 @@ export function StatusHistorySection({
                                 )}
                                 className="text-xs"
                               >
-                                {log.details.newStatus}
+                                {statusLabel(log.details.newStatus)}
                               </Badge>
                             </p>
                           )}

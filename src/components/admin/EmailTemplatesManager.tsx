@@ -17,7 +17,11 @@ interface EmailTemplate {
   name: string;
   subject: string;
   content: string;
-  type: 'task_due_today' | 'task_reminder' | 'task_overdue' | 'task_assignment' | 'project_added' | 'task_collaborator' | 'mentioned' | 'awaiting_feedback' | 'weekly_roundup';
+  // Only types that an email-sending function actually reads. Types that
+  // nothing sends (task_overdue, task_assignment, project_added,
+  // task_collaborator, weekly_roundup) were removed from this manager so
+  // admins can't edit templates that never go out.
+  type: 'task_due_today' | 'task_reminder' | 'mentioned' | 'awaiting_feedback';
   isActive: boolean;
 }
 
@@ -65,98 +69,6 @@ Best regards,
     isActive: true
   },
   {
-    id: 'task_overdue',
-    name: 'Task Overdue',
-    subject: 'Overdue Task: {{task_title}}',
-    content: `Hello {{user_name}},
-
-Your task "{{task_title}}" is now overdue.
-
-Project: {{project_name}}
-Priority: {{priority}}
-Due Date: {{due_date}}
-
-Description:
-{{task_description}}
-
-Please complete this task as soon as possible.
-
-Best regards,
-{{company_name}} Team`,
-    type: 'task_overdue',
-    isActive: true
-  },
-  {
-    id: 'task_assignment',
-    name: 'Task Assignment',
-    subject: 'New Task Assigned: {{task_title}}',
-    content: `Hello {{user_name}},
-
-You have been assigned a new task:
-
-Task: {{task_title}}
-Project: {{project_name}}
-Due Date: {{due_date}}
-Priority: {{priority}}
-
-Description:
-{{task_description}}
-
-Please log in to your dashboard to view full details and get started.
-
-Best regards,
-{{company_name}} Team`,
-    type: 'task_assignment',
-    isActive: true
-  },
-  {
-    id: 'project_added',
-    name: 'Added to Project',
-    subject: 'You\'ve been added to project: {{project_name}}',
-    content: `Hello {{user_name}},
-
-You have been added to the project "{{project_name}}".
-
-Project Description:
-{{project_description}}
-
-You can now:
-- View project details
-- Access project tasks
-- Collaborate with team members
-- Track project progress
-
-Please log in to your dashboard to get started.
-
-Best regards,
-{{company_name}} Team`,
-    type: 'project_added',
-    isActive: true
-  },
-  {
-    id: 'task_collaborator',
-    name: 'Added as Task Collaborator',
-    subject: 'You\'ve been added as collaborator: {{task_title}}',
-    content: `Hello {{user_name}},
-
-You have been added as a collaborator to the task "{{task_title}}".
-
-Task Details:
-Project: {{project_name}}
-Due Date: {{due_date}}
-Priority: {{priority}}
-
-Description:
-{{task_description}}
-
-You can now collaborate and contribute to this task.
-
-Best regards,
-{{company_name}} Team`,
-    type: 'task_collaborator',
-    isActive: true
-  },
-  {
     id: 'mentioned',
     name: 'You\'ve been Mentioned',
     subject: 'You were mentioned in: {{context_title}}',
@@ -194,30 +106,6 @@ Can you help us get this by {{feedback_when}}?
 Thanks,
 {{user_name}}`,
     type: 'awaiting_feedback',
-    isActive: true
-  },
-  {
-    id: 'weekly_roundup',
-    name: 'Weekly Roundup',
-    subject: 'Your Weekly Project Roundup – {{week_range}}',
-    content: `Hi {{user_name}},
-
-Here's your weekly project roundup for {{week_range}}.
-
-✅ Tasks Completed This Week ({{completed_count}})
-{{completed_tasks}}
-
-🔄 Tasks Currently in Progress ({{in_progress_count}})
-{{in_progress_tasks}}
-
-⏳ Friendly Reminder That I Am Waiting on Feedback ({{awaiting_count}})
-{{awaiting_feedback_tasks}}
-
-{{closing_message}}
-
-Warm Regards,
-{{sender_name}}`,
-    type: 'weekly_roundup',
     isActive: true
   }
 ];
@@ -419,13 +307,8 @@ export const EmailTemplatesManager = () => {
     switch (type) {
       case 'task_due_today': return 'bg-red-100 text-red-800';
       case 'task_reminder': return 'bg-yellow-100 text-yellow-800';
-      case 'task_overdue': return 'bg-red-100 text-red-800';
-      case 'task_assignment': return 'bg-blue-100 text-blue-800';
-      case 'project_added': return 'bg-green-100 text-green-800';
-      case 'task_collaborator': return 'bg-gray-100 text-gray-800';
       case 'mentioned': return 'bg-orange-100 text-orange-800';
       case 'awaiting_feedback': return 'bg-amber-100 text-amber-800';
-      case 'weekly_roundup': return 'bg-teal-100 text-teal-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
