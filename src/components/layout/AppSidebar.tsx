@@ -36,7 +36,7 @@ function SidebarContent() {
     { to: "/time", icon: Clock, label: "Time Tracking" },
     { to: "/notifications", icon: Bell, label: "Notifications" },
     { to: "/analytics", icon: BarChart, label: "Analytics" },
-    { to: "/settings", icon: Settings, label: "Integrations" },
+    { to: "/settings", icon: Settings, label: "Settings" },
   ];
   
   return (
