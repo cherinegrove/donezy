@@ -213,6 +213,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       is_guest: dbUser.is_guest || false,
       guest_of_user_id: dbUser.guest_of_user_id || undefined,
       guest_permissions: safeParseJson(dbUser.guest_permissions, {}),
+      createdAt: dbUser.created_at || undefined,
     };
   };
 
@@ -2365,6 +2366,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  // Display name for a status value — logs and notifications should show the
+  // org's label (e.g. "Awaiting Feedback (External)"), never the internal
+  // value (e.g. "review").
+  const statusLabel = (value: string): string =>
+    taskStatuses.find((s) => s.value === value)?.label || value;
+
   const updateTask = async (
     taskId: string,
     updates: Partial<Task>,
@@ -2416,7 +2423,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       ) {
         dbUpdates.status = updates.status;
         changes.push(
-          `changed status from "${currentTask.status}" to "${updates.status}"`,
+          `changed status from "${statusLabel(currentTask.status)}" to "${statusLabel(updates.status)}"`,
         );
       }
       if (
@@ -2699,8 +2706,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                 taskTitle: notifyTaskTitle,
                 actorName: currentUserRef.current?.name,
                 projectName: notifyProjectName,
-                oldStatus: currentTask.status,
-                newStatus: updates.status,
+                oldStatus: statusLabel(currentTask.status),
+                newStatus: statusLabel(updates.status),
               },
             },
           })
@@ -2758,8 +2765,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                 taskTitle: notifyTaskTitle,
                 actorName: currentUserRef.current?.name,
                 projectName: notifyProjectName,
-                oldStatus: currentTask.status,
-                newStatus: updates.status,
+                oldStatus: statusLabel(currentTask.status),
+                newStatus: statusLabel(updates.status),
               },
             },
           })
@@ -4417,8 +4424,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                 taskTitle: task.title,
                 actorName: currentUserRef.current?.name,
                 projectName: reorderProjectName,
-                oldStatus: task.status,
-                newStatus,
+                oldStatus: statusLabel(task.status),
+                newStatus: statusLabel(newStatus),
               },
             },
           })

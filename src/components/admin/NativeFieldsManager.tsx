@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
+import {
   Table,
   TableBody,
   TableCell,
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAppContext } from "@/contexts/AppContext";
 
 interface NativeFieldConfig {
   id: string;
@@ -30,20 +30,11 @@ const TASK_FIELDS = [
   { name: 'estimatedHours', label: 'Estimated Hours', type: 'number', defaultRequired: false },
 ];
 
-const PROJECT_FIELDS = [
-  { name: 'description', label: 'Description', type: 'textarea', defaultRequired: false },
-  { name: 'clientId', label: 'Client', type: 'select', defaultRequired: false },
-  { name: 'status', label: 'Status', type: 'select', defaultRequired: false },
-  { name: 'serviceType', label: 'Service Type', type: 'select', defaultRequired: false },
-  { name: 'startDate', label: 'Start Date', type: 'date', defaultRequired: false },
-  { name: 'dueDate', label: 'Due Date', type: 'date', defaultRequired: false },
-  { name: 'allocatedHours', label: 'Allocated Hours', type: 'number', defaultRequired: false },
-];
-
 export function NativeFieldsManager() {
   const [configs, setConfigs] = useState<NativeFieldConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { currentUser } = useAppContext();
 
   useEffect(() => {
     fetchConfigs();
@@ -93,16 +84,17 @@ export function NativeFieldsManager() {
         
         if (error) throw error;
       } else {
-        // Create new config
+        // Create new config, org-scoped so every org member's forms honor it
         const { error } = await supabase
           .from('native_field_configs')
           .insert({
             auth_user_id: user.id,
+            organization_id: currentUser?.organizationId || null,
             entity_type: entityType,
             field_name: fieldName,
             ...updates
           });
-        
+
         if (error) throw error;
       }
 
@@ -173,26 +165,13 @@ export function NativeFieldsManager() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Native Fields Configuration</CardTitle>
+        <CardTitle>Task Fields Configuration</CardTitle>
         <CardDescription>
-          Configure required status and visibility for system fields in tasks and projects.
+          Configure which built-in task fields are required or hidden on the task form, for everyone in your organization.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="tasks" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="tasks">Task Fields</TabsTrigger>
-            <TabsTrigger value="projects">Project Fields</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="tasks" className="mt-6">
-            {renderFieldsTable('tasks', TASK_FIELDS)}
-          </TabsContent>
-          
-          <TabsContent value="projects" className="mt-6">
-            {renderFieldsTable('projects', PROJECT_FIELDS)}
-          </TabsContent>
-        </Tabs>
+        {renderFieldsTable('tasks', TASK_FIELDS)}
       </CardContent>
     </Card>
   );

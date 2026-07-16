@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { format, formatDistanceToNow } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 import { useAppContext } from "@/contexts/AppContext";
 import { useRbac } from "@/hooks/useRbac";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
@@ -52,7 +54,7 @@ import { getRoleName, isAdmin } from "@/utils/roleUtils";
 import { AssignRolesDialog } from "./AssignRolesDialog";
 
 export default function AdminUsers() {
-  const { users, clients, updateUser, deleteUser, currentUser } =
+  const { users, clients, teams, updateUser, deleteUser, currentUser } =
     useAppContext();
   const { can } = useRbac();
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,6 +63,37 @@ export default function AdminUsers() {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [deleteDialogUser, setDeleteDialogUser] = useState<User | null>(null);
   const [assignRolesUser, setAssignRolesUser] = useState<User | null>(null);
+  // auth_user_id/user_id -> most recent time_entries.start_time. This is a
+  // "last worked" proxy — true last-login isn't exposed by Supabase auth to
+  // the frontend, but the latest timer activity is close enough for admins.
+  const [lastWorkedByUser, setLastWorkedByUser] = useState<
+    Record<string, string>
+  >({});
+
+  useEffect(() => {
+    const loadLastWorked = async () => {
+      const { data, error } = await supabase
+        .from("time_entries")
+        .select("user_id, auth_user_id, start_time")
+        .order("start_time", { ascending: false })
+        .limit(5000);
+
+      if (error) {
+        console.error("Error loading last-worked times:", error);
+        return;
+      }
+
+      const latest: Record<string, string> = {};
+      for (const entry of data || []) {
+        for (const key of [entry.auth_user_id, entry.user_id]) {
+          if (key && !latest[key]) latest[key] = entry.start_time;
+        }
+      }
+      setLastWorkedByUser(latest);
+    };
+
+    loadLastWorked();
+  }, []);
 
   // Filter users based on search term (show all users including current user)
   const filteredUsers = users.filter(
@@ -70,16 +103,11 @@ export default function AdminUsers() {
       getRoleName(user).toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  console.log("🔍 AdminUsers Debug - Total users:", users.length);
-  console.log("🔍 AdminUsers Debug - Filtered users:", filteredUsers.length);
-  console.log(
-    "🔍 AdminUsers Debug - Users with target emails:",
-    users.filter((u) =>
-      ["cherine.grove@gmail.com", "cherine+donezy@cybersolve.net"].includes(
-        u.email,
-      ),
-    ),
-  );
+  const getTeamName = (teamId: string) =>
+    teams.find((t) => t.id === teamId)?.name || `Team ${teamId.slice(0, 8)}`;
+
+  const getLastWorked = (user: User): string | undefined =>
+    lastWorkedByUser[user.auth_user_id] || lastWorkedByUser[user.id];
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
@@ -194,6 +222,8 @@ export default function AdminUsers() {
               <TableHead>RBAC Roles</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Teams</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead>Last worked</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -247,24 +277,47 @@ export default function AdminUsers() {
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    {user.teamIds?.slice(0, 2).map((teamId) => {
-                      // This is a simplified display - in a real app you'd look up team names
-                      return (
-                        <Badge
-                          key={teamId}
-                          variant="secondary"
-                          className="text-xs"
-                        >
-                          Team {teamId.slice(0, 8)}
-                        </Badge>
-                      );
-                    })}
+                    {user.teamIds?.slice(0, 2).map((teamId) => (
+                      <Badge
+                        key={teamId}
+                        variant="secondary"
+                        className="text-xs"
+                      >
+                        {getTeamName(teamId)}
+                      </Badge>
+                    ))}
                     {user.teamIds && user.teamIds.length > 2 && (
                       <Badge variant="secondary" className="text-xs">
                         +{user.teamIds.length - 2} more
                       </Badge>
                     )}
                   </div>
+                </TableCell>
+                <TableCell>
+                  {user.createdAt ? (
+                    <span
+                      className="text-sm text-muted-foreground"
+                      title={format(new Date(user.createdAt), "PPpp")}
+                    >
+                      {format(new Date(user.createdAt), "d MMM yyyy")}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {getLastWorked(user) ? (
+                    <span
+                      className="text-sm text-muted-foreground"
+                      title={format(new Date(getLastWorked(user)!), "PPpp")}
+                    >
+                      {formatDistanceToNow(new Date(getLastWorked(user)!), {
+                        addSuffix: true,
+                      })}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>

@@ -210,12 +210,12 @@ export function KanbanBoard({
     const sourceStatus = source.droppableId as TaskStatus;
     const destinationStatus = destination.droppableId as TaskStatus;
 
-    // Check if we need to prompt for additional info (backlog, in-progress, or awaiting feedback/review statuses)
+    // Check if we need to prompt for additional info (backlog, in-progress, or awaiting-feedback statuses).
+    // "review" is the internal value of the org's "Awaiting Feedback (External)" stage.
     const needsPrompt =
       destinationStatus === "backlog" ||
       destinationStatus === "in-progress" ||
-      destinationStatus === "review" ||
-      destinationStatus === "awaiting-feedback";
+      destinationStatus === "review";
 
     if (needsPrompt && sourceStatus !== destinationStatus) {
       const task = tasks.find((t) => t.id === draggableId);

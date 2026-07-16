@@ -16,12 +16,14 @@ interface EmailTemplate {
   is_active: boolean;
 }
 
-async function getEmailTemplate(supabase: any, templateType: string, authUserId: string): Promise<EmailTemplate | null> {
+// Templates are looked up by type alone: the table's UNIQUE(type) constraint
+// makes them global, and scoping by auth_user_id meant admin-edited templates
+// only ever applied when the admin happened to be the task creator.
+async function getEmailTemplate(supabase: any, templateType: string): Promise<EmailTemplate | null> {
   const { data, error } = await supabase
     .from('email_templates')
     .select('*')
     .eq('type', templateType)
-    .eq('auth_user_id', authUserId)
     .maybeSingle();
 
   if (error) {
@@ -160,11 +162,11 @@ const handler = async (req: Request): Promise<Response> => {
         continue;
       }
       
-      const template = await getEmailTemplate(supabase, 'task_due_today', task.auth_user_id);
+      const template = await getEmailTemplate(supabase, 'task_due_today');
       const isActive = template ? template.is_active : true;
-      
+
       if (!isActive) {
-        console.log(`Task due today email template is inactive for user ${task.auth_user_id} - skipping email`);
+        console.log('Task due today email template is inactive - skipping email');
         continue;
       }
       
@@ -259,7 +261,7 @@ const handler = async (req: Request): Promise<Response> => {
       
       if (existingReminder) continue;
       
-      const template = await getEmailTemplate(supabase, 'task_reminder', task.auth_user_id);
+      const template = await getEmailTemplate(supabase, 'task_reminder');
       const isActive = template ? template.is_active : true;
       if (!isActive) continue;
       

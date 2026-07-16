@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
+import { useNativeFieldConfigs } from "@/hooks/useNativeFieldConfigs";
 import { UrgentSelect } from "./UrgentSelect";
 import { AssigneeSelect } from "./AssigneeSelect";
 import { StatusSelect } from "./StatusSelect";
@@ -54,6 +55,7 @@ interface EditTaskDialogProps {
 export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: EditTaskDialogProps) {
   const { updateTask, deleteTask, users, currentUser } = useAppContext();
   const { toast } = useToast();
+  const { isFieldRequired } = useNativeFieldConfigs("tasks");
 
   // Use either isOpen or open, with open taking precedence
   const dialogOpen = open !== undefined ? open : isOpen;
@@ -108,6 +110,24 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     dueDateChangeReason?: string;
     newDueDate?: string;
   }) => {
+    // Honor the org's field configuration (same source as CreateTaskDialog)
+    if (!title.trim()) {
+      toast({
+        title: "Title required",
+        description: "The task title cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (isFieldRequired("description") && !description.trim()) {
+      toast({
+        title: "Description required",
+        description: "Your organization requires a description on tasks",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const updates: any = {
       title,
       description,
