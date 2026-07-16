@@ -6,6 +6,56 @@ const corsHeaders = {
 
 const HISTORY_WINDOW = 10
 
+// The one mutating tool the assistant can use. Using it only PROPOSES a task —
+// the frontend renders a confirm card and nothing is written until the user
+// clicks Confirm, where creation goes through the app's normal addTask() path.
+const CREATE_TASK_TOOL = {
+  name: "create_task",
+  description:
+    "Propose a new task for the user to confirm. This does NOT create the task — the user " +
+    "sees a confirmation card and must approve it first, so never claim the task exists. " +
+    "projectName is required and must EXACTLY match one of the project names listed in the " +
+    "system prompt; if the user hasn't said which project, ask them in plain text instead of " +
+    "using this tool. assigneeName, if given, must exactly match a listed team member name.",
+  input_schema: {
+    type: "object",
+    properties: {
+      title: { type: "string", description: "Short task title" },
+      projectName: {
+        type: "string",
+        description: "Exact name of one of the user's projects (from the system prompt list)",
+      },
+      description: { type: "string", description: "Longer task description, if the user gave detail" },
+      assigneeName: {
+        type: "string",
+        description: "Exact name of a team member (from the system prompt list) to assign the task to",
+      },
+      dueDate: {
+        type: "string",
+        description: "Due date as YYYY-MM-DD, computed from today's date given in the system prompt",
+      },
+      priority: {
+        type: "string",
+        enum: ["low", "medium", "high", "urgent"],
+        description: "Task priority; omit for medium",
+      },
+    },
+    required: ["title", "projectName"],
+  },
+}
+
+// Exact, case-insensitive name match against a server-supplied list.
+// Returns the single match, or null plus the reason (not-found vs ambiguous).
+function resolveName<T extends { name: string }>(
+  name: string,
+  list: T[],
+): { match: T | null; ambiguous: boolean } {
+  const lower = name.trim().toLowerCase()
+  const matches = list.filter((item) => (item.name || "").trim().toLowerCase() === lower)
+  if (matches.length === 1) return { match: matches[0], ambiguous: false }
+  return { match: null, ambiguous: matches.length > 1 }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 200, headers: corsHeaders })
@@ -13,12 +63,16 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json()
-    const { message, chatHistory, userContext } = body
+    const { message, chatHistory, userContext, teamMembers } = body
 
     const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY")
     const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY")
 
-    const activeProjectNames = (userContext?.projects || [])
+    const allProjects: { id: string; name: string; status?: string }[] =
+      userContext?.projects || []
+    const allTeamMembers: { id: string; name: string }[] = teamMembers || []
+
+    const activeProjectNames = allProjects
       .filter((p: any) => p.status === "in-progress")
       .slice(0, 8)
       .map((p: any) => p.name)
@@ -32,11 +86,31 @@ Deno.serve(async (req) => {
       return where ? `${t.title} (${where})` : t.title
     }
 
-    // Build system prompt with user data. This is read-only: the assistant
-    // answers questions and gives advice, it never creates or modifies data.
+    // Server-computed date facts so relative phrases ("by Friday") resolve
+    // correctly without trusting the client's clock.
+    const now = new Date()
+    const todayIso = now.toISOString().split("T")[0]
+    const weekday = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][
+      now.getUTCDay()
+    ]
+
+    const projectNameList = allProjects.map((p) => p.name).filter(Boolean)
+    const memberNameList = allTeamMembers.map((m) => m.name).filter(Boolean)
+
     const systemPrompt = `You are a helpful productivity assistant for the Donezy task management app.
-You can see the user's tasks, projects, and time tracking below. You are read-only —
-you cannot create, edit, or delete anything, so never claim to have done so.
+You can see the user's tasks, projects, and time tracking below.
+
+TODAY'S DATE: ${todayIso} (${weekday}). Use this to compute absolute dates from relative phrases like "Friday" or "next week".
+
+You can PROPOSE new tasks with the create_task tool. Using the tool does NOT create the task —
+the user sees a confirmation card and must click Confirm first. Never say a task has been
+created; say it's ready for their confirmation. You cannot edit or delete anything.
+
+CREATE_TASK RULES:
+- projectName is required and must EXACTLY match one of these project names: ${projectNameList.length > 0 ? projectNameList.join(" | ") : "(none — the user has no projects, so tasks cannot be created; tell them plainly to create a project first)"}
+- If the user didn't say which project, ask them which project in plain text — do not guess and do not use the tool.
+- assigneeName, if used, must EXACTLY match one of these team members: ${memberNameList.length > 0 ? memberNameList.join(" | ") : "(none)"}
+- If a name the user gave doesn't match the lists, ask for clarification in plain text instead of using the tool.
 
 USER STATS:
 - Total Tasks: ${userContext?.stats?.totalTasks || 0}
@@ -88,6 +162,7 @@ Do not dump every matching task. If there's more to say, end with a brief offer 
           model: "claude-sonnet-5",
           max_tokens: 1024,
           system: systemPrompt,
+          tools: [CREATE_TASK_TOOL],
           messages: [
             ...recentHistory.map((m: any) => ({ role: m.role, content: m.content })),
             { role: "user", content: message }
@@ -102,10 +177,87 @@ Do not dump every matching task. If there's more to say, end with a brief offer 
       }
 
       const data = await response.json()
-      const textBlock = Array.isArray(data.content)
-        ? data.content.find((block: any) => block.type === "text")
-        : undefined
+      const blocks: any[] = Array.isArray(data.content) ? data.content : []
+      const textBlock = blocks.find((block) => block.type === "text")
+      const toolBlock = blocks.find(
+        (block) => block.type === "tool_use" && block.name === "create_task",
+      )
       const responseText = textBlock?.text?.trim()
+
+      if (toolBlock) {
+        const input = toolBlock.input || {}
+        const title = (input.title || "").trim()
+        const projectName = (input.projectName || "").trim()
+
+        if (!title || !projectName) {
+          return new Response(
+            JSON.stringify({
+              response:
+                responseText ||
+                "I need at least a task title and a project to set that up — which project should this go under?",
+            }),
+            { headers: { "Content-Type": "application/json", ...corsHeaders } },
+          )
+        }
+
+        const projectResult = resolveName(projectName, allProjects)
+        if (!projectResult.match) {
+          const suggestion = projectNameList.slice(0, 5).join(", ")
+          return new Response(
+            JSON.stringify({
+              response: projectResult.ambiguous
+                ? `You have more than one project called "${projectName}" — I can't safely pick one. Could you be more specific?`
+                : `I couldn't find a project called "${projectName}".${suggestion ? ` Your projects include: ${suggestion}.` : ""} Which one did you mean?`,
+            }),
+            { headers: { "Content-Type": "application/json", ...corsHeaders } },
+          )
+        }
+
+        let assigneeId: string | undefined
+        let assigneeName: string | undefined
+        if (input.assigneeName) {
+          const memberResult = resolveName(input.assigneeName, allTeamMembers)
+          if (!memberResult.match) {
+            const suggestion = memberNameList.slice(0, 8).join(", ")
+            return new Response(
+              JSON.stringify({
+                response: memberResult.ambiguous
+                  ? `More than one team member is called "${input.assigneeName}" — who exactly did you mean?`
+                  : `I couldn't find a team member called "${input.assigneeName}".${suggestion ? ` Your team: ${suggestion}.` : ""} Who did you mean?`,
+              }),
+              { headers: { "Content-Type": "application/json", ...corsHeaders } },
+            )
+          }
+          assigneeId = memberResult.match.id
+          assigneeName = memberResult.match.name
+        }
+
+        const priority = ["low", "medium", "high", "urgent"].includes(input.priority)
+          ? input.priority
+          : undefined
+        const dueDate =
+          typeof input.dueDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input.dueDate)
+            ? input.dueDate
+            : undefined
+
+        return new Response(
+          JSON.stringify({
+            response: responseText || "Here's the task I'll create — please confirm:",
+            proposedAction: {
+              type: "create_task",
+              title,
+              description: (input.description || "").trim() || undefined,
+              projectId: projectResult.match.id,
+              projectName: projectResult.match.name,
+              assigneeId,
+              assigneeName,
+              dueDate,
+              priority,
+            },
+          }),
+          { headers: { "Content-Type": "application/json", ...corsHeaders } },
+        )
+      }
 
       if (!responseText) {
         console.error("Anthropic returned no text content:", JSON.stringify(data))
@@ -118,7 +270,7 @@ Do not dump every matching task. If there's more to say, end with a brief offer 
       )
     }
 
-    // Fall back to OpenAI
+    // Fall back to OpenAI (text-only — no task-creation tool on this path)
     if (OPENAI_KEY) {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
