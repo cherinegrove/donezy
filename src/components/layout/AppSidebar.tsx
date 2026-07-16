@@ -52,7 +52,7 @@ function SidebarContent() {
     { to: "/time", icon: Clock, label: "Time Tracking", show: can("time_entries", "view") },
     { to: "/notifications", icon: Bell, label: "Notifications", show: can("notifications", "view") },
     { to: "/analytics", icon: BarChart, label: "Analytics", show: can("analytics", "view") },
-    { to: "/settings", icon: Settings, label: "Integrations", show: can("integrations", "view") },
+    { to: "/settings", icon: Settings, label: "Settings", show: can("settings", "view") },
   ].filter((item) => item.show);
   
   return (
