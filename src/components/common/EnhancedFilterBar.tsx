@@ -39,16 +39,20 @@ interface EnhancedFilterBarProps {
   filters: FilterOption[];
   onFilterChange: (filters: Record<string, string[]>) => void;
   presetKey?: string; // Unique key for storing presets
+  initialFilters?: Record<string, string[]>; // Seed selection on mount (e.g. restored from persistence)
 }
 
 const PRESETS_STORAGE_KEY = "filter-presets";
 
-export function EnhancedFilterBar({ 
-  filters, 
+export function EnhancedFilterBar({
+  filters,
   onFilterChange,
   presetKey = "default",
+  initialFilters,
 }: EnhancedFilterBarProps) {
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  // Seed once from initialFilters so restored selections show as badges after a
+  // remount; the parent owns persistence and receives updates via onFilterChange.
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(initialFilters || {});
   const [presets, setPresets] = useState<FilterPreset[]>([]);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [presetName, setPresetName] = useState("");
