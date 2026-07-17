@@ -6,7 +6,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { TaskStatus, Task } from "@/types";
 
 import { Button } from "@/components/ui/button";
-import { CheckSquare, Plus, Upload, Calendar, Users, User } from "lucide-react";
+import { CheckSquare, Plus, Upload, Calendar } from "lucide-react";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
 import { CreateTaskTemplateDialog } from "@/components/tasks/CreateTaskTemplateDialog";
 import { EditTaskTemplateDialog } from "@/components/tasks/EditTaskTemplateDialog";
@@ -40,6 +40,8 @@ import { ModernToolbar, ModernToolbarSection } from "@/components/common/ModernT
 
 type TaskViewMode = "list" | "kanban" | "timeline";
 
+const TASKS_FILTERS_STORAGE_KEY = "donezy-tasks-filters";
+
 export default function Tasks() {
   const { tasks, projects, users, clients, currentUser, taskStatuses } = useAppContext();
   const navigate = useNavigate();
@@ -70,13 +72,47 @@ export default function Tasks() {
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [activeTab, setActiveTab] = useState("tasks");
   const [templateRefreshTrigger, setTemplateRefreshTrigger] = useState(0);
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
+  // Filters persist across navigation (e.g. opening a task and coming back,
+  // which remounts this page) so a chosen filter stays until the user changes it.
+  const [persistedFilters] = useState<any>(() => {
+    try {
+      const stored = localStorage.getItem(TASKS_FILTERS_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    persistedFilters.activeFilters || {},
+  );
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    persistedFilters.startDate ? new Date(persistedFilters.startDate) : undefined,
+  );
+  const [dueDate, setDueDate] = useState<Date | undefined>(
+    persistedFilters.dueDate ? new Date(persistedFilters.dueDate) : undefined,
+  );
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">(
+    persistedFilters.statusFilter || "all",
+  );
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(tasks);
   const [viewMode, setViewMode] = useState<TaskViewMode>("kanban");
-  const [showMyTasksOnly, setShowMyTasksOnly] = useState(true); // Default to showing only user's tasks
+
+  // Save filter selections whenever they change.
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(
+        TASKS_FILTERS_STORAGE_KEY,
+        JSON.stringify({
+          activeFilters,
+          startDate: startDate ? startDate.toISOString() : undefined,
+          dueDate: dueDate ? dueDate.toISOString() : undefined,
+          statusFilter,
+        }),
+      );
+    } catch {
+      /* ignore quota/serialization errors */
+    }
+  }, [activeFilters, startDate, dueDate, statusFilter]);
 
   // Define filter options
   const filterOptions: FilterOption[] = [
@@ -109,15 +145,6 @@ export default function Tasks() {
   // Filter tasks based on all filters
   React.useEffect(() => {
     const filtered = tasks.filter(task => {
-      // Apply "My Tasks Only" filter first
-      if (showMyTasksOnly && currentUser) {
-        const isMyTask = task.assigneeId === currentUser.auth_user_id || 
-                        (task.collaboratorIds && task.collaboratorIds.includes(currentUser.auth_user_id));
-        if (!isMyTask) {
-          return false;
-        }
-      }
-      
       // Apply status filter
       if (statusFilter !== "all" && task.status !== statusFilter) {
         return false;
@@ -173,7 +200,7 @@ export default function Tasks() {
     });
     
     setFilteredTasks(filtered);
-  }, [tasks, activeFilters, startDate, dueDate, projects, statusFilter, showMyTasksOnly, currentUser]);
+  }, [tasks, activeFilters, startDate, dueDate, projects, statusFilter]);
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setActiveFilters(filters);
@@ -265,21 +292,12 @@ export default function Tasks() {
           <ModernToolbar>
             <ModernToolbarSection>
               <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0 hidden sm:block" />
-              <EnhancedFilterBar 
-                filters={filterOptions} 
+              <EnhancedFilterBar
+                filters={filterOptions}
                 onFilterChange={handleFilterChange}
+                initialFilters={activeFilters}
                 presetKey="tasks"
               />
-              
-              <Button
-                variant={showMyTasksOnly ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowMyTasksOnly(!showMyTasksOnly)}
-                className="flex items-center gap-1 sm:gap-2 flex-shrink-0"
-              >
-                {showMyTasksOnly ? <User className="h-4 w-4" /> : <Users className="h-4 w-4" />}
-                <span className="hidden sm:inline">{showMyTasksOnly ? "My Tasks" : "All Tasks"}</span>
-              </Button>
 
               {viewMode !== "kanban" && taskStatuses && taskStatuses.length > 0 && (
                 <Select
