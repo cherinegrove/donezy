@@ -8,9 +8,11 @@ import { cn } from "@/lib/utils";
 interface VoiceDescriptionButtonProps {
   onTranscript: (text: string) => void;
   existingText?: string;
+  /** Render just the mic icon, no text label — for tight rows like the chatbot input. */
+  iconOnly?: boolean;
 }
 
-export function VoiceDescriptionButton({ onTranscript, existingText }: VoiceDescriptionButtonProps) {
+export function VoiceDescriptionButton({ onTranscript, existingText, iconOnly = false }: VoiceDescriptionButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -103,9 +105,11 @@ export function VoiceDescriptionButton({ onTranscript, existingText }: VoiceDesc
       ) : (
         <Mic className="h-4 w-4" />
       )}
-      <span className="hidden sm:inline">
-        {isTranscribing ? "Transcribing..." : isRecording ? "Stop" : "Voice"}
-      </span>
+      {!iconOnly && (
+        <span className="hidden sm:inline">
+          {isTranscribing ? "Transcribing..." : isRecording ? "Stop" : "Voice"}
+        </span>
+      )}
     </Button>
   );
 }
