@@ -64,8 +64,9 @@ export function VoiceDescriptionButton({ onTranscript, existingText }: VoiceDesc
         ? `${existingText}${existingText.endsWith(' ') ? '' : ' '}${data.text}`
         : data.text;
 
+      // No success toast: the transcribed text appearing in the field is the
+      // confirmation, and the toast covered the chatbot's own corner of the screen.
       onTranscript(newText);
-      toast.success("Voice transcribed successfully");
     } catch (err) {
       console.error("Transcription error:", err);
       toast.error("Failed to transcribe audio. Please try again.");
