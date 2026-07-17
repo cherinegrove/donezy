@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { useAppContext } from "@/contexts/AppContext";
 import { hasPermission } from "@/lib/rbac";
+import { VoiceDescriptionButton } from "@/components/tasks/VoiceDescriptionButton";
 
 interface ProposedAction {
   type: "create_task";
@@ -545,6 +546,10 @@ export function AIChatbot() {
             placeholder="Ask me..."
             className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
             disabled={isLoading}
+          />
+          <VoiceDescriptionButton
+            onTranscript={(text) => setInput(text)}
+            existingText={input}
           />
           <button
             type="submit"
