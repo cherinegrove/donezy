@@ -550,6 +550,7 @@ export function AIChatbot() {
           <VoiceDescriptionButton
             onTranscript={(text) => setInput(text)}
             existingText={input}
+            iconOnly
           />
           <button
             type="submit"
