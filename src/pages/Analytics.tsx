@@ -1,526 +1,421 @@
-import { useState, useEffect } from "react";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { Button } from "@/components/ui/button";
-import { Plus, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useAppContext } from "@/contexts/AppContext";
-import { WidgetContainer } from "@/components/analytics/WidgetContainer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Clock, FolderKanban, CheckSquare, AlertTriangle } from "lucide-react";
+import { format } from "date-fns";
+import {
+  startOfToday, startOfWeek, startOfMonth, startOfQuarter, startOfYear,
+  endOfToday, endOfWeek, endOfMonth, endOfQuarter, endOfYear,
+} from "date-fns";
+import { DateRange } from "react-day-picker";
+import { ChartWidget } from "@/components/analytics/ChartWidget";
+import { MetricsWidget } from "@/components/analytics/MetricsWidget";
 import { RiskSuccessWidget } from "@/components/analytics/RiskSuccessWidget";
 import { UserFeedbackWidget } from "@/components/analytics/UserFeedbackWidget";
-import { MetricsWidget } from "@/components/analytics/MetricsWidget";
-import { ChartWidget } from "@/components/analytics/ChartWidget";
-import { MultiLineChartWidget } from "@/components/analytics/MultiLineChartWidget";
-import { AddWidgetDialog, WidgetType } from "@/components/analytics/AddWidgetDialog";
-import { BusinessHoursWidget } from "@/components/analytics/BusinessHoursWidget";
 import { TimeFrameSelector, TimeFramePreset } from "@/components/analytics/TimeFrameSelector";
-import { toast } from "sonner";
-import { format, startOfToday, startOfWeek, startOfMonth, startOfQuarter, startOfYear, endOfToday, endOfWeek, endOfMonth, endOfQuarter, endOfYear, eachDayOfInterval, eachMonthOfInterval, parseISO, isSameDay, isSameMonth } from "date-fns";
-import { DateRange } from "react-day-picker";
 
-interface Widget {
-  id: string;
-  type: WidgetType;
-  position: number;
+const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+
+// ---- RPC row shapes -------------------------------------------------------
+interface HoursRow { period: string | null; dim_id: string | null; dim_label: string; hours: number; entry_count: number; }
+interface ProjectRow {
+  project_id: string; project_name: string; status: string; is_final: boolean;
+  client_id: string | null; client_name: string | null; owner_name: string | null;
+  due_date_parsed: string | null; is_overdue: boolean;
+  allocated_hours: number; actual_hours: number; utilization_pct: number | null; remaining_hours: number;
+  last_activity: string | null; days_since_activity: number | null; is_stale: boolean;
+}
+interface TaskRow { dim_id: string | null; dim_label: string | null; task_count: number; final_count: number; completion_rate: number | null; }
+
+function useRpc<T>(fn: string, args: Record<string, unknown>, enabled = true) {
+  return useQuery({
+    queryKey: [fn, args],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc(fn, args);
+      if (error) throw error;
+      return (data ?? []) as T[];
+    },
+  });
 }
 
-const STORAGE_KEY = 'analytics-widgets';
+function rangeFor(preset: TimeFramePreset, custom?: DateRange): { from: Date; to: Date } {
+  if (preset === "custom" && custom?.from && custom?.to) return { from: custom.from, to: custom.to };
+  const now = new Date();
+  switch (preset) {
+    case "today": return { from: startOfToday(), to: endOfToday() };
+    case "week": return { from: startOfWeek(now), to: endOfWeek(now) };
+    case "quarter": return { from: startOfQuarter(now), to: endOfQuarter(now) };
+    case "year": return { from: startOfYear(now), to: endOfYear(now) };
+    case "month":
+    default: return { from: startOfMonth(now), to: endOfMonth(now) };
+  }
+}
 
-const defaultWidgets: Widget[] = [
-  { id: 'metrics-1', type: 'metrics', position: 0 },
-  { id: 'risk-1', type: 'risk-success', position: 1 },
-];
+const hours1 = (n: number) => `${Number(n).toLocaleString(undefined, { maximumFractionDigits: 1 })}h`;
 
-// Helper to get storage key with user context
-const getStorageKey = (userId?: string) => {
-  return userId ? `${STORAGE_KEY}-${userId}` : STORAGE_KEY;
-};
+function Loading() {
+  return <div className="flex items-center justify-center py-12 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" />Loading report…</div>;
+}
+function Empty({ msg }: { msg: string }) {
+  return <div className="py-10 text-center text-sm text-muted-foreground">{msg}</div>;
+}
 
+// ---------------------------------------------------------------------------
 export default function Analytics() {
-  const { projects, tasks, timeEntries, users, clients, taskStatuses, projectStatuses, currentUser } = useAppContext();
-  
-  const storageKey = getStorageKey(currentUser?.auth_user_id);
-  
-  // Load widgets from localStorage on mount
-  const [widgets, setWidgets] = useState<Widget[]>(defaultWidgets);
-  const [isLoaded, setIsLoaded] = useState(false);
-  
-  // Load widgets when component mounts or user changes
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      console.log('Loading analytics widgets from:', storageKey, 'Data:', saved);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setWidgets(parsed);
-        }
-      }
-    } catch (e) {
-      console.error('Error loading saved widgets:', e);
-    }
-    setIsLoaded(true);
-  }, [storageKey]);
-  
-  // Save widgets to localStorage whenever they change (only after initial load)
-  useEffect(() => {
-    if (!isLoaded) return;
-    try {
-      console.log('Saving analytics widgets to:', storageKey, 'Data:', JSON.stringify(widgets));
-      localStorage.setItem(storageKey, JSON.stringify(widgets));
-    } catch (e) {
-      console.error('Error saving widgets:', e);
-    }
-  }, [widgets, storageKey, isLoaded]);
-  
-  const [addWidgetOpen, setAddWidgetOpen] = useState(false);
-  const [timeFrame, setTimeFrame] = useState<TimeFramePreset>('month');
-  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
-
-  // Calculate date range based on preset
-  const getDateRange = (): { from: Date; to: Date } => {
-    if (timeFrame === 'custom' && customDateRange?.from && customDateRange?.to) {
-      return { from: customDateRange.from, to: customDateRange.to };
-    }
-
-    switch (timeFrame) {
-      case 'today':
-        return { from: startOfToday(), to: endOfToday() };
-      case 'week':
-        return { from: startOfWeek(new Date()), to: endOfWeek(new Date()) };
-      case 'month':
-        return { from: startOfMonth(new Date()), to: endOfMonth(new Date()) };
-      case 'quarter':
-        return { from: startOfQuarter(new Date()), to: endOfQuarter(new Date()) };
-      case 'year':
-        return { from: startOfYear(new Date()), to: endOfYear(new Date()) };
-      default:
-        return { from: startOfMonth(new Date()), to: endOfMonth(new Date()) };
-    }
-  };
-
-  const dateRange = getDateRange();
-
-  // For now, show all projects and tasks (no createdAt field in types)
-  // Only filter time entries by date range
-  const filteredProjects = projects;
-  const filteredTasks = tasks;
-  const filteredTimeEntries = timeEntries.filter(entry => {
-    const entryDate = new Date(entry.startTime);
-    return entryDate >= dateRange.from && entryDate <= dateRange.to;
-  });
-
-  // Determine which statuses are "final" (completed) - use projectStatuses if available
-  const finalProjectStatuses = projectStatuses
-    .filter(s => s.isFinal)
-    .map(s => s.value?.toLowerCase() || s.label.toLowerCase());
-  
-  // Fallback: if no final statuses defined, use common completion status names
-  const completedStatusNames = finalProjectStatuses.length > 0 
-    ? finalProjectStatuses 
-    : ['done', 'completed', 'finished', 'closed'];
-  
-  // "In Progress" projects = projects with in-progress status (not planning, not completed)
-  const inProgressProjects = filteredProjects.filter(p => {
-    const status = p.status?.toLowerCase() || '';
-    return status === 'in-progress' || status === 'active' || status === 'in progress';
-  }).length;
-  
-  // "Open" projects = all non-completed projects
-  const openProjects = filteredProjects.filter(p => {
-    const status = p.status?.toLowerCase() || '';
-    return !completedStatusNames.includes(status);
-  }).length;
-
-  const pendingTasks = filteredTasks.filter(t => t.status !== 'done').length;
-  const teamMembers = users.length;
-  const totalHours = filteredTimeEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0) / 60;
-
-  const metricsData = [
-    { label: 'In Progress', value: inProgressProjects, change: 12, progress: 65 },
-    { label: 'Pending Tasks', value: pendingTasks, change: -8, progress: 45 },
-    { label: 'Team Members', value: teamMembers, change: 5 },
-    { label: 'Hours Logged', value: Math.round(totalHours), suffix: 'hrs', change: 15 }
-  ];
-
-  // Project status data - use dynamic project statuses
-  const projectStatusData = projectStatuses.length > 0
-    ? projectStatuses.map(status => {
-        const statusValue = status.value?.toLowerCase() || status.label.toLowerCase();
-        const matchingProjects = filteredProjects.filter(p => {
-          const projectStatus = p.status?.toLowerCase() || '';
-          return projectStatus === statusValue || 
-                 projectStatus === status.label.toLowerCase() ||
-                 projectStatus.replace(/[- ]/g, '') === statusValue.replace(/[- ]/g, '');
-        });
-        return {
-          name: status.label,
-          value: matchingProjects.length,
-          items: matchingProjects
-        };
-      })
-    : [
-        { 
-          name: 'In Progress', 
-          value: filteredProjects.filter(p => p.status?.toLowerCase() === 'in-progress').length,
-          items: filteredProjects.filter(p => p.status?.toLowerCase() === 'in-progress')
-        },
-        { 
-          name: 'Planning', 
-          value: filteredProjects.filter(p => p.status?.toLowerCase() === 'planning').length,
-          items: filteredProjects.filter(p => p.status?.toLowerCase() === 'planning')
-        },
-        { 
-          name: 'Completed', 
-          value: filteredProjects.filter(p => p.status?.toLowerCase() === 'completed').length,
-          items: filteredProjects.filter(p => p.status?.toLowerCase() === 'completed')
-        },
-      ];
-
-  // Task distribution data (using filtered data and dynamic statuses)
-  const taskDistributionData = taskStatuses
-    .sort((a, b) => a.order - b.order)
-    .map(status => ({
-      name: status.label,
-      value: filteredTasks.filter(t => t.status === status.value).length,
-      items: filteredTasks.filter(t => t.status === status.value)
-    }));
-
-  // Time tracking by user (using filtered data)
-  const timeByUser = users.map(user => ({
-    name: user.name,
-    hours: Math.round(
-      filteredTimeEntries
-        .filter(e => e.userId === user.id)
-        .reduce((sum, e) => sum + (e.duration || 0), 0) / 60
-    ),
-    userId: user.id,
-    items: filteredTimeEntries.filter(e => e.userId === user.id)
-  })).filter(u => u.hours > 0).slice(0, 5);
-
-  // Daily time tracking data - hours per day for each user
-  const dailyTimeData = (() => {
-    const days = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
-    return days.map(day => {
-      const dayData: Record<string, any> = {
-        date: format(day, 'MMM dd'),
-        fullDate: day
-      };
-      users.forEach(user => {
-        const userHours = filteredTimeEntries
-          .filter(e => e.userId === user.id && isSameDay(parseISO(e.startTime), day))
-          .reduce((sum, e) => sum + (e.duration || 0), 0) / 60;
-        dayData[user.name] = Math.round(userHours * 100) / 100;
-      });
-      return dayData;
-    });
-  })();
-
-  // Monthly time tracking data - hours per month for each user
-  const monthlyTimeData = (() => {
-    const months = eachMonthOfInterval({ start: dateRange.from, end: dateRange.to });
-    return months.map(month => {
-      const monthData: Record<string, any> = {
-        date: format(month, 'MMM yyyy'),
-        fullDate: month
-      };
-      users.forEach(user => {
-        const userHours = filteredTimeEntries
-          .filter(e => e.userId === user.id && isSameMonth(parseISO(e.startTime), month))
-          .reduce((sum, e) => sum + (e.duration || 0), 0) / 60;
-        monthData[user.name] = Math.round(userHours * 100) / 100;
-      });
-      return monthData;
-    });
-  })();
-
-  // Get users who have logged time for the line chart keys
-  const activeUserNames = users
-    .filter(user => filteredTimeEntries.some(e => e.userId === user.id))
-    .map(user => user.name)
-    .slice(0, 8); // Limit to 8 users for readability
-
-  // Budget overview (using filtered data)
-  const budgetData = filteredProjects.map(p => ({
-    name: p.name,
-    allocated: p.allocatedHours || 0,
-    used: p.usedHours || 0,
-    projectId: p.id
-  })).slice(0, 5);
-
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-
-    const items = Array.from(widgets);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    const updatedWidgets = items.map((item, index) => ({
-      ...item,
-      position: index
-    }));
-
-    setWidgets(updatedWidgets);
-    toast.success("Dashboard layout updated");
-  };
-
-  const addWidget = (type: WidgetType) => {
-    const newWidget: Widget = {
-      id: `${type}-${Date.now()}`,
-      type,
-      position: widgets.length
-    };
-    setWidgets([...widgets, newWidget]);
-    toast.success("Widget added to dashboard");
-  };
-
-  const removeWidget = (id: string) => {
-    setWidgets(widgets.filter(w => w.id !== id));
-    toast.success("Widget removed");
-  };
-
-  const renderWidget = (widget: Widget) => {
-    const data = { projects: filteredProjects, tasks: filteredTasks, timeEntries: filteredTimeEntries, users, clients };
-
-    switch (widget.type) {
-      case 'metrics':
-        return (
-          <WidgetContainer
-            title="Key Metrics"
-            icon={<Sparkles className="h-5 w-5" />}
-            onRemove={() => removeWidget(widget.id)}
-          >
-            <MetricsWidget metrics={metricsData} />
-          </WidgetContainer>
-        );
-
-      case 'risk-success':
-        return (
-          <WidgetContainer
-            title="AI Pulse Check"
-            icon={<Sparkles className="h-5 w-5" />}
-            onRemove={() => removeWidget(widget.id)}
-          >
-            <RiskSuccessWidget data={data} />
-          </WidgetContainer>
-        );
-
-      case 'user-feedback':
-        return (
-          <WidgetContainer
-            title="User Performance Feedback"
-            icon={<Sparkles className="h-5 w-5" />}
-            onRemove={() => removeWidget(widget.id)}
-          >
-            <UserFeedbackWidget data={data} />
-          </WidgetContainer>
-        );
-
-      case 'project-status':
-        return (
-          <WidgetContainer
-            title="Project Status Distribution"
-            onRemove={() => removeWidget(widget.id)}
-          >
-            <ChartWidget
-              type="pie"
-              data={projectStatusData}
-              dataKey="value"
-              nameKey="name"
-              onDataClick={(data) => data.items}
-            />
-          </WidgetContainer>
-        );
-
-      case 'task-distribution':
-        return (
-          <WidgetContainer
-            title="Task Distribution"
-            onRemove={() => removeWidget(widget.id)}
-          >
-            <ChartWidget
-              type="bar"
-              data={taskDistributionData}
-              dataKey="value"
-              nameKey="name"
-              onDataClick={(data) => data.items}
-            />
-          </WidgetContainer>
-        );
-
-      case 'time-tracking':
-        return (
-          <WidgetContainer
-            title="Time Tracking by User"
-            onRemove={() => removeWidget(widget.id)}
-          >
-            <ChartWidget
-              type="bar"
-              data={timeByUser}
-              dataKey="hours"
-              nameKey="name"
-              onDataClick={(data) => data.items}
-            />
-          </WidgetContainer>
-        );
-
-      case 'time-tracking-daily':
-        return (
-          <WidgetContainer
-            title="Daily Time by User"
-            onRemove={() => removeWidget(widget.id)}
-          >
-            {activeUserNames.length > 0 ? (
-              <MultiLineChartWidget
-                data={dailyTimeData}
-                lineKeys={activeUserNames}
-                xAxisKey="date"
-                yAxisLabel="Hours"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                No time entries in selected period
-              </div>
-            )}
-          </WidgetContainer>
-        );
-
-      case 'time-tracking-monthly':
-        return (
-          <WidgetContainer
-            title="Monthly Time by User"
-            onRemove={() => removeWidget(widget.id)}
-          >
-            {activeUserNames.length > 0 ? (
-              <MultiLineChartWidget
-                data={monthlyTimeData}
-                lineKeys={activeUserNames}
-                xAxisKey="date"
-                yAxisLabel="Hours"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                No time entries in selected period
-              </div>
-            )}
-          </WidgetContainer>
-        );
-
-      case 'budget-overview':
-        return (
-          <WidgetContainer
-            title="Budget Overview"
-            onRemove={() => removeWidget(widget.id)}
-          >
-            <ChartWidget
-              type="line"
-              data={budgetData}
-              dataKey="used"
-              nameKey="name"
-              onDataClick={(data) => [data]}
-            />
-          </WidgetContainer>
-        );
-
-      case 'business-hours':
-        return (
-          <WidgetContainer
-            title="Business Hours Report"
-            onRemove={() => removeWidget(widget.id)}
-          >
-            <BusinessHoursWidget timeEntries={timeEntries} />
-          </WidgetContainer>
-        );
-
-      default:
-        return null;
-    }
-  };
-
+  const { taskStatuses, projects, tasks, timeEntries, users, clients } = useAppContext();
+  const aiData = { projects, tasks, timeEntries, users, clients };
+  const statusLabel = (v: string | null) => (v ? taskStatuses.find((s) => s.value === v)?.label || v : "Unknown");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Header */}
-      <div className="sticky top-0 z-10 backdrop-blur-xl bg-background/80 border-b border-border/50">
-        <div className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                Smart Analytics
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                AI-powered insights and interactive dashboards
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <TimeFrameSelector
-                preset={timeFrame}
-                onPresetChange={setTimeFrame}
-                dateRange={customDateRange}
-                onDateRangeChange={setCustomDateRange}
-              />
-              <Button onClick={() => setAddWidgetOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Widget
-              </Button>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Analytics &amp; Reports</h1>
+        <p className="text-muted-foreground">Hours, projects, tasks and risk — across your whole organization.</p>
       </div>
 
-      {/* Dashboard Grid */}
-      <div className="p-6">
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="dashboard">
-            {(provided) => (
-              <div
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-                className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-              >
-                {widgets
-                  .sort((a, b) => a.position - b.position)
-                  .map((widget, index) => {
-                    const isFullWidth = widget.type === 'metrics' || widget.type === 'risk-success' || widget.type === 'time-tracking-daily' || widget.type === 'time-tracking-monthly' || widget.type === 'business-hours';
+      <Tabs defaultValue="time" className="space-y-6">
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="time"><Clock className="h-4 w-4 mr-1.5" />Time</TabsTrigger>
+          <TabsTrigger value="projects"><FolderKanban className="h-4 w-4 mr-1.5" />Projects</TabsTrigger>
+          <TabsTrigger value="tasks"><CheckSquare className="h-4 w-4 mr-1.5" />Tasks</TabsTrigger>
+          <TabsTrigger value="risk"><AlertTriangle className="h-4 w-4 mr-1.5" />Risk</TabsTrigger>
+          <TabsTrigger value="insights">AI Insights</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="time"><TimeTab /></TabsContent>
+        <TabsContent value="projects"><ProjectsTab /></TabsContent>
+        <TabsContent value="tasks"><TasksTab statusLabel={statusLabel} /></TabsContent>
+        <TabsContent value="risk"><RiskTab /></TabsContent>
+        <TabsContent value="insights" className="space-y-6">
+          <RiskSuccessWidget data={aiData} />
+          <UserFeedbackWidget data={aiData} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// ---- Time tab -------------------------------------------------------------
+function TimeTab() {
+  const [preset, setPreset] = useState<TimeFramePreset>("month");
+  const [custom, setCustom] = useState<DateRange | undefined>();
+  const [granularity, setGranularity] = useState<"day" | "week" | "month" | "year">("day");
+  const { from, to } = rangeFor(preset, custom);
+  const base = { p_start: from.toISOString(), p_end: to.toISOString(), p_tz: TZ };
+
+  const overTime = useRpc<HoursRow>("report_hours", { ...base, p_granularity: granularity, p_group_by: "none" });
+  const byUser = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "user" });
+  const byProject = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "project" });
+  const byClient = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "client" });
+
+  const totalHours = (byUser.data ?? []).reduce((s, r) => s + Number(r.hours), 0);
+  const periodFmt = granularity === "year" ? "yyyy" : granularity === "month" ? "MMM yy" : "d MMM";
+  const overTimeData = (overTime.data ?? []).map((r) => ({ name: r.period ? format(new Date(r.period), periodFmt) : "", hours: Number(r.hours) }));
+  const toBar = (rows?: HoursRow[]) => (rows ?? []).map((r) => ({ name: r.dim_label, hours: Number(r.hours) })).slice(0, 12);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <TimeFrameSelector preset={preset} onPresetChange={setPreset} dateRange={custom} onDateRangeChange={setCustom} />
+        <Select value={granularity} onValueChange={(v) => setGranularity(v as typeof granularity)}>
+          <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="day">Daily</SelectItem>
+            <SelectItem value="week">Weekly</SelectItem>
+            <SelectItem value="month">Monthly</SelectItem>
+            <SelectItem value="year">Yearly</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <MetricsWidget metrics={[
+        { label: "Total Hours", value: totalHours.toLocaleString(undefined, { maximumFractionDigits: 1 }), suffix: "h" },
+        { label: "People Logging", value: (byUser.data ?? []).length },
+        { label: "Projects With Time", value: (byProject.data ?? []).length },
+        { label: "Clients", value: (byClient.data ?? []).length },
+      ]} />
+
+      <Card>
+        <CardHeader><CardTitle>Hours Over Time</CardTitle></CardHeader>
+        <CardContent>
+          {overTime.isLoading ? <Loading /> : overTimeData.length === 0 ? <Empty msg="No time logged in this period." /> :
+            <ChartWidget type="bar" data={overTimeData} dataKey="hours" nameKey="name" />}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle>Hours by User</CardTitle></CardHeader>
+          <CardContent>{byUser.isLoading ? <Loading /> : (byUser.data ?? []).length === 0 ? <Empty msg="No data." /> :
+            <ChartWidget type="bar" data={toBar(byUser.data)} dataKey="hours" nameKey="name" />}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Hours by Project</CardTitle></CardHeader>
+          <CardContent>{byProject.isLoading ? <Loading /> : (byProject.data ?? []).length === 0 ? <Empty msg="No data." /> :
+            <ChartWidget type="bar" data={toBar(byProject.data)} dataKey="hours" nameKey="name" />}</CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader><CardTitle>Hours by Client</CardTitle></CardHeader>
+        <CardContent>{byClient.isLoading ? <Loading /> : (byClient.data ?? []).length === 0 ? <Empty msg="No data." /> :
+          <ChartWidget type="bar" data={toBar(byClient.data)} dataKey="hours" nameKey="name" />}</CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ---- Projects tab ---------------------------------------------------------
+function ProjectsTab() {
+  // Current-state report: all-time actual hours vs total allocation.
+  const { data, isLoading } = useRpc<ProjectRow>("report_projects", { p_stale_days: 14 });
+  const rows = data ?? [];
+  const open = rows.filter((r) => !r.is_final);
+  const closed = rows.filter((r) => r.is_final);
+  const overdue = rows.filter((r) => r.is_overdue);
+
+  const statusPie = Object.entries(
+    rows.reduce<Record<string, number>>((acc, r) => { acc[r.status] = (acc[r.status] || 0) + 1; return acc; }, {})
+  ).map(([name, value]) => ({ name, value }));
+
+  if (isLoading) return <Loading />;
+
+  return (
+    <div className="space-y-6">
+      <MetricsWidget metrics={[
+        { label: "Open Projects", value: open.length },
+        { label: "Closed Projects", value: closed.length },
+        { label: "Overdue", value: overdue.length },
+        { label: "Total Projects", value: rows.length },
+      ]} />
+
+      <Card>
+        <CardHeader><CardTitle>Hours vs Allocation</CardTitle></CardHeader>
+        <CardContent>
+          {rows.length === 0 ? <Empty msg="No projects." /> : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="py-2 pr-4 font-medium">Project</th>
+                    <th className="py-2 pr-4 font-medium">Client</th>
+                    <th className="py-2 pr-4 font-medium text-right">Allocated</th>
+                    <th className="py-2 pr-4 font-medium text-right">Actual</th>
+                    <th className="py-2 pr-4 font-medium w-[220px]">Utilization</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {open.slice().sort((a, b) => (b.utilization_pct ?? 0) - (a.utilization_pct ?? 0)).map((r) => {
+                    const pct = r.utilization_pct ?? 0;
+                    const over = r.allocated_hours > 0 && r.actual_hours > r.allocated_hours;
                     return (
-                      <Draggable key={widget.id} draggableId={widget.id} index={index}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={isFullWidth ? 'lg:col-span-2' : ''}
-                          >
-                            {renderWidget(widget)}
-                          </div>
-                        )}
-                      </Draggable>
+                      <tr key={r.project_id} className="border-b last:border-0">
+                        <td className="py-2 pr-4 font-medium">{r.project_name}</td>
+                        <td className="py-2 pr-4 text-muted-foreground">{r.client_name || "—"}</td>
+                        <td className="py-2 pr-4 text-right">{r.allocated_hours > 0 ? hours1(r.allocated_hours) : "—"}</td>
+                        <td className="py-2 pr-4 text-right">{hours1(r.actual_hours)}</td>
+                        <td className="py-2 pr-4">
+                          {r.allocated_hours > 0 ? (
+                            <div className="flex items-center gap-2">
+                              <Progress value={Math.min(pct, 100)} className={over ? "[&>div]:bg-destructive" : ""} />
+                              <span className={`text-xs tabular-nums ${over ? "text-destructive font-medium" : "text-muted-foreground"}`}>{pct}%</span>
+                            </div>
+                          ) : <span className="text-xs text-muted-foreground">No allocation</span>}
+                        </td>
+                      </tr>
                     );
                   })}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-        {widgets.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Sparkles className="h-16 w-16 text-muted-foreground/50 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Start Building Your Dashboard</h3>
-            <p className="text-muted-foreground mb-6">
-              Add widgets to create your personalized analytics view
-            </p>
-            <Button onClick={() => setAddWidgetOpen(true)} size="lg">
-              <Plus className="h-5 w-5 mr-2" />
-              Add Your First Widget
-            </Button>
-          </div>
-        )}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle>Project Status</CardTitle></CardHeader>
+          <CardContent>{statusPie.length === 0 ? <Empty msg="No data." /> :
+            <ChartWidget type="pie" data={statusPie} dataKey="value" nameKey="name" />}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Overdue Projects ({overdue.length})</CardTitle></CardHeader>
+          <CardContent>
+            {overdue.length === 0 ? <Empty msg="Nothing overdue. 🎉" /> : (
+              <ul className="space-y-2 text-sm">
+                {overdue.map((r) => (
+                  <li key={r.project_id} className="flex items-center justify-between border-b pb-2 last:border-0">
+                    <span className="font-medium">{r.project_name}</span>
+                    <span className="text-destructive text-xs">due {r.due_date_parsed}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ---- Tasks tab ------------------------------------------------------------
+function TasksTab({ statusLabel }: { statusLabel: (v: string | null) => string }) {
+  const byStage = useRpc<TaskRow>("report_task_breakdown", { p_group_by: "stage" });
+  const byAssignee = useRpc<TaskRow>("report_task_breakdown", { p_group_by: "assignee" });
+  const byDue = useRpc<TaskRow>("report_task_breakdown", { p_group_by: "due_bucket" });
+
+  const stageData = (byStage.data ?? []).map((r) => ({ name: statusLabel(r.dim_id), count: Number(r.task_count) }));
+  const dueLabels: Record<string, string> = { overdue: "Overdue", today: "Today", this_week: "This Week", later: "Later", none: "No due date" };
+  const dueData = (byDue.data ?? []).map((r) => ({ name: dueLabels[r.dim_id ?? "none"] || r.dim_id, count: Number(r.task_count) }));
+  const total = (byStage.data ?? []).reduce((s, r) => s + Number(r.task_count), 0);
+  const done = (byStage.data ?? []).reduce((s, r) => s + Number(r.final_count), 0);
+
+  return (
+    <div className="space-y-6">
+      <MetricsWidget metrics={[
+        { label: "Total Tasks", value: total },
+        { label: "Completed", value: done },
+        { label: "Completion Rate", value: total ? Math.round((done / total) * 100) : 0, suffix: "%" },
+        { label: "Overdue", value: Number((byDue.data ?? []).find((r) => r.dim_id === "overdue")?.task_count ?? 0) },
+      ]} />
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle>Tasks by Stage</CardTitle></CardHeader>
+          <CardContent>{byStage.isLoading ? <Loading /> : stageData.length === 0 ? <Empty msg="No tasks." /> :
+            <ChartWidget type="bar" data={stageData} dataKey="count" nameKey="name" />}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Tasks by Due Date</CardTitle></CardHeader>
+          <CardContent>{byDue.isLoading ? <Loading /> : dueData.length === 0 ? <Empty msg="No tasks." /> :
+            <ChartWidget type="bar" data={dueData} dataKey="count" nameKey="name" />}</CardContent>
+        </Card>
       </div>
 
-      <AddWidgetDialog
-        open={addWidgetOpen}
-        onOpenChange={setAddWidgetOpen}
-        onAddWidget={addWidget}
-      />
+      <Card>
+        <CardHeader><CardTitle>By Assignee</CardTitle></CardHeader>
+        <CardContent>
+          {byAssignee.isLoading ? <Loading /> : (byAssignee.data ?? []).length === 0 ? <Empty msg="No tasks." /> : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="py-2 pr-4 font-medium">Assignee</th>
+                    <th className="py-2 pr-4 font-medium text-right">Tasks</th>
+                    <th className="py-2 pr-4 font-medium text-right">Completed</th>
+                    <th className="py-2 pr-4 font-medium text-right">Completion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(byAssignee.data ?? []).map((r) => (
+                    <tr key={r.dim_id ?? "none"} className="border-b last:border-0">
+                      <td className="py-2 pr-4 font-medium">{r.dim_label || "Unassigned"}</td>
+                      <td className="py-2 pr-4 text-right">{r.task_count}</td>
+                      <td className="py-2 pr-4 text-right">{r.final_count}</td>
+                      <td className="py-2 pr-4 text-right">{r.completion_rate ?? 0}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ---- Risk tab -------------------------------------------------------------
+function RiskTab() {
+  const [staleDays, setStaleDays] = useState(14);
+  const { data, isLoading } = useRpc<ProjectRow>("report_projects", { p_stale_days: staleDays });
+  const rows = data ?? [];
+  const stale = rows.filter((r) => r.is_stale);
+  const overdue = rows.filter((r) => r.is_overdue);
+  const overAllocated = rows.filter((r) => !r.is_final && r.allocated_hours > 0 && r.actual_hours > r.allocated_hours);
+
+  if (isLoading) return <Loading />;
+
+  return (
+    <div className="space-y-6">
+      <MetricsWidget metrics={[
+        { label: "Stale Projects", value: stale.length },
+        { label: "Overdue Projects", value: overdue.length },
+        { label: "Over Budget", value: overAllocated.length },
+        { label: "Open Projects", value: rows.filter((r) => !r.is_final).length },
+      ]} />
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle>Stale Open Projects — no activity recently</CardTitle>
+            <Select value={String(staleDays)} onValueChange={(v) => setStaleDays(Number(v))}>
+              <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7+ days</SelectItem>
+                <SelectItem value="14">14+ days</SelectItem>
+                <SelectItem value="30">30+ days</SelectItem>
+                <SelectItem value="60">60+ days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {stale.length === 0 ? <Empty msg={`No open project has been idle ${staleDays}+ days.`} /> : (
+            <ul className="space-y-2 text-sm">
+              {stale.slice().sort((a, b) => (b.days_since_activity ?? 0) - (a.days_since_activity ?? 0)).map((r) => (
+                <li key={r.project_id} className="flex items-center justify-between border-b pb-2 last:border-0">
+                  <div>
+                    <span className="font-medium">{r.project_name}</span>
+                    <span className="text-muted-foreground ml-2 text-xs">{r.client_name || "—"}</span>
+                  </div>
+                  <Badge variant="outline" className="text-amber-600 border-amber-300">{r.days_since_activity}d idle</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle>Overdue Projects</CardTitle></CardHeader>
+          <CardContent>
+            {overdue.length === 0 ? <Empty msg="Nothing overdue." /> : (
+              <ul className="space-y-2 text-sm">
+                {overdue.map((r) => (
+                  <li key={r.project_id} className="flex items-center justify-between border-b pb-2 last:border-0">
+                    <span className="font-medium">{r.project_name}</span>
+                    <span className="text-destructive text-xs">due {r.due_date_parsed}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Over Budget (hours)</CardTitle></CardHeader>
+          <CardContent>
+            {overAllocated.length === 0 ? <Empty msg="No project is over its allocation." /> : (
+              <ul className="space-y-2 text-sm">
+                {overAllocated.map((r) => (
+                  <li key={r.project_id} className="flex items-center justify-between border-b pb-2 last:border-0">
+                    <span className="font-medium">{r.project_name}</span>
+                    <span className="text-destructive text-xs">{hours1(r.actual_hours)} / {hours1(r.allocated_hours)} ({r.utilization_pct}%)</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
