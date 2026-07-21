@@ -120,19 +120,17 @@ function TimeTab() {
   const overTimeData = (overTime.data ?? []).map((r) => ({ name: r.period ? format(new Date(r.period), periodFmt) : "", hours: Number(r.hours) }));
   const toBar = (rows?: HoursRow[]) => (rows ?? []).map((r) => ({ name: r.dim_label, hours: Number(r.hours) })).slice(0, 12);
 
+  const periodLabel: Record<TimeFramePreset, string> = {
+    today: "today", week: "this week", month: "this month",
+    quarter: "this quarter", year: "this year", custom: "the selected range",
+  };
+  const suffix = ` — ${periodLabel[preset]}`;
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <TimeFrameSelector preset={preset} onPresetChange={setPreset} dateRange={custom} onDateRangeChange={setCustom} />
-        <Select value={granularity} onValueChange={(v) => setGranularity(v as typeof granularity)}>
-          <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="day">Daily</SelectItem>
-            <SelectItem value="week">Weekly</SelectItem>
-            <SelectItem value="month">Monthly</SelectItem>
-            <SelectItem value="year">Yearly</SelectItem>
-          </SelectContent>
-        </Select>
+        <span className="text-xs text-muted-foreground">Applies to every chart on this tab.</span>
       </div>
 
       <MetricsWidget metrics={[
@@ -143,7 +141,21 @@ function TimeTab() {
       ]} />
 
       <Card>
-        <CardHeader><CardTitle>Hours Over Time</CardTitle></CardHeader>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle>Hours Over Time</CardTitle>
+            {/* Granularity buckets THIS chart only — it doesn't change the totals below. */}
+            <Select value={granularity} onValueChange={(v) => setGranularity(v as typeof granularity)}>
+              <SelectTrigger className="w-[130px] h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">Daily</SelectItem>
+                <SelectItem value="week">Weekly</SelectItem>
+                <SelectItem value="month">Monthly</SelectItem>
+                <SelectItem value="year">Yearly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
         <CardContent>
           {overTime.isLoading ? <Loading /> : overTimeData.length === 0 ? <Empty msg="No time logged in this period." /> :
             <ChartWidget type="bar" data={overTimeData} dataKey="hours" nameKey="name" />}
@@ -152,19 +164,19 @@ function TimeTab() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle>Hours by User</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Total Hours by User{suffix}</CardTitle></CardHeader>
           <CardContent>{byUser.isLoading ? <Loading /> : (byUser.data ?? []).length === 0 ? <Empty msg="No data." /> :
             <ChartWidget type="bar" data={toBar(byUser.data)} dataKey="hours" nameKey="name" />}</CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Hours by Project</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Total Hours by Project{suffix}</CardTitle></CardHeader>
           <CardContent>{byProject.isLoading ? <Loading /> : (byProject.data ?? []).length === 0 ? <Empty msg="No data." /> :
             <ChartWidget type="bar" data={toBar(byProject.data)} dataKey="hours" nameKey="name" />}</CardContent>
         </Card>
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Hours by Client</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Total Hours by Client{suffix}</CardTitle></CardHeader>
         <CardContent>{byClient.isLoading ? <Loading /> : (byClient.data ?? []).length === 0 ? <Empty msg="No data." /> :
           <ChartWidget type="bar" data={toBar(byClient.data)} dataKey="hours" nameKey="name" />}</CardContent>
       </Card>
