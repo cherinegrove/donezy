@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,8 @@ import { format, addWeeks, startOfWeek, endOfWeek, isWithinInterval, parseISO } 
 import { Task, User, TimeEntry } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
+
+const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 
 interface TasksTimelineProps {
   tasks: Task[];
@@ -40,6 +42,7 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
   const [viewMode, setViewMode] = useState<"visual" | "text">("visual");
   const [teamCapacityThresholds, setTeamCapacityThresholds] = useState<TeamCapacityThresholds>(DEFAULT_THRESHOLDS);
   const [selectedOwnerTasks, setSelectedOwnerTasks] = useState<{ owner: User | null; tasks: Task[] } | null>(null);
+  const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
   const weeksToShow = 8; // Fixed 8 weeks as requested
 
   // Fetch team capacity thresholds from organization settings
@@ -481,7 +484,10 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
       </Card>
 
       {/* Task List Dialog */}
-      <Dialog open={!!selectedOwnerTasks} onOpenChange={(open) => !open && setSelectedOwnerTasks(null)}>
+      <Dialog
+        open={!!selectedOwnerTasks && !selectedTaskForEdit}
+        onOpenChange={(open) => !open && setSelectedOwnerTasks(null)}
+      >
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -491,7 +497,11 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
           <div className="space-y-2">
             {selectedOwnerTasks?.tasks && selectedOwnerTasks.tasks.length > 0 ? (
               selectedOwnerTasks.tasks.map(task => (
-                <div key={task.id} className="p-3 border rounded-lg hover:bg-muted/50 transition">
+                <button
+                  key={task.id}
+                  onClick={() => setSelectedTaskForEdit(task)}
+                  className="w-full p-3 border rounded-lg hover:bg-muted/50 hover:border-primary transition text-left"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{task.title}</p>
@@ -518,7 +528,7 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
                       </div>
                     </div>
                   </div>
-                </div>
+                </button>
               ))
             ) : (
               <div className="text-center py-8 text-muted-foreground">
@@ -528,6 +538,19 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Task Dialog */}
+      {selectedTaskForEdit && (
+        <Suspense fallback={null}>
+          <EditTaskDialog
+            task={selectedTaskForEdit}
+            open={!!selectedTaskForEdit}
+            onOpenChange={(open) => {
+              if (!open) setSelectedTaskForEdit(null);
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
