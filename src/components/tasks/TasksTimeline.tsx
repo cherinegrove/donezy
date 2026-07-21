@@ -125,14 +125,11 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
           timeEntries.forEach(entry => {
             // Check if entry belongs to this owner
             if (entry.userId === ownerId || entry.authUserId === ownerId) {
-              // Only count approved hours (approved-billable and approved-non-billable)
-              if (entry.status === 'approved-billable' || entry.status === 'approved-non-billable') {
-                const entryDate = parseISO(entry.startTime);
+              const entryDate = parseISO(entry.startTime);
 
-                // Check if entry date falls within this week
-                if (isWithinInterval(entryDate, { start: week.start, end: week.end })) {
-                  totalHours += entry.duration / 60; // Convert minutes to hours
-                }
+              // Check if entry date falls within this week
+              if (isWithinInterval(entryDate, { start: week.start, end: week.end })) {
+                totalHours += entry.duration / 60; // Convert minutes to hours (all hours count)
               }
             }
           });
