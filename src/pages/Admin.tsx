@@ -14,6 +14,7 @@ import Clients from "@/pages/Clients";
 import { SystemPreferences } from "@/components/admin/SystemPreferences";
 import { EmailTemplatesManager } from "@/components/admin/EmailTemplatesManager";
 import { IntegrationsSettings } from "@/components/settings/IntegrationsSettings";
+import { TeamCapacitySettings } from "@/components/admin/TeamCapacitySettings";
 
 // Helper to check if user has admin system role
 const hasAdminRole = (user: any) => {
@@ -101,6 +102,7 @@ const Admin = () => {
                   <NativeFieldsManager />
                   <EmailTemplatesManager />
                   <SystemPreferences />
+                  <TeamCapacitySettings />
                 </div>
               </div>
             </div>

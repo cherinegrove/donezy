@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChevronLeft, ChevronRight, Users, AlertTriangle, Calendar, Eye, LayoutGrid, ListIcon } from "lucide-react";
 import { format, addWeeks, startOfWeek, endOfWeek, isWithinInterval, parseISO } from "date-fns";
-import { Task, User } from "@/types";
+import { Task, User, TimeEntry } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 
 interface TasksTimelineProps {
@@ -15,15 +15,29 @@ interface TasksTimelineProps {
 interface OwnerCapacity {
   owner: User | null;
   tasks: Task[];
-  weeklyCapacity: Map<string, number>;
-  maxConcurrent: number;
+  weeklyCapacity: Map<string, number>; // week key -> hours (number)
+  maxConcurrent: number; // max hours in any week
+}
+
+interface TeamCapacityThresholds {
+  minimumHours: number;
+  goodHours: number;
+  maxHours: number;
 }
 
 export function TasksTimeline({ tasks }: TasksTimelineProps) {
-  const { users, projects, taskStatuses } = useAppContext();
+  const { users, projects, taskStatuses, currentUser, timeEntries } = useAppContext();
   const [weekOffset, setWeekOffset] = useState(0);
   const [viewMode, setViewMode] = useState<"visual" | "text">("visual");
-  const weeksToShow = 12;
+  const weeksToShow = 8; // Fixed 8 weeks as requested
+
+  // Get team capacity thresholds from organization settings
+  const teamCapacityThresholds: TeamCapacityThresholds = useMemo(() => {
+    const settings = (currentUser as any)?.organizationId
+      ? { minimumHours: 15, goodHours: 20, maxHours: 30 }
+      : { minimumHours: 15, goodHours: 20, maxHours: 30 };
+    return settings;
+  }, [currentUser]);
 
   // Generate week ranges
   const weekRanges = useMemo(() => {
@@ -46,11 +60,11 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
   // Group tasks by owner and calculate capacity
   const ownerCapacities = useMemo(() => {
     const ownerMap = new Map<string, OwnerCapacity>();
-    
+
     // Group tasks by owner
     tasks.forEach(task => {
       const ownerId = task.assigneeId || "unassigned";
-      
+
       if (!ownerMap.has(ownerId)) {
         const owner = users.find(u => u.id === ownerId || u.auth_user_id === ownerId) || null;
         ownerMap.set(ownerId, {
@@ -60,59 +74,69 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
           maxConcurrent: 0,
         });
       }
-      
+
       ownerMap.get(ownerId)!.tasks.push(task);
     });
 
-    // Calculate weekly capacity for each owner
+    // Calculate weekly hours for each owner from time entries
     ownerMap.forEach((capacity, ownerId) => {
       weekRanges.forEach(week => {
         const weekKey = format(week.start, "yyyy-MM-dd");
-        let count = 0;
-        
-        capacity.tasks.forEach(task => {
-          if (!task.dueDate) return;
-          
-          const dueDate = parseISO(task.dueDate);
-          
-          // Check if due date falls within this week
-          if (isWithinInterval(dueDate, { start: week.start, end: week.end })) {
-            count++;
-          }
-        });
-        
-        capacity.weeklyCapacity.set(weekKey, count);
-        if (count > capacity.maxConcurrent) {
-          capacity.maxConcurrent = count;
+        let totalHours = 0;
+
+        // Get time entries for this owner in this week
+        if (ownerId !== "unassigned") {
+          timeEntries.forEach(entry => {
+            // Check if entry belongs to this owner
+            if (entry.userId === ownerId || entry.authUserId === ownerId) {
+              // Only count approved hours (approved-billable and approved-non-billable)
+              if (entry.status === 'approved-billable' || entry.status === 'approved-non-billable') {
+                const entryDate = parseISO(entry.startTime);
+
+                // Check if entry date falls within this week
+                if (isWithinInterval(entryDate, { start: week.start, end: week.end })) {
+                  totalHours += entry.duration / 60; // Convert minutes to hours
+                }
+              }
+            }
+          });
+        }
+
+        capacity.weeklyCapacity.set(weekKey, totalHours);
+        if (totalHours > capacity.maxConcurrent) {
+          capacity.maxConcurrent = totalHours;
         }
       });
     });
 
-    // Sort by number of tasks (most tasks first), with unassigned at the end
+    // Sort by max hours (highest load first), with unassigned at the end
     return Array.from(ownerMap.values()).sort((a, b) => {
       if (!a.owner) return 1;
       if (!b.owner) return -1;
-      return b.tasks.length - a.tasks.length;
+      return b.maxConcurrent - a.maxConcurrent;
     });
-  }, [tasks, users, weekRanges]);
+  }, [tasks, users, weekRanges, timeEntries]);
 
   // Calculate summary stats
   const summaryStats = useMemo(() => {
     const totalOwners = ownerCapacities.filter(c => c.owner).length;
-    const highestLoad = Math.max(...ownerCapacities.map(c => c.maxConcurrent));
-    const overloadedOwners = ownerCapacities.filter(c => c.maxConcurrent >= 5).length;
-    
+    const highestLoad = Math.max(...ownerCapacities.map(c => c.maxConcurrent), 0);
+    const overloadedOwners = ownerCapacities.filter(
+      c => c.maxConcurrent > teamCapacityThresholds.maxHours
+    ).length;
+
     return {
       totalOwners,
-      highestLoad,
+      highestLoad: Math.round(highestLoad * 10) / 10, // Round to 1 decimal
       overloadedOwners,
     };
-  }, [ownerCapacities]);
+  }, [ownerCapacities, teamCapacityThresholds]);
 
-  const getCapacityColor = (count: number) => {
-    if (count === 0) return "bg-muted";
-    if (count <= 2) return "bg-emerald-500/80";
-    if (count <= 4) return "bg-amber-500/80";
+  const getCapacityColor = (hours: number) => {
+    if (hours === 0) return "bg-muted";
+    if (hours <= teamCapacityThresholds.minimumHours) return "bg-green-500/80";
+    if (hours <= teamCapacityThresholds.goodHours) return "bg-yellow-500/80";
+    if (hours <= teamCapacityThresholds.maxHours) return "bg-orange-500/80";
     return "bg-red-500/80";
   };
 
@@ -156,13 +180,13 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
                 <Calendar className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Highest Weekly Load</p>
-                <p className="text-2xl font-bold">{summaryStats.highestLoad} tasks</p>
+                <p className="text-sm text-muted-foreground">Highest Weekly Hours</p>
+                <p className="text-2xl font-bold">{summaryStats.highestLoad}h</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-gradient-to-br from-red-500/5 to-red-500/10 border-red-500/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -170,7 +194,7 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
                 <AlertTriangle className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Overloaded Owners (5+ tasks/week)</p>
+                <p className="text-sm text-muted-foreground">Overloaded Owners (&gt;{teamCapacityThresholds.maxHours}h/week)</p>
                 <p className="text-2xl font-bold">{summaryStats.overloadedOwners}</p>
               </div>
             </div>
@@ -261,7 +285,7 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
                         {capacity.owner?.name || "Unassigned"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {capacity.tasks.length} tasks • Max {capacity.maxConcurrent}/week
+                        {capacity.tasks.length} tasks • Max {Math.round(capacity.maxConcurrent * 10) / 10}h/week
                       </p>
                     </div>
                   </div>
@@ -272,17 +296,18 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
                   <div className="flex gap-1 flex-1">
                     {weekRanges.map((week, weekIdx) => {
                       const weekKey = format(week.start, "yyyy-MM-dd");
-                      const count = capacity.weeklyCapacity.get(weekKey) || 0;
-                      
+                      const hours = capacity.weeklyCapacity.get(weekKey) || 0;
+                      const hoursDisplay = Math.round(hours * 10) / 10;
+
                       return (
                         <div
                           key={weekIdx}
-                          className={`flex-1 h-8 rounded flex items-center justify-center text-xs font-medium ${getCapacityColor(count)} ${
-                            count > 0 ? "text-white" : "text-muted-foreground"
+                          className={`flex-1 h-8 rounded flex items-center justify-center text-xs font-medium ${getCapacityColor(hours)} ${
+                            hours > 0 ? "text-white" : "text-muted-foreground"
                           }`}
-                          title={`${count} tasks due this week`}
+                          title={`${hoursDisplay}h tracked this week`}
                         >
-                          {count > 0 ? count : ""}
+                          {hoursDisplay > 0 ? `${hoursDisplay}h` : ""}
                         </div>
                       );
                     })}
@@ -323,18 +348,22 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
           </div>
 
           {/* Legend */}
-          <div className="flex items-center justify-center gap-4 mt-6 pt-4 border-t">
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-6 pt-4 border-t">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-emerald-500/80" />
-              <span className="text-xs text-muted-foreground">1-2 tasks</span>
+              <div className="w-4 h-4 rounded bg-green-500/80" />
+              <span className="text-xs text-muted-foreground">0-{teamCapacityThresholds.minimumHours}h (Green)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-amber-500/80" />
-              <span className="text-xs text-muted-foreground">3-4 tasks</span>
+              <div className="w-4 h-4 rounded bg-yellow-500/80" />
+              <span className="text-xs text-muted-foreground">{teamCapacityThresholds.minimumHours}-{teamCapacityThresholds.goodHours}h (Yellow)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-orange-500/80" />
+              <span className="text-xs text-muted-foreground">{teamCapacityThresholds.goodHours}-{teamCapacityThresholds.maxHours}h (Orange)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-red-500/80" />
-              <span className="text-xs text-muted-foreground">5+ tasks</span>
+              <span className="text-xs text-muted-foreground">&gt;{teamCapacityThresholds.maxHours}h (Red)</span>
             </div>
           </div>
         </CardContent>
