@@ -1251,10 +1251,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             );
 
             if (wasNew) {
-              toast({
-                title: "New Comment",
-                description: "Someone commented on a task",
-              });
+              // Check if current user was mentioned
+              const isMentioned = newComment.mentioned_user_ids?.includes(currentUser?.auth_user_id);
+
+              if (isMentioned) {
+                // Play sound for mention notification
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj==');
+                audio.play().catch(err => console.log('Could not play mention sound:', err));
+
+                const mentioner = users.find(u => u.auth_user_id === newComment.auth_user_id);
+
+                toast({
+                  title: "🔔 You were mentioned!",
+                  description: `${mentioner?.name || 'Someone'} mentioned you in a task`,
+                  duration: 6000,
+                });
+              } else {
+                toast({
+                  title: "New Comment",
+                  description: "Someone commented on a task",
+                });
+              }
             }
           }
           else if (payload.eventType === 'UPDATE') {
