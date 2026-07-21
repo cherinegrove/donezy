@@ -17,6 +17,7 @@ interface OwnerCapacity {
   owner: User | null;
   tasks: Task[];
   weeklyCapacity: Map<string, number>; // week key -> hours (number)
+  weeklyTaskCount: Map<string, number>; // week key -> task count (number)
   maxConcurrent: number; // max hours in any week
 }
 
@@ -140,6 +141,7 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
           owner,
           tasks: [],
           weeklyCapacity: new Map(),
+          weeklyTaskCount: new Map(),
           maxConcurrent: 0,
         });
       }
@@ -172,6 +174,21 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
         if (totalHours > capacity.maxConcurrent) {
           capacity.maxConcurrent = totalHours;
         }
+
+        // Calculate task count by due date for this week
+        let taskCount = 0;
+        capacity.tasks.forEach(task => {
+          if (!task.dueDate) return;
+
+          const dueDate = parseISO(task.dueDate);
+
+          // Check if due date falls within this week
+          if (isWithinInterval(dueDate, { start: week.start, end: week.end })) {
+            taskCount++;
+          }
+        });
+
+        capacity.weeklyTaskCount.set(weekKey, taskCount);
       });
     });
 
@@ -369,17 +386,29 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
                     {weekRanges.map((week, weekIdx) => {
                       const weekKey = format(week.start, "yyyy-MM-dd");
                       const hours = capacity.weeklyCapacity.get(weekKey) || 0;
+                      const taskCount = capacity.weeklyTaskCount.get(weekKey) || 0;
                       const hoursDisplay = Math.round(hours * 10) / 10;
 
                       return (
                         <div
                           key={weekIdx}
-                          className={`flex-1 h-8 rounded flex items-center justify-center text-xs font-medium ${getCapacityColor(hours, week.start)} ${
-                            hours > 0 ? "text-white" : "text-muted-foreground"
-                          }`}
-                          title={`${hoursDisplay}h tracked this week`}
+                          className="flex-1 flex flex-col gap-0.5"
                         >
-                          {hoursDisplay > 0 ? `${hoursDisplay}h` : ""}
+                          <div
+                            className={`flex-1 h-6 rounded flex items-center justify-center text-xs font-medium ${getCapacityColor(hours, week.start)} ${
+                              hours > 0 ? "text-white" : "text-muted-foreground"
+                            }`}
+                            title={`${hoursDisplay}h tracked, ${taskCount} task${taskCount !== 1 ? 's' : ''} due`}
+                          >
+                            {hoursDisplay > 0 ? `${hoursDisplay}h` : ""}
+                          </div>
+                          {taskCount > 0 && (
+                            <div className="text-center">
+                              <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-slate-200 text-slate-700 text-xs font-semibold">
+                                {taskCount}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
