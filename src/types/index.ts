@@ -199,6 +199,7 @@ export interface Task {
   awaitingFeedbackDetails?: string;
   awaitingFeedbackFollowUpDate?: string;
   lastDueDateChange?: string;
+  userMentioned?: boolean;
 }
 
 export type TimeEntryStatus = 'pending' | 'approved' | 'rejected' | 'approved-billable' | 'approved-non-billable' | 'declined';

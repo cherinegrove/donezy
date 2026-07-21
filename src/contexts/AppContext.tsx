@@ -371,7 +371,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         awaitingFeedbackDetails: task.awaiting_feedback_details || undefined,
         lastDueDateChange: task.last_due_date_change || undefined,
         reminderDate: task.reminder_date || undefined,
-        orderIndex: task.order_index || 0
+        orderIndex: task.order_index || 0,
+        userMentioned: (commentsByTask[task.id] || []).some(c => c.mentionedUserIds?.includes(currentUser?.auth_user_id))
       })) || [];
       
       setTasks(convertedTasks);
@@ -1239,11 +1240,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             // we already have (skip re-adding it) — except when it was added by
             // someone else, where this is the only place it's added.
             let wasNew = false;
+            const isMentionedInThisComment = newComment.mentioned_user_ids?.includes(currentUser?.auth_user_id);
             setTasks(prev => prev.map(task => {
               if (task.id !== newComment.task_id) return task;
               if (task.comments.some(c => c.id === convertedComment.id)) return task;
               wasNew = true;
-              return { ...task, comments: [...task.comments, convertedComment] };
+              return {
+                ...task,
+                comments: [...task.comments, convertedComment],
+                userMentioned: task.userMentioned || isMentionedInThisComment
+              };
             }));
 
             setComments(prev =>
@@ -1999,6 +2005,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // value (e.g. "review").
   const statusLabel = (value: string): string =>
     taskStatuses.find(s => s.value === value)?.label || value;
+
+  const clearTaskMention = (taskId: string) => {
+    setTasks(prev => prev.map(task =>
+      task.id === taskId ? { ...task, userMentioned: false } : task
+    ));
+  };
 
   const updateTask = async (taskId: string, updates: Partial<Task>): Promise<string | undefined> => {
     if (!session?.user) return undefined;
@@ -4939,6 +4951,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     // Task reordering
     reorderTasks,
+
+    // Task mention functions
+    clearTaskMention,
   };
 
   return (
