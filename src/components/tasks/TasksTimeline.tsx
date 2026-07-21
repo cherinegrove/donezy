@@ -93,12 +93,45 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
     return ranges;
   }, [weekOffset]);
 
+  // Helper function to get expected hours based on day of week
+  const getExpectedHours = (threshold: number, weekStart: Date) => {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const weekStartDay = weekStart.getDay();
+
+    // If we're not in the current week, return full week threshold
+    if (today < weekStart) {
+      return threshold;
+    }
+
+    // Calculate days elapsed in current week (Mon=1 to Fri=5)
+    const daysElapsed = dayOfWeek === 0 ? 5 : dayOfWeek - 1; // Convert Sunday=0 to 5 for calculations
+
+    // If the week we're looking at is in the future, use full threshold
+    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+    if (today > weekEnd) {
+      return threshold;
+    }
+
+    // For current week: calculate daily pace (assuming 5-day work week)
+    const dailyRate = threshold / 5;
+    return dailyRate * daysElapsed;
+  };
+
   // Group tasks by owner and calculate capacity
   const ownerCapacities = useMemo(() => {
     const ownerMap = new Map<string, OwnerCapacity>();
 
+    // Filter to only open/incomplete tasks
+    const openTasks = tasks.filter(task =>
+      task.status !== 'done' &&
+      task.status !== 'completed' &&
+      task.status !== 'Done' &&
+      task.status !== 'Completed'
+    );
+
     // Group tasks by owner
-    tasks.forEach(task => {
+    openTasks.forEach(task => {
       const ownerId = task.assigneeId || "unassigned";
 
       if (!ownerMap.has(ownerId)) {
@@ -165,11 +198,17 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
     };
   }, [ownerCapacities, teamCapacityThresholds]);
 
-  const getCapacityColor = (hours: number) => {
+  const getCapacityColor = (hours: number, weekStart: Date) => {
     if (hours === 0) return "bg-muted";
-    if (hours <= teamCapacityThresholds.minimumHours) return "bg-green-500/80";
-    if (hours <= teamCapacityThresholds.goodHours) return "bg-yellow-500/80";
-    if (hours <= teamCapacityThresholds.maxHours) return "bg-orange-500/80";
+
+    // Calculate expected hours based on day of week
+    const expectedMin = getExpectedHours(teamCapacityThresholds.minimumHours, weekStart);
+    const expectedGood = getExpectedHours(teamCapacityThresholds.goodHours, weekStart);
+    const expectedMax = getExpectedHours(teamCapacityThresholds.maxHours, weekStart);
+
+    if (hours <= expectedMin) return "bg-green-500/80";
+    if (hours <= expectedGood) return "bg-yellow-500/80";
+    if (hours <= expectedMax) return "bg-orange-500/80";
     return "bg-red-500/80";
   };
 
@@ -335,7 +374,7 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
                       return (
                         <div
                           key={weekIdx}
-                          className={`flex-1 h-8 rounded flex items-center justify-center text-xs font-medium ${getCapacityColor(hours)} ${
+                          className={`flex-1 h-8 rounded flex items-center justify-center text-xs font-medium ${getCapacityColor(hours, week.start)} ${
                             hours > 0 ? "text-white" : "text-muted-foreground"
                           }`}
                           title={`${hoursDisplay}h tracked this week`}
@@ -382,21 +421,26 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
 
           {/* Legend */}
           <div className="flex flex-wrap items-center justify-center gap-4 mt-6 pt-4 border-t">
+            <div className="text-center mb-2 w-full">
+              <p className="text-xs text-muted-foreground font-medium">
+                Thresholds adjust daily (Mon: {Math.round(teamCapacityThresholds.minimumHours/5)}h, Fri: {teamCapacityThresholds.minimumHours}h per threshold)
+              </p>
+            </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-green-500/80" />
-              <span className="text-xs text-muted-foreground">0-{teamCapacityThresholds.minimumHours}h (Green)</span>
+              <span className="text-xs text-muted-foreground">On pace (Green)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-yellow-500/80" />
-              <span className="text-xs text-muted-foreground">{teamCapacityThresholds.minimumHours}-{teamCapacityThresholds.goodHours}h (Yellow)</span>
+              <span className="text-xs text-muted-foreground">Good pace (Yellow)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-orange-500/80" />
-              <span className="text-xs text-muted-foreground">{teamCapacityThresholds.goodHours}-{teamCapacityThresholds.maxHours}h (Orange)</span>
+              <span className="text-xs text-muted-foreground">Approaching max (Orange)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-red-500/80" />
-              <span className="text-xs text-muted-foreground">&gt;{teamCapacityThresholds.maxHours}h (Red)</span>
+              <span className="text-xs text-muted-foreground">Over capacity (Red)</span>
             </div>
           </div>
         </CardContent>
