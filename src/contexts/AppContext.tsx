@@ -1261,9 +1261,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
               const isMentioned = newComment.mentioned_user_ids?.includes(currentUser?.auth_user_id);
 
               if (isMentioned) {
-                // Play sound for mention notification
-                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj==');
-                audio.play().catch(err => console.log('Could not play mention sound:', err));
+                // Play sound for mention notification using Web Audio API
+                try {
+                  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                  const oscillator = audioContext.createOscillator();
+                  const gainNode = audioContext.createGain();
+
+                  oscillator.connect(gainNode);
+                  gainNode.connect(audioContext.destination);
+
+                  oscillator.frequency.value = 800;
+                  oscillator.type = 'sine';
+
+                  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+                  oscillator.start(audioContext.currentTime);
+                  oscillator.stop(audioContext.currentTime + 0.3);
+                } catch (err) {
+                  console.log('Could not play mention sound:', err);
+                }
 
                 const mentioner = users.find(u => u.auth_user_id === newComment.auth_user_id);
 
