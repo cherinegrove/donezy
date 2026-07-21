@@ -472,8 +472,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         supabase
           .from("comments")
           .select("*")
-          .order("created_at", { ascending: true })
-          .limit(1000),
+          .order("created_at", { ascending: false })
+          .limit(10000),
         supabase.from("task_files").select("*").limit(500),
       ]);
 
