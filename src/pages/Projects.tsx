@@ -20,11 +20,12 @@ import type { Project } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { CreateProjectTemplateDialog } from "@/components/projects/CreateProjectTemplateDialog";
 import { ModernToolbar, ModernToolbarSection } from "@/components/common/ModernToolbar";
+import { canViewAllData } from "@/utils/roleUtils";
 
 const Projects = () => {
   console.log("Projects component: Starting render");
-  
-  const { projects, tasks, clients, teams, users, deleteProject } = useAppContext();
+
+  const { projects, tasks, clients, teams, users, currentUser, deleteProject } = useAppContext();
 
   // Listen for template creation events to refresh the templates list
   useEffect(() => {
@@ -116,13 +117,25 @@ const Projects = () => {
 
   // Apply filters and search to projects
   const filteredProjects = projects.filter(project => {
+    // Apply permission-based filtering
+    // Admins see all projects; regular users see only projects they own or are part of their team
+    if (!canViewAllData(currentUser)) {
+      const userTeamIds = currentUser?.teamIds || [];
+      const isOwner = project.ownerId === currentUser?.auth_user_id || project.ownerId === currentUser?.id;
+      const isTeamMember = userTeamIds.some(teamId => project.teamIds?.includes(teamId));
+
+      if (!isOwner && !isTeamMember) {
+        return false;
+      }
+    }
+
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       const projectName = project.name?.toLowerCase() || "";
       const projectDescription = project.description?.toLowerCase() || "";
       const clientName = getClientName(project.clientId).toLowerCase();
-      
+
       if (!projectName.includes(query) && !projectDescription.includes(query) && !clientName.includes(query)) {
         return false;
       }
