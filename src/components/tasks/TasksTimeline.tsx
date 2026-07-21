@@ -9,6 +9,7 @@ import { format, addWeeks, startOfWeek, endOfWeek, isWithinInterval, parseISO } 
 import { Task, User, TimeEntry } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
+import { canViewAllData } from "@/utils/roleUtils";
 
 const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 
@@ -128,13 +129,24 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
   const ownerCapacities = useMemo(() => {
     const ownerMap = new Map<string, OwnerCapacity>();
 
-    // Filter to only open/incomplete tasks
-    const openTasks = tasks.filter(task =>
+    // Filter to only open/incomplete tasks AND tasks user can see
+    let visibleTasks = tasks.filter(task =>
       task.status !== 'done' &&
       task.status !== 'completed' &&
       task.status !== 'Done' &&
       task.status !== 'Completed'
     );
+
+    // Apply permission-based filtering
+    // Admins see all tasks; regular users see only their own tasks
+    if (!canViewAllData(currentUser)) {
+      visibleTasks = visibleTasks.filter(task =>
+        task.assigneeId === currentUser?.auth_user_id ||
+        task.assigneeId === currentUser?.id
+      );
+    }
+
+    const openTasks = visibleTasks;
 
     // Group tasks by owner
     openTasks.forEach(task => {
@@ -203,7 +215,7 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
       if (!b.owner) return -1;
       return b.maxConcurrent - a.maxConcurrent;
     });
-  }, [tasks, users, weekRanges, timeEntries]);
+  }, [tasks, users, weekRanges, timeEntries, currentUser]);
 
   // Calculate summary stats
   const summaryStats = useMemo(() => {
