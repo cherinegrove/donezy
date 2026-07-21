@@ -29,6 +29,10 @@ export default function Notifications() {
     : [];
 
   const unreadNotifications = allNotifications.filter(msg => !msg.read);
+  const mentionNotifications = allNotifications.filter(msg =>
+    msg.subject?.toLowerCase().includes('mentioned') ||
+    msg.content.toLowerCase().includes('you were mentioned')
+  );
 
   const filterNotifications = (notifications: Message[]) => {
     if (!searchQuery) return notifications;
@@ -140,9 +144,10 @@ export default function Notifications() {
         </div>
 
         <Tabs defaultValue="all" className="flex-1 flex flex-col overflow-hidden px-4">
-          <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
+          <TabsList className="grid w-full grid-cols-3 flex-shrink-0">
             <TabsTrigger value="all">ALL</TabsTrigger>
             <TabsTrigger value="unread">Unread</TabsTrigger>
+            <TabsTrigger value="mentions">Mentions</TabsTrigger>
           </TabsList>
           <div className="flex-1 overflow-y-auto mt-4 pb-4">
             <TabsContent value="all" className="mt-0">
@@ -150,6 +155,9 @@ export default function Notifications() {
             </TabsContent>
             <TabsContent value="unread" className="mt-0">
               <NotificationsList notifications={unreadNotifications} />
+            </TabsContent>
+            <TabsContent value="mentions" className="mt-0">
+              <NotificationsList notifications={mentionNotifications} />
             </TabsContent>
           </div>
         </Tabs>
