@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Users, AlertTriangle, Calendar, Eye, LayoutG
 import { format, addWeeks, startOfWeek, endOfWeek, isWithinInterval, parseISO } from "date-fns";
 import { Task, User, TimeEntry } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TasksTimelineProps {
   tasks: Task[];
@@ -25,19 +26,54 @@ interface TeamCapacityThresholds {
   maxHours: number;
 }
 
+const DEFAULT_THRESHOLDS: TeamCapacityThresholds = {
+  minimumHours: 15,
+  goodHours: 20,
+  maxHours: 30,
+};
+
 export function TasksTimeline({ tasks }: TasksTimelineProps) {
   const { users, projects, taskStatuses, currentUser, timeEntries } = useAppContext();
   const [weekOffset, setWeekOffset] = useState(0);
   const [viewMode, setViewMode] = useState<"visual" | "text">("visual");
+  const [teamCapacityThresholds, setTeamCapacityThresholds] = useState<TeamCapacityThresholds>(DEFAULT_THRESHOLDS);
   const weeksToShow = 8; // Fixed 8 weeks as requested
 
-  // Get team capacity thresholds from organization settings
-  const teamCapacityThresholds: TeamCapacityThresholds = useMemo(() => {
-    const settings = (currentUser as any)?.organizationId
-      ? { minimumHours: 15, goodHours: 20, maxHours: 30 }
-      : { minimumHours: 15, goodHours: 20, maxHours: 30 };
-    return settings;
-  }, [currentUser]);
+  // Fetch team capacity thresholds from organization settings
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!currentUser?.organizationId) {
+        setTeamCapacityThresholds(DEFAULT_THRESHOLDS);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("organizations")
+          .select("settings")
+          .eq("id", currentUser.organizationId)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error loading organization settings:", error);
+          setTeamCapacityThresholds(DEFAULT_THRESHOLDS);
+          return;
+        }
+
+        const settings = (data?.settings as any) || {};
+        if (settings.teamCapacity) {
+          setTeamCapacityThresholds(settings.teamCapacity);
+        } else {
+          setTeamCapacityThresholds(DEFAULT_THRESHOLDS);
+        }
+      } catch (err) {
+        console.error("Error fetching team capacity settings:", err);
+        setTeamCapacityThresholds(DEFAULT_THRESHOLDS);
+      }
+    };
+
+    loadSettings();
+  }, [currentUser?.organizationId]);
 
   // Generate week ranges
   const weekRanges = useMemo(() => {
