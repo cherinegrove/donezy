@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, ChevronRight, Users, AlertTriangle, Calendar, Eye, LayoutGrid, ListIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ChevronLeft, ChevronRight, Users, AlertTriangle, Calendar, Eye, LayoutGrid, ListIcon, X } from "lucide-react";
 import { format, addWeeks, startOfWeek, endOfWeek, isWithinInterval, parseISO } from "date-fns";
 import { Task, User, TimeEntry } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
@@ -38,6 +39,7 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [viewMode, setViewMode] = useState<"visual" | "text">("visual");
   const [teamCapacityThresholds, setTeamCapacityThresholds] = useState<TeamCapacityThresholds>(DEFAULT_THRESHOLDS);
+  const [selectedOwnerTasks, setSelectedOwnerTasks] = useState<{ owner: User | null; tasks: Task[] } | null>(null);
   const weeksToShow = 8; // Fixed 8 weeks as requested
 
   // Fetch team capacity thresholds from organization settings
@@ -362,7 +364,10 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
               <div key={capacity.owner?.id || `unassigned-${idx}`} className="flex items-start gap-4">
                 {/* Owner info */}
                 <div className="w-44 flex-shrink-0">
-                  <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedOwnerTasks({ owner: capacity.owner, tasks: capacity.tasks })}
+                    className="flex items-center gap-2 hover:opacity-75 transition-opacity text-left w-full"
+                  >
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={capacity.owner?.avatar} />
                       <AvatarFallback className="text-xs">
@@ -373,11 +378,11 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
                       <p className="font-medium text-sm truncate">
                         {capacity.owner?.name || "Unassigned"}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground hover:text-primary cursor-pointer font-semibold">
                         {capacity.tasks.length} tasks • Max {Math.round(capacity.maxConcurrent * 10) / 10}h/week
                       </p>
                     </div>
-                  </div>
+                  </button>
                 </div>
 
                 {/* Capacity visualization */}
@@ -474,6 +479,55 @@ export function TasksTimeline({ tasks }: TasksTimelineProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Task List Dialog */}
+      <Dialog open={!!selectedOwnerTasks} onOpenChange={(open) => !open && setSelectedOwnerTasks(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedOwnerTasks?.owner?.name || "Unassigned"} - {selectedOwnerTasks?.tasks.length || 0} Open Tasks
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {selectedOwnerTasks?.tasks && selectedOwnerTasks.tasks.length > 0 ? (
+              selectedOwnerTasks.tasks.map(task => (
+                <div key={task.id} className="p-3 border rounded-lg hover:bg-muted/50 transition">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{task.title}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Project: {getProjectName(task.projectId)}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge variant="outline" className="text-xs">
+                          {task.status}
+                        </Badge>
+                        <Badge variant="outline" className={`text-xs ${
+                          task.priority === 'urgent' ? 'bg-red-50 text-red-700' :
+                          task.priority === 'high' ? 'bg-orange-50 text-orange-700' :
+                          task.priority === 'medium' ? 'bg-yellow-50 text-yellow-700' :
+                          'bg-green-50 text-green-700'
+                        }`}>
+                          {task.priority}
+                        </Badge>
+                        {task.dueDate && (
+                          <span className="text-xs text-muted-foreground ml-auto">
+                            Due: {format(parseISO(task.dueDate), 'MMM d')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No open tasks</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
