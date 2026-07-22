@@ -2,8 +2,8 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Link } from '@tiptap/extension-link';
 import { Button } from '@/components/ui/button';
-import { Link as LinkIcon } from 'lucide-react';
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { Link as LinkIcon, Bold, Italic, List, ListOrdered, Smile } from 'lucide-react';
+import { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
@@ -28,6 +28,29 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
   ({ content, onChange, onPaste, placeholder = "Add a comment..." }, ref) => {
     const [linkUrl, setLinkUrl] = useState('');
     const [showLinkInput, setShowLinkInput] = useState(false);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const emojiPickerRef = useRef<HTMLDivElement>(null);
+
+    // Close emoji picker on outside click
+    useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+          setShowEmojiPicker(false);
+        }
+      };
+
+      if (showEmojiPicker) {
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+      }
+    }, [showEmojiPicker]);
+
+    const handleEmojiClick = (emoji: string) => {
+      if (editor) {
+        editor.chain().focus().insertContent(emoji).run();
+      }
+      setShowEmojiPicker(false);
+    };
 
     const editor = useEditor({
       extensions: [
@@ -124,10 +147,60 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
 
     const hasSelection = editor.state.selection.from !== editor.state.selection.to;
 
+    const commonEmojis = ["👍", "❤️", "😄", "👀", "🙏", "✨", "🚀", "💯", "🤔", "😅", "🎉", "📝"];
+
     return (
       <div className="border rounded-md bg-background">
         {/* Toolbar */}
-        <div className="flex items-center gap-1 p-1 border-b bg-muted/30">
+        <div className="flex flex-wrap items-center gap-1 p-1 border-b bg-muted/30">
+          <Button
+            type="button"
+            variant={editor.isActive('bold') ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            title="Bold"
+            className="h-7 px-2"
+          >
+            <Bold className="h-4 w-4" />
+          </Button>
+
+          <Button
+            type="button"
+            variant={editor.isActive('italic') ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            title="Italic"
+            className="h-7 px-2"
+          >
+            <Italic className="h-4 w-4" />
+          </Button>
+
+          <div className="w-px h-5 bg-border mx-1" />
+
+          <Button
+            type="button"
+            variant={editor.isActive('bulletList') ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            title="Bullet List"
+            className="h-7 px-2"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+
+          <Button
+            type="button"
+            variant={editor.isActive('orderedList') ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            title="Numbered List"
+            className="h-7 px-2"
+          >
+            <ListOrdered className="h-4 w-4" />
+          </Button>
+
+          <div className="w-px h-5 bg-border mx-1" />
+
           <Popover open={showLinkInput} onOpenChange={setShowLinkInput}>
             <PopoverTrigger asChild>
               <Button
@@ -169,9 +242,40 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
               </div>
             </PopoverContent>
           </Popover>
-          <span className="text-xs text-muted-foreground ml-2">
-            Highlight text to add a link
-          </span>
+
+          <div className="relative">
+            <Button
+              type="button"
+              variant={showEmojiPicker ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              title="Add Emoji"
+              className="h-7 px-2"
+            >
+              <Smile className="h-4 w-4" />
+            </Button>
+
+            {showEmojiPicker && (
+              <div
+                ref={emojiPickerRef}
+                className="absolute top-8 left-0 z-50 bg-background border border-input rounded-lg p-2 shadow-lg"
+              >
+                <div className="grid grid-cols-6 gap-1">
+                  {commonEmojis.map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => handleEmojiClick(emoji)}
+                      className="text-lg hover:bg-muted p-1 rounded transition"
+                      type="button"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 px-1">Click emoji or type directly</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Editor */}
