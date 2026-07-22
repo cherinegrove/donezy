@@ -209,33 +209,22 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   // Format comment content with mentions and links
   const formatCommentContent = (content: string, mentionedUserIds: string[] = []) => {
     let formattedContent = content;
+    const highlightClass = "bg-blue-500 dark:bg-blue-600 text-white dark:text-white font-medium px-2 py-0.5 rounded cursor-pointer hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors";
 
-    // Get list of mentioned users by ID (if available)
-    const mentionedUsers = mentionedUserIds
-      .map(id => safeUsers.find(u => u.auth_user_id === id))
-      .filter(Boolean);
+    // Highlight ALL mentions for every user in the system
+    safeUsers.forEach((user) => {
+      // Match @UserName or @First (handles both full and first names)
+      const patterns = [
+        new RegExp(`@${user.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!\\w)`, 'g'),
+        new RegExp(`@${user.name.split(' ')[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!\\w)`, 'g')
+      ];
 
-    // Replace mentions that have IDs
-    mentionedUsers.forEach((user) => {
-      if (user) {
-        const nameRegex = new RegExp(`@${user.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w])`, 'g');
+      patterns.forEach(pattern => {
         formattedContent = formattedContent.replace(
-          nameRegex,
-          `<span class="bg-blue-500 dark:bg-blue-600 text-white dark:text-white font-medium px-2 py-0.5 rounded cursor-pointer hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors" title="@${user.name}">@${user.name}</span>`
+          pattern,
+          `<span class="${highlightClass}" title="@${user.name}">@${user.name.split(' ')[0]}</span>`
         );
-      }
-    });
-
-    // Fallback: Also highlight any remaining @mentions that match user names (in case IDs weren't stored)
-    const mentionRegex = /@([\w\s]+?)\b/g;
-    formattedContent = formattedContent.replace(mentionRegex, (match, mentionedName) => {
-      const trimmedName = mentionedName.trim();
-      const user = safeUsers.find(u => u.name.toLowerCase() === trimmedName.toLowerCase());
-
-      if (user && !mentionedUsers.some(u => u.auth_user_id === user.auth_user_id)) {
-        return `<span class="bg-blue-500 dark:bg-blue-600 text-white dark:text-white font-medium px-2 py-0.5 rounded cursor-pointer hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors" title="@${user.name}">@${user.name}</span>`;
-      }
-      return match;
+      });
     });
 
     return formattedContent;
