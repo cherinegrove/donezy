@@ -79,8 +79,33 @@ const Home = () => {
     }
   };
 
+  // Compact task list row component
+  const CompactTaskRow = ({ task }: { task: Task }) => {
+    const project = projects.find(p => p.id === task.projectId);
+    const assignee = users.find(u => u.id === task.assigneeId);
+    const collaborators = (task.collaboratorIds || [])
+      .map(id => users.find(u => u.id === id))
+      .filter(Boolean);
+
+    return (
+      <div
+        onClick={() => handleTaskClick(task)}
+        className="flex items-center justify-between py-2 px-3 hover:bg-muted/50 rounded cursor-pointer transition-colors border-b last:border-b-0 gap-4"
+      >
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{task.title}</p>
+          <p className="text-xs text-muted-foreground">{project?.name || "No Project"}</p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+          {task.dueDate && <span>{format(parseISO(task.dueDate), "MMM dd")}</span>}
+          {assignee && <span className="text-blue-600 dark:text-blue-400">{assignee.name}</span>}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground mt-1">
@@ -88,142 +113,92 @@ const Home = () => {
         </p>
       </div>
 
-      {/* Row 1: Active Status - Quick Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Row 1: Active Status - Full Width */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ActiveTimersCard />
         <MyTimeTrackingCard />
-        <MyDailyTimeChart />
       </div>
 
       {/* Row 2: Tasks - Urgent Focus */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-red-800 dark:text-red-400">
-              <AlertTriangle className="h-5 w-5" />
-              Overdue Tasks ({overdueTasks.length})
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-red-800 dark:text-red-400">
+              <AlertTriangle className="h-4 w-4" />
+              Overdue ({overdueTasks.length})
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-0">
             {overdueTasks.length > 0 ? (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {overdueTasks.slice(0, 5).map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onClick={() => handleTaskClick(task)}
-                    displayOptions={["priority", "project", "client", "assignee", "dueDate"]}
-                  />
+              <div className="max-h-40 overflow-y-auto">
+                {overdueTasks.map((task) => (
+                  <CompactTaskRow key={task.id} task={task} />
                 ))}
-                {overdueTasks.length > 5 && (
-                  <p className="text-xs text-muted-foreground pt-2 border-t">
-                    +{overdueTasks.length - 5} more overdue tasks
-                  </p>
-                )}
               </div>
             ) : (
-              <p className="text-center py-6 text-muted-foreground">
-                No overdue tasks
-              </p>
+              <p className="text-xs text-center py-4 text-muted-foreground">No overdue tasks</p>
             )}
           </CardContent>
         </Card>
 
         <Card className="border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-400">
-              <Calendar className="h-5 w-5" />
-              Tasks Due Today ({tasksDueToday.length})
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-orange-800 dark:text-orange-400">
+              <Calendar className="h-4 w-4" />
+              Due Today ({tasksDueToday.length})
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-0">
             {tasksDueToday.length > 0 ? (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {tasksDueToday.slice(0, 5).map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onClick={() => handleTaskClick(task)}
-                    displayOptions={["priority", "project", "client", "assignee"]}
-                  />
+              <div className="max-h-40 overflow-y-auto">
+                {tasksDueToday.map((task) => (
+                  <CompactTaskRow key={task.id} task={task} />
                 ))}
-                {tasksDueToday.length > 5 && (
-                  <p className="text-xs text-muted-foreground pt-2 border-t">
-                    +{tasksDueToday.length - 5} more tasks due today
-                  </p>
-                )}
               </div>
             ) : (
-              <p className="text-center py-6 text-muted-foreground">
-                No tasks due today
-              </p>
+              <p className="text-xs text-center py-4 text-muted-foreground">No tasks due today</p>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Row 3: Analytics & Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <MonthlyComparisonChart />
-        <ProjectWarningsCard />
-      </div>
-
-      {/* Row 4: Communications & Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <MentionsCard />
+      {/* Row 3: Compact Lists */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Notifications</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Mentions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MentionsCard />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Notifications</CardTitle>
           </CardHeader>
           <CardContent>
             <NotificationsCard userId={currentUser?.id} />
           </CardContent>
         </Card>
-      </div>
 
-      {/* Row 5: Activity & Updates */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Task Reminders</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Task Reminders</CardTitle>
           </CardHeader>
           <CardContent>
             <TaskRemindersCard />
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Recently Updated</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RecentTasksCard />
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Row 6: All Tasks Overview */}
+      {/* Row 4: Recently Updated Tasks */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>All My Active Tasks ({activeTasks.length})</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Recently Updated</CardTitle>
         </CardHeader>
         <CardContent>
-          {activeTasks.length > 0 ? (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {activeTasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  onClick={() => handleTaskClick(task)}
-                  displayOptions={["priority", "project", "client", "assignee", "dueDate"]}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="text-center py-6 text-muted-foreground">
-              No active tasks found
-            </p>
-          )}
+          <RecentTasksCard />
         </CardContent>
       </Card>
 
