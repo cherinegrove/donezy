@@ -13,6 +13,10 @@ import { NotificationsCard } from "@/components/dashboard/cards/NotificationsCar
 import { TaskRemindersCard } from "@/components/dashboard/cards/TaskRemindersCard";
 import { MyTimeTrackingCard } from "@/components/dashboard/cards/MyTimeTrackingCard";
 import { MyDailyTimeChart } from "@/components/dashboard/cards/MyDailyTimeChart";
+import { ActiveTimersCard } from "@/components/dashboard/cards/ActiveTimersCard";
+import { MonthlyComparisonChart } from "@/components/dashboard/cards/MonthlyComparisonChart";
+import { MentionsCard } from "@/components/dashboard/cards/MentionsCard";
+import { ProjectWarningsCard } from "@/components/dashboard/cards/ProjectWarningsCard";
 
 const Home = () => {
   const { tasks, projects, currentUser } = useAppContext();
@@ -76,30 +80,34 @@ const Home = () => {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Home</h1>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground mt-1">
-          Welcome back, {currentUser?.name}!
+          Welcome back, {currentUser?.name}! Here's what you need to focus on today.
         </p>
       </div>
 
-      {/* Personal Daily Time Chart - Full Width at Top */}
-      <MyDailyTimeChart />
+      {/* Row 1: Active Status - Quick Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ActiveTimersCard />
+        <MyTimeTrackingCard />
+        <MyDailyTimeChart />
+      </div>
 
-      {/* Static 2-column Dashboard Layout */}
+      {/* Row 2: Tasks - Urgent Focus */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-red-800">
+            <CardTitle className="flex items-center gap-2 text-red-800 dark:text-red-400">
               <AlertTriangle className="h-5 w-5" />
               Overdue Tasks ({overdueTasks.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             {overdueTasks.length > 0 ? (
-              <div className="space-y-2">
-                {overdueTasks.map((task) => (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {overdueTasks.slice(0, 5).map((task) => (
                   <TaskCard
                     key={task.id}
                     task={task}
@@ -107,6 +115,11 @@ const Home = () => {
                     displayOptions={["priority", "project", "client", "assignee", "dueDate"]}
                   />
                 ))}
+                {overdueTasks.length > 5 && (
+                  <p className="text-xs text-muted-foreground pt-2 border-t">
+                    +{overdueTasks.length - 5} more overdue tasks
+                  </p>
+                )}
               </div>
             ) : (
               <p className="text-center py-6 text-muted-foreground">
@@ -116,17 +129,17 @@ const Home = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-orange-200 bg-orange-50">
+        <Card className="border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/20">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-orange-800">
+            <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-400">
               <Calendar className="h-5 w-5" />
               Tasks Due Today ({tasksDueToday.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             {tasksDueToday.length > 0 ? (
-              <div className="space-y-2">
-                {tasksDueToday.map((task) => (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {tasksDueToday.slice(0, 5).map((task) => (
                   <TaskCard
                     key={task.id}
                     task={task}
@@ -134,6 +147,11 @@ const Home = () => {
                     displayOptions={["priority", "project", "client", "assignee"]}
                   />
                 ))}
+                {tasksDueToday.length > 5 && (
+                  <p className="text-xs text-muted-foreground pt-2 border-t">
+                    +{tasksDueToday.length - 5} more tasks due today
+                  </p>
+                )}
               </div>
             ) : (
               <p className="text-center py-6 text-muted-foreground">
@@ -142,118 +160,72 @@ const Home = () => {
             )}
           </CardContent>
         </Card>
+      </div>
 
-        {/* Row 2: My Unread Notifications | My Task Reminders Today */}
+      {/* Row 3: Analytics & Alerts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MonthlyComparisonChart />
+        <ProjectWarningsCard />
+      </div>
+
+      {/* Row 4: Communications & Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MentionsCard />
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle>My Unread Notifications</CardTitle>
+            <CardTitle>Notifications</CardTitle>
           </CardHeader>
           <CardContent>
             <NotificationsCard userId={currentUser?.id} />
           </CardContent>
         </Card>
+      </div>
 
+      {/* Row 5: Activity & Updates */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle>My Task Reminders Today</CardTitle>
+            <CardTitle>Task Reminders</CardTitle>
           </CardHeader>
           <CardContent>
             <TaskRemindersCard />
           </CardContent>
         </Card>
 
-        {/* Row 3: Tasks Updated This Week */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle>Tasks Updated This Week</CardTitle>
+            <CardTitle>Recently Updated</CardTitle>
           </CardHeader>
           <CardContent>
             <RecentTasksCard />
           </CardContent>
         </Card>
-
-        {/* Empty cell */}
-        <div></div>
-
-        {/* Row 4: All My Tasks | All My Projects */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>
-              All My Tasks ({activeTasks.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {activeTasks.length > 0 ? (
-              <div className="space-y-2">
-                {activeTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onClick={() => handleTaskClick(task)}
-                    displayOptions={["priority", "project", "client", "assignee", "dueDate"]}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-center py-6 text-muted-foreground">
-                No active tasks found
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>All My Projects ({filteredProjects.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {filteredProjects.length > 0 ? (
-              <div className="space-y-3">
-                {filteredProjects.map((project) => (
-                  <div 
-                    key={project.id} 
-                    className="p-4 border rounded-lg cursor-pointer hover:shadow-md hover:bg-muted/30 transition-all"
-                    onClick={() => navigate(`/projects/${project.id}`)}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-base">{project.name}</h4>
-                      <Badge className={getProjectStatusColor(project.status)}>
-                        {project.status}
-                      </Badge>
-                    </div>
-                    {project.description && (
-                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                        {project.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      {project.dueDate && (
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {format(parseISO(project.dueDate), "MMM dd, yyyy")}
-                        </div>
-                      )}
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1" />
-                        {project.usedHours || 0}/{project.allocatedHours || 0}h
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center py-6 text-muted-foreground">
-                No projects found
-              </p>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Row 5: My Time Tracking - Full Width */}
-      <div className="mt-6">
-        <MyTimeTrackingCard />
-      </div>
+      {/* Row 6: All Tasks Overview */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle>All My Active Tasks ({activeTasks.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {activeTasks.length > 0 ? (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {activeTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onClick={() => handleTaskClick(task)}
+                  displayOptions={["priority", "project", "client", "assignee", "dueDate"]}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center py-6 text-muted-foreground">
+              No active tasks found
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {selectedTask && (
         <EditTaskDialog
