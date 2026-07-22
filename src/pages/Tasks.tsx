@@ -407,7 +407,7 @@ export default function Tasks() {
             }
             rightOpen={!!selectedTaskId}
             onRightClose={() => setSelectedTaskId(null)}
-            rightWidth="w-[600px]"
+            rightWidth="w-[850px]"
           />
         </TabsContent>
 
