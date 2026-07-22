@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -10,6 +10,21 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Task } from "@/types";
+import { useAppContext } from "@/contexts/AppContext";
+import { supabase } from "@/integrations/supabase/client";
+
+interface StageForm {
+  id: string;
+  stage: string;
+  fields: Array<{
+    id: string;
+    name: string;
+    label: string;
+    type: "text" | "textarea" | "date" | "number";
+    required: boolean;
+    placeholder?: string;
+  }>;
+}
 
 interface AwaitingFeedbackData {
   what: string;
@@ -49,8 +64,14 @@ export function TaskStatusPromptDialog({
   newStatus,
   onConfirm,
 }: TaskStatusPromptDialogProps) {
+  const { currentUser } = useAppContext();
   const parsedFeedback = parseAwaitingFeedbackDetails(task.awaitingFeedbackDetails);
 
+  // Custom forms
+  const [stageForm, setStageForm] = useState<StageForm | null>(null);
+  const [customFormValues, setCustomFormValues] = useState<Record<string, string>>({});
+
+  // Legacy hardcoded form fields
   const [backlogReason, setBacklogReason] = useState(task.backlogReason || "");
   const [feedbackWhat, setFeedbackWhat] = useState(parsedFeedback.what);
   const [feedbackWho, setFeedbackWho] = useState(parsedFeedback.who);
@@ -66,6 +87,43 @@ export function TaskStatusPromptDialog({
     task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : ""
   );
 
+  // Load custom forms for this stage
+  useEffect(() => {
+    const loadCustomForm = async () => {
+      if (!currentUser?.organizationId || !newStatus) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("organizations")
+          .select("settings")
+          .eq("id", currentUser.organizationId)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        const settings = (data?.settings as any) || {};
+        const forms = (settings.stageForms || []) as StageForm[];
+        const matchingForm = forms.find(f => f.stage === newStatus);
+
+        if (matchingForm) {
+          setStageForm(matchingForm);
+          const initialValues: Record<string, string> = {};
+          matchingForm.fields.forEach(field => {
+            initialValues[field.name] = "";
+          });
+          setCustomFormValues(initialValues);
+        } else {
+          setStageForm(null);
+        }
+      } catch (err) {
+        console.error("Error loading custom form:", err);
+        setStageForm(null);
+      }
+    };
+
+    loadCustomForm();
+  }, [open, newStatus, currentUser?.organizationId]);
+
   const getPromptTitle = () => {
     if (newStatus === "backlog") return "Moving to Backlog";
     if (newStatus === "in-progress") return "Moving to In Progress";
@@ -76,28 +134,37 @@ export function TaskStatusPromptDialog({
   const handleConfirm = () => {
     const data: any = {};
 
-    if (newStatus === "backlog") {
-      data.backlogReason = backlogReason;
-    }
-
-    if (newStatus === "review" || newStatus === "awaiting-feedback") {
-      const structured: AwaitingFeedbackData = {
-        what: feedbackWhat,
-        who: feedbackWho,
-        why: feedbackWhy,
-        when: feedbackWhen ? feedbackWhen.toISOString().split("T")[0] : "",
+    // If using custom form, store the responses
+    if (stageForm) {
+      data.customFormResponses = {
+        formId: stageForm.id,
+        responses: customFormValues,
+        respondedAt: new Date().toISOString(),
       };
-      data.awaitingFeedbackDetails = JSON.stringify(structured);
-      if (followUpDate) {
-        data.awaitingFeedbackFollowUpDate = followUpDate.toISOString().split("T")[0];
+    } else {
+      // Fallback to legacy hardcoded forms
+      if (newStatus === "backlog") {
+        data.backlogReason = backlogReason;
       }
-    }
 
-    if (newStatus === "in-progress") {
-      if (newDueDate !== task.dueDate) {
-        data.dueDateChangeReason = dueDateChangeReason;
+      if (newStatus === "review" || newStatus === "awaiting-feedback") {
+        const structured: AwaitingFeedbackData = {
+          what: feedbackWhat,
+          who: feedbackWho,
+          why: feedbackWhy,
+          when: feedbackWhen ? feedbackWhen.toISOString().split("T")[0] : "",
+        };
+        data.awaitingFeedbackDetails = JSON.stringify(structured);
+        if (followUpDate) {
+          data.awaitingFeedbackFollowUpDate = followUpDate.toISOString().split("T")[0];
+        }
       }
-      data.newDueDate = newDueDate;
+
+      if (newStatus === "in-progress") {
+        if (newDueDate !== task.dueDate) {
+          data.dueDateChangeReason = dueDateChangeReason;
+        }
+        data.newDueDate = newDueDate;
     }
 
     onConfirm(data);
@@ -105,6 +172,16 @@ export function TaskStatusPromptDialog({
   };
 
   const canSubmit = () => {
+    // Custom form validation
+    if (stageForm) {
+      return stageForm.fields.every(field => {
+        if (!field.required) return true;
+        const value = customFormValues[field.name] || "";
+        return value.trim() !== "";
+      });
+    }
+
+    // Legacy hardcoded form validation
     if (newStatus === "backlog") return backlogReason.trim() !== "";
     if (newStatus === "review" || newStatus === "awaiting-feedback") {
       return feedbackWhat.trim() !== "" && feedbackWho.trim() !== "";
@@ -124,6 +201,53 @@ export function TaskStatusPromptDialog({
             Task: <span className="font-medium text-foreground">{task.title}</span>
           </div>
 
+          {/* ── Custom Form Fields ── */}
+          {stageForm && (
+            <div className="space-y-4">
+              {stageForm.fields.map((field) => (
+                <div key={field.id} className="space-y-1.5">
+                  <Label htmlFor={field.id}>
+                    {field.label}
+                    {field.required && <span className="text-red-500"> *</span>}
+                  </Label>
+                  {field.type === "textarea" ? (
+                    <Textarea
+                      id={field.id}
+                      value={customFormValues[field.name] || ""}
+                      onChange={(e) =>
+                        setCustomFormValues({ ...customFormValues, [field.name]: e.target.value })
+                      }
+                      placeholder={field.placeholder}
+                      className="min-h-[80px]"
+                    />
+                  ) : field.type === "date" ? (
+                    <Input
+                      id={field.id}
+                      type="date"
+                      value={customFormValues[field.name] || ""}
+                      onChange={(e) =>
+                        setCustomFormValues({ ...customFormValues, [field.name]: e.target.value })
+                      }
+                    />
+                  ) : (
+                    <Input
+                      id={field.id}
+                      type={field.type}
+                      value={customFormValues[field.name] || ""}
+                      onChange={(e) =>
+                        setCustomFormValues({ ...customFormValues, [field.name]: e.target.value })
+                      }
+                      placeholder={field.placeholder}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Hardcoded Prompts (Fallback) ── */}
+          {!stageForm && (
+            <>
           {/* ── Backlog ── */}
           {newStatus === "backlog" && (
             <div className="space-y-2">
@@ -283,6 +407,8 @@ export function TaskStatusPromptDialog({
                 </div>
               )}
             </div>
+          )}
+            </>
           )}
         </div>
 
