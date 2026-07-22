@@ -84,7 +84,7 @@ export function MentionsCard() {
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mb-2">
-                  In "{task?.title || "Unknown Task'}"
+                  In "{task?.title || "Unknown Task"}"
                 </p>
                 <p className="text-sm text-foreground">
                   {getCommentPreview(comment.content)}
