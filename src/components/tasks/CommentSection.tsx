@@ -210,15 +210,18 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   const formatCommentContent = (content: string, mentionedUserIds: string[] = []) => {
     let formattedContent = content;
 
-    mentionedUserIds.forEach((userId) => {
-      const user = safeUsers.find((u) => u.auth_user_id === userId);
+    // First, replace all @name mentions with highlighted spans
+    const mentionRegex = /@(\w+(?:\s+\w+)*)/g;
+    formattedContent = formattedContent.replace(mentionRegex, (match) => {
+      const mentionedName = match.slice(1); // Remove @ symbol
+      const user = safeUsers.find(
+        (u) => u.name.toLowerCase() === mentionedName.toLowerCase()
+      );
+
       if (user) {
-        const mentionRegex = new RegExp(`@${user.name}`, "g");
-        formattedContent = formattedContent.replace(
-          mentionRegex,
-          `<span class="bg-primary/20 text-primary px-1 rounded">@${user.name}</span>`,
-        );
+        return `<span class="bg-blue-500 dark:bg-blue-600 text-white dark:text-white font-medium px-2 py-0.5 rounded cursor-pointer hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors" title="@${user.name}">@${user.name}</span>`;
       }
+      return match;
     });
 
     return formattedContent;
