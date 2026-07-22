@@ -113,7 +113,8 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
 
   return (
     <>
-      <div className="p-6 space-y-6">
+      <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
         <div>
           <h2 className="text-2xl font-bold mb-2">{task.title}</h2>
           <Textarea
@@ -324,22 +325,25 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
           </TabsContent>
         </Tabs>
 
-        <div className="flex gap-2 border-t pt-4">
-          <Button
-            onClick={handleSaveChanges}
-            size="sm"
-          >
-            Save Changes
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            <Trash className="h-4 w-4 mr-2" />
-            Delete
-          </Button>
-        </div>
+      </div>
+
+      <div className="border-t bg-background p-4 flex gap-2 flex-shrink-0">
+        <Button
+          onClick={handleSaveChanges}
+          size="sm"
+          className="flex-1"
+        >
+          Save Changes
+        </Button>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => setDeleteDialogOpen(true)}
+        >
+          <Trash className="h-4 w-4 mr-2" />
+          Delete
+        </Button>
+      </div>
       </div>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
