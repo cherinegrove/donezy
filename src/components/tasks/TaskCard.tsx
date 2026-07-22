@@ -80,12 +80,21 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
   };
 
   return (
-    <div 
+    <div
       className={cn(
-        "p-3 border rounded-lg cursor-pointer hover:shadow-md transition-all relative bg-task-card hover:bg-task-card/80 w-full",
-        isCollaboratorTask && "border-l-4 border-l-blue-500",
-        isSelected && "ring-2 ring-primary bg-primary/5",
-        isUrgent && "border-red-500 bg-red-50 dark:bg-red-950/30"
+        "p-3 rounded-lg cursor-pointer transition-all relative w-full",
+        "border-l-4 shadow-sm hover:shadow-md",
+        "bg-card hover:bg-card/95 dark:hover:bg-slate-800",
+        // Priority-based left border colors
+        task.priority === 'urgent' && "border-l-red-500 border border-red-200 dark:border-red-900/30",
+        task.priority === 'high' && "border-l-orange-500 border border-orange-200/50 dark:border-orange-900/30",
+        task.priority === 'medium' && "border-l-yellow-500 border border-yellow-200/50 dark:border-yellow-900/30",
+        task.priority === 'low' && "border-l-green-500 border border-green-200/50 dark:border-green-900/30",
+        !task.priority && "border-l-gray-400 border border-gray-200/50 dark:border-gray-700/30",
+        // Collaborator indicator
+        isCollaboratorTask && "border-t-2 border-t-blue-500",
+        // Selection state
+        isSelected && "ring-2 ring-primary bg-primary/5"
       )}
       onClick={handleCardClick}
     >
@@ -103,62 +112,65 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
         </div>
       )}
       <div className={cn(showSelection && "pr-8")}>
-        <div className="flex items-center gap-2 mb-2">
-          <h4 className="font-semibold text-sm line-clamp-2 flex-1 break-words min-w-0">
+        <div className="flex items-start gap-2 mb-2">
+          <h4 className="font-semibold text-sm line-clamp-2 flex-1 break-words min-w-0 text-foreground">
             {task.title}
           </h4>
-          {displayOptions.includes("status") && (
-            <Badge variant="outline" className="text-xs shrink-0 whitespace-nowrap">
-              {taskStatuses.find(s => s.value === task.status)?.label || task.status}
-            </Badge>
-          )}
-        </div>
-        
-        {task.description && (
-          <p className="text-xs text-muted-foreground mb-2 line-clamp-2 break-words">
-            {task.description}
-          </p>
-        )}
-
-        <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
-          {displayOptions.includes("priority") && (
-            <Badge variant="outline" className={cn("text-xs w-fit", getPriorityColor(task.priority))}>
+          {task.priority && (
+            <Badge
+              className={cn(
+                "text-xs shrink-0 whitespace-nowrap font-medium",
+                task.priority === 'urgent' && "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+                task.priority === 'high' && "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+                task.priority === 'medium' && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
+                task.priority === 'low' && "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+              )}
+            >
               {task.priority}
             </Badge>
           )}
-          
+        </div>
+
+        <div className="space-y-2">
           {displayOptions.includes("project") && project && (
-            <div className="truncate" title={project.name}>
-              <span className="text-xs">{project.name}</span>
+            <div className="truncate">
+              <span className="text-xs font-medium text-muted-foreground">{project.name}</span>
             </div>
           )}
-          
-          {displayOptions.includes("client") && client && (
-            <div className="truncate" title={client.name}>
-              <span className="text-xs text-blue-600">{client.name}</span>
-            </div>
-          )}
-          
-          {displayOptions.includes("assignee") && assignee && (
-            <div className="flex items-center gap-1 min-w-0">
-              <Avatar className="h-4 w-4 shrink-0">
-                <AvatarImage src={assignee.avatar} />
-                <AvatarFallback className="text-xs">{assignee.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-              </Avatar>
-              <span className="text-xs truncate" title={assignee.name}>{assignee.name}</span>
-            </div>
-          )}
-          
+
           {displayOptions.includes("dueDate") && task.dueDate && (
-            <span className={cn("text-xs shrink-0", isOverdue(task.dueDate) && "text-red-500 font-medium")}>
-              Due: {formatDueDate(task.dueDate)}
-            </span>
+            <div className={cn(
+              "text-xs font-medium shrink-0",
+              isOverdue(task.dueDate) ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-2 py-1 rounded" : "text-muted-foreground"
+            )}>
+              📅 {formatDueDate(task.dueDate)}
+            </div>
           )}
-          
-          {isCollaboratorTask && (
-            <Badge variant="outline" className="text-xs w-fit">
-              Collaborator
-            </Badge>
+
+          {displayOptions.includes("assignee") && assignee && (
+            <div className="flex items-center gap-1.5 min-w-0 text-xs">
+              <Avatar className="h-5 w-5 shrink-0">
+                <AvatarImage src={assignee.avatar} />
+                <AvatarFallback className="text-xs font-bold">{assignee.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+              </Avatar>
+              <span className="truncate text-muted-foreground" title={assignee.name}>{assignee.name}</span>
+            </div>
+          )}
+
+          {displayOptions.includes("collaborators") && collaborators.length > 0 && (
+            <div className="flex items-center gap-1">
+              <div className="flex -space-x-1.5">
+                {collaborators.slice(0, 3).map(collab => (
+                  <Avatar key={collab?.id} className="h-5 w-5 border border-background">
+                    <AvatarImage src={collab?.avatar} />
+                    <AvatarFallback className="text-xs">{collab?.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+              {collaborators.length > 3 && (
+                <span className="text-xs text-muted-foreground">+{collaborators.length - 3}</span>
+              )}
+            </div>
           )}
         </div>
       </div>
