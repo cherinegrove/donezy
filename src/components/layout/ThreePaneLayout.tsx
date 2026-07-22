@@ -27,8 +27,12 @@ export function ThreePaneLayout({
 
       {/* Right pane - detail sidebar */}
       {rightOpen && right && (
-        <div className={cn("border-l border-border bg-background flex flex-col overflow-hidden", rightWidth)}>
-          <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className={cn(
+          "flex flex-col overflow-hidden rounded-lg shadow-lg border border-border bg-background",
+          "mr-4 my-4",
+          rightWidth
+        )}>
+          <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30 rounded-t-lg">
             <h2 className="font-semibold">Details</h2>
             <Button
               variant="ghost"
