@@ -180,7 +180,7 @@ export function StageFormsManager() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">{form.stage}</p>
+                    <p className="font-medium">{taskStatuses?.find(s => s.value === form.stage)?.label || form.stage}</p>
                     <p className="text-sm text-muted-foreground">{form.fields.length} field{form.fields.length !== 1 ? 's' : ''}</p>
                   </div>
                   <div className="flex gap-2">
@@ -222,7 +222,7 @@ export function StageFormsManager() {
                 <SelectContent>
                   {taskStatuses?.map((status) => (
                     <SelectItem key={status.id} value={status.value}>
-                      {status.label}
+                      {status.label} <span className="text-xs text-muted-foreground ml-2">({status.value})</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
