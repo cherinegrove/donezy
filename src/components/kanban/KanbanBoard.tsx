@@ -1,6 +1,7 @@
 import { Task, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
+import { KanbanTaskCardWithComment } from "./KanbanTaskCardWithComment";
 import { useState, useEffect, lazy, Suspense } from "react";
 const EditTaskDialog = lazy(() => import("../tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { TaskStatusPromptDialog } from "../tasks/TaskStatusPromptDialog";
@@ -467,8 +468,8 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                             <GripVertical className="h-4 w-4 text-muted-foreground" />
                           </div>
                           <div className="flex-1">
-                            <TaskCard 
-                              task={task} 
+                            <KanbanTaskCardWithComment
+                              task={task}
                               onClick={(e) => handleTaskClick(task, e)}
                               displayOptions={displayOptions}
                               isSelected={selectedTaskIds.includes(task.id)}
