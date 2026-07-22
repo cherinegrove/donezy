@@ -227,13 +227,13 @@ export function CommentSection({ taskId }: CommentSectionProps) {
     });
 
     // Fallback: Also highlight any remaining @mentions that match user names (in case IDs weren't stored)
-    const mentionRegex = /@([\w\s]+?)(?:\s|<|$)/g;
+    const mentionRegex = /@([\w\s]+?)\b/g;
     formattedContent = formattedContent.replace(mentionRegex, (match, mentionedName) => {
       const trimmedName = mentionedName.trim();
       const user = safeUsers.find(u => u.name.toLowerCase() === trimmedName.toLowerCase());
 
       if (user && !mentionedUsers.some(u => u.auth_user_id === user.auth_user_id)) {
-        return `<span class="bg-blue-500 dark:bg-blue-600 text-white dark:text-white font-medium px-2 py-0.5 rounded cursor-pointer hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors" title="@${user.name}">@${user.name}</span> `;
+        return `<span class="bg-blue-500 dark:bg-blue-600 text-white dark:text-white font-medium px-2 py-0.5 rounded cursor-pointer hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors" title="@${user.name}">@${user.name}</span>`;
       }
       return match;
     });
