@@ -19,7 +19,7 @@ export function ThreePaneLayout({
   rightWidth = "w-[500px]",
 }: ThreePaneLayoutProps) {
   return (
-    <div className="flex h-[calc(100vh-120px)] w-full overflow-hidden gap-0">
+    <div className="flex h-[calc(100vh-80px)] w-full overflow-hidden gap-0">
       {/* Center pane - workspace */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {center}
@@ -29,10 +29,10 @@ export function ThreePaneLayout({
       {rightOpen && right && (
         <div className={cn(
           "flex flex-col overflow-hidden rounded-lg shadow-lg border border-border bg-background",
-          "mr-4 my-2",
+          "mr-2 my-1",
           rightWidth
         )}>
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30 rounded-t-lg">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30 rounded-t-lg">
             <h2 className="font-semibold text-sm">Details</h2>
             <Button
               variant="ghost"

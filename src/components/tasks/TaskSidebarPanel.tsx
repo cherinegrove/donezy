@@ -114,7 +114,7 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
   return (
     <>
       <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         <div>
           <h2 className="text-2xl font-bold mb-2">{task.title}</h2>
           <Textarea
@@ -127,10 +127,10 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
         </div>
 
         {/* Editable Fields */}
-        <div className="space-y-4 pb-4 border-b">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2 pb-3 border-b">
+          <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Status</Label>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Status</Label>
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue />
@@ -145,7 +145,7 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
               </Select>
             </div>
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Priority</Label>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Priority</Label>
               <Select value={priority} onValueChange={setPriority}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue />
@@ -161,7 +161,7 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Assignee</Label>
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Assignee</Label>
             <Select value={assigneeId || ""} onValueChange={setAssigneeId}>
               <SelectTrigger className="h-8 text-sm">
                 <SelectValue placeholder="Select assignee" />
@@ -178,7 +178,7 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Collaborators</Label>
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Collaborators</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -327,7 +327,7 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
 
       </div>
 
-      <div className="border-t bg-background p-4 flex gap-2 flex-shrink-0">
+      <div className="border-t bg-background p-3 flex gap-2 flex-shrink-0">
         <Button
           onClick={handleSaveChanges}
           size="sm"
