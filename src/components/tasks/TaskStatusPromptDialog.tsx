@@ -54,6 +54,11 @@ interface TaskStatusPromptDialogProps {
     awaitingFeedbackFollowUpDate?: string;
     dueDateChangeReason?: string;
     newDueDate?: string;
+    customFormResponses?: {
+      formId: string;
+      responses: Record<string, string>;
+      respondedAt: string;
+    };
   }) => void;
 }
 

@@ -109,6 +109,11 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     awaitingFeedbackDetails?: string;
     dueDateChangeReason?: string;
     newDueDate?: string;
+    customFormResponses?: {
+      formId: string;
+      responses: Record<string, string>;
+      respondedAt: string;
+    };
   }) => {
     // Honor the org's field configuration (same source as CreateTaskDialog)
     if (!title.trim()) {
@@ -155,6 +160,9 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       if (additionalData.newDueDate) {
         updates.dueDate = additionalData.newDueDate;
         setDueDate(new Date(additionalData.newDueDate));
+      }
+      if (additionalData.customFormResponses) {
+        updates.customFormResponses = additionalData.customFormResponses;
       }
     }
 
@@ -436,6 +444,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                 currentDueDate={task.dueDate}
                 currentDueDateChangeReason={task.dueDateChangeReason}
                 currentAwaitingFeedbackDetails={task.awaitingFeedbackDetails}
+                customFormResponses={task.customFormResponses}
                 onStatusInfoUpdated={() => {
                   // Status info was updated - the task will be refreshed by AppContext
                 }}

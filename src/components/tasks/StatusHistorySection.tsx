@@ -27,6 +27,11 @@ interface StatusHistoryProps {
   currentDueDate?: string | null;
   currentDueDateChangeReason?: string | null;
   currentAwaitingFeedbackDetails?: string | null;
+  customFormResponses?: {
+    formId: string;
+    responses: Record<string, string>;
+    respondedAt: string;
+  } | null;
   onStatusInfoUpdated?: () => void;
 }
 
@@ -92,6 +97,7 @@ export function StatusHistorySection({
   currentDueDate,
   currentDueDateChangeReason,
   currentAwaitingFeedbackDetails,
+  customFormResponses,
   onStatusInfoUpdated,
 }: StatusHistoryProps) {
   const [history, setHistory] = useState<HistoryLog[]>([]);
@@ -325,7 +331,23 @@ export function StatusHistorySection({
             </div>
           )}
 
-          {!currentBacklogReason && !currentAwaitingFeedbackDetails && !currentDueDateChangeReason && canAddUpdate && (
+          {customFormResponses && customFormResponses.responses && Object.keys(customFormResponses.responses).length > 0 && (
+            <div className="space-y-2 bg-blue-50 dark:bg-blue-950/20 p-3 rounded border border-blue-200 dark:border-blue-900">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-blue-500" />
+                <span className="text-sm font-medium">Stage Information</span>
+              </div>
+              <div className="pl-6 space-y-2">
+                {Object.entries(customFormResponses.responses).map(([key, value]) => (
+                  <div key={key} className="text-sm">
+                    <span className="text-muted-foreground">{key}:</span> {value}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!currentBacklogReason && !currentAwaitingFeedbackDetails && !currentDueDateChangeReason && !customFormResponses && canAddUpdate && (
             <p className="text-sm text-muted-foreground italic">
               No status details added yet. Click "Add Update" to add information.
             </p>

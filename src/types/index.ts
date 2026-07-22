@@ -198,6 +198,11 @@ export interface Task {
   dueDateChangeReason?: string;
   awaitingFeedbackDetails?: string;
   awaitingFeedbackFollowUpDate?: string;
+  customFormResponses?: {
+    formId: string;
+    responses: Record<string, string>;
+    respondedAt: string;
+  };
   lastDueDateChange?: string;
   userMentioned?: boolean;
 }
