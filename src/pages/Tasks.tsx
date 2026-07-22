@@ -323,7 +323,7 @@ export default function Tasks() {
                   </SelectContent>
                 </Select>
               )}
-              
+
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -348,10 +348,10 @@ export default function Tasks() {
                   />
                 </PopoverContent>
               </Popover>
-            </ModernToolbarSection>
-            
-            <ModernToolbarSection className="flex-shrink-0 justify-end">
-              <ViewSelector currentView={viewMode} onViewChange={setViewMode} showTimeline={true} />
+
+              <div className="ml-auto flex-shrink-0">
+                <ViewSelector currentView={viewMode} onViewChange={setViewMode} showTimeline={true} />
+              </div>
             </ModernToolbarSection>
           </ModernToolbar>
 
