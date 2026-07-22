@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -16,11 +16,26 @@ const DailyMetricsDialog = lazy(() =>
 export function AppLayout() {
   const [showDailyMetrics, setShowDailyMetrics] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   
   // Don't show daily metrics when a task is open via deep link — it would
   // render on top of the task dialog and block all pointer events.
   const isTaskDeepLink = /^\/tasks\/[^/]+$/.test(location.pathname);
   
+  // Listen for navigation event from notification click
+  useEffect(() => {
+    const handleNavigateToTask = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { taskId } = customEvent.detail;
+      if (taskId) {
+        navigate(`/tasks/${taskId}`);
+      }
+    };
+
+    window.addEventListener('navigateToTask', handleNavigateToTask);
+    return () => window.removeEventListener('navigateToTask', handleNavigateToTask);
+  }, [navigate]);
+
   // Close the dialog immediately if user navigates to a task deep link
   useEffect(() => {
     if (isTaskDeepLink) {
