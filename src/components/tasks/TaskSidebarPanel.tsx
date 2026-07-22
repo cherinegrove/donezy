@@ -30,11 +30,13 @@ import { TaskLogsSection } from "./TaskLogsSection";
 import { ChecklistSection } from "./ChecklistSection";
 import { CommentSection } from "./CommentSection";
 import { StatusHistorySection } from "./StatusHistorySection";
-import { AssigneeSelect } from "./AssigneeSelect";
-import { StatusSelect } from "./StatusSelect";
-import { ProjectSelect } from "./ProjectSelect";
-import { UrgentSelect } from "./UrgentSelect";
-import { CollaboratorSelect } from "./CollaboratorSelect";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 const RelatedTasksSection = lazy(() => import("./RelatedTasksSection").then(m => ({ default: m.RelatedTasksSection })));
 
 interface TaskSidebarPanelProps {
@@ -127,31 +129,74 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
         <div className="space-y-4 pb-4 border-b">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground">Status</Label>
-              <StatusSelect
-                field={{ value: status, onChange: setStatus }}
-              />
+              <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="backlog">Backlog</SelectItem>
+                  <SelectItem value="todo">To Do</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="review">Review</SelectItem>
+                  <SelectItem value="done">Done</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground">Priority</Label>
-              <UrgentSelect
-                field={{ value: priority, onChange: setPriority }}
-              />
+              <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Priority</Label>
+              <Select value={priority} onValueChange={setPriority}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground">Assignee</Label>
-            <AssigneeSelect
-              field={{ value: assigneeId, onChange: setAssigneeId }}
-            />
+            <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Assignee</Label>
+            <Select value={assigneeId || ""} onValueChange={setAssigneeId}>
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue placeholder="Select assignee" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Unassigned</SelectItem>
+                {users.map(user => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground">Collaborators</Label>
-            <CollaboratorSelect
-              field={{ value: collaboratorIds, onChange: setCollaboratorIds }}
-            />
+            <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Collaborators</Label>
+            <div className="space-y-2">
+              {users.map(user => (
+                <label key={user.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={collaboratorIds.includes(user.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setCollaboratorIds([...collaboratorIds, user.id]);
+                      } else {
+                        setCollaboratorIds(collaboratorIds.filter(id => id !== user.id));
+                      }
+                    }}
+                    className="rounded border-gray-300"
+                  />
+                  {user.name}
+                </label>
+              ))}
+            </div>
           </div>
 
           <div>
