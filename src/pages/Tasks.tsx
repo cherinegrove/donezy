@@ -394,14 +394,16 @@ export default function Tasks() {
             }
             right={
               selectedTaskId && tasks.find(t => t.id === selectedTaskId) ? (
-                <Suspense fallback={<div className="p-4">Loading...</div>}>
-                  <EditTaskDialog
-                    task={tasks.find(t => t.id === selectedTaskId)!}
-                    open={true}
-                    onOpenChange={(open) => {
-                      if (!open) setSelectedTaskId(null);
-                    }}
-                  />
+                <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading task...</div>}>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <EditTaskDialog
+                      task={tasks.find(t => t.id === selectedTaskId)!}
+                      open={true}
+                      onOpenChange={(open) => {
+                        if (!open) setSelectedTaskId(null);
+                      }}
+                    />
+                  </div>
                 </Suspense>
               ) : null
             }
