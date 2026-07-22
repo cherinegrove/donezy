@@ -258,21 +258,22 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
             {showEmojiPicker && (
               <div
                 ref={emojiPickerRef}
-                className="absolute top-8 left-0 z-50 bg-background border border-input rounded-lg p-2 shadow-lg"
+                className="absolute top-10 -right-2 z-50 bg-background border border-input rounded-lg p-3 shadow-lg w-48"
               >
-                <div className="grid grid-cols-6 gap-1">
+                <div className="grid grid-cols-5 gap-2 mb-2">
                   {commonEmojis.map((emoji) => (
                     <button
                       key={emoji}
                       onClick={() => handleEmojiClick(emoji)}
-                      className="text-lg hover:bg-muted p-1 rounded transition"
+                      className="text-xl hover:bg-muted p-1 rounded transition text-center"
                       type="button"
+                      title={emoji}
                     >
                       {emoji}
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground mt-2 px-1">Click emoji or type directly</p>
+                <p className="text-xs text-muted-foreground text-center">or type in editor</p>
               </div>
             )}
           </div>
