@@ -274,12 +274,14 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   return (
     <>
       <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Task</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col p-0">
+          <div className="overflow-y-auto flex-1">
+            <div className="p-6">
+              <DialogHeader>
+                <DialogTitle>Edit Task</DialogTitle>
+              </DialogHeader>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full mb-4 grid grid-cols-5">
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="files">Files</TabsTrigger>
@@ -455,34 +457,38 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
               <TaskLogsSection taskId={task.id} />
             </TabsContent>
             
-          </Tabs>
+              </Tabs>
+            </div>
+          </div>
 
-          <DialogFooter className="mt-6 flex justify-between">
-            <div className="flex gap-2">
-              <Button
-                variant="destructive"
-                onClick={() => setDeleteDialogOpen(true)}
-              >
-                <Trash className="h-4 w-4 mr-2" />
-                Delete Task
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleConvertToRecurring}
-              >
-                <Repeat className="h-4 w-4 mr-2" />
-                Convert to Recurring
-              </Button>
+          <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-6">
+            <div className="flex justify-between gap-4">
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  <Trash className="h-4 w-4 mr-2" />
+                  Delete Task
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleConvertToRecurring}
+                >
+                  <Repeat className="h-4 w-4 mr-2" />
+                  Convert to Recurring
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => handleOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => { handleSaveChanges(); handleOpenChange(false); }}>
+                  Save Changes
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => handleOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button onClick={() => { handleSaveChanges(); handleOpenChange(false); }}>
-                Save Changes
-              </Button>
-            </div>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
