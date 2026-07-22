@@ -178,25 +178,40 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
 
           <div>
             <Label className="text-xs font-semibold text-muted-foreground mb-2 block">Collaborators</Label>
-            <div className="space-y-2">
-              {users.map(user => (
-                <label key={user.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={collaboratorIds.includes(user.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setCollaboratorIds([...collaboratorIds, user.id]);
-                      } else {
-                        setCollaboratorIds(collaboratorIds.filter(id => id !== user.id));
-                      }
-                    }}
-                    className="rounded border-gray-300"
-                  />
-                  {user.name}
-                </label>
-              ))}
-            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-left font-normal h-8"
+                >
+                  {collaboratorIds.length > 0
+                    ? `${collaboratorIds.length} selected`
+                    : "Select collaborators"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-0" align="start">
+                <div className="space-y-2 p-3 max-h-64 overflow-y-auto">
+                  {users.map(user => (
+                    <label key={user.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 p-2 rounded">
+                      <input
+                        type="checkbox"
+                        checked={collaboratorIds.includes(user.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setCollaboratorIds([...collaboratorIds, user.id]);
+                          } else {
+                            setCollaboratorIds(collaboratorIds.filter(id => id !== user.id));
+                          }
+                        }}
+                        className="rounded border-gray-300"
+                      />
+                      {user.name}
+                    </label>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
