@@ -118,13 +118,15 @@ const Projects = () => {
   // Apply filters and search to projects
   const filteredProjects = projects.filter(project => {
     // Apply permission-based filtering
-    // Admins see all projects; regular users see only projects they own or are part of their team
+    // Admins see all projects; regular users see only projects they own, collaborate on, or are part of their team
     if (!canViewAllData(currentUser)) {
       const userTeamIds = currentUser?.teamIds || [];
-      const isOwner = project.ownerId === currentUser?.auth_user_id || project.ownerId === currentUser?.id;
+      const userId = currentUser?.auth_user_id || currentUser?.id;
+      const isOwner = project.ownerId === userId;
+      const isCollaborator = project.collaboratorIds?.includes(userId);
       const isTeamMember = userTeamIds.some(teamId => project.teamIds?.includes(teamId));
 
-      if (!isOwner && !isTeamMember) {
+      if (!isOwner && !isCollaborator && !isTeamMember) {
         return false;
       }
     }
