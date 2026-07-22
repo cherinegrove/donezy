@@ -345,23 +345,6 @@ export default function Tasks() {
                   />
                 </PopoverContent>
               </Popover>
-
-              {(startDate || dueDate || statusFilter !== "all" || Object.keys(activeFilters).length > 0) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setStartDate(undefined);
-                    setDueDate(undefined);
-                    setStatusFilter("all");
-                    setActiveFilters({});
-                  }}
-                  className="flex-shrink-0 text-xs sm:text-sm"
-                >
-                  <span className="hidden sm:inline">Clear All Filters</span>
-                  <span className="sm:hidden">Clear</span>
-                </Button>
-              )}
             </ModernToolbarSection>
             
             <ModernToolbarSection className="flex-shrink-0 justify-end">

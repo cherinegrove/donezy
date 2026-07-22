@@ -207,7 +207,7 @@ export function EnhancedFilterBar({
   return (
     <div className="space-y-4">
       {/* Filter selectors and presets */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-2 flex-nowrap">
         {/* Saved Presets */}
         {presets.length > 0 && (
           <Popover>
