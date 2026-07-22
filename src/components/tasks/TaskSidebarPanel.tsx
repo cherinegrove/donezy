@@ -160,21 +160,90 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
             </div>
           </div>
 
-          <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Assignee</Label>
-            <Select value={assigneeId || ""} onValueChange={setAssigneeId}>
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="Select assignee" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Unassigned</SelectItem>
-                {users.map(user => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Assignee</Label>
+              <Select value={assigneeId || ""} onValueChange={setAssigneeId}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Assignee" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Unassigned</SelectItem>
+                  {users.map(user => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Est. Hours</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.5"
+                placeholder="Hours"
+                value={estimatedHours ?? ""}
+                onChange={(e) => setEstimatedHours(e.target.value ? parseFloat(e.target.value) : undefined)}
+                className="h-8 text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Due Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start text-left font-normal h-8 text-xs",
+                      !dueDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                    {dueDate ? format(dueDate, "MMM dd") : "Set"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={setDueDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Reminder</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start text-left font-normal h-8 text-xs",
+                      !reminderDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                    {reminderDate ? format(reminderDate, "MMM dd") : "Set"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={reminderDate}
+                    onSelect={setReminderDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           <div>
@@ -188,13 +257,13 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
                 >
                   {collaboratorIds.length > 0
                     ? `${collaboratorIds.length} selected`
-                    : "Select collaborators"}
+                    : "Select"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-48 p-0" align="start">
-                <div className="space-y-2 p-3 max-h-64 overflow-y-auto">
+                <div className="space-y-1 p-2 max-h-64 overflow-y-auto">
                   {users.map(user => (
-                    <label key={user.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 p-2 rounded">
+                    <label key={user.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 p-1 rounded">
                       <input
                         type="checkbox"
                         checked={collaboratorIds.includes(user.id)}
@@ -213,72 +282,6 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
                 </div>
               </PopoverContent>
             </Popover>
-          </div>
-
-          <div>
-            <Label className="text-xs font-semibold text-muted-foreground">Due Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dueDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="h-4 w-4 mr-2" />
-                  {dueDate ? format(dueDate, "MMM dd, yyyy") : "Set due date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={dueDate}
-                  onSelect={setDueDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div>
-            <Label className="text-xs font-semibold text-muted-foreground">Reminder Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !reminderDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="h-4 w-4 mr-2" />
-                  {reminderDate ? format(reminderDate, "MMM dd, yyyy") : "Set reminder"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={reminderDate}
-                  onSelect={setReminderDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div>
-            <Label className="text-xs font-semibold text-muted-foreground">Estimated Hours</Label>
-            <Input
-              type="number"
-              min="0"
-              step="0.5"
-              placeholder="Enter hours"
-              value={estimatedHours ?? ""}
-              onChange={(e) => setEstimatedHours(e.target.value ? parseFloat(e.target.value) : undefined)}
-            />
           </div>
         </div>
 

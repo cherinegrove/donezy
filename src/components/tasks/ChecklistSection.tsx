@@ -137,17 +137,17 @@ export function ChecklistSection({ taskId }: ChecklistSectionProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Progress Bar */}
       {totalCount > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">
               {completedCount} of {totalCount} completed
             </span>
             <span className="font-medium">{Math.round(progress)}%</span>
           </div>
-          <Progress value={progress} className="h-2" />
+          <Progress value={progress} className="h-1.5" />
         </div>
       )}
 
@@ -158,25 +158,25 @@ export function ChecklistSection({ taskId }: ChecklistSectionProps) {
           value={newItemText}
           onChange={(e) => setNewItemText(e.target.value)}
           onKeyPress={handleKeyPress}
+          className="h-8 text-sm"
         />
-        <Button onClick={handleAddItem} size="icon">
-          <Plus className="h-4 w-4" />
+        <Button onClick={handleAddItem} size="icon" className="h-8 w-8 flex-shrink-0">
+          <Plus className="h-3.5 w-3.5" />
         </Button>
       </div>
 
       {/* Checklist Items */}
-      <div className="space-y-2">
+      <div className="space-y-1">
         {checklist.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <CheckCircle2 className="h-12 w-12 mx-auto mb-2 opacity-20" />
-            <p>No checklist items yet</p>
-            <p className="text-sm">Add items to track your progress</p>
+          <div className="text-center py-3 text-muted-foreground">
+            <CheckCircle2 className="h-8 w-8 mx-auto mb-1 opacity-20" />
+            <p className="text-xs">No checklist items yet</p>
           </div>
         ) : (
           checklist.map((item) => (
             <div
               key={item.id}
-              className="flex items-center gap-3 p-3 rounded-md border bg-card hover:bg-accent/50 transition-colors group"
+              className="flex items-center gap-2 p-2 rounded-md border bg-card hover:bg-accent/50 transition-colors group"
             >
               <Checkbox
                 checked={item.completed}

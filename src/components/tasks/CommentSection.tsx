@@ -282,12 +282,10 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium">Comments</h3>
-
+    <div className="space-y-2">
       {/* Comments List */}
-      <ScrollArea className="overflow-auto max-h-[400px] pr-4">
-        <div className="space-y-4">
+      <ScrollArea className="overflow-auto max-h-[250px] pr-4">
+        <div className="space-y-2">
           {task.comments && task.comments.length > 0 ? (
             task.comments.map((commentItem) => {
               const commentUser = users.find((u) => u.auth_user_id === commentItem.userId);
@@ -303,39 +301,39 @@ export function CommentSection({ taskId }: CommentSectionProps) {
               const displayContent = isClientComment
                 ? commentItem.content.replace(/^\[Client:\s*[^\]]+\]\s*/, '')
                 : commentItem.content;
-              
+
               return (
                 <div
                   key={commentItem.id}
-                  className={`flex gap-3 group rounded-lg p-2 -mx-2 ${isClientComment ? 'bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40' : ''}`}
+                  className={`flex gap-2 group rounded-lg p-1.5 -mx-2 text-sm ${isClientComment ? 'bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40' : ''}`}
                 >
-                  <Avatar className="h-8 w-8">
+                  <Avatar className="h-6 w-6 flex-shrink-0">
                     {isClientComment ? (
-                      <AvatarFallback className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-xs font-bold">
+                      <AvatarFallback className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-[10px] font-bold">
                         {clientName?.substring(0, 2)?.toUpperCase() || "CL"}
                       </AvatarFallback>
                     ) : (
                       <>
                         <AvatarImage src={commentUser?.avatar} />
-                        <AvatarFallback>{commentUser?.name?.substring(0, 2) || "UN"}</AvatarFallback>
+                        <AvatarFallback className="text-[10px]">{commentUser?.name?.substring(0, 2) || "UN"}</AvatarFallback>
                       </>
                     )}
                   </Avatar>
 
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1 mb-0.5 flex-wrap">
                       {isClientComment ? (
                         <>
-                          <span className="font-medium text-red-700 dark:text-red-300">{clientName}</span>
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700">
-                            Client Comment
+                          <span className="font-medium text-xs text-red-700 dark:text-red-300">{clientName}</span>
+                          <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700">
+                            Client
                           </span>
                         </>
                       ) : (
-                        <span className="font-medium">{commentUser?.name || "Unknown"}</span>
+                        <span className="font-medium text-xs">{commentUser?.name || "Unknown"}</span>
                       )}
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(commentItem.timestamp), "MMM d, yyyy 'at' h:mm a")}
+                      <span className="text-[11px] text-muted-foreground">
+                        {format(new Date(commentItem.timestamp), "MMM d, h:mm a")}
                       </span>
                       {isCommentEdited(commentItem) && (
                         <span className="text-xs text-muted-foreground italic">(edited)</span>
@@ -422,14 +420,14 @@ export function CommentSection({ taskId }: CommentSectionProps) {
               );
             })
           ) : (
-            <div className="text-center py-4 text-muted-foreground">No comments yet</div>
+            <div className="text-center py-2 text-xs text-muted-foreground">No comments yet</div>
           )}
         </div>
       </ScrollArea>
 
       {/* Comment Input Form - Always at the bottom */}
       {currentUser && (
-        <form onSubmit={handleSubmitComment} className="space-y-2 relative">
+        <form onSubmit={handleSubmitComment} className="space-y-1 relative">
           <div className="relative">
             <CommentEditor
               ref={editorRef}
