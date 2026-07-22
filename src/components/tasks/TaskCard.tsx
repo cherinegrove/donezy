@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,7 +17,7 @@ interface TaskCardProps {
   showSelection?: boolean;
 }
 
-export function TaskCard({ task, onClick, showProject = true, displayOptions = [], isSelected = false, onSelectionChange, showSelection = false }: TaskCardProps) {
+function TaskCardInner({ task, onClick, showProject = true, displayOptions = [], isSelected = false, onSelectionChange, showSelection = false }: TaskCardProps) {
   const { projects, users, currentUser, clients, taskStatuses } = useAppContext();
   
   const project = projects.find(p => p.id === task.projectId);
@@ -177,3 +177,5 @@ export function TaskCard({ task, onClick, showProject = true, displayOptions = [
     </div>
   );
 }
+
+export const TaskCard = memo(TaskCardInner);

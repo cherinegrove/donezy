@@ -1,7 +1,7 @@
 import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { formatDistanceToNow } from "date-fns";
 
 interface KanbanTaskCardWithCommentProps {
@@ -21,7 +21,7 @@ interface LatestComment {
   createdAt: string;
 }
 
-export function KanbanTaskCardWithComment({
+function KanbanTaskCardWithCommentInner({
   task,
   onClick,
   displayOptions,
@@ -90,3 +90,5 @@ export function KanbanTaskCardWithComment({
     </div>
   );
 }
+
+export const KanbanTaskCardWithComment = memo(KanbanTaskCardWithCommentInner);
