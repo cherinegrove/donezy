@@ -83,6 +83,7 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
         title: "Success",
         description: "Task updated successfully",
       });
+      onClose?.();
     } catch (error) {
       toast({
         title: "Error",
