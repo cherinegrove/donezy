@@ -536,9 +536,8 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                 key={column.id}
                 className="w-[250px] flex-shrink-0"
               >
-                <div 
-                  className="rounded-lg p-2 h-full"
-                  style={{ backgroundImage: columnColors[column.id] }}
+                <div
+                  className="rounded-lg p-2 h-full bg-slate-100 dark:bg-slate-800/50"
                 >
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="font-medium text-sm">{column.title}</h3>
