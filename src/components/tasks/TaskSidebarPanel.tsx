@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { format, parseISO } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,13 +43,52 @@ interface TaskSidebarPanelProps {
 }
 
 export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
-  const { deleteTask, projects, users } = useAppContext();
+  const { deleteTask, updateTask, projects, users } = useAppContext();
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
 
+  // Editable state
+  const [description, setDescription] = useState(task.description || "");
+  const [status, setStatus] = useState(task.status);
+  const [priority, setPriority] = useState(task.priority);
+  const [assigneeId, setAssigneeId] = useState(task.assigneeId);
+  const [collaboratorIds, setCollaboratorIds] = useState(task.collaboratorIds || []);
+  const [dueDate, setDueDate] = useState<Date | undefined>(
+    task.dueDate ? new Date(task.dueDate) : undefined
+  );
+  const [reminderDate, setReminderDate] = useState<Date | undefined>(
+    task.reminderDate ? new Date(task.reminderDate) : undefined
+  );
+  const [estimatedHours, setEstimatedHours] = useState<number | undefined>(task.estimatedHours);
+
   const project = projects.find(p => p.id === task.projectId);
-  const assignee = users.find(u => u.id === task.assigneeId);
+  const assignee = users.find(u => u.id === assigneeId);
+
+  const handleSaveChanges = async () => {
+    try {
+      await updateTask(task.id, {
+        description,
+        status,
+        priority,
+        assigneeId,
+        collaboratorIds,
+        dueDate: dueDate ? dueDate.toISOString() : null,
+        reminderDate: reminderDate ? reminderDate.toISOString() : null,
+        estimatedHours,
+      });
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleDelete = async () => {
     try {
@@ -69,64 +114,111 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
       <div className="p-6 space-y-6">
         <div>
           <h2 className="text-2xl font-bold mb-2">{task.title}</h2>
-          {task.description && (
-            <p className="text-sm text-muted-foreground">{task.description}</p>
-          )}
+          <Textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Add description..."
+            rows={3}
+            className="text-sm"
+          />
         </div>
 
-        {/* Key Fields */}
+        {/* Editable Fields */}
         <div className="space-y-4 pb-4 border-b">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-xs font-semibold text-muted-foreground">Status</Label>
-              <p className="text-sm font-medium mt-1 capitalize">{task.status}</p>
+              <StatusSelect
+                field={{ value: status, onChange: setStatus }}
+              />
             </div>
             <div>
               <Label className="text-xs font-semibold text-muted-foreground">Priority</Label>
-              <p className="text-sm font-medium mt-1 capitalize">{task.priority}</p>
+              <UrgentSelect
+                field={{ value: priority, onChange: setPriority }}
+              />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-xs font-semibold text-muted-foreground">Project</Label>
-              <p className="text-sm font-medium mt-1">{project?.name || "No Project"}</p>
-            </div>
-            <div>
-              <Label className="text-xs font-semibold text-muted-foreground">Assignee</Label>
-              <p className="text-sm font-medium mt-1">{assignee?.name || "Unassigned"}</p>
-            </div>
+          <div>
+            <Label className="text-xs font-semibold text-muted-foreground">Assignee</Label>
+            <AssigneeSelect
+              field={{ value: assigneeId, onChange: setAssigneeId }}
+            />
           </div>
 
-          {task.dueDate && (
-            <div>
-              <Label className="text-xs font-semibold text-muted-foreground">Due Date</Label>
-              <p className="text-sm font-medium mt-1">{format(parseISO(task.dueDate), "MMM dd, yyyy")}</p>
-            </div>
-          )}
+          <div>
+            <Label className="text-xs font-semibold text-muted-foreground">Collaborators</Label>
+            <CollaboratorSelect
+              field={{ value: collaboratorIds, onChange: setCollaboratorIds }}
+            />
+          </div>
 
-          {task.estimatedHours && (
-            <div>
-              <Label className="text-xs font-semibold text-muted-foreground">Estimated Hours</Label>
-              <p className="text-sm font-medium mt-1">{task.estimatedHours}h</p>
-            </div>
-          )}
+          <div>
+            <Label className="text-xs font-semibold text-muted-foreground">Due Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !dueDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  {dueDate ? format(dueDate, "MMM dd, yyyy") : "Set due date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={dueDate}
+                  onSelect={setDueDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
 
-          {task.collaboratorIds && task.collaboratorIds.length > 0 && (
-            <div>
-              <Label className="text-xs font-semibold text-muted-foreground">Collaborators</Label>
-              <div className="flex flex-wrap gap-1 mt-2">
-                {task.collaboratorIds.map(id => {
-                  const collab = users.find(u => u.id === id);
-                  return collab ? (
-                    <Badge key={id} variant="secondary" className="text-xs">
-                      {collab.name}
-                    </Badge>
-                  ) : null;
-                })}
-              </div>
-            </div>
-          )}
+          <div>
+            <Label className="text-xs font-semibold text-muted-foreground">Reminder Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !reminderDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  {reminderDate ? format(reminderDate, "MMM dd, yyyy") : "Set reminder"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarComponent
+                  mode="single"
+                  selected={reminderDate}
+                  onSelect={setReminderDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div>
+            <Label className="text-xs font-semibold text-muted-foreground">Estimated Hours</Label>
+            <Input
+              type="number"
+              min="0"
+              step="0.5"
+              placeholder="Enter hours"
+              value={estimatedHours ?? ""}
+              onChange={(e) => setEstimatedHours(e.target.value ? parseFloat(e.target.value) : undefined)}
+            />
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -173,6 +265,12 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
         </Tabs>
 
         <div className="flex gap-2 border-t pt-4">
+          <Button
+            onClick={handleSaveChanges}
+            size="sm"
+          >
+            Save Changes
+          </Button>
           <Button
             variant="destructive"
             size="sm"
