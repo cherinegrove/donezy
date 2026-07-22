@@ -29,11 +29,11 @@ export function ThreePaneLayout({
       {rightOpen && right && (
         <div className={cn(
           "flex flex-col overflow-hidden rounded-lg shadow-lg border border-border bg-background",
-          "mr-4 my-4",
+          "mr-4 my-2",
           rightWidth
         )}>
-          <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30 rounded-t-lg">
-            <h2 className="font-semibold">Details</h2>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30 rounded-t-lg">
+            <h2 className="font-semibold text-sm">Details</h2>
             <Button
               variant="ghost"
               size="sm"
