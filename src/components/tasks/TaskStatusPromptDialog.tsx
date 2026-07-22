@@ -171,6 +171,7 @@ export function TaskStatusPromptDialog({
           data.dueDateChangeReason = dueDateChangeReason;
         }
         data.newDueDate = newDueDate;
+      }
     }
 
     onConfirm(data);
