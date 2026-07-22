@@ -133,14 +133,14 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       }
 
       // Extract mentioned users from the plain text
-      const mentionRegex = /@(\w+)/g;
+      const mentionRegex = /@([\w\s]+?)(?:\s|$)/g;
       const mentionMatches = [...plainText.matchAll(mentionRegex)];
 
       // Find user IDs for mentioned users
       const mentionedUserIds: string[] = [];
       mentionMatches.forEach((match) => {
-        const firstName = match[1];
-        const mentionedUser = safeUsers.find((u) => u.name.toLowerCase().startsWith(firstName.toLowerCase()));
+        const mentionedName = match[1].trim();
+        const mentionedUser = safeUsers.find((u) => u.name.toLowerCase() === mentionedName.toLowerCase());
 
         if (mentionedUser && !mentionedUserIds.includes(mentionedUser.auth_user_id)) {
           mentionedUserIds.push(mentionedUser.auth_user_id);
@@ -210,18 +210,21 @@ export function CommentSection({ taskId }: CommentSectionProps) {
   const formatCommentContent = (content: string, mentionedUserIds: string[] = []) => {
     let formattedContent = content;
 
-    // First, replace all @name mentions with highlighted spans
-    const mentionRegex = /@(\w+(?:\s+\w+)*)/g;
-    formattedContent = formattedContent.replace(mentionRegex, (match) => {
-      const mentionedName = match.slice(1); // Remove @ symbol
-      const user = safeUsers.find(
-        (u) => u.name.toLowerCase() === mentionedName.toLowerCase()
-      );
+    // Get list of mentioned users by ID
+    const mentionedUsers = mentionedUserIds
+      .map(id => safeUsers.find(u => u.auth_user_id === id))
+      .filter(Boolean);
 
+    // Replace all @name mentions with highlighted spans
+    mentionedUsers.forEach((user) => {
       if (user) {
-        return `<span class="bg-blue-500 dark:bg-blue-600 text-white dark:text-white font-medium px-2 py-0.5 rounded cursor-pointer hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors" title="@${user.name}">@${user.name}</span>`;
+        // Match @Name (with or without spaces in the name)
+        const nameRegex = new RegExp(`@${user.name}(?![\\w])`, 'g');
+        formattedContent = formattedContent.replace(
+          nameRegex,
+          `<span class="bg-blue-500 dark:bg-blue-600 text-white dark:text-white font-medium px-2 py-0.5 rounded cursor-pointer hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors" title="@${user.name}">@${user.name}</span>`
+        );
       }
-      return match;
     });
 
     return formattedContent;
