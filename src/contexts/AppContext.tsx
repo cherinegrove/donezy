@@ -1283,11 +1283,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                 }
 
                 const mentioner = users.find(u => u.auth_user_id === newComment.auth_user_id);
+                const taskId = newComment.task_id;
+                const task = tasks.find(t => t.id === taskId);
 
                 toast({
                   title: "🔔 You were mentioned!",
-                  description: `${mentioner?.name || 'Someone'} mentioned you in a task`,
+                  description: `${mentioner?.name || 'Someone'} mentioned you in "${task?.title || 'Task'}"`,
                   duration: 6000,
+                  action: {
+                    label: "View",
+                    onClick: () => {
+                      // Navigate to task - this will be handled by the consumer of AppContext
+                      // Emit a custom event that the component can listen to
+                      const event = new CustomEvent('navigateToTask', {
+                        detail: { taskId, taskTitle: task?.title }
+                      });
+                      window.dispatchEvent(event);
+                    }
+                  }
                 });
               } else {
                 toast({
