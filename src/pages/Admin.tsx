@@ -15,6 +15,7 @@ import { SystemPreferences } from "@/components/admin/SystemPreferences";
 import { EmailTemplatesManager } from "@/components/admin/EmailTemplatesManager";
 import { IntegrationsSettings } from "@/components/settings/IntegrationsSettings";
 import { TeamCapacitySettings } from "@/components/admin/TeamCapacitySettings";
+import { StageFormsManager } from "@/components/admin/StageFormsManager";
 
 // Helper to check if user has admin system role
 const hasAdminRole = (user: any) => {
@@ -98,6 +99,7 @@ const Admin = () => {
                 <div className="space-y-6">
                   <TaskStatusManager />
                   <ProjectStatusManager />
+                  <StageFormsManager />
                   <CustomFieldsManager />
                   <NativeFieldsManager />
                   <EmailTemplatesManager />
