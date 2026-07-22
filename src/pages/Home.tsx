@@ -19,7 +19,7 @@ import { MentionsCard } from "@/components/dashboard/cards/MentionsCard";
 import { ProjectWarningsCard } from "@/components/dashboard/cards/ProjectWarningsCard";
 
 const Home = () => {
-  const { tasks, projects, currentUser } = useAppContext();
+  const { tasks, projects, users, currentUser } = useAppContext();
   const navigate = useNavigate();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
