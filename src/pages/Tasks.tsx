@@ -357,7 +357,13 @@ export default function Tasks() {
 
           <ThreePaneLayout
             center={
-              <div className="mt-6 w-full h-full flex flex-col">
+              <div className="relative mt-6 w-full h-full flex flex-col">
+                {selectedTaskId && (
+                  <div
+                    className="absolute inset-0 z-10 cursor-pointer"
+                    onClick={() => setSelectedTaskId(null)}
+                  />
+                )}
                 {viewMode === "timeline" ? (
                   <TasksTimeline tasks={filteredTasks} />
                 ) : filteredTasks.length === 0 ? (
