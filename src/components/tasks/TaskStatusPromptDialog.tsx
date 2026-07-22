@@ -90,22 +90,25 @@ export function TaskStatusPromptDialog({
   // Load custom forms for this stage
   useEffect(() => {
     const loadCustomForm = async () => {
-      if (!currentUser?.organizationId || !newStatus) return;
+      if (!currentUser?.organizationId || !newStatus) {
+        setStageForm(null);
+        return;
+      }
 
       try {
         const { data, error } = await supabase
           .from("organizations")
           .select("settings")
           .eq("id", currentUser.organizationId)
-          .maybeSingle();
+          .single();
 
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') throw error;
 
         const settings = (data?.settings as any) || {};
         const forms = (settings.stageForms || []) as StageForm[];
         const matchingForm = forms.find(f => f.stage === newStatus);
 
-        if (matchingForm) {
+        if (matchingForm && matchingForm.fields && matchingForm.fields.length > 0) {
           setStageForm(matchingForm);
           const initialValues: Record<string, string> = {};
           matchingForm.fields.forEach(field => {
@@ -114,10 +117,12 @@ export function TaskStatusPromptDialog({
           setCustomFormValues(initialValues);
         } else {
           setStageForm(null);
+          setCustomFormValues({});
         }
       } catch (err) {
         console.error("Error loading custom form:", err);
         setStageForm(null);
+        setCustomFormValues({});
       }
     };
 
@@ -125,6 +130,7 @@ export function TaskStatusPromptDialog({
   }, [open, newStatus, currentUser?.organizationId]);
 
   const getPromptTitle = () => {
+    if (stageForm) return "Additional Information";
     if (newStatus === "backlog") return "Moving to Backlog";
     if (newStatus === "in-progress") return "Moving to In Progress";
     if (newStatus === "review" || newStatus === "awaiting-feedback") return "Awaiting Feedback";
