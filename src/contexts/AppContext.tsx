@@ -1270,7 +1270,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                   oscillator.connect(gainNode);
                   gainNode.connect(audioContext.destination);
 
-                  oscillator.frequency.value = 800;
+                  oscillator.frequency.value = 400;
                   oscillator.type = 'sine';
 
                   gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
