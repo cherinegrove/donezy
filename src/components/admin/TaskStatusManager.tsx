@@ -82,16 +82,16 @@ export function TaskStatusManager() {
   };
 
   const handleDelete = async (id: string) => {
-    // Prevent deletion of core statuses
     const status = taskStatuses.find(s => s.id === id);
-    if (status && ['backlog', 'todo', 'in-progress', 'review', 'done'].includes(status.value)) {
-      toast({
-        title: "Cannot Delete",
-        description: "Core task statuses cannot be deleted",
-        variant: "destructive"
-      });
-      return;
-    }
+    const isCoreStatus = status && ['backlog', 'todo', 'in-progress', 'review', 'done'].includes(status.value);
+
+    const confirmDelete = window.confirm(
+      isCoreStatus
+        ? `Delete "${status?.label}"? This is a core status and tasks using it will be affected.`
+        : `Delete "${status?.label}"?`
+    );
+
+    if (!confirmDelete) return;
 
     try {
       await deleteTaskStatus(id);
