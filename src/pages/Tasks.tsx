@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
@@ -16,7 +16,7 @@ import { TaskTemplatesList } from "@/components/tasks/TaskTemplatesList";
 import { RecurringTasksList } from "@/components/tasks/RecurringTasksList";
 import { TasksTimeline } from "@/components/tasks/TasksTimeline";
 import { EnhancedFilterBar, FilterOption } from "@/components/common/EnhancedFilterBar";
-import { 
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -37,6 +37,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ModernToolbar, ModernToolbarSection } from "@/components/common/ModernToolbar";
+import { ThreePaneLayout } from "@/components/layout/ThreePaneLayout";
+const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 
 type TaskViewMode = "list" | "kanban" | "timeline";
 
@@ -72,6 +74,7 @@ export default function Tasks() {
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [activeTab, setActiveTab] = useState("tasks");
   const [templateRefreshTrigger, setTemplateRefreshTrigger] = useState(0);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   // Filters persist across navigation (e.g. opening a task and coming back,
   // which remounts this page) so a chosen filter stays until the user changes it.
   const [persistedFilters] = useState<any>(() => {
@@ -352,40 +355,60 @@ export default function Tasks() {
             </ModernToolbarSection>
           </ModernToolbar>
 
-          <div className="mt-6 w-full">
-            {viewMode === "timeline" ? (
-              <TasksTimeline tasks={filteredTasks} />
-            ) : filteredTasks.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-10">
-                  <CheckSquare className="h-10 w-10 text-muted-foreground/50" />
-                  <p className="mt-2 text-lg font-medium">No tasks found</p>
-                  <p className="text-muted-foreground text-sm">
-                    {Object.keys(activeFilters).length > 0 || startDate || dueDate || statusFilter !== "all"
-                      ? "Try adjusting your filters"
-                      : "Create a new task to get started"}
-                  </p>
-                  <Button 
-                    variant="default" 
-                    className="mt-4" 
-                    onClick={() => setIsCreateTaskOpen(true)}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Task
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <KanbanBoard 
-                tasks={filteredTasks} 
-                viewMode={viewMode as "list" | "kanban"}
-                onBulkEdit={handleBulkEdit}
-                onTaskOpen={(taskId) => {
-                  navigate(`/tasks/${taskId}`);
-                }}
-              />
-            )}
-          </div>
+          <ThreePaneLayout
+            center={
+              <div className="mt-6 w-full h-full flex flex-col">
+                {viewMode === "timeline" ? (
+                  <TasksTimeline tasks={filteredTasks} />
+                ) : filteredTasks.length === 0 ? (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-10">
+                      <CheckSquare className="h-10 w-10 text-muted-foreground/50" />
+                      <p className="mt-2 text-lg font-medium">No tasks found</p>
+                      <p className="text-muted-foreground text-sm">
+                        {Object.keys(activeFilters).length > 0 || startDate || dueDate || statusFilter !== "all"
+                          ? "Try adjusting your filters"
+                          : "Create a new task to get started"}
+                      </p>
+                      <Button
+                        variant="default"
+                        className="mt-4"
+                        onClick={() => setIsCreateTaskOpen(true)}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create Task
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <KanbanBoard
+                    tasks={filteredTasks}
+                    viewMode={viewMode as "list" | "kanban"}
+                    onBulkEdit={handleBulkEdit}
+                    onTaskOpen={(taskId) => {
+                      setSelectedTaskId(taskId);
+                    }}
+                  />
+                )}
+              </div>
+            }
+            right={
+              selectedTaskId && tasks.find(t => t.id === selectedTaskId) ? (
+                <Suspense fallback={<div className="p-4">Loading...</div>}>
+                  <EditTaskDialog
+                    task={tasks.find(t => t.id === selectedTaskId)!}
+                    open={true}
+                    onOpenChange={(open) => {
+                      if (!open) setSelectedTaskId(null);
+                    }}
+                  />
+                </Suspense>
+              ) : null
+            }
+            rightOpen={!!selectedTaskId}
+            onRightClose={() => setSelectedTaskId(null)}
+            rightWidth="w-[600px]"
+          />
         </TabsContent>
 
         <TabsContent value="recurring" className="mt-6">
