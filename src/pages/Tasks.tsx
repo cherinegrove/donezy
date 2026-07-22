@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppContext } from "@/contexts/AppContext";
@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select";
 import { ModernToolbar, ModernToolbarSection } from "@/components/common/ModernToolbar";
 import { ThreePaneLayout } from "@/components/layout/ThreePaneLayout";
-const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
+import { TaskSidebarPanel } from "@/components/tasks/TaskSidebarPanel";
 
 type TaskViewMode = "list" | "kanban" | "timeline";
 
@@ -394,17 +394,10 @@ export default function Tasks() {
             }
             right={
               selectedTaskId && tasks.find(t => t.id === selectedTaskId) ? (
-                <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading task...</div>}>
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <EditTaskDialog
-                      task={tasks.find(t => t.id === selectedTaskId)!}
-                      open={true}
-                      onOpenChange={(open) => {
-                        if (!open) setSelectedTaskId(null);
-                      }}
-                    />
-                  </div>
-                </Suspense>
+                <TaskSidebarPanel
+                  task={tasks.find(t => t.id === selectedTaskId)!}
+                  onClose={() => setSelectedTaskId(null)}
+                />
               ) : null
             }
             rightOpen={!!selectedTaskId}
