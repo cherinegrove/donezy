@@ -59,11 +59,28 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
           blockquote: false,
           codeBlock: false,
           horizontalRule: false,
+          bulletList: {
+            HTMLAttributes: {
+              class: 'list-disc list-inside ml-4',
+            },
+          },
+          orderedList: {
+            HTMLAttributes: {
+              class: 'list-decimal list-inside ml-4',
+            },
+          },
+          listItem: {
+            HTMLAttributes: {
+              class: 'mb-1',
+            },
+          },
         }),
         Link.configure({
-          openOnClick: true,
+          openOnClick: false,
           HTMLAttributes: {
-            class: 'text-primary underline hover:text-primary/80 cursor-pointer',
+            class: 'text-blue-500 underline hover:text-blue-600 cursor-pointer',
+            target: '_blank',
+            rel: 'noopener noreferrer nofollow',
           },
         }),
       ],
@@ -73,8 +90,7 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
       },
       editorProps: {
         attributes: {
-          class: 'prose prose-sm max-w-none min-h-[80px] p-3 focus:outline-none break-words overflow-hidden [&_*]:break-words',
-          style: 'word-break: break-word; overflow-wrap: anywhere;',
+          class: 'prose prose-sm dark:prose-invert max-w-none min-h-[80px] p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 break-words [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-4',
         },
         handlePaste: (view, event) => {
           // Check for images in clipboard
