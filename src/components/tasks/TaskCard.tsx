@@ -113,13 +113,13 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [],
       )}
       <div className={cn(showSelection && "pr-8")}>
         <div className="flex items-start gap-2 mb-2">
-          <h4 className="font-semibold text-sm line-clamp-2 flex-1 break-words min-w-0 text-foreground">
+          <h4 className="font-semibold text-xs line-clamp-2 flex-1 break-words min-w-0 text-foreground">
             {task.title}
           </h4>
           {task.priority && (
             <Badge
               className={cn(
-                "text-xs shrink-0 whitespace-nowrap font-medium",
+                "text-[10px] shrink-0 whitespace-nowrap font-medium",
                 task.priority === 'urgent' && "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
                 task.priority === 'high' && "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
                 task.priority === 'medium' && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
@@ -134,7 +134,7 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [],
         <div className="space-y-2">
           {displayOptions.includes("project") && project && (
             <div className="truncate">
-              <span className="text-xs font-medium text-muted-foreground">{project.name}</span>
+              <span className="text-[11px] font-medium text-muted-foreground">{project.name}</span>
             </div>
           )}
 
@@ -148,7 +148,7 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [],
           )}
 
           {displayOptions.includes("assignee") && assignee && (
-            <div className="flex items-center gap-1.5 min-w-0 text-xs">
+            <div className="flex items-center gap-1.5 min-w-0 text-[11px]">
               <Avatar className="h-5 w-5 shrink-0">
                 <AvatarImage src={assignee.avatar} />
                 <AvatarFallback className="text-xs font-bold">{assignee.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>

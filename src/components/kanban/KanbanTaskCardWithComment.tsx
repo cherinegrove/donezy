@@ -29,23 +29,30 @@ function KanbanTaskCardWithCommentInner({
   onSelectionChange,
   showSelection,
 }: KanbanTaskCardWithCommentProps) {
-  const { users } = useAppContext();
+  const { users, comments: globalComments } = useAppContext();
   const [latestComment, setLatestComment] = useState<LatestComment | null>(null);
 
   useEffect(() => {
-    // Find the latest comment from task's comments array
-    if (task.comments && Array.isArray(task.comments) && task.comments.length > 0) {
-      const sortedComments = [...task.comments].sort((a, b) =>
+    // Try to get comments from task first, then fall back to global comments
+    let taskComments = task.comments;
+
+    if (!taskComments || !Array.isArray(taskComments) || taskComments.length === 0) {
+      // Fall back to global comments context
+      taskComments = globalComments?.filter((c: any) => c.task_id === task.id) || [];
+    }
+
+    if (Array.isArray(taskComments) && taskComments.length > 0) {
+      const sortedComments = [...taskComments].sort((a: any, b: any) =>
         new Date(b.timestamp || b.created_at).getTime() - new Date(a.timestamp || a.created_at).getTime()
       );
 
       const comment = sortedComments[0];
-      const author = users.find(u => u.auth_user_id === comment.userId);
+      const author = users.find(u => u.auth_user_id === (comment.userId || comment.auth_user_id));
       const initials = author?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
 
       setLatestComment({
         id: comment.id,
-        content: comment.content.replace(/<[^>]*>/g, '').trim(),
+        content: (comment.content || '').replace(/<[^>]*>/g, '').trim(),
         authorName: author?.name || 'Unknown',
         authorInitials: initials,
         createdAt: comment.timestamp || comment.created_at,
@@ -53,7 +60,7 @@ function KanbanTaskCardWithCommentInner({
     } else {
       setLatestComment(null);
     }
-  }, [task.id, task.comments, users]);
+  }, [task.id, task.comments, globalComments, users]);
 
   return (
     <div className="relative group">
