@@ -100,6 +100,7 @@ export interface Client {
   allocatedHours?: number;
   status?: 'active' | 'inactive';
   memberIds?: string[];
+  hubspot_company_id?: string;
 }
 
 export interface Project {
@@ -120,6 +121,7 @@ export interface Project {
   ownerId?: string;
   collaboratorIds?: string[];
   google_chat_settings?: any;
+  hubspot_deal_id?: string;
 }
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'awaiting-feedback' | 'done' | string;

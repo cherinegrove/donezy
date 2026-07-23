@@ -225,7 +225,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         address: client.address || undefined,
         website: client.website || undefined,
         createdAt: client.created_at,
-        status: (client.status as 'active' | 'inactive') || 'active'
+        status: (client.status as 'active' | 'inactive') || 'active',
+        hubspot_company_id: client.hubspot_company_id || undefined
       })) || [];
       
       setClients(convertedClients);
@@ -262,7 +263,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         watcherIds: project.watcher_ids || [],
         ownerId: project.owner_id || undefined,
         collaboratorIds: project.collaborator_ids || [],
-        google_chat_settings: project.google_chat_settings || undefined
+        google_chat_settings: project.google_chat_settings || undefined,
+        hubspot_deal_id: project.hubspot_deal_id || undefined
       })) || [];
       
       setProjects(convertedProjects);
