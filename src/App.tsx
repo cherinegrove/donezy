@@ -39,6 +39,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Dashboards = lazy(() => import("./pages/Dashboards"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Activity = lazy(() => import("./pages/Activity"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
 // Admin Portal (multi-tenant)
 const AdminPortalLayout = lazy(() => import("./components/admin-portal/AdminPortalLayout").then(m => ({ default: m.AdminPortalLayout })));
@@ -260,6 +261,7 @@ const App = () => {
                   <Route path="/forgot-password" element={<PublicRoute element={<ForgotPassword />} />} />
                   <Route path="/reset-password" element={<PublicRoute element={<ResetPassword />} />} />
                   <Route path="/auth/v1/verify" element={<AuthVerify />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
                   <Route path="/portal/:token" element={<ClientPortal />} />
                   
                   {/* Admin Portal (multi-tenant) - separate layout */}

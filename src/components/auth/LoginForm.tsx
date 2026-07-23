@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Lock, ArrowRight, Mail } from "lucide-react";
+import { Lock, ArrowRight, Mail, Chrome } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -81,13 +81,13 @@ export function LoginForm() {
     console.log("Starting login process...");
     setIsLoading(true);
     setLoginError(null);
-    
+
     try {
       console.log("Attempting login with:", values.email);
-      
+
       // Use app context login method which should handle everything
       const success = await login(values.email, values.password);
-      
+
       if (success) {
         console.log("Login successful, redirecting to:", redirectTo);
         toast({
@@ -100,9 +100,9 @@ export function LoginForm() {
       }
     } catch (error) {
       console.error("Login error:", error);
-      
+
       let errorMessage = "Invalid email or password. Please try again.";
-      
+
       if (error instanceof Error) {
         if (error.message.includes("Email not confirmed")) {
           errorMessage = "Please verify your email before logging in. Check your inbox for a confirmation link.";
@@ -112,7 +112,7 @@ export function LoginForm() {
           errorMessage = error.message;
         }
       }
-      
+
       setLoginError(errorMessage);
       toast({
         title: "Login failed",
@@ -121,6 +121,39 @@ export function LoginForm() {
       });
     } finally {
       console.log("Login process completed, setting loading to false");
+      setIsLoading(false);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    setIsLoading(true);
+    setLoginError(null);
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error("Google login error:", error);
+
+      let errorMessage = "Failed to login with Google. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      setLoginError(errorMessage);
+      toast({
+        title: "Google login failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
       setIsLoading(false);
     }
   }
@@ -227,6 +260,26 @@ export function LoginForm() {
           </Button>
         </form>
       </Form>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-muted"></div>
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+        </div>
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        onClick={handleGoogleLogin}
+        disabled={isLoading}
+      >
+        <Chrome className="mr-2 h-4 w-4" />
+        Google
+      </Button>
 
       <div className="flex flex-col space-y-2 text-center text-sm">
         <p className="mt-4 text-sm text-center">
