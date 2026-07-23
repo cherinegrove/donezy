@@ -185,7 +185,9 @@ function TimeTab() {
       if (entryStart >= from && entryStart <= to) {
         const task = tasks.find(t => t.id === entry.taskId);
         const status = task?.status || "unknown";
-        const hours = (entry.duration || 0) / 3600; // Convert seconds to hours
+        // Calculate hours from start and end time
+        const durationMs = entryEnd.getTime() - entryStart.getTime();
+        const hours = durationMs / (1000 * 60 * 60); // Convert milliseconds to hours
         statusHours[status] = (statusHours[status] || 0) + hours;
       }
     });
