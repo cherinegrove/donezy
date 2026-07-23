@@ -157,7 +157,7 @@ export function ProjectsViewContent({
   // Render Kanban board with columns by status
   const renderKanbanBoard = () => {
     return (
-      <div className="overflow-x-auto pb-4">
+      <div className="overflow-x-auto pb-4 pt-8">
         <div className="flex gap-12 min-w-min px-4">
           {STATUS_ORDER.map(status => {
             const statusProjects = allProjectsByStatus[status] || [];
