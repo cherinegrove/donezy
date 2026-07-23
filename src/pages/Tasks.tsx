@@ -364,10 +364,10 @@ export default function Tasks() {
                   Clear Filters
                 </Button>
               )}
+            </ModernToolbarSection>
 
-              <div className="ml-auto flex-shrink-0">
-                <ViewSelector currentView={viewMode} onViewChange={setViewMode} showTimeline={true} />
-              </div>
+            <ModernToolbarSection className="ml-auto">
+              <ViewSelector currentView={viewMode} onViewChange={setViewMode} showTimeline={true} />
             </ModernToolbarSection>
           </ModernToolbar>
 
