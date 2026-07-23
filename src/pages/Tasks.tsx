@@ -232,7 +232,7 @@ export default function Tasks() {
     });
 
     setFilteredTasks(filtered);
-  }, [tasks, filterLookups, startDate, dueDate, statusFilter];
+  }, [tasks, filterLookups, startDate, dueDate, statusFilter]);
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setActiveFilters(filters);
