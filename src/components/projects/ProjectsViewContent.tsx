@@ -158,7 +158,7 @@ export function ProjectsViewContent({
   const renderKanbanBoard = () => {
     return (
       <div className="overflow-x-auto pb-4">
-        <div className="flex gap-8 min-w-min px-2">
+        <div className="flex gap-12 min-w-min px-4">
           {STATUS_ORDER.map(status => {
             const statusProjects = allProjectsByStatus[status] || [];
             const favoriteStatusProjects = statusProjects.filter(p => favorites.includes(p.id));
@@ -166,7 +166,7 @@ export function ProjectsViewContent({
             const config = getStatusConfig(status);
 
             return (
-              <div key={status} className="flex-shrink-0 w-96">
+              <div key={status} className="flex-shrink-0 w-[420px]">
                 <div className="mb-4">
                   <div className="flex items-center gap-2 mb-3">
                     <div className={`h-3 w-3 rounded-full ${config.color}`} />
