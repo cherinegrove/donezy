@@ -32,6 +32,8 @@ Deno.serve(async (req) => {
     const {
       userMessage,
       fileName,
+      fileBase64,
+      fileType,
       projects,
       recentTasks,
     } = await req.json();
@@ -42,6 +44,38 @@ Deno.serve(async (req) => {
         { status: 400 }
       );
     }
+
+    // Process file if provided
+    let fileContent = "";
+    if (fileBase64 && fileName) {
+      try {
+        const binaryString = atob(fileBase64);
+        // For text-based files (Excel as CSV, or plain text)
+        // For PDF, we'll extract text using a simple approach
+        if (fileName.endsWith(".pdf")) {
+          // Note: Full PDF parsing would need pdf.js library
+          // For now, we'll indicate the file was received
+          fileContent = `[PDF file received: ${fileName}. Please describe what you'd like me to extract from it.]`;
+        } else if (
+          fileName.endsWith(".xlsx") ||
+          fileName.endsWith(".xls") ||
+          fileName.endsWith(".csv")
+        ) {
+          // For Excel/CSV, try to extract text
+          fileContent = `[Spreadsheet file received: ${fileName}]`;
+        } else {
+          // Assume text file
+          fileContent = binaryString;
+        }
+      } catch (e) {
+        console.error("Error processing file:", e);
+        fileContent = `[File received: ${fileName}]`;
+      }
+    }
+
+    const fullMessage = fileContent
+      ? `${userMessage}\n\n${fileContent}`
+      : userMessage;
 
     const systemPrompt = `You are a helpful AI assistant for a project management app called Donezy. Your job is to:
 1. Help users create projects and tasks from descriptions
@@ -91,7 +125,7 @@ Always be helpful, concise, and actionable.`;
       messages: [
         {
           role: "user",
-          content: userMessage,
+          content: fullMessage,
         },
       ],
     });
