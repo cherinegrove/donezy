@@ -376,7 +376,7 @@ export default function Tasks() {
               <div className="relative mt-6 w-full h-full flex flex-col">
                 {selectedTaskId && (
                   <div
-                    className="absolute inset-0 z-10 cursor-pointer"
+                    className="absolute inset-0 z-40 cursor-pointer pointer-events-auto"
                     onClick={() => setSelectedTaskId(null)}
                   />
                 )}
