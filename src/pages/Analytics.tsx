@@ -113,6 +113,7 @@ function TimeTab() {
   const [granularity, setGranularity] = useState<"day" | "week" | "month" | "year">("day");
   const { from, to } = rangeFor(preset, custom);
   const base = { p_start: from.toISOString(), p_end: to.toISOString(), p_tz: TZ };
+  const { timeEntries, tasks, taskStatuses, projects, users, clients } = useAppContext();
 
   // Fetch hours data grouped by different dimensions
   const overTime = useRpc<HoursRow>("report_hours", { ...base, p_granularity: granularity, p_group_by: "none" });
