@@ -569,8 +569,8 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                                 {...provided.dragHandleProps}
                                 className={`${snapshot.isDragging ? 'opacity-50' : ''}`}
                               >
-                                <TaskCard 
-                                  task={task} 
+                                <KanbanTaskCardWithComment
+                                  task={task}
                                   onClick={(e) => handleTaskClick(task, e)}
                                   displayOptions={displayOptions}
                                   isSelected={selectedTaskIds.includes(task.id)}
