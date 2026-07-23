@@ -34,8 +34,12 @@ function KanbanTaskCardWithCommentInner({
 
   useEffect(() => {
     try {
+      // Debug logging
+      console.log(`[Hover] Task "${task.title}" - Comments:`, task.comments, `Array? ${Array.isArray(task.comments)}, Length: ${task.comments?.length || 0}`);
+
       // Check if task has comments array
       if (!task.comments || !Array.isArray(task.comments) || task.comments.length === 0) {
+        console.log(`[Hover] No comments found for task "${task.title}"`);
         setLatestComment(null);
         return;
       }
