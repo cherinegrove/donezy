@@ -100,9 +100,15 @@ export function ProjectGridCard({
               <span className="font-medium">{getStatusInfo(project.status).label}</span>
             </div>
           </div>
+          {formattedStartDate && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Start</span>
+              <span>{formattedStartDate}</span>
+            </div>
+          )}
           {formattedDueDate && (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Due</span>
+              <span className="text-muted-foreground">End</span>
               <span>{formattedDueDate}</span>
             </div>
           )}
@@ -116,9 +122,16 @@ export function ProjectGridCard({
           <Progress value={progress} className="h-1.5" />
         </div>
         
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{project.usedHours || 0}h used</span>
-          {project.allocatedHours && <span>/ {project.allocatedHours}h</span>}
+        <div className="bg-muted/50 rounded p-1.5 space-y-0.5">
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Hours:</span>
+            <span className="font-medium">{project.usedHours || 0}h / {project.allocatedHours || 0}h</span>
+          </div>
+          {project.allocatedHours && project.usedHours ? (
+            <div className="text-[10px] text-muted-foreground">
+              {((project.usedHours / project.allocatedHours) * 100).toFixed(0)}% allocated
+            </div>
+          ) : null}
         </div>
       </CardContent>
     </Card>

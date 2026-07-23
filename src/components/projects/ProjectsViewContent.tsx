@@ -30,7 +30,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 // Default order for statuses
-const STATUS_ORDER = ["in-progress", "not-started", "on-hold", "completed", "cancelled"];
+const STATUS_ORDER = ["not-started", "in-progress", "on-hold", "completed", "cancelled"];
 
 export function ProjectsViewContent({
   currentView,
