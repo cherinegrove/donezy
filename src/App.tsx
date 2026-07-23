@@ -40,7 +40,7 @@ const Dashboards = lazy(() => import("./pages/Dashboards"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Activity = lazy(() => import("./pages/Activity"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
-const CreateFromProposal = lazy(() => import("./pages/CreateFromProposal"));
+const AIAssistant = lazy(() => import("./pages/AIAssistant"));
 
 // Admin Portal (multi-tenant)
 const AdminPortalLayout = lazy(() => import("./components/admin-portal/AdminPortalLayout").then(m => ({ default: m.AdminPortalLayout })));
@@ -281,7 +281,7 @@ const App = () => {
                     <Route index element={<Home />} />
                     <Route path="/projects" element={<Projects />} />
                     <Route path="/projects/:projectId" element={<ProjectDetails />} />
-                    <Route path="/projects/create-from-proposal" element={<CreateFromProposal />} />
+                    <Route path="/ai-assistant" element={<AIAssistant />} />
                     <Route path="/tasks" element={<Tasks />} />
                     <Route path="/tasks/:taskId" element={<TaskDetails />} />
                     <Route path="/notes" element={<Notes />} />
