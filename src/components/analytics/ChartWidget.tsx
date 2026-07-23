@@ -3,18 +3,18 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { DrillDownDialog } from "./DrillDownDialog";
 import { useAppContext } from "@/contexts/AppContext";
 
-// Enhanced color palette with better contrast and visual hierarchy
+// Muted, professional color palette matching platform design system
 const COLORS = [
-  'hsl(217, 91%, 60%)',   // Primary blue
-  'hsl(142, 76%, 36%)',   // Success green
-  'hsl(39, 89%, 49%)',    // Warning amber
-  'hsl(0, 84%, 60%)',     // Destructive red
-  'hsl(280, 85%, 53%)',   // Purple
-  'hsl(15, 86%, 63%)',    // Orange
-  'hsl(190, 95%, 39%)',   // Cyan
-  'hsl(261, 80%, 50%)',   // Violet
-  'hsl(346, 77%, 50%)',   // Rose
-  'hsl(22, 96%, 47%)',    // Teal
+  'hsl(217, 70%, 50%)',    // Blue - primary
+  'hsl(142, 60%, 45%)',    // Teal - success
+  'hsl(39, 70%, 50%)',     // Amber - warning
+  'hsl(0, 65%, 50%)',      // Red - danger
+  'hsl(280, 50%, 50%)',    // Purple
+  'hsl(15, 60%, 48%)',     // Coral
+  'hsl(190, 65%, 45%)',    // Cyan
+  'hsl(261, 50%, 48%)',    // Violet
+  'hsl(0, 50%, 55%)',      // Rose
+  'hsl(22, 65%, 48%)',     // Orange
 ];
 
 interface ChartWidgetProps {
