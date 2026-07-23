@@ -4,7 +4,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Calendar, Clock } from "lucide-react";
+import { AlertTriangle, Calendar, Clock, MessageCircle, Bell, Alarm, History } from "lucide-react";
 const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { Task } from "@/types";
 import { TaskCard } from "@/components/tasks/TaskCard";
@@ -17,6 +17,7 @@ import { ActiveTimersCard } from "@/components/dashboard/cards/ActiveTimersCard"
 import { MonthlyComparisonChart } from "@/components/dashboard/cards/MonthlyComparisonChart";
 import { MentionsCard } from "@/components/dashboard/cards/MentionsCard";
 import { ProjectWarningsCard } from "@/components/dashboard/cards/ProjectWarningsCard";
+import { cn } from "@/lib/utils";
 
 const Home = () => {
   const { tasks, projects, users, currentUser } = useAppContext();
@@ -104,87 +105,136 @@ const Home = () => {
     );
   };
 
+  // Count active tasks
+  const inProgressTasks = activeTasks.filter(t => t.status === "in-progress").length;
+  const mentionCount = 2; // This would come from notifications data
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Modern Header */}
       <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
-          Welcome back, {currentUser?.name}! Here's what you need to focus on today.
+        <h1 className="text-3xl font-bold tracking-tight mb-1">Dashboard</h1>
+        <p className="text-sm text-muted-foreground">
+          Welcome back, {currentUser?.name}! Here's what needs your attention today.
         </p>
       </div>
 
-      {/* Row 1: Active Status - Full Width */}
+      {/* Row 1: Active Timers & Time Tracking */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ActiveTimersCard />
         <MyTimeTrackingCard />
       </div>
 
-      {/* Row 2: Tasks - Urgent Focus */}
+      {/* Row 2: Quick Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="bg-gradient-to-br from-green-50 to-green-50/30 dark:from-green-950/40 dark:to-green-950/20 border-l-4 border-l-green-500">
+          <CardContent className="p-4">
+            <div className="text-xs font-medium text-muted-foreground mb-1">Due Today</div>
+            <div className="text-2xl font-bold text-foreground">{tasksDueToday.length}</div>
+            <div className="text-xs text-muted-foreground mt-2">tasks</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-50/30 dark:from-yellow-950/40 dark:to-yellow-950/20 border-l-4 border-l-yellow-500">
+          <CardContent className="p-4">
+            <div className="text-xs font-medium text-muted-foreground mb-1">Overdue</div>
+            <div className="text-2xl font-bold text-foreground">{overdueTasks.length}</div>
+            <div className="text-xs text-muted-foreground mt-2">urgent</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-50/30 dark:from-blue-950/40 dark:to-blue-950/20 border-l-4 border-l-blue-500">
+          <CardContent className="p-4">
+            <div className="text-xs font-medium text-muted-foreground mb-1">In Progress</div>
+            <div className="text-2xl font-bold text-foreground">{inProgressTasks}</div>
+            <div className="text-xs text-muted-foreground mt-2">active</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-red-50 to-red-50/30 dark:from-red-950/40 dark:to-red-950/20 border-l-4 border-l-red-500">
+          <CardContent className="p-4">
+            <div className="text-xs font-medium text-muted-foreground mb-1">Mentions</div>
+            <div className="text-2xl font-bold text-foreground">{mentionCount}</div>
+            <div className="text-xs text-muted-foreground mt-2">new</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Row 3: Task Lists - Overdue & Due Today */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2 text-red-800 dark:text-red-400">
-              <AlertTriangle className="h-4 w-4" />
+        <Card className="border-l-4 border-l-yellow-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-3 bg-yellow-50/50 dark:bg-yellow-950/20">
+            <CardTitle className="text-sm flex items-center gap-2 text-foreground">
+              <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
               Overdue ({overdueTasks.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-0">
+          <CardContent className="space-y-0 p-0">
             {overdueTasks.length > 0 ? (
-              <div className="max-h-40 overflow-y-auto">
+              <div className="max-h-48 overflow-y-auto divide-y divide-border">
                 {overdueTasks.map((task) => (
                   <CompactTaskRow key={task.id} task={task} />
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-center py-4 text-muted-foreground">No overdue tasks</p>
+              <p className="text-xs text-center py-6 text-muted-foreground">No overdue tasks</p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2 text-orange-800 dark:text-orange-400">
-              <Calendar className="h-4 w-4" />
+        <Card className="border-l-4 border-l-green-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-3 bg-green-50/50 dark:bg-green-950/20">
+            <CardTitle className="text-sm flex items-center gap-2 text-foreground">
+              <Calendar className="h-4 w-4 text-green-600 dark:text-green-400" />
               Due Today ({tasksDueToday.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-0">
+          <CardContent className="space-y-0 p-0">
             {tasksDueToday.length > 0 ? (
-              <div className="max-h-40 overflow-y-auto">
+              <div className="max-h-48 overflow-y-auto divide-y divide-border">
                 {tasksDueToday.map((task) => (
                   <CompactTaskRow key={task.id} task={task} />
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-center py-4 text-muted-foreground">No tasks due today</p>
+              <p className="text-xs text-center py-6 text-muted-foreground">No tasks due today</p>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Row 3: Compact Lists */}
+      {/* Row 4: Mentions, Notifications, Reminders */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Mentions</CardTitle>
+        <Card className="border-l-4 border-l-red-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-3 bg-red-50/50 dark:bg-red-950/20">
+            <CardTitle className="text-sm flex items-center gap-2 text-foreground">
+              <MessageCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              Mentions
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <MentionsCard />
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Notifications</CardTitle>
+        <Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-3 bg-blue-50/50 dark:bg-blue-950/20">
+            <CardTitle className="text-sm flex items-center gap-2 text-foreground">
+              <Bell className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              Notifications
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <NotificationsCard userId={currentUser?.id} />
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Task Reminders</CardTitle>
+        <Card className="border-l-4 border-l-yellow-500 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-3 bg-yellow-50/50 dark:bg-yellow-950/20">
+            <CardTitle className="text-sm flex items-center gap-2 text-foreground">
+              <Alarm className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+              Reminders
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <TaskRemindersCard />
@@ -192,10 +242,13 @@ const Home = () => {
         </Card>
       </div>
 
-      {/* Row 4: Recently Updated Tasks */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Recently Updated</CardTitle>
+      {/* Row 5: Recently Updated Tasks */}
+      <Card className="border-l-4 border-l-slate-400 shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="pb-3 bg-slate-50/50 dark:bg-slate-950/20">
+          <CardTitle className="text-sm flex items-center gap-2 text-foreground">
+            <History className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+            Recently Updated
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <RecentTasksCard />
