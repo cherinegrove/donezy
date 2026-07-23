@@ -349,6 +349,22 @@ export default function Tasks() {
                 </PopoverContent>
               </Popover>
 
+              {(Object.keys(activeFilters).some(key => activeFilters[key].length > 0) || statusFilter !== "all" || dueDate || startDate) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 text-xs"
+                  onClick={() => {
+                    setActiveFilters({});
+                    setStatusFilter("all");
+                    setDueDate(undefined);
+                    setStartDate(undefined);
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
+
               <div className="ml-auto flex-shrink-0">
                 <ViewSelector currentView={viewMode} onViewChange={setViewMode} showTimeline={true} />
               </div>
