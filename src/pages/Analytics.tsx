@@ -157,19 +157,66 @@ function TimeTab() {
 
   const toBar = (rows?: HoursRow[]) => (rows ?? []).map((r) => ({ name: r.dim_label, hours: Number(r.hours) })).slice(0, 12);
 
-  // Convert project data to format for display
-  const projectDataWithUser = (byProject.data ?? []).map(r => ({
-    project: r.dim_label,
-    total: Number(r.hours),
-    byUser: new Map<string, number>()
-  }));
+  // Convert project data to format for display with user breakdown
+  const projectDataWithUser = useMemo(() => {
+    const projectMap = new Map<string, { project: string; total: number; byUser: Map<string, number> }>();
 
-  // Convert client data to format for display
-  const clientDataWithUser = (byClient.data ?? []).map(r => ({
-    client: r.dim_label,
-    total: Number(r.hours),
-    byUser: new Map<string, number>()
-  }));
+    // Group time entries by project and user
+    timeEntries.forEach(entry => {
+      if (!entry.startTime || !entry.endTime) return;
+      const entryStart = new Date(entry.startTime);
+      if (entryStart >= from && entryStart <= to) {
+        const task = tasks.find(t => t.id === entry.taskId);
+        const project = projects.find(p => p.id === task?.projectId);
+        if (project) {
+          const durationMs = new Date(entry.endTime).getTime() - entryStart.getTime();
+          const hours = durationMs / (1000 * 60 * 60);
+          const user = users.find(u => u.auth_user_id === entry.userId);
+          const userName = user?.name || "Unassigned";
+
+          if (!projectMap.has(project.id)) {
+            projectMap.set(project.id, { project: project.name, total: 0, byUser: new Map() });
+          }
+          const entry_data = projectMap.get(project.id)!;
+          entry_data.total += hours;
+          entry_data.byUser.set(userName, (entry_data.byUser.get(userName) || 0) + hours);
+        }
+      }
+    });
+
+    return Array.from(projectMap.values());
+  }, [timeEntries, tasks, projects, users, from, to]);
+
+  // Convert client data to format for display with user breakdown
+  const clientDataWithUser = useMemo(() => {
+    const clientMap = new Map<string, { client: string; total: number; byUser: Map<string, number> }>();
+
+    // Group time entries by client and user
+    timeEntries.forEach(entry => {
+      if (!entry.startTime || !entry.endTime) return;
+      const entryStart = new Date(entry.startTime);
+      if (entryStart >= from && entryStart <= to) {
+        const task = tasks.find(t => t.id === entry.taskId);
+        const project = projects.find(p => p.id === task?.projectId);
+        const client = project?.clientId ? clients.find(c => c.id === project.clientId) : null;
+        if (client) {
+          const durationMs = new Date(entry.endTime).getTime() - entryStart.getTime();
+          const hours = durationMs / (1000 * 60 * 60);
+          const user = users.find(u => u.auth_user_id === entry.userId);
+          const userName = user?.name || "Unassigned";
+
+          if (!clientMap.has(client.id)) {
+            clientMap.set(client.id, { client: client.name, total: 0, byUser: new Map() });
+          }
+          const entry_data = clientMap.get(client.id)!;
+          entry_data.total += hours;
+          entry_data.byUser.set(userName, (entry_data.byUser.get(userName) || 0) + hours);
+        }
+      }
+    });
+
+    return Array.from(clientMap.values());
+  }, [timeEntries, tasks, projects, clients, users, from, to]);
 
   // Calculate hours by task status from app context
   const statusData = useMemo(() => {
@@ -253,12 +300,37 @@ function TimeTab() {
               Hours by Project (by User)
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-6">{byProject.isLoading ? <Loading /> : (byProject.data ?? []).length === 0 ? <Empty msg="No data." /> :
-            <div className="space-y-4">
+          <CardContent className="pt-6">{projectDataWithUser.length === 0 ? <Empty msg="No data." /> :
+            <div className="space-y-6">
             {projectDataWithUser.slice(0, 12).map((entry) => (
-              <div key={entry.project} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
-                <span className="text-sm font-semibold">{entry.project}</span>
-                <span className="text-sm font-medium text-green-600 dark:text-green-400">{hours1(entry.total)}</span>
+              <div key={entry.project}>
+                <div className="flex justify-between mb-3">
+                  <span className="text-sm font-semibold">{entry.project}</span>
+                  <span className="text-sm font-medium text-primary">{hours1(entry.total)}</span>
+                </div>
+                <div className="space-y-2">
+                  {Array.from(entry.byUser.entries())
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([user, hours]) => {
+                      const percentage = entry.total > 0 ? (hours / entry.total) * 100 : 0;
+                      return (
+                        <div key={user} className="flex items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-xs font-medium truncate">{user}</span>
+                              <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">{hours1(hours)}</span>
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-300"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
               </div>
             ))}
           </div>
@@ -272,12 +344,37 @@ function TimeTab() {
               Hours by Client (by User)
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-6">{byClient.isLoading ? <Loading /> : (byClient.data ?? []).length === 0 ? <Empty msg="No data." /> :
-            <div className="space-y-4">
+          <CardContent className="pt-6">{clientDataWithUser.length === 0 ? <Empty msg="No data." /> :
+            <div className="space-y-6">
               {clientDataWithUser.slice(0, 12).map((entry) => (
-                <div key={entry.client} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
-                  <span className="text-sm font-semibold">{entry.client}</span>
-                  <span className="text-sm font-medium text-orange-600 dark:text-orange-400">{hours1(entry.total)}</span>
+                <div key={entry.client}>
+                  <div className="flex justify-between mb-3">
+                    <span className="text-sm font-semibold">{entry.client}</span>
+                    <span className="text-sm font-medium text-primary">{hours1(entry.total)}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {Array.from(entry.byUser.entries())
+                      .sort(([, a], [, b]) => b - a)
+                      .map(([user, hours]) => {
+                        const percentage = entry.total > 0 ? (hours / entry.total) * 100 : 0;
+                        return (
+                          <div key={user} className="flex items-center gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs font-medium truncate">{user}</span>
+                                <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">{hours1(hours)}</span>
+                              </div>
+                              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-orange-500 to-orange-600 transition-all duration-300"
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               ))}
             </div>
