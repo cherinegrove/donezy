@@ -7,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, MessageSquare, CheckCircle, Clock, User, ExternalLink } from "lucide-react";
+import { Bell, MessageSquare, CheckCircle, Clock, User, ExternalLink, AtSign, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NotificationReplySection } from "@/components/notifications/NotificationReplySection";
 const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import type { Task } from "@/types";
@@ -75,44 +75,60 @@ export default function Notifications() {
     }
   };
 
+  const getNotificationTypeInfo = (message: Message) => {
+    if (message.content.includes(`@${currentUser?.name}`)) {
+      return { color: "from-blue-500/20 to-blue-600/20", borderColor: "border-l-blue-500", label: "Mention", icon: AtSign };
+    }
+    if (message.taskId) {
+      return { color: "from-green-500/20 to-green-600/20", borderColor: "border-l-green-500", label: "Task", icon: CheckCircle };
+    }
+    if (message.projectId) {
+      return { color: "from-orange-500/20 to-orange-600/20", borderColor: "border-l-orange-500", label: "Project", icon: Clock };
+    }
+    return { color: "from-gray-500/20 to-gray-600/20", borderColor: "border-l-gray-500", label: "Message", icon: MessageSquare };
+  };
+
   const NotificationsList = ({ notifications }: { notifications: Message[] }) => {
     const filtered = filterNotifications(notifications);
     return (
       <div className="space-y-2">
         {filtered.map(notification => {
           const sender = users.find(u => u.auth_user_id === notification.senderId);
+          const typeInfo = getNotificationTypeInfo(notification);
+          const IconComponent = typeInfo.icon;
           return (
-            <Button
+            <div
               key={notification.id}
-              variant="ghost"
-              className={`w-full justify-start p-4 h-auto ${selectedNotification?.id === notification.id ? "bg-secondary" : ""}`}
+              className={`p-3 rounded-lg border-l-4 cursor-pointer transition-all hover:shadow-md ${typeInfo.borderColor} bg-gradient-to-r ${typeInfo.color} ${selectedNotification?.id === notification.id ? "ring-2 ring-primary" : ""}`}
               onClick={() => handleNotificationClick(notification)}
             >
               <div className="flex items-start gap-3 w-full">
-                <Avatar className="h-8 w-8 flex-shrink-0">
+                <Avatar className="h-8 w-8 flex-shrink-0 border border-border">
                   <AvatarImage src={sender?.avatar} />
                   <AvatarFallback>{sender?.name?.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 text-left min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    {getNotificationIcon(notification)}
+                    <IconComponent className="h-3.5 w-3.5 flex-shrink-0 opacity-70" />
                     <span className="text-sm font-medium truncate">{sender?.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
-                    </span>
-                    {!notification.read && <Badge variant="destructive" className="text-xs">New</Badge>}
+                    <Badge variant="outline" className="text-xs ml-auto flex-shrink-0">{typeInfo.label}</Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-1">{getNotificationContext(notification)}</p>
-                  <p className="text-sm truncate">{notification.content}</p>
+                  <p className="text-xs text-muted-foreground mb-2">{getNotificationContext(notification)}</p>
+                  <p className="text-sm leading-snug mb-2 line-clamp-2">{notification.content}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}</span>
+                    {!notification.read && <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />}
+                  </div>
                 </div>
               </div>
-            </Button>
+            </div>
           );
         })}
         {filtered.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No notifications found</p>
+          <div className="text-center py-12 text-muted-foreground">
+            <Bell className="h-12 w-12 mx-auto mb-4 opacity-30" />
+            <p className="text-sm font-medium">No notifications</p>
+            <p className="text-xs">You're all caught up!</p>
           </div>
         )}
       </div>
@@ -123,17 +139,23 @@ export default function Notifications() {
   const showDetailPanel = selectedNotification && !selectedNotification.taskId;
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background">
       {/* Notifications List */}
       <div className="w-96 border-r flex flex-col overflow-hidden">
-        <div className="p-4 pb-0 flex-shrink-0">
-          <div className="flex items-center gap-2 mb-4">
-            <Bell className="h-5 w-5" />
-            <h2 className="text-lg font-semibold">Notifications</h2>
-            {unreadNotifications.length > 0 && (
-              <Badge variant="destructive">{unreadNotifications.length}</Badge>
-            )}
+        {/* Header */}
+        <div className="p-6 pb-4 flex-shrink-0 border-b">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-2 bg-blue-100 dark:bg-blue-950/30 rounded-lg">
+              <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold">Notifications</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">Stay updated on mentions and activity</p>
+            </div>
           </div>
+        </div>
+
+        <div className="px-4 pt-4 flex-shrink-0">
           <Input
             type="search"
             placeholder="Search notifications..."
@@ -143,13 +165,29 @@ export default function Notifications() {
           />
         </div>
 
-        <Tabs defaultValue="all" className="flex-1 flex flex-col overflow-hidden px-4">
-          <TabsList className="grid w-full grid-cols-3 flex-shrink-0">
-            <TabsTrigger value="all">ALL</TabsTrigger>
-            <TabsTrigger value="unread">Unread</TabsTrigger>
-            <TabsTrigger value="mentions">Mentions</TabsTrigger>
-          </TabsList>
-          <div className="flex-1 overflow-y-auto mt-4 pb-4">
+        <Tabs defaultValue="all" className="flex-1 flex flex-col overflow-hidden">
+          <div className="px-4 flex-shrink-0">
+            <div className="flex items-center gap-1 border-b bg-muted/30 rounded-lg p-1">
+              <TabsList className="bg-transparent border-0 w-full">
+                <TabsTrigger value="all" className="text-sm data-[state=active]:bg-background data-[state=active]:text-foreground flex-1">
+                  <Bell className="h-4 w-4 mr-2" />
+                  All
+                </TabsTrigger>
+                <TabsTrigger value="unread" className="text-sm data-[state=active]:bg-background data-[state=active]:text-foreground flex-1">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  Unread
+                  {unreadNotifications.length > 0 && (
+                    <Badge variant="destructive" className="ml-2 text-xs">{unreadNotifications.length}</Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="mentions" className="text-sm data-[state=active]:bg-background data-[state=active]:text-foreground flex-1">
+                  <AtSign className="h-4 w-4 mr-2" />
+                  Mentions
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto mt-4 pb-4 px-4">
             <TabsContent value="all" className="mt-0">
               <NotificationsList notifications={allNotifications} />
             </TabsContent>
@@ -164,19 +202,29 @@ export default function Notifications() {
       </div>
 
       {/* Right panel — only for project-only notifications */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto bg-gradient-to-b from-background to-muted/20">
         {showDetailPanel ? (
-          <div className="max-w-4xl mx-auto p-6 pb-12">
+          <div className="max-w-4xl mx-auto p-8 pb-12">
             {selectedNotification.projectId && !selectedNotification.taskId && (() => {
               const project = projects.find(p => p.id === selectedNotification.projectId);
-              if (!project) return <div className="text-center py-8 text-muted-foreground">Project not found</div>;
+              if (!project) return (
+                <div className="text-center py-12 text-muted-foreground">
+                  <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                  <p className="text-sm">Project not found</p>
+                </div>
+              );
               return (
-                <Card>
-                  <CardHeader>
+                <Card className="border-l-4 border-l-orange-500 shadow-sm mb-6">
+                  <CardHeader className="pb-3 bg-orange-50/50 dark:bg-orange-950/20">
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-5 w-5" />
-                        <h3 className="font-semibold">{project.name}</h3>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-orange-100 dark:bg-orange-950/40 rounded-lg">
+                          <Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">{project.name}</CardTitle>
+                          <p className="text-xs text-muted-foreground mt-1">Project Notification</p>
+                        </div>
                       </div>
                       <Button
                         variant="outline"
@@ -184,11 +232,11 @@ export default function Notifications() {
                         onClick={() => navigate(`/projects/${project.id}`)}
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        Open Project
+                        View Project
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-4">
                     <p className="text-sm text-muted-foreground">{project.description}</p>
                   </CardContent>
                 </Card>
@@ -198,10 +246,14 @@ export default function Notifications() {
           </div>
         ) : !editTaskOpen && (
           <div className="h-full flex items-center justify-center">
-            <div className="text-center text-muted-foreground">
-              <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-medium mb-2">Select a Notification</h3>
-              <p className="text-sm">Choose a notification from the sidebar to view its details</p>
+            <div className="text-center text-muted-foreground space-y-4">
+              <div className="p-4 bg-muted/50 rounded-full w-fit mx-auto">
+                <Bell className="h-10 w-10 opacity-30" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">Select a Notification</h3>
+                <p className="text-sm max-w-xs">Choose a notification from the list to view its details and reply</p>
+              </div>
             </div>
           </div>
         )}

@@ -116,10 +116,11 @@ function TimeTab() {
 
   // Fetch hours data grouped by different dimensions
   const overTime = useRpc<HoursRow>("report_hours", { ...base, p_granularity: granularity, p_group_by: "none" });
+  const overTimeByUser = useRpc<HoursRow>("report_hours", { ...base, p_granularity: granularity, p_group_by: "user" });
   const byUser = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "user" });
   const byStatus = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "status" });
-  const byProject = useRpc<HoursRowWithUser>("report_hours", { ...base, p_granularity: "none", p_group_by: "project_user" });
-  const byClient = useRpc<HoursRowWithUser>("report_hours", { ...base, p_granularity: "none", p_group_by: "client_user" });
+  const byProject = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "project" });
+  const byClient = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "client" });
   const allClients = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "client" });
 
   // Calculate metrics
@@ -135,60 +136,40 @@ function TimeTab() {
   const periodFmt = granularity === "year" ? "yyyy" : granularity === "month" ? "MMM yy" : "d MMM";
   const overTimeData = (overTime.data ?? []).map((r) => ({ name: r.period ? format(new Date(r.period), periodFmt) : "", hours: Number(r.hours) }));
 
-  // Build stacked data for Hours Over Time by user
-  const userNames = new Set((byUser.data ?? []).map(r => r.dim_label));
-  const overTimeByUser = Array.from(userNames).map(userName => {
-    const userOverTime = (overTime.data ?? [])
-      .filter(r => r.dim_label === userName || (userName && r.dim_label?.includes(userName)))
-      .map((r) => ({ name: r.period ? format(new Date(r.period), periodFmt) : "", hours: Number(r.hours) }));
-    return { user: userName, data: userOverTime };
-  });
-
-  // Flatten overTimeByUser data for stacked display
-  const overTimeByUserData = (overTime.data ?? []).map((r) => ({
+  // Build stacked data for Hours Over Time by user using the overTimeByUser query
+  // which has p_granularity set and p_group_by: "user" to get user-grouped data with time periods
+  const overTimeByUserData = (overTimeByUser.data ?? []).map((r) => ({
     period: r.period ? format(new Date(r.period), periodFmt) : "",
     hours: Number(r.hours),
     user: r.dim_label,
   }));
 
-  // Group by period and stack
+  // Group by period and stack by user
   const stackedOverTime = Array.from(new Map(
-    overTimeByUserData.map(item => [item.period, []])
+    overTimeByUserData.map(item => [item.period, {}])
   ).entries()).map(([period, _]) => {
     const periodData = overTimeByUserData.filter(item => item.period === period);
     return {
       name: period,
       ...Object.fromEntries(periodData.map(item => [item.user, item.hours]))
     };
-  });
+  }).filter(item => Object.keys(item).length > 1); // Only keep periods that have user data
 
   const toBar = (rows?: HoursRow[]) => (rows ?? []).map((r) => ({ name: r.dim_label, hours: Number(r.hours) })).slice(0, 12);
 
-  // Convert project data to bar format with user info
-  const projectDataWithUser = (byProject.data ?? [])
-    .reduce<Map<string, { project: string; total: number; byUser: Map<string, number> }>>((acc, r) => {
-      const key = r.dim_id || "unknown";
-      const entry = acc.get(key) || { project: r.dim_label, total: 0, byUser: new Map() };
-      entry.total += Number(r.hours);
-      const userKey = r.user_name || "unassigned";
-      entry.byUser.set(userKey, (entry.byUser.get(userKey) || 0) + Number(r.hours));
-      acc.set(key, entry);
-      return acc;
-    }, new Map())
-    .values();
+  // Convert project data to format for display
+  const projectDataWithUser = (byProject.data ?? []).map(r => ({
+    project: r.dim_label,
+    total: Number(r.hours),
+    byUser: new Map<string, number>()
+  }));
 
-  // Convert client data to bar format with user info
-  const clientDataWithUser = (byClient.data ?? [])
-    .reduce<Map<string, { client: string; total: number; byUser: Map<string, number> }>>((acc, r) => {
-      const key = r.dim_id || "unknown";
-      const entry = acc.get(key) || { client: r.dim_label, total: 0, byUser: new Map() };
-      entry.total += Number(r.hours);
-      const userKey = r.user_name || "unassigned";
-      entry.byUser.set(userKey, (entry.byUser.get(userKey) || 0) + Number(r.hours));
-      acc.set(key, entry);
-      return acc;
-    }, new Map())
-    .values();
+  // Convert client data to format for display
+  const clientDataWithUser = (byClient.data ?? []).map(r => ({
+    client: r.dim_label,
+    total: Number(r.hours),
+    byUser: new Map<string, number>()
+  }));
 
   // Convert status data to bar format
   const statusData = (byStatus.data ?? []).map((r) => ({ name: r.dim_label, hours: Number(r.hours) }));
@@ -223,8 +204,8 @@ function TimeTab() {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
-          {overTime.isLoading ? <Loading /> : overTimeData.length === 0 ? <Empty msg="No time logged in this period." /> :
-            <ChartWidget type="bar" data={stackedOverTime.length > 0 ? stackedOverTime : overTimeData} dataKey="hours" nameKey="name" />}
+          {overTime.isLoading || overTimeByUser.isLoading ? <Loading /> : overTimeData.length === 0 ? <Empty msg="No time logged in this period." /> :
+            <ChartWidget type="stacked-bar" data={stackedOverTime.length > 0 ? stackedOverTime : overTimeData} dataKey="hours" nameKey="name" />}
         </CardContent>
       </Card>
 
@@ -249,25 +230,16 @@ function TimeTab() {
           </CardHeader>
           <CardContent className="pt-6">{byProject.isLoading ? <Loading /> : (byProject.data ?? []).length === 0 ? <Empty msg="No data." /> :
             <div className="space-y-4">
-              {Array.from(projectDataWithUser).slice(0, 12).map((entry) => (
-                <div key={entry.project}>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">{entry.project}</span>
-                    <span className="text-sm text-muted-foreground">{hours1(entry.total)}</span>
-                  </div>
-                  <div className="space-y-1">
-                    {Array.from(entry.byUser.entries()).map(([user, hours]) => (
-                      <div key={user} className="text-xs text-muted-foreground ml-2 flex justify-between">
-                        <span>{user}</span>
-                        <span>{hours1(hours)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          }</CardContent>
+            {projectDataWithUser.slice(0, 12).map((entry) => (
+              <div key={entry.project} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+                <span className="text-sm font-semibold">{entry.project}</span>
+                <span className="text-sm font-medium text-green-600 dark:text-green-400">{hours1(entry.total)}</span>
+              </div>
+            ))}
+          </div>
+            }</CardContent>
         </Card>
+
         <Card className="border-l-4 border-l-orange-500 shadow-sm">
           <CardHeader className="pb-3 bg-orange-50/50 dark:bg-orange-950/20">
             <CardTitle className="text-base flex items-center gap-2 text-foreground">
@@ -277,20 +249,10 @@ function TimeTab() {
           </CardHeader>
           <CardContent className="pt-6">{byClient.isLoading ? <Loading /> : (byClient.data ?? []).length === 0 ? <Empty msg="No data." /> :
             <div className="space-y-4">
-              {Array.from(clientDataWithUser).slice(0, 12).map((entry) => (
-                <div key={entry.client}>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">{entry.client}</span>
-                    <span className="text-sm text-muted-foreground">{hours1(entry.total)}</span>
-                  </div>
-                  <div className="space-y-1">
-                    {Array.from(entry.byUser.entries()).map(([user, hours]) => (
-                      <div key={user} className="text-xs text-muted-foreground ml-2 flex justify-between">
-                        <span>{user}</span>
-                        <span>{hours1(hours)}</span>
-                      </div>
-                    ))}
-                  </div>
+              {clientDataWithUser.slice(0, 12).map((entry) => (
+                <div key={entry.client} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+                  <span className="text-sm font-semibold">{entry.client}</span>
+                  <span className="text-sm font-medium text-orange-600 dark:text-orange-400">{hours1(entry.total)}</span>
                 </div>
               ))}
             </div>

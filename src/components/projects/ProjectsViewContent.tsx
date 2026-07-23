@@ -193,6 +193,29 @@ export function ProjectsViewContent({
                           />
                         </div>
                         <p className="text-xs text-muted-foreground mb-2">{getClientName(project.clientId)}</p>
+
+                        {/* Date and Hours Info */}
+                        <div className="text-xs space-y-0.5 mb-2 pb-2 border-b">
+                          {project.startDate && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Start</span>
+                              <span className="font-medium">{new Date(project.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                            </div>
+                          )}
+                          {project.dueDate && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">End</span>
+                              <span className="font-medium">{new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                            </div>
+                          )}
+                          {project.usedHours !== undefined && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Hours</span>
+                              <span className="font-medium">{project.usedHours}h / {project.allocatedHours || 0}h</span>
+                            </div>
+                          )}
+                        </div>
+
                         <div className="w-full bg-muted rounded-full h-1.5">
                           <div
                             className="bg-blue-500 h-1.5 rounded-full transition-all"
@@ -220,6 +243,29 @@ export function ProjectsViewContent({
                           />
                         </div>
                         <p className="text-xs text-muted-foreground mb-2">{getClientName(project.clientId)}</p>
+
+                        {/* Date and Hours Info */}
+                        <div className="text-xs space-y-0.5 mb-2 pb-2 border-b">
+                          {project.startDate && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Start</span>
+                              <span className="font-medium">{new Date(project.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                            </div>
+                          )}
+                          {project.dueDate && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">End</span>
+                              <span className="font-medium">{new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                            </div>
+                          )}
+                          {project.usedHours !== undefined && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Hours</span>
+                              <span className="font-medium">{project.usedHours}h / {project.allocatedHours || 0}h</span>
+                            </div>
+                          )}
+                        </div>
+
                         <div className="w-full bg-muted rounded-full h-1.5">
                           <div
                             className="bg-blue-500 h-1.5 rounded-full transition-all"
