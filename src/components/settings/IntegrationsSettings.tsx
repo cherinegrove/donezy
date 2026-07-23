@@ -8,6 +8,7 @@ import { Building2, RefreshCw, ArrowLeft, CheckCircle, MessageSquare } from "luc
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { HubSpotTicketMapping } from "./HubSpotTicketMapping";
+import { HubSpotDealMapping } from "./HubSpotDealMapping";
 import { Badge } from "@/components/ui/badge";
 
 type IntegrationName = 'hubspot' | 'google-chat' | null;
@@ -450,6 +451,9 @@ export function IntegrationsSettings() {
 
         {/* HubSpot Ticket Automation */}
         <HubSpotTicketMapping />
+
+        {/* HubSpot Deal to Project Automation */}
+        <HubSpotDealMapping />
       </div>
     );
   }
