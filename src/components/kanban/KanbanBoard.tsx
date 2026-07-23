@@ -363,16 +363,20 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
           )}
         </div>
         
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenu>
+        <DropdownMenu>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Display Options
+                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                    <Settings className="h-4 w-4" />
+                    <span className="sr-only">Display Options</span>
                   </Button>
                 </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Display Options</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuLabel>Display Options</DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -419,13 +423,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                     Status
                   </DropdownMenuCheckboxItem>
                 </DropdownMenuContent>
-              </DropdownMenu>
-            </TooltipTrigger>
-            <TooltipContent>
-              Configure what information is displayed on task cards
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        </DropdownMenu>
       </div>
     );
   };
