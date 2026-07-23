@@ -44,9 +44,11 @@ function KanbanTaskCardWithCommentInner({
         return;
       }
 
-      // Get latest comment (assume comments are already sorted by task)
-      const comments = task.comments as any[];
-      const latestCommentData = comments[comments.length - 1]; // Last comment is most recent
+      // Sort comments by timestamp to get the latest one
+      const comments = [...(task.comments as any[])].sort((a, b) =>
+        new Date(b.timestamp || b.created_at).getTime() - new Date(a.timestamp || a.created_at).getTime()
+      );
+      const latestCommentData = comments[0]; // First after sort is most recent
 
       if (!latestCommentData || !latestCommentData.userId || !latestCommentData.content) {
         setLatestComment(null);
