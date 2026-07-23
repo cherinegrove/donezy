@@ -166,7 +166,7 @@ export function ProjectsViewContent({
             const config = getStatusConfig(status);
 
             return (
-              <div key={status} className="flex-shrink-0 w-[420px]">
+              <div key={status} className="flex-shrink-0 w-[280px]">
                 <div className="mb-4">
                   <div className="flex items-center gap-2 mb-3">
                     <div className={`h-3 w-3 rounded-full ${config.color}`} />
