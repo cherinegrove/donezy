@@ -4,7 +4,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Calendar, Clock, MessageCircle, Bell, Alarm, History } from "lucide-react";
+import { AlertTriangle, Calendar, Clock, MessageCircle, Bell, Timer, History } from "lucide-react";
 const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { Task } from "@/types";
 import { TaskCard } from "@/components/tasks/TaskCard";
@@ -232,7 +232,7 @@ const Home = () => {
         <Card className="border-l-4 border-l-yellow-500 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="pb-3 bg-yellow-50/50 dark:bg-yellow-950/20">
             <CardTitle className="text-sm flex items-center gap-2 text-foreground">
-              <Alarm className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+              <Timer className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
               Reminders
             </CardTitle>
           </CardHeader>

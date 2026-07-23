@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Lock, ArrowRight, Mail, Chrome } from "lucide-react";
+import { Lock, ArrowRight, Mail, Globe } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -277,7 +277,7 @@ export function LoginForm() {
         onClick={handleGoogleLogin}
         disabled={isLoading}
       >
-        <Chrome className="mr-2 h-4 w-4" />
+        <Globe className="mr-2 h-4 w-4" />
         Google
       </Button>
 
