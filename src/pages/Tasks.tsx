@@ -162,6 +162,33 @@ export default function Tasks() {
     },
   ];
 
+  // Memoize filter lookups for O(1) performance instead of O(n²)
+  const filterLookups = React.useMemo(() => {
+    const clientFilter = activeFilters["clients"] || [];
+    const projectFilter = activeFilters["projects"] || [];
+    const assigneeFilter = activeFilters["assignees"] || [];
+
+    // Precompute project IDs for selected clients (Set for O(1) lookup)
+    const selectedClientIds = new Set(clientFilter);
+    const projectIdsForClients = new Set<string>();
+    if (selectedClientIds.size > 0) {
+      projects.forEach(project => {
+        if (project.clientId && selectedClientIds.has(project.clientId)) {
+          projectIdsForClients.add(project.id);
+        }
+      });
+    }
+
+    return {
+      clientProjectIds: projectIdsForClients,
+      selectedProjects: new Set(projectFilter),
+      selectedAssignees: new Set(assigneeFilter),
+      hasClientFilter: selectedClientIds.size > 0,
+      hasProjectFilter: projectFilter.length > 0,
+      hasAssigneeFilter: assigneeFilter.length > 0,
+    };
+  }, [activeFilters, projects]);
+
   // Filter tasks based on all filters
   React.useEffect(() => {
     const filtered = tasks.filter(task => {
@@ -169,40 +196,25 @@ export default function Tasks() {
       if (statusFilter !== "all" && task.status !== statusFilter) {
         return false;
       }
-      
-      // Apply active filters
-      for (const [filterId, values] of Object.entries(activeFilters)) {
-        if (values.length === 0) continue;
 
-        switch (filterId) {
-          case "clients":
-            // Find projects for the selected clients
-            const projectsForClients = projects.filter(project => 
-              values.includes(project.clientId)
-            );
-            const projectIds = projectsForClients.map(p => p.id);
-            if (!projectIds.includes(task.projectId)) {
-              return false;
-            }
-            break;
-          case "projects":
-            if (!values.includes(task.projectId)) {
-              return false;
-            }
-            break;
-          case "assignees":
-            // Check if task has the selected assignee
-            if (!task.assigneeId || !values.includes(task.assigneeId)) {
-              return false;
-            }
-            break;
-        }
+      // Apply client filter
+      if (filterLookups.hasClientFilter && !filterLookups.clientProjectIds.has(task.projectId)) {
+        return false;
+      }
+
+      // Apply project filter
+      if (filterLookups.hasProjectFilter && !filterLookups.selectedProjects.has(task.projectId)) {
+        return false;
+      }
+
+      // Apply assignee filter
+      if (filterLookups.hasAssigneeFilter && (!task.assigneeId || !filterLookups.selectedAssignees.has(task.assigneeId))) {
+        return false;
       }
 
       // Filter by start date
       if (startDate && task.createdAt) {
         const taskStartDate = new Date(task.createdAt);
-        // Use startDate as the minimum start date
         if (taskStartDate < startDate) {
           return false;
         }
@@ -218,9 +230,9 @@ export default function Tasks() {
 
       return true;
     });
-    
+
     setFilteredTasks(filtered);
-  }, [tasks, activeFilters, startDate, dueDate, projects, statusFilter]);
+  }, [tasks, filterLookups, startDate, dueDate, statusFilter];
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setActiveFilters(filters);
