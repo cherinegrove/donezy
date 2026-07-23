@@ -43,6 +43,7 @@ import { TaskSidebarPanel } from "@/components/tasks/TaskSidebarPanel";
 type TaskViewMode = "list" | "kanban" | "timeline";
 
 const TASKS_FILTERS_STORAGE_KEY = "donezy-tasks-filters";
+const TASKS_VIEW_MODE_KEY = "donezy-tasks-view-mode";
 
 export default function Tasks() {
   const { tasks, projects, users, clients, currentUser, taskStatuses } = useAppContext();
@@ -98,7 +99,23 @@ export default function Tasks() {
     persistedFilters.statusFilter || "all",
   );
   const [filteredTasks, setFilteredTasks] = useState<Task[]>(tasks);
-  const [viewMode, setViewMode] = useState<TaskViewMode>("kanban");
+  const [viewMode, setViewMode] = useState<TaskViewMode>(() => {
+    try {
+      const stored = localStorage.getItem(TASKS_VIEW_MODE_KEY);
+      return (stored as TaskViewMode) || "kanban";
+    } catch {
+      return "kanban";
+    }
+  });
+
+  // Save view mode whenever it changes.
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(TASKS_VIEW_MODE_KEY, viewMode);
+    } catch {
+      /* ignore quota/serialization errors */
+    }
+  }, [viewMode]);
 
   // Save filter selections whenever they change.
   React.useEffect(() => {
