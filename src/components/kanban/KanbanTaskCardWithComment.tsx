@@ -29,38 +29,42 @@ function KanbanTaskCardWithCommentInner({
   onSelectionChange,
   showSelection,
 }: KanbanTaskCardWithCommentProps) {
-  const { users, comments: globalComments } = useAppContext();
+  const { users } = useAppContext();
   const [latestComment, setLatestComment] = useState<LatestComment | null>(null);
 
   useEffect(() => {
-    // Try to get comments from task first, then fall back to global comments
-    let taskComments = task.comments;
+    try {
+      // Check if task has comments array
+      if (!task.comments || !Array.isArray(task.comments) || task.comments.length === 0) {
+        setLatestComment(null);
+        return;
+      }
 
-    if (!taskComments || !Array.isArray(taskComments) || taskComments.length === 0) {
-      // Fall back to global comments context
-      taskComments = globalComments?.filter((c: any) => c.task_id === task.id) || [];
-    }
+      // Get latest comment (assume comments are already sorted by task)
+      const comments = task.comments as any[];
+      const latestCommentData = comments[comments.length - 1]; // Last comment is most recent
 
-    if (Array.isArray(taskComments) && taskComments.length > 0) {
-      const sortedComments = [...taskComments].sort((a: any, b: any) =>
-        new Date(b.timestamp || b.created_at).getTime() - new Date(a.timestamp || a.created_at).getTime()
-      );
+      if (!latestCommentData || !latestCommentData.userId || !latestCommentData.content) {
+        setLatestComment(null);
+        return;
+      }
 
-      const comment = sortedComments[0];
-      const author = users.find(u => u.auth_user_id === (comment.userId || comment.auth_user_id));
+      // Find author
+      const author = users.find(u => u.id === latestCommentData.userId || u.auth_user_id === latestCommentData.userId);
       const initials = author?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
 
       setLatestComment({
-        id: comment.id,
-        content: (comment.content || '').replace(/<[^>]*>/g, '').trim(),
+        id: latestCommentData.id,
+        content: String(latestCommentData.content).replace(/<[^>]*>/g, '').trim(),
         authorName: author?.name || 'Unknown',
         authorInitials: initials,
-        createdAt: comment.timestamp || comment.created_at,
+        createdAt: latestCommentData.timestamp || new Date().toISOString(),
       });
-    } else {
+    } catch (error) {
+      console.error('Error processing comment:', error);
       setLatestComment(null);
     }
-  }, [task.id, task.comments, globalComments, users]);
+  }, [task.id, task.comments, users]);
 
   return (
     <div className="relative group">
