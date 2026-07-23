@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Clock, FolderKanban, CheckSquare, AlertTriangle } from "lucide-react";
+import { Loader2, Clock, FolderKanban, CheckSquare, AlertTriangle, TrendingUp, Users, Zap } from "lucide-react";
 import { format } from "date-fns";
 import {
   startOfToday, startOfWeek, startOfMonth, startOfQuarter, startOfYear,
@@ -79,17 +79,19 @@ export default function Analytics() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Analytics &amp; Reports</h1>
-        <p className="text-muted-foreground">Hours, projects, tasks and risk — across your whole organization.</p>
+        <p className="text-sm text-muted-foreground mt-1">Hours, projects, tasks and risk — across your whole organization.</p>
       </div>
 
       <Tabs defaultValue="time" className="space-y-6">
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="time"><Clock className="h-4 w-4 mr-1.5" />Time</TabsTrigger>
-          <TabsTrigger value="projects"><FolderKanban className="h-4 w-4 mr-1.5" />Projects</TabsTrigger>
-          <TabsTrigger value="tasks"><CheckSquare className="h-4 w-4 mr-1.5" />Tasks</TabsTrigger>
-          <TabsTrigger value="risk"><AlertTriangle className="h-4 w-4 mr-1.5" />Risk</TabsTrigger>
-          <TabsTrigger value="insights">AI Insights</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center gap-1 border-b bg-muted/30 rounded-lg p-1">
+          <TabsList className="flex-wrap h-auto bg-transparent border-0">
+            <TabsTrigger value="time" className="data-[state=active]:bg-background data-[state=active]:text-foreground"><Clock className="h-4 w-4 mr-1.5" />Time</TabsTrigger>
+            <TabsTrigger value="projects" className="data-[state=active]:bg-background data-[state=active]:text-foreground"><FolderKanban className="h-4 w-4 mr-1.5" />Projects</TabsTrigger>
+            <TabsTrigger value="tasks" className="data-[state=active]:bg-background data-[state=active]:text-foreground"><CheckSquare className="h-4 w-4 mr-1.5" />Tasks</TabsTrigger>
+            <TabsTrigger value="risk" className="data-[state=active]:bg-background data-[state=active]:text-foreground"><AlertTriangle className="h-4 w-4 mr-1.5" />Risk</TabsTrigger>
+            <TabsTrigger value="insights" className="data-[state=active]:bg-background data-[state=active]:text-foreground">AI Insights</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="time"><TimeTab /></TabsContent>
         <TabsContent value="projects"><ProjectsTab /></TabsContent>
@@ -193,7 +195,7 @@ function TimeTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-muted/30 rounded-lg border">
         <TimeFrameSelector preset={preset} onPresetChange={setPreset} dateRange={custom} onDateRangeChange={setCustom} />
         <Select value={granularity} onValueChange={(v) => setGranularity(v as typeof granularity)}>
           <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
@@ -207,30 +209,45 @@ function TimeTab() {
       </div>
 
       <MetricsWidget metrics={[
-        { label: "Team Members", value: userCount },
-        { label: "Projects With Time", value: projectCount },
-        { label: "Active Clients", value: activeClients },
-        { label: "Total Clients", value: totalClients },
+        { label: "Team Members", value: userCount, icon: Users },
+        { label: "Projects With Time", value: projectCount, icon: FolderKanban },
+        { label: "Active Clients", value: activeClients, icon: Zap },
+        { label: "Total Clients", value: totalClients, icon: TrendingUp },
       ]} />
 
-      <Card>
-        <CardHeader><CardTitle>Hours Over Time (by User)</CardTitle></CardHeader>
-        <CardContent>
+      <Card className="border-l-4 border-l-blue-500 shadow-sm">
+        <CardHeader className="pb-3 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardTitle className="text-base flex items-center gap-2 text-foreground">
+            <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            Hours Over Time (by User)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
           {overTime.isLoading ? <Loading /> : overTimeData.length === 0 ? <Empty msg="No time logged in this period." /> :
             <ChartWidget type="bar" data={stackedOverTime.length > 0 ? stackedOverTime : overTimeData} dataKey="hours" nameKey="name" />}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle>Hours by Status</CardTitle></CardHeader>
-        <CardContent>{byStatus.isLoading ? <Loading /> : statusData.length === 0 ? <Empty msg="No data." /> :
+      <Card className="border-l-4 border-l-purple-500 shadow-sm">
+        <CardHeader className="pb-3 bg-purple-50/50 dark:bg-purple-950/20">
+          <CardTitle className="text-base flex items-center gap-2 text-foreground">
+            <Zap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            Hours by Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">{byStatus.isLoading ? <Loading /> : statusData.length === 0 ? <Empty msg="No data." /> :
           <ChartWidget type="bar" data={statusData} dataKey="hours" nameKey="name" />}</CardContent>
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle>Hours by Project (by User)</CardTitle></CardHeader>
-          <CardContent>{byProject.isLoading ? <Loading /> : (byProject.data ?? []).length === 0 ? <Empty msg="No data." /> :
+        <Card className="border-l-4 border-l-green-500 shadow-sm">
+          <CardHeader className="pb-3 bg-green-50/50 dark:bg-green-950/20">
+            <CardTitle className="text-base flex items-center gap-2 text-foreground">
+              <FolderKanban className="h-4 w-4 text-green-600 dark:text-green-400" />
+              Hours by Project (by User)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">{byProject.isLoading ? <Loading /> : (byProject.data ?? []).length === 0 ? <Empty msg="No data." /> :
             <div className="space-y-4">
               {Array.from(projectDataWithUser).slice(0, 12).map((entry) => (
                 <div key={entry.project}>
@@ -251,9 +268,14 @@ function TimeTab() {
             </div>
           }</CardContent>
         </Card>
-        <Card>
-          <CardHeader><CardTitle>Hours by Client (by User)</CardTitle></CardHeader>
-          <CardContent>{byClient.isLoading ? <Loading /> : (byClient.data ?? []).length === 0 ? <Empty msg="No data." /> :
+        <Card className="border-l-4 border-l-orange-500 shadow-sm">
+          <CardHeader className="pb-3 bg-orange-50/50 dark:bg-orange-950/20">
+            <CardTitle className="text-base flex items-center gap-2 text-foreground">
+              <Users className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              Hours by Client (by User)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">{byClient.isLoading ? <Loading /> : (byClient.data ?? []).length === 0 ? <Empty msg="No data." /> :
             <div className="space-y-4">
               {Array.from(clientDataWithUser).slice(0, 12).map((entry) => (
                 <div key={entry.client}>

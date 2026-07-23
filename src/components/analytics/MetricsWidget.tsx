@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, LucideIcon } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 interface MetricData {
@@ -7,6 +7,7 @@ interface MetricData {
   change?: number;
   progress?: number;
   suffix?: string;
+  icon?: LucideIcon;
 }
 
 export const MetricsWidget = ({ metrics }: { metrics: MetricData[] }) => {
@@ -22,16 +23,21 @@ export const MetricsWidget = ({ metrics }: { metrics: MetricData[] }) => {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-4">
-      {metrics.map((metric, index) => (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {metrics.map((metric, index) => {
+        const Icon = metric.icon;
+        return (
         <div
           key={index}
           className="p-4 rounded-lg bg-gradient-to-br from-muted/50 to-muted/30 border border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-md"
         >
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground font-medium">
-              {metric.label}
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground font-medium">
+                {metric.label}
+              </p>
+              {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+            </div>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-bold">
                 {metric.value}
@@ -53,7 +59,8 @@ export const MetricsWidget = ({ metrics }: { metrics: MetricData[] }) => {
             )}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
