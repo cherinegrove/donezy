@@ -404,7 +404,7 @@ export default function Tasks() {
                   </Card>
                 ) : (
                   <KanbanBoard
-                    tasks={filteredTasks}
+                    tasks={viewMode === "list" ? filteredTasks.filter(t => t.status !== "done") : filteredTasks}
                     viewMode={viewMode as "list" | "kanban"}
                     onBulkEdit={handleBulkEdit}
                     onTaskOpen={(taskId) => {
