@@ -40,15 +40,8 @@ const DialogContent = React.forwardRef<
         className
       )}
       onPointerDownOutside={(e) => {
-        // Prevent closing when clicking on select dropdowns or popovers
-        const target = e.target as HTMLElement;
-        if (
-          target.closest('[data-radix-select-content]') || 
-          target.closest('[role="listbox"]') ||
-          target.closest('[data-radix-popper-content-wrapper]')
-        ) {
-          e.preventDefault();
-        }
+        // Always prevent closing when clicking outside to allow board interaction
+        e.preventDefault();
         props.onPointerDownOutside?.(e);
       }}
       {...props}
