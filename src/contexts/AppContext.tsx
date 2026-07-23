@@ -273,15 +273,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const loadTasks = async () => {
     if (!session?.user) return;
-    
+
     try {
-      // Load tasks in parallel with comments and files
-      // Note: No limit on tasks — admin users need to see all tasks across all projects
+      const INITIAL_BATCH_SIZE = 150;
+
+      // Load initial batch of tasks + all comments/files in parallel
       const [tasksResult, commentsResult, filesResult] = await Promise.all([
         supabase
           .from("tasks")
           .select("*")
-          .order("created_at", { ascending: false }),
+          .order("created_at", { ascending: false })
+          .limit(INITIAL_BATCH_SIZE),
         supabase
           .from("comments")
           .select("*")
@@ -290,7 +292,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         supabase.from("task_files").select("*").limit(500),
       ]);
 
-      const { data, error } = tasksResult;
+      const { data: initialData, error } = tasksResult;
       if (error) {
         console.error('Error loading tasks:', error);
         return;
@@ -306,14 +308,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         console.error('Error loading task files:', filesError);
       }
 
-      // Group comments by task_id
+      // Group comments and files
       const commentsByTask: { [key: string]: any[] } = {};
+      const filesByTask: { [key: string]: TaskFile[] } = {};
+
       if (commentsData) {
         commentsData.forEach(comment => {
           if (!commentsByTask[comment.task_id]) {
             commentsByTask[comment.task_id] = [];
           }
-          // Determine if comment was edited by comparing created_at and updated_at
           const isEdited = comment.updated_at && comment.created_at !== comment.updated_at;
           commentsByTask[comment.task_id].push({
             id: comment.id,
@@ -328,8 +331,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         });
       }
 
-      // Group files by task_id
-      const filesByTask: { [key: string]: TaskFile[] } = {};
       if (filesData) {
         filesData.forEach(file => {
           if (!filesByTask[file.task_id]) {
@@ -347,8 +348,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           });
         });
       }
-      
-      const convertedTasks = data?.map((task: any) => ({
+
+      // Convert initial batch
+      const convertTaskData = (taskData: any[]) => taskData?.map((task: any) => ({
         id: task.id,
         title: task.title,
         description: task.description || '',
@@ -374,8 +376,29 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         orderIndex: task.order_index || 0,
         userMentioned: (commentsByTask[task.id] || []).some(c => c.mentionedUserIds?.includes(currentUser?.auth_user_id))
       })) || [];
-      
-      setTasks(convertedTasks);
+
+      const convertedInitialTasks = convertTaskData(initialData);
+      setTasks(convertedInitialTasks);
+
+      // Load remaining tasks in background (don't block UI)
+      if ((initialData?.length || 0) >= INITIAL_BATCH_SIZE) {
+        setTimeout(async () => {
+          try {
+            const { data: remainingData, error: remainingError } = await supabase
+              .from("tasks")
+              .select("*")
+              .order("created_at", { ascending: false })
+              .range(INITIAL_BATCH_SIZE, 10000);
+
+            if (!remainingError && remainingData) {
+              const convertedRemainingTasks = convertTaskData(remainingData);
+              setTasks(prev => [...prev, ...convertedRemainingTasks]);
+            }
+          } catch (err) {
+            console.error('Error loading remaining tasks:', err);
+          }
+        }, 0);
+      }
     } catch (error) {
       console.error('Error loading tasks:', error);
     }
