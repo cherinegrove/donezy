@@ -3,12 +3,9 @@ import { useAppContext } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
-  MessageSquare,
   Send,
   Upload,
   Loader2,
@@ -16,8 +13,6 @@ import {
   X,
   Sparkles,
 } from "lucide-react";
-import * as pdfjsLib from "pdfjs-dist";
-import * as XLSX from "xlsx";
 
 interface Message {
   id: string;
@@ -37,8 +32,6 @@ interface AssistantResponse {
   projectName?: string;
   projectDescription?: string;
 }
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 export default function AIAssistant() {
   const { addProject, addTask, projects, tasks } = useAppContext();
@@ -72,43 +65,6 @@ export default function AIAssistant() {
     scrollToBottom();
   }, [messages]);
 
-  const extractPdfText = async (file: File): Promise<string> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let text = "";
-
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      text += textContent.items.map((item: any) => item.str).join(" ");
-    }
-
-    return text;
-  };
-
-  const extractExcelText = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = e.target?.result;
-          const workbook = XLSX.read(data, { type: "array" });
-          let text = "";
-
-          workbook.SheetNames.forEach((sheetName) => {
-            const worksheet = workbook.Sheets[sheetName];
-            text += XLSX.utils.sheet_to_txt(worksheet) + "\n";
-          });
-
-          resolve(text);
-        } catch (error) {
-          reject(error);
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    });
-  };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
     if (!uploadedFile) return;
@@ -124,31 +80,31 @@ export default function AIAssistant() {
     setLoading(true);
 
     try {
-      let fileText = "";
-
-      if (uploadedFile.type === "application/pdf") {
-        fileText = await extractPdfText(uploadedFile);
-      } else if (
-        uploadedFile.type ===
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-        uploadedFile.type === "application/vnd.ms-excel"
-      ) {
-        fileText = await extractExcelText(uploadedFile);
-      }
-
-      if (!fileText.trim()) {
+      // Convert file to base64 and send to backend for processing
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(",")[1];
+        await sendToAssistant(
+          `[File attached: ${uploadedFile.name}]`,
+          uploadedFile.name,
+          base64,
+          uploadedFile.type
+        );
+        setLoading(false);
+        setFile(null);
+      };
+      reader.onerror = () => {
         const errorMsg: Message = {
           id: Date.now().toString(),
           role: "assistant",
-          content: "Could not extract text from the file. Please try another.",
+          content: "Failed to read the file. Please try again.",
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, errorMsg]);
         setLoading(false);
-        return;
-      }
-
-      await sendToAssistant(fileText, uploadedFile.name);
+        setFile(null);
+      };
+      reader.readAsDataURL(uploadedFile);
     } catch (error) {
       console.error(error);
       const errorMsg: Message = {
@@ -158,13 +114,17 @@ export default function AIAssistant() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMsg]);
-    } finally {
       setLoading(false);
       setFile(null);
     }
   };
 
-  const sendToAssistant = async (userText: string, fileName?: string) => {
+  const sendToAssistant = async (
+    userText: string,
+    fileName?: string,
+    fileBase64?: string,
+    fileType?: string
+  ) => {
     if (!userText.trim()) return;
 
     // Add user message
@@ -188,6 +148,8 @@ export default function AIAssistant() {
         body: {
           userMessage: userText,
           fileName,
+          fileBase64,
+          fileType,
           projects: projectContext,
           recentTasks: taskContext,
         },
