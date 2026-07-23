@@ -1,7 +1,10 @@
-
-import { LayoutList, Kanban, GanttChart } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type BasicViewMode = "list" | "kanban";
 type FullViewMode = "list" | "kanban" | "timeline";
@@ -24,7 +27,7 @@ type ViewSelectorProps = ViewSelectorWithTimelineProps | ViewSelectorBasicProps;
 
 export function ViewSelector(props: ViewSelectorProps) {
   const { currentView, showTimeline } = props;
-  
+
   const handleViewChange = (view: string) => {
     if (showTimeline) {
       (props as ViewSelectorWithTimelineProps).onViewChange(view as FullViewMode);
@@ -34,59 +37,15 @@ export function ViewSelector(props: ViewSelectorProps) {
   };
 
   return (
-    <div className="flex items-center space-x-1 bg-muted/30 rounded-md p-1">
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={currentView === "list" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => handleViewChange("list")}
-            >
-              <LayoutList className="h-4 w-4" />
-              <span className="sr-only">List view</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>List view</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={currentView === "kanban" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => handleViewChange("kanban")}
-            >
-              <Kanban className="h-4 w-4" />
-              <span className="sr-only">Kanban view</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Kanban view</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      {showTimeline && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={currentView === "timeline" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={() => handleViewChange("timeline")}
-              >
-                <GanttChart className="h-4 w-4" />
-                <span className="sr-only">Timeline view</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Timeline view</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
-    </div>
+    <Select value={currentView} onValueChange={handleViewChange}>
+      <SelectTrigger className="w-[140px] h-9">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent align="end">
+        <SelectItem value="list">List</SelectItem>
+        <SelectItem value="kanban">Kanban</SelectItem>
+        {showTimeline && <SelectItem value="timeline">Timeline</SelectItem>}
+      </SelectContent>
+    </Select>
   );
 }
