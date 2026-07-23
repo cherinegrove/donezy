@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAppContext } from "@/contexts/AppContext";
@@ -118,7 +118,6 @@ function TimeTab() {
   const overTime = useRpc<HoursRow>("report_hours", { ...base, p_granularity: granularity, p_group_by: "none" });
   const overTimeByUser = useRpc<HoursRow>("report_hours", { ...base, p_granularity: granularity, p_group_by: "user" });
   const byUser = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "user" });
-  const byStatus = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "status" });
   const byProject = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "project" });
   const byClient = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "client" });
   const allClients = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "client" });
@@ -171,8 +170,31 @@ function TimeTab() {
     byUser: new Map<string, number>()
   }));
 
-  // Convert status data to bar format
-  const statusData = (byStatus.data ?? []).map((r) => ({ name: r.dim_label, hours: Number(r.hours) }));
+  // Calculate hours by task status from app context
+  const statusData = useMemo(() => {
+    const statusHours: Record<string, number> = {};
+
+    // Group time entries by task status
+    timeEntries.forEach(entry => {
+      if (!entry.startTime || !entry.endTime) return;
+      const entryStart = new Date(entry.startTime);
+      const entryEnd = new Date(entry.endTime);
+
+      // Check if entry falls within date range
+      if (entryStart >= from && entryStart <= to) {
+        const task = tasks.find(t => t.id === entry.taskId);
+        const status = task?.status || "unknown";
+        const hours = (entry.duration || 0) / 3600; // Convert seconds to hours
+        statusHours[status] = (statusHours[status] || 0) + hours;
+      }
+    });
+
+    // Convert to chart format with labels
+    return Object.entries(statusHours).map(([status, hours]) => ({
+      name: taskStatuses.find(s => s.value === status)?.label || status.charAt(0).toUpperCase() + status.slice(1),
+      hours: Math.round(hours * 10) / 10
+    }));
+  }, [timeEntries, tasks, taskStatuses, from, to]);
 
   return (
     <div className="space-y-6">
@@ -213,10 +235,10 @@ function TimeTab() {
         <CardHeader className="pb-3 bg-purple-50/50 dark:bg-purple-950/20">
           <CardTitle className="text-base flex items-center gap-2 text-foreground">
             <Zap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-            Hours by Status
+            Hours by Task Status
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">{byStatus.isLoading ? <Loading /> : statusData.length === 0 ? <Empty msg="No data." /> :
+        <CardContent className="pt-6">{statusData.length === 0 ? <Empty msg="No time logged in this period." /> :
           <ChartWidget type="bar" data={statusData} dataKey="hours" nameKey="name" />}</CardContent>
       </Card>
 
