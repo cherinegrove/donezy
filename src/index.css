@@ -272,6 +272,34 @@
   }
 
   /* ========================================== */
+  /* FILTER TABS & BUTTONS - Perfect Alignment */
+  /* ========================================== */
+
+  /* Ensure filter row items align perfectly */
+  [class*="filter"],
+  [role="tablist"],
+  .filter-container {
+    @apply flex items-center gap-2 h-12;
+  }
+
+  /* Filter buttons and tabs - consistent height */
+  [class*="filter"] button,
+  [role="tab"],
+  .filter-item {
+    @apply h-10 px-4 py-2 font-semibold text-base rounded-lg transition-all duration-200 flex items-center justify-center whitespace-nowrap;
+  }
+
+  /* Filter button hover states */
+  [class*="filter"] button:hover {
+    @apply bg-muted;
+  }
+
+  /* Ensure dropdown select aligns */
+  select {
+    @apply h-10 align-middle;
+  }
+
+  /* ========================================== */
   /* BADGES & TAGS */
   /* ========================================== */
 
