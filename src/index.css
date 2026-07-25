@@ -50,9 +50,7 @@
     --input: 0 0% 92%;        /* Light gray input border */
     --ring: 210 100% 50%;     /* Blue focus ring */
 
-    --radius: 0.625rem;
-
-    /* SIDEBAR = Modern dark (updated in .dark section below) */
+    --radius: 0.875rem;       /* Increased from 0.625rem to 14px */
 
     --task-card-bg: 0 0% 100%;  /* White task cards */
 
@@ -68,17 +66,18 @@
     --kanban-in-progress: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);  /* Light blue tint */
     --kanban-review: linear-gradient(135deg, #cffafe 0%, #e0f9ff 100%);   /* Cyan tint */
     --kanban-done: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);     /* Light green tint */
-    
+
     /* Smooth transitions */
     --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-colors: color, background-color, border-color 0.2s ease;
-    
+
     /* Modern shadows */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
 
   .dark {
@@ -148,7 +147,7 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
-  
+
   /* Global text wrapping - prevent horizontal scroll from long text */
   p, span, div, h1, h2, h3, h4, h5, h6, li, a, label {
     word-break: break-word;
@@ -157,54 +156,284 @@
 }
 
 @layer utilities {
-  /* Enhanced spacing utilities for better visual hierarchy */
+  /* ========================================== */
+  /* 1. SPACIOUS LAYOUT - Generous Whitespace */
+  /* ========================================== */
+
   .space-generous {
-    @apply space-y-6;
+    @apply space-y-8;
   }
 
   .gap-generous {
-    @apply gap-4;
+    @apply gap-6;
   }
 
-  /* Page section spacing */
+  /* Page section spacing with max-width for breathing room */
   [class*="page"],
   [class*="section"] {
-    @apply space-y-6 max-w-7xl;
+    @apply space-y-8 max-w-7xl mx-auto px-6 py-8;
   }
 
-  /* Heading improvements */
+  /* Main content area spacing */
+  main {
+    @apply px-6 py-8 md:px-8 md:py-10;
+  }
+
+  /* Card container default spacing */
+  .card-container {
+    @apply space-y-8;
+  }
+
+  /* ========================================== */
+  /* 2. MODERN BUTTON DESIGN */
+  /* ========================================== */
+
+  .btn-primary {
+    @apply bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-100;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-foreground font-semibold py-3 px-6 rounded-lg transition-all duration-200 hover:scale-105 active:scale-100;
+  }
+
+  .btn-ghost {
+    @apply hover:bg-gray-100 dark:hover:bg-gray-800 text-foreground font-semibold py-3 px-6 rounded-lg transition-all duration-200 hover:scale-105;
+  }
+
+  /* Larger button variants */
+  button:not([class*="size-icon"]):not([class*="size-sm"]) {
+    @apply min-h-12 px-6;
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+  }
+
+  /* ========================================== */
+  /* 3. CARD REDESIGN - Depth & Visual Separation */
+  /* ========================================== */
+
+  [class*="bg-card"],
+  .card {
+    @apply border border-border/50 rounded-xl shadow-sm transition-all duration-300 hover:shadow-lg hover:border-border/80;
+  }
+
+  [class*="bg-card"]:hover,
+  .card:hover {
+    @apply shadow-lg;
+  }
+
+  /* Dashboard card container improvements */
+  [class*="dashboard-card"],
+  [class*="Card"] {
+    @apply rounded-xl border border-border/50 bg-card text-card-foreground shadow-sm hover:shadow-lg transition-all duration-300 p-6 md:p-8 space-y-6;
+  }
+
+  /* Card grid spacing */
+  .card-grid {
+    @apply grid gap-6 md:gap-8;
+  }
+
+  /* ========================================== */
+  /* 4. BETTER TYPOGRAPHY - Visual Hierarchy */
+  /* ========================================== */
+
   h1 {
-    @apply text-3xl font-bold tracking-tight;
+    @apply text-4xl md:text-5xl font-bold tracking-tight leading-tight mb-4;
   }
 
   h2 {
-    @apply text-2xl font-bold tracking-tight;
+    @apply text-3xl md:text-4xl font-bold tracking-tight leading-snug mb-3;
   }
 
   h3 {
-    @apply text-xl font-semibold tracking-tight;
+    @apply text-2xl md:text-3xl font-semibold tracking-tight leading-snug mb-2;
   }
 
-  /* Text hierarchy improvements */
+  h4 {
+    @apply text-xl font-semibold tracking-tight mb-2;
+  }
+
+  p {
+    @apply leading-relaxed text-base;
+  }
+
+  /* Text hierarchy utilities */
   .text-subtle {
-    @apply text-muted-foreground;
+    @apply text-muted-foreground text-sm;
   }
 
   .text-strong {
     @apply font-semibold text-foreground;
   }
 
+  .text-hero {
+    @apply text-5xl md:text-6xl font-bold tracking-tighter;
+  }
+
+  .text-display {
+    @apply text-3xl md:text-4xl font-bold tracking-tight;
+  }
+
+  /* ========================================== */
+  /* 5. MODERN FORM STYLING */
+  /* ========================================== */
+
+  input,
+  textarea,
+  select {
+    @apply rounded-lg border-2 border-input bg-background text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-blue-500 transition-all duration-200 px-4 py-3 text-base;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-muted-foreground;
+  }
+
+  /* Form group spacing */
+  .form-group {
+    @apply space-y-3;
+  }
+
+  form {
+    @apply space-y-6;
+  }
+
+  label {
+    @apply block text-sm font-semibold text-foreground mb-2;
+  }
+
+  /* Larger checkbox and radio */
+  input[type="checkbox"],
+  input[type="radio"] {
+    @apply w-5 h-5 cursor-pointer;
+  }
+
+  /* ========================================== */
+  /* 6. IMPROVED NAVIGATION - Modern Sidebar */
+  /* ========================================== */
+
+  [class*="sidebar"],
+  [class*="Sidebar"] {
+    @apply border-r border-border/50 bg-background transition-all duration-300;
+  }
+
+  [class*="sidebar"] a,
+  [class*="Sidebar"] a {
+    @apply px-4 py-3 rounded-lg transition-all duration-200 font-medium text-base;
+  }
+
+  [class*="sidebar"] [class*="active"],
+  [class*="Sidebar"] [class*="active"] {
+    @apply bg-primary text-primary-foreground rounded-lg shadow-md;
+  }
+
+  nav a:hover {
+    @apply bg-muted rounded-lg;
+  }
+
+  /* ========================================== */
+  /* 7. SUBTLE ANIMATIONS & MICRO-INTERACTIONS */
+  /* ========================================== */
+
+  .smooth-transition {
+    transition: var(--transition-smooth);
+  }
+
+  .smooth-hover {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  .smooth-hover:hover {
+    @apply -translate-y-1 shadow-lg;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 ease-in-out cursor-pointer;
+  }
+
+  .card-hover:hover {
+    @apply shadow-xl scale-[1.02] -translate-y-1;
+  }
+
+  /* Button animation on hover */
+  button {
+    @apply transition-all duration-200;
+  }
+
+  button:hover:not(:disabled) {
+    @apply translate-y-[-2px];
+  }
+
+  button:active:not(:disabled) {
+    @apply translate-y-0;
+  }
+
+  /* Link hover animation */
+  a {
+    @apply text-primary hover:text-primary/80 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded px-1;
+  }
+
+  /* Table styling */
+  table {
+    @apply w-full text-base border-collapse;
+  }
+
+  thead {
+    @apply bg-muted/60 border-b-2 border-border;
+  }
+
+  th {
+    @apply px-6 py-4 text-left font-semibold text-foreground;
+  }
+
+  td {
+    @apply px-6 py-4 border-b border-border/50;
+  }
+
+  tbody tr {
+    @apply hover:bg-muted/40 transition-all duration-200;
+  }
+
+  /* Badge styling improvements */
+  [class*="badge"],
+  .badge {
+    @apply inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold gap-2 transition-all duration-200;
+  }
+
+  /* Status indicator improvements */
+  [class*="status"],
+  .status {
+    @apply inline-flex items-center gap-2 font-medium;
+  }
+
+  /* Dialog/modal improvements */
+  [role="dialog"] {
+    @apply rounded-2xl border border-border bg-background shadow-xl;
+  }
+
+  /* Dropdown/select menu styling */
+  [role="menu"],
+  [role="listbox"] {
+    @apply rounded-xl border border-border bg-popover shadow-lg;
+  }
+
+  /* Tooltip styling */
+  [role="tooltip"] {
+    @apply rounded-lg bg-foreground text-background px-4 py-2 text-sm font-semibold shadow-lg;
+  }
+
   /* Loading and empty state improvements */
   [class*="empty"],
   [class*="loading"] {
-    @apply text-muted-foreground text-center py-8;
+    @apply text-muted-foreground text-center py-12 space-y-4;
   }
 
   /* Disabled state styling */
   button:disabled,
   input:disabled,
   select:disabled {
-    @apply opacity-50 cursor-not-allowed;
+    @apply opacity-60 cursor-not-allowed;
   }
 
   /* Transition improvements for smooth interactions */
@@ -217,19 +446,19 @@
 
   /* Better contrast for success/error/warning states */
   .text-success {
-    @apply text-green-600 dark:text-green-400;
+    @apply text-green-600 dark:text-green-400 font-semibold;
   }
 
   .text-destructive {
-    @apply text-red-600 dark:text-red-400;
+    @apply text-red-600 dark:text-red-400 font-semibold;
   }
 
   .text-warning {
-    @apply text-amber-600 dark:text-amber-400;
+    @apply text-amber-600 dark:text-amber-400 font-semibold;
   }
 
   .text-info {
-    @apply text-blue-600 dark:text-blue-400;
+    @apply text-blue-600 dark:text-blue-400 font-semibold;
   }
 
   /* Border focus state for accessibility */
@@ -240,161 +469,27 @@
     @apply outline-none ring-2 ring-primary ring-offset-2 dark:ring-offset-0;
   }
 
-  .smooth-transition {
-    transition: var(--transition-smooth);
-  }
-
-  .smooth-hover {
-    @apply transition-all duration-200 ease-in-out;
-  }
-
-  .smooth-hover:hover {
-    @apply -translate-y-0.5 shadow-md;
-  }
-
-  .card-hover {
-    @apply transition-all duration-300 ease-in-out;
-  }
-
-  .card-hover:hover {
-    @apply shadow-lg scale-[1.02];
-  }
-
-  /* Improved focus states for accessibility */
-  .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500;
-  }
-
-  /* Better button styling */
-  .btn-primary {
-    @apply bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md;
-  }
-
-  .btn-secondary {
-    @apply bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-foreground font-medium py-2 px-4 rounded-lg transition-all duration-200;
-  }
-
-  .btn-ghost {
-    @apply hover:bg-gray-100 dark:hover:bg-gray-800 text-foreground font-medium py-2 px-4 rounded-lg transition-colors;
-  }
-
-  /* Sidebar styling improvements */
-  [class*="sidebar"],
-  [class*="Sidebar"] {
-    @apply border-r border-border;
-  }
-
-  [class*="sidebar"] a,
-  [class*="Sidebar"] a {
-    @apply transition-colors duration-200;
-  }
-
-  [class*="sidebar"] [class*="active"],
-  [class*="Sidebar"] [class*="active"] {
-    @apply bg-primary text-primary-foreground rounded-md;
-  }
-
-  /* Enhanced card styling */
-  [class*="bg-card"],
-  .card {
-    @apply border border-border rounded-lg shadow-sm transition-all duration-200;
-  }
-
-  [class*="bg-card"]:hover,
-  .card:hover {
-    @apply shadow-md border-border/50;
-  }
-
-  /* Dashboard card container improvements */
-  [class*="dashboard-card"],
-  [class*="Card"] {
-    @apply rounded-lg border border-border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all duration-200 p-4 md:p-6;
-  }
-
-  /* Better form element styling */
-  input,
-  textarea,
-  select {
-    @apply rounded-lg border border-input bg-background text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
-  }
-
-  /* Input placeholder styling */
-  input::placeholder,
-  textarea::placeholder {
-    @apply text-muted-foreground;
-  }
-
-  /* Badge styling improvements */
-  [class*="badge"] {
-    @apply inline-flex items-center rounded-full px-3 py-1 text-sm font-medium;
-  }
-
-  /* Status indicator improvements */
-  [class*="status"] {
-    @apply inline-flex items-center gap-2;
-  }
-
-  /* Improved links */
-  a {
-    @apply text-primary hover:text-primary/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded;
-  }
-
-  /* Better table styling */
-  table {
-    @apply w-full text-sm border-collapse;
-  }
-
-  thead {
-    @apply bg-muted border-b border-border;
-  }
-
-  th {
-    @apply px-4 py-3 text-left font-semibold text-foreground;
-  }
-
-  td {
-    @apply px-4 py-3 border-b border-border;
-  }
-
-  tbody tr {
-    @apply hover:bg-muted/50 transition-colors;
-  }
-
-  /* Dialog/modal improvements */
-  [role="dialog"] {
-    @apply rounded-lg border border-border bg-background shadow-lg;
-  }
-
-  /* Dropdown/select menu styling */
-  [role="menu"],
-  [role="listbox"] {
-    @apply rounded-lg border border-border bg-popover shadow-md;
-  }
-
-  /* Tooltip styling */
-  [role="tooltip"] {
-    @apply rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium shadow-sm;
-  }
-
+  /* Fade in animation */
   .fade-in {
-    animation: fadeIn 0.3s ease-in-out;
+    animation: fadeIn 0.4s ease-in-out;
   }
-  
+
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(12px);
     }
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
-  
+
+  /* Slide in animation */
   .slide-in {
-    animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
+
   @keyframes slideIn {
     from {
       transform: translateX(-100%);
@@ -404,5 +499,38 @@
       transform: translateX(0);
       opacity: 1;
     }
+  }
+
+  /* Pulse animation for attention */
+  .pulse-subtle {
+    animation: pulseSubtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulseSubtle {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+
+  /* Scale animation for interactive elements */
+  .scale-on-hover:hover {
+    @apply scale-105;
+  }
+
+  /* Underline animation for links */
+  .underline-animate {
+    @apply relative;
+  }
+
+  .underline-animate::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300;
+  }
+
+  .underline-animate:hover::after {
+    @apply w-full;
   }
 }
