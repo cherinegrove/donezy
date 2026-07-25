@@ -5,77 +5,69 @@
 @layer base {
   :root {
     /* ========================================== */
-    /* BLACK & WHITE THEME - Light Mode */
+    /* MODERN NEUTRAL + ACCENT THEME - Light Mode */
     /* ========================================== */
-    
-    --background: 0 0% 100%;  /* White background */
-    --foreground: 0 0% 0%;    /* Black text */
+
+    --background: 0 0% 99%;   /* Off-white (not pure white) */
+    --foreground: 0 0% 15%;   /* Dark gray (not pure black) */
 
     --card: 0 0% 100%;        /* White cards */
-    --card-foreground: 0 0% 0%;  /* Black text on cards */
+    --card-foreground: 0 0% 15%;  /* Dark gray text on cards */
 
     --popover: 0 0% 100%;     /* White popovers */
-    --popover-foreground: 0 0% 0%;  /* Black text on popovers */
+    --popover-foreground: 0 0% 15%;  /* Dark gray text on popovers */
 
-    /* PRIMARY = BLACK (was purple) */
-    --primary: 0 0% 0%;       /* Pure black (was 270 50% 40% purple) */
-    --primary-foreground: 0 0% 100%;  /* White text on black */
+    /* PRIMARY = BLUE (trust, focus, professional) */
+    --primary: 210 100% 50%;  /* Blue */
+    --primary-foreground: 0 0% 100%;  /* White text on blue */
 
-    /* SECONDARY = Light gray */
-    --secondary: 0 0% 96%;    /* Very light gray */
-    --secondary-foreground: 0 0% 0%;  /* Black text */
+    /* SECONDARY = Neutral gray */
+    --secondary: 0 0% 94%;    /* Light gray */
+    --secondary-foreground: 0 0% 15%;  /* Dark gray text */
 
-    /* MUTED = Light gray */
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 40%;  /* Dark gray text */
+    /* MUTED = Neutral gray */
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 50%;  /* Medium gray text */
 
-    /* ACCENT = BLACK (was purple) */
-    --accent: 0 0% 0%;        /* Pure black (was 270 50% 40% purple) */
-    --accent-foreground: 0 0% 100%;  /* White text on black */
+    /* ACCENT = BLUE (same as primary for now) */
+    --accent: 210 100% 50%;   /* Blue */
+    --accent-foreground: 0 0% 100%;  /* White text on blue */
 
-    /* DESTRUCTIVE = Keep red for errors */
-    --destructive: 0 84.2% 60.2%;
+    /* DESTRUCTIVE = Red (urgency, errors) */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* SUCCESS = Keep green */
+    /* SUCCESS = Green (progress, completion) */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
 
-    /* WARNING = Keep orange */
+    /* WARNING = Amber (energy, attention) */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
     /* BORDERS & INPUTS */
-    --border: 0 0% 90%;       /* Light gray border */
-    --input: 0 0% 90%;        /* Light gray input border */
-    --ring: 0 0% 0%;          /* Black focus ring */
+    --border: 0 0% 92%;       /* Slightly darker gray border */
+    --input: 0 0% 92%;        /* Light gray input border */
+    --ring: 210 100% 50%;     /* Blue focus ring */
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
 
-    /* SIDEBAR = BLACK */
-    --sidebar-background: 0 0% 0%;  /* Pure black (was 98% white) */
-    --sidebar-foreground: 0 0% 100%;  /* White text (was dark gray) */
-    --sidebar-primary: 0 0% 0%;  /* Black (was purple) */
-    --sidebar-primary-foreground: 0 0% 100%;  /* White text */
-    --sidebar-accent: 0 0% 20%;  /* Dark gray for hover */
-    --sidebar-accent-foreground: 0 0% 100%;  /* White text */
-    --sidebar-border: 0 0% 20%;  /* Dark gray border */
-    --sidebar-ring: 0 0% 100%;  /* White ring */
-    
+    /* SIDEBAR = Modern dark (updated in .dark section below) */
+
     --task-card-bg: 0 0% 100%;  /* White task cards */
-    
-    /* Custom theme variables - BLACK & WHITE */
-    --button-primary-color: #000000;  /* Black (was #8E44AD purple) */
-    --button-text-color: #FFFFFF;     /* White */
-    --sidebar-background-color: #000000;  /* Black (was #1A1F2C) */
-    --sidebar-text-color: #FFFFFF;    /* White */
-    
-    /* Kanban gradient colors - BLACK & GRAY gradients (was purple) */
-    --kanban-backlog: linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%);  /* Very light gray */
-    --kanban-todo: linear-gradient(135deg, #e8e8e8 0%, #f0f0f0 100%);     /* Light gray */
-    --kanban-in-progress: linear-gradient(135deg, #d0d0d0 0%, #e0e0e0 100%);  /* Medium gray */
-    --kanban-review: linear-gradient(135deg, #b0b0b0 0%, #c8c8c8 100%);   /* Darker gray */
-    --kanban-done: linear-gradient(135deg, #909090 0%, #a8a8a8 100%);     /* Dark gray */
+
+    /* Custom theme variables - BLUE PRIMARY */
+    --button-primary-color: #2563eb;  /* Blue (professional, trustworthy) */
+    --button-text-color: #FFFFFF;     /* White text */
+    --sidebar-background-color: #0f172a;  /* Very dark blue-gray */
+    --sidebar-text-color: #f5f5f5;    /* Off-white text */
+
+    /* Kanban gradient colors - NEUTRAL BLUES (modern, calm) */
+    --kanban-backlog: linear-gradient(135deg, #f8fafc 0%, #f5f9ff 100%);  /* Soft off-white */
+    --kanban-todo: linear-gradient(135deg, #f0f4f8 0%, #f5f8fc 100%);     /* Soft light blue-gray */
+    --kanban-in-progress: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);  /* Light blue tint */
+    --kanban-review: linear-gradient(135deg, #cffafe 0%, #e0f9ff 100%);   /* Cyan tint */
+    --kanban-done: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);     /* Light green tint */
     
     /* Smooth transitions */
     --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -91,60 +83,60 @@
 
   .dark {
     /* ========================================== */
-    /* BLACK & WHITE THEME - Dark Mode */
+    /* MODERN NEUTRAL + ACCENT THEME - Dark Mode */
     /* ========================================== */
-    
-    --background: 0 0% 0%;    /* Pure black background */
-    --foreground: 0 0% 100%;  /* White text */
 
-    --card: 0 0% 10%;         /* Very dark gray cards */
-    --card-foreground: 0 0% 100%;  /* White text */
+    --background: 0 0% 7%;    /* Very dark gray (not pure black) */
+    --foreground: 0 0% 96%;   /* Off-white text (not pure white) */
 
-    --popover: 0 0% 10%;      /* Very dark gray */
-    --popover-foreground: 0 0% 100%;  /* White text */
+    --card: 0 0% 12%;         /* Dark gray cards */
+    --card-foreground: 0 0% 96%;  /* Off-white text */
 
-    /* PRIMARY = WHITE (inverted for dark mode) */
-    --primary: 0 0% 100%;     /* Pure white (was purple) */
-    --primary-foreground: 0 0% 0%;  /* Black text on white */
+    --popover: 0 0% 12%;      /* Dark gray */
+    --popover-foreground: 0 0% 96%;  /* Off-white text */
+
+    /* PRIMARY = BLUE (same as light mode) */
+    --primary: 210 100% 50%;  /* Blue */
+    --primary-foreground: 0 0% 100%;  /* White text on blue */
 
     /* SECONDARY = Dark gray */
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 96%;
 
     /* MUTED = Dark gray */
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 65%;
 
-    /* ACCENT = WHITE (inverted for dark mode) */
-    --accent: 0 0% 100%;      /* Pure white (was purple) */
-    --accent-foreground: 0 0% 0%;  /* Black text on white */
+    /* ACCENT = BLUE (same as light mode) */
+    --accent: 210 100% 50%;   /* Blue */
+    --accent-foreground: 0 0% 100%;  /* White text on blue */
 
-    /* DESTRUCTIVE = Keep red */
-    --destructive: 0 62.8% 30.6%;
+    /* DESTRUCTIVE = Lighter red for dark mode */
+    --destructive: 0 84% 63%;
     --destructive-foreground: 0 0% 100%;
 
-    /* SUCCESS = Keep green */
-    --success: 142 76% 36%;
+    /* SUCCESS = Green (slightly adjusted for dark) */
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
-    /* WARNING = Keep orange */
-    --warning: 38 92% 50%;
+    /* WARNING = Orange (adjusted for dark) */
+    --warning: 38 92% 60%;
     --warning-foreground: 0 0% 100%;
 
     /* BORDERS & INPUTS */
-    --border: 0 0% 20%;       /* Dark gray */
-    --input: 0 0% 20%;
-    --ring: 0 0% 100%;        /* White focus ring */
-    
+    --border: 0 0% 22%;       /* Dark gray border */
+    --input: 0 0% 22%;
+    --ring: 210 100% 50%;     /* Blue focus ring */
+
     /* SIDEBAR = Slightly lighter than background */
-    --sidebar-background: 0 0% 5%;  /* Very dark gray */
-    --sidebar-foreground: 0 0% 100%;  /* White text */
-    --sidebar-primary: 0 0% 100%;  /* White */
-    --sidebar-primary-foreground: 0 0% 0%;  /* Black text */
-    --sidebar-accent: 0 0% 15%;  /* Dark gray for hover */
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 0 0% 100%;
+    --sidebar-background: 0 0% 9%;  /* Very dark gray */
+    --sidebar-foreground: 0 0% 96%;  /* Off-white text */
+    --sidebar-primary: 210 100% 50%;  /* Blue */
+    --sidebar-primary-foreground: 0 0% 100%;  /* White text */
+    --sidebar-accent: 0 0% 18%;  /* Dark gray for hover */
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 210 100% 50%;
   }
 }
 
@@ -165,24 +157,51 @@
 }
 
 @layer utilities {
+  /* Enhanced spacing utilities for better visual hierarchy */
+  .space-generous {
+    @apply space-y-6;
+  }
+
+  .gap-generous {
+    @apply gap-4;
+  }
+
   .smooth-transition {
     transition: var(--transition-smooth);
   }
-  
+
   .smooth-hover {
     @apply transition-all duration-200 ease-in-out;
   }
-  
+
   .smooth-hover:hover {
     @apply -translate-y-0.5 shadow-md;
   }
-  
+
   .card-hover {
     @apply transition-all duration-300 ease-in-out;
   }
-  
+
   .card-hover:hover {
     @apply shadow-lg scale-[1.02];
+  }
+
+  /* Improved focus states for accessibility */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500;
+  }
+
+  /* Better button styling */
+  .btn-primary {
+    @apply bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-foreground font-medium py-2 px-4 rounded-lg transition-colors;
+  }
+
+  .btn-ghost {
+    @apply hover:bg-gray-100 dark:hover:bg-gray-800 text-foreground font-medium py-2 px-4 rounded-lg transition-colors;
   }
   
   .fade-in {
