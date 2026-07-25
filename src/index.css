@@ -126,15 +126,15 @@
   /* ========================================== */
 
   main {
-    @apply px-6 py-8;
+    @apply px-6 py-4;
   }
 
   .page-section {
-    @apply space-y-8;
+    @apply space-y-4;
   }
 
   .container-generous {
-    @apply space-y-8 max-w-7xl mx-auto;
+    @apply space-y-4 max-w-7xl mx-auto;
   }
 
   /* ========================================== */
