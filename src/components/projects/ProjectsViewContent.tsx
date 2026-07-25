@@ -208,10 +208,10 @@ export function ProjectsViewContent({
                               <span className="font-medium">{new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                             </div>
                           )}
-                          {project.usedHours !== undefined && (
+                          {(project.usedHours !== undefined || project.allocatedHours) && (
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Hours</span>
-                              <span className="font-medium">{project.usedHours}h / {project.allocatedHours || 0}h</span>
+                              <span className="font-medium">{project.usedHours || 0}h / {project.allocatedHours || 0}h</span>
                             </div>
                           )}
                         </div>
@@ -258,10 +258,10 @@ export function ProjectsViewContent({
                               <span className="font-medium">{new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                             </div>
                           )}
-                          {project.usedHours !== undefined && (
+                          {(project.usedHours !== undefined || project.allocatedHours) && (
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Hours</span>
-                              <span className="font-medium">{project.usedHours}h / {project.allocatedHours || 0}h</span>
+                              <span className="font-medium">{project.usedHours || 0}h / {project.allocatedHours || 0}h</span>
                             </div>
                           )}
                         </div>
