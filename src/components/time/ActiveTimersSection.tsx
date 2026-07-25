@@ -616,12 +616,18 @@ export function ActiveTimersSection({
           const isLive = isBackendTimer ? !isTimerPaused : (!isOtherUserTimer && timer.isActive && !timer.isPaused);
           const showPlayButton = isBackendTimer ? isTimerPaused : timer.isPaused;
 
+          // Check if timer is stale (> 24 hours)
+          const HOURS_24_MS = 24 * 60 * 60 * 1000;
+          const isStale = elapsed > HOURS_24_MS;
+          const hoursRunning = Math.floor(elapsed / (1000 * 60 * 60));
+
           return (
-            <div 
-              key={timer.id} 
+            <div
+              key={timer.id}
               className={cn(
                 "flex items-start justify-between p-3 rounded-lg border bg-card",
-                isOtherUserTimer && "border-muted-foreground/30"
+                isOtherUserTimer && "border-muted-foreground/30",
+                isStale && "border-red-500/50 bg-red-50/30 dark:bg-red-950/20"
               )}
             >
               <div className="flex-1 min-w-0">
@@ -646,7 +652,7 @@ export function ActiveTimersSection({
                   <div className="font-mono text-lg font-bold">
                     {displayTime}
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 flex-wrap">
                     {isOtherUserTimer ? (
                       <Badge variant="outline" className="text-xs">
                         Active
@@ -660,11 +666,16 @@ export function ActiveTimersSection({
                         Paused
                       </Badge>
                     )}
+                    {isStale && (
+                      <Badge className="text-xs bg-red-600 hover:bg-red-700">
+                        ⚠️ {hoursRunning}h+
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
               
-              {/* Only show controls for own timers, not other users' */}
+              {/* Controls for own timers */}
               {!isOtherUserTimer && (
                 <div className="flex items-center gap-1 ml-2">
                   <Button
@@ -688,7 +699,7 @@ export function ActiveTimersSection({
                       <Pause className="h-4 w-4" />
                     )}
                   </Button>
-                  
+
                   <Button
                     variant="ghost"
                     size="sm"
@@ -703,7 +714,7 @@ export function ActiveTimersSection({
                   >
                     <Save className="h-4 w-4" />
                   </Button>
-                  
+
                   <Button
                     variant="ghost"
                     size="sm"
@@ -717,6 +728,24 @@ export function ActiveTimersSection({
                     className="h-8 w-8 p-0 text-destructive hover:text-destructive/90"
                   >
                     <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+
+              {/* Abandon button for admins on stale other-user timers */}
+              {isOtherUserTimer && isStale && isSuperAdmin && (
+                <div className="flex items-center gap-1 ml-2">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      handleDeleteLocalTimer(timer.id, timer.isLocalOnly ?? false);
+                    }}
+                    className="h-8 px-2 text-xs"
+                    title="Abandon this stale timer"
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Abandon
                   </Button>
                 </div>
               )}
