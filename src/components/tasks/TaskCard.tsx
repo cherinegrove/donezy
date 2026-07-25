@@ -2,7 +2,7 @@ import React, { memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
-import { format, parseISO, isBefore } from "date-fns";
+import { format, parseISO, isBefore, isToday } from "date-fns";
 import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { cn } from "@/lib/utils";
@@ -52,6 +52,12 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [],
     return isBefore(parseISO(date), new Date());
   };
 
+  const isDueToday = (date: string) => {
+    return isToday(parseISO(date));
+  };
+
+  const shouldShake = isUrgent || (task.dueDate && isDueToday(task.dueDate));
+
   const isCollaboratorTask = task.collaboratorIds?.includes(currentUser?.id) && task.assigneeId !== currentUser?.id;
 
   const handleSelectionClick = (e: React.MouseEvent) => {
@@ -94,7 +100,9 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [],
         // Collaborator indicator
         isCollaboratorTask && "border-t-2 border-t-blue-500",
         // Selection state
-        isSelected && "ring-2 ring-primary bg-primary/5"
+        isSelected && "ring-2 ring-primary bg-primary/5",
+        // Shake animation for urgent or due today
+        shouldShake && "animate-shake"
       )}
       onClick={handleCardClick}
     >
