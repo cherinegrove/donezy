@@ -388,9 +388,151 @@
   }
 
   /* ========================================== */
-  /* ANIMATIONS & INTERACTIONS */
+  /* ANIMATIONS & MICRO-INTERACTIONS */
   /* ========================================== */
 
+  /* Task creation - fade in + slide up */
+  .animate-task-create {
+    animation: slideInUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Task deletion - fade out + slide up */
+  .animate-task-delete {
+    animation: slideOutUp 0.3s ease-in forwards;
+  }
+
+  @keyframes slideOutUp {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+  }
+
+  /* Task completion - checkmark animation */
+  .animate-checkmark {
+    animation: checkmarkPulse 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  @keyframes checkmarkPulse {
+    0% {
+      transform: scale(0) rotate(-45deg);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1) rotate(0);
+      opacity: 1;
+    }
+  }
+
+  /* Task completion - bounce effect */
+  .animate-complete-bounce {
+    animation: completeBounce 0.6s ease-in-out;
+  }
+
+  @keyframes completeBounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  /* Task update - highlight flash */
+  .animate-task-update {
+    animation: updateHighlight 1.2s ease-out;
+  }
+
+  @keyframes updateHighlight {
+    0% {
+      background-color: hsl(142 76% 36% / 0.2);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  /* Stale timer - continuous gentle pulse */
+  .animate-stale-timer {
+    animation: stalePulse 2s ease-in-out infinite;
+  }
+
+  @keyframes stalePulse {
+    0%, 100% {
+      opacity: 1;
+      border-color: hsl(0 84% 60% / 1);
+    }
+    50% {
+      opacity: 0.7;
+      border-color: hsl(0 84% 60% / 0.5);
+    }
+  }
+
+  /* Loading state - skeleton shimmer */
+  .animate-loading {
+    animation: loadingPulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes loadingPulse {
+    0%, 100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 0.9;
+    }
+  }
+
+  /* Toast notification - slide in from bottom */
+  .animate-toast-in {
+    animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes toastSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Toast notification - slide out */
+  .animate-toast-out {
+    animation: toastSlideOut 0.3s ease-in forwards;
+  }
+
+  @keyframes toastSlideOut {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+  }
+
+  /* Fade in */
   .fade-in {
     animation: fadeIn 0.3s ease-in-out;
   }
@@ -406,6 +548,7 @@
     }
   }
 
+  /* Slide in from left */
   .slide-in {
     animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
