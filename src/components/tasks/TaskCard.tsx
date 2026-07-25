@@ -100,9 +100,7 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [],
         // Collaborator indicator
         isCollaboratorTask && "border-t-2 border-t-blue-500",
         // Selection state
-        isSelected && "ring-2 ring-primary bg-primary/5",
-        // Shake animation for urgent or due today
-        shouldShake && "animate-shake"
+        isSelected && "ring-2 ring-primary bg-primary/5"
       )}
       onClick={handleCardClick}
     >
