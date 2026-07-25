@@ -166,6 +166,34 @@
     @apply gap-4;
   }
 
+  /* Page section spacing */
+  [class*="page"],
+  [class*="section"] {
+    @apply space-y-6 max-w-7xl;
+  }
+
+  /* Heading improvements */
+  h1 {
+    @apply text-3xl font-bold tracking-tight;
+  }
+
+  h2 {
+    @apply text-2xl font-bold tracking-tight;
+  }
+
+  h3 {
+    @apply text-xl font-semibold tracking-tight;
+  }
+
+  /* Text hierarchy improvements */
+  .text-subtle {
+    @apply text-muted-foreground;
+  }
+
+  .text-strong {
+    @apply font-semibold text-foreground;
+  }
+
   .smooth-transition {
     transition: var(--transition-smooth);
   }
@@ -203,7 +231,77 @@
   .btn-ghost {
     @apply hover:bg-gray-100 dark:hover:bg-gray-800 text-foreground font-medium py-2 px-4 rounded-lg transition-colors;
   }
-  
+
+  /* Enhanced card styling */
+  [class*="bg-card"] {
+    @apply border border-border rounded-lg shadow-sm;
+  }
+
+  /* Better form element styling */
+  input,
+  textarea,
+  select {
+    @apply rounded-lg border border-input bg-background text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+  }
+
+  /* Input placeholder styling */
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-muted-foreground;
+  }
+
+  /* Badge styling improvements */
+  [class*="badge"] {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-sm font-medium;
+  }
+
+  /* Status indicator improvements */
+  [class*="status"] {
+    @apply inline-flex items-center gap-2;
+  }
+
+  /* Improved links */
+  a {
+    @apply text-primary hover:text-primary/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded;
+  }
+
+  /* Better table styling */
+  table {
+    @apply w-full text-sm border-collapse;
+  }
+
+  thead {
+    @apply bg-muted border-b border-border;
+  }
+
+  th {
+    @apply px-4 py-3 text-left font-semibold text-foreground;
+  }
+
+  td {
+    @apply px-4 py-3 border-b border-border;
+  }
+
+  tbody tr {
+    @apply hover:bg-muted/50 transition-colors;
+  }
+
+  /* Dialog/modal improvements */
+  [role="dialog"] {
+    @apply rounded-lg border border-border bg-background shadow-lg;
+  }
+
+  /* Dropdown/select menu styling */
+  [role="menu"],
+  [role="listbox"] {
+    @apply rounded-lg border border-border bg-popover shadow-md;
+  }
+
+  /* Tooltip styling */
+  [role="tooltip"] {
+    @apply rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium shadow-sm;
+  }
+
   .fade-in {
     animation: fadeIn 0.3s ease-in-out;
   }
