@@ -96,11 +96,11 @@
   /* ========================================== */
 
   h1 {
-    @apply text-3xl font-bold tracking-tight leading-tight mb-4;
+    @apply text-3xl font-bold tracking-tight leading-tight mb-2;
   }
 
   h2 {
-    @apply text-2xl font-bold tracking-tight leading-snug mb-3;
+    @apply text-2xl font-bold tracking-tight leading-snug mb-2;
   }
 
   h3 {
@@ -130,7 +130,14 @@
   }
 
   .page-section {
-    @apply space-y-4;
+    @apply space-y-3;
+  }
+
+  /* Page header (title + description) spacing */
+  [class*="page-header"],
+  [class*="header"] > h1,
+  [class*="header"] > h2 {
+    @apply mb-2;
   }
 
   .container-generous {
