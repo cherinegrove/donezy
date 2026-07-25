@@ -230,7 +230,7 @@ export const ChartWidget = ({ type, data, dataKey, nameKey, onDataClick, stacked
     <>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
           <XAxis dataKey={nameKey} stroke="hsl(var(--muted-foreground))" />
           <YAxis stroke="hsl(var(--muted-foreground))" />
           <Tooltip
@@ -240,13 +240,14 @@ export const ChartWidget = ({ type, data, dataKey, nameKey, onDataClick, stacked
               borderRadius: '8px'
             }}
             cursor={{ fill: 'hsl(var(--accent))' }}
+            formatter={(value) => typeof value === 'number' ? value.toFixed(1) : value}
           />
           <Bar
             dataKey={dataKey}
             fill={COLORS[0]}
             radius={[8, 8, 0, 0]}
             onClick={handleClick}
-            className="cursor-pointer"
+            className="cursor-pointer transition-all hover:opacity-80"
           />
         </BarChart>
       </ResponsiveContainer>
