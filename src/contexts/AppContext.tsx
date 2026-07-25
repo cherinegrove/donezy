@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { AppContextType } from './AppContextType';
 import { User, Team, Client, Project, Task, TimeEntry, Message, Purchase, ProjectTemplate, CustomRole, Note, TaskLog, TaskStatusDefinition, ProjectStatusDefinition, CustomField, TaskStatus, TimeEntryStatus, TaskFile } from "@/types";
 import { CustomDashboard, SavedReport } from "@/types/dashboard";
@@ -4674,7 +4674,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     );
   };
 
-  const value: AppContextType = {
+  const value = useMemo(() => ({
     currentUser,
     session,
     users,
@@ -4701,10 +4701,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     projectStatuses,
     customDashboards,
     savedReports,
-    
+
     login,
     logout,
-    
+
     // User functions
     addUser,
     updateUser,
@@ -4712,18 +4712,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     getUserById,
     inviteUser,
     updateManagerNotificationPreferences,
-    
+
     // Team functions
     addTeam,
     updateTeam,
     deleteTeam,
-    
+
     // Client functions
     addClient,
     updateClient,
     deleteClient,
     getClientById,
-    
+
     // Project functions
     addProject,
     updateProject,
@@ -4733,7 +4733,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     watchProject,
     unwatchProject,
     createProjectFromTemplate,
-    
+
     // Task functions
     addTask,
     updateTask,
@@ -4747,19 +4747,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     uploadTaskFile,
     addTaskExternalLink,
     deleteTaskFile,
-    
+
     // Task Status functions
     addTaskStatus,
     updateTaskStatus,
     deleteTaskStatus,
     reorderTaskStatuses,
-    
+
     // Project Status functions
     addProjectStatus,
     updateProjectStatus,
     deleteProjectStatus,
     reorderProjectStatuses,
-    
+
     // TimeEntry functions
     addTimeEntry,
     updateTimeEntry,
@@ -4770,7 +4770,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     resumeTimeTracking,
     getElapsedTime,
     updateTimeEntryStatus,
-    
+
     // Message functions
     addMessage,
     updateMessage,
@@ -4778,50 +4778,50 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     sendMessage,
     createMessage,
     markMessageAsRead,
-    
+
     // Comment functions
     addComment,
     updateComment,
-    
+
     // Note functions
     addNote,
     updateNote,
     deleteNote,
     getNotesByUser,
-    
+
     // Custom Role functions
     addCustomRole,
     updateCustomRole,
     deleteCustomRole,
-    
+
     // Template functions
     addProjectTemplate,
     updateProjectTemplate,
     deleteProjectTemplate,
     refreshTaskTemplates: loadTaskTemplates,
-    
+
     // Purchase functions
     addPurchase,
     updatePurchase,
     deletePurchase,
-    
+
     // Client Agreement functions
     addClientAgreement,
     updateClientAgreement,
     deleteClientAgreement,
     getClientAgreements,
-    
+
     // Client File functions
     uploadClientFile,
     deleteClientFile,
     getClientFiles,
-    
+
     // Custom Field functions
     addCustomField,
     updateCustomField,
     deleteCustomField,
     reorderCustomFields,
-    
+
     // Dashboard and Report functions
     addCustomDashboard,
     updateCustomDashboard,
@@ -4830,13 +4830,134 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     saveReport,
     updateSavedReport,
     deleteSavedReport,
-    
+
     // Task reordering
     reorderTasks,
 
     // Task mention functions
     clearTaskMention,
-  };
+  }), [
+    currentUser,
+    session,
+    users,
+    teams,
+    clients,
+    projects,
+    tasks,
+    timeEntries,
+    messages,
+    purchases,
+    projectTemplates,
+    taskTemplates,
+    customRoles,
+    comments,
+    notes,
+    customFields,
+    activeTimeEntry,
+    pausedTimeEntries,
+    isTimerPaused,
+    pausedAt,
+    totalPausedTime,
+    taskLogs,
+    taskStatuses,
+    projectStatuses,
+    customDashboards,
+    savedReports,
+    login,
+    logout,
+    addUser,
+    updateUser,
+    deleteUser,
+    getUserById,
+    inviteUser,
+    updateManagerNotificationPreferences,
+    addTeam,
+    updateTeam,
+    deleteTeam,
+    addClient,
+    updateClient,
+    deleteClient,
+    getClientById,
+    addProject,
+    updateProject,
+    deleteProject,
+    getProjectById,
+    convertProjectToTemplate,
+    watchProject,
+    unwatchProject,
+    createProjectFromTemplate,
+    addTask,
+    updateTask,
+    deleteTask,
+    getTaskById,
+    moveTask,
+    watchTask,
+    unwatchTask,
+    linkTasks,
+    unlinkTasks,
+    uploadTaskFile,
+    addTaskExternalLink,
+    deleteTaskFile,
+    addTaskStatus,
+    updateTaskStatus,
+    deleteTaskStatus,
+    reorderTaskStatuses,
+    addProjectStatus,
+    updateProjectStatus,
+    deleteProjectStatus,
+    reorderProjectStatuses,
+    addTimeEntry,
+    updateTimeEntry,
+    deleteTimeEntry,
+    startTimeTracking,
+    stopTimeTracking,
+    pauseTimeTracking,
+    resumeTimeTracking,
+    getElapsedTime,
+    updateTimeEntryStatus,
+    addMessage,
+    updateMessage,
+    deleteMessage,
+    sendMessage,
+    createMessage,
+    markMessageAsRead,
+    addComment,
+    updateComment,
+    addNote,
+    updateNote,
+    deleteNote,
+    getNotesByUser,
+    addCustomRole,
+    updateCustomRole,
+    deleteCustomRole,
+    addProjectTemplate,
+    updateProjectTemplate,
+    deleteProjectTemplate,
+    loadTaskTemplates,
+    addPurchase,
+    updatePurchase,
+    deletePurchase,
+    addClientAgreement,
+    updateClientAgreement,
+    deleteClientAgreement,
+    getClientAgreements,
+    uploadClientFile,
+    deleteClientFile,
+    getClientFiles,
+    addCustomField,
+    updateCustomField,
+    deleteCustomField,
+    reorderCustomFields,
+    addCustomDashboard,
+    updateCustomDashboard,
+    deleteCustomDashboard,
+    setDefaultDashboard,
+    saveReport,
+    updateSavedReport,
+    deleteSavedReport,
+    reorderTasks,
+    clearTaskMention,
+  ]);
 
   return (
     <AppContext.Provider value={value}>
