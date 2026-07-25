@@ -1,5 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { startOfWeek, isAfter, parseISO, format } from "date-fns";
+import { subHours, isAfter, parseISO, format } from "date-fns";
 import { useState, lazy } from "react";
 const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { Task } from "@/types";
@@ -9,13 +9,13 @@ export const RecentTasksCard = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const seventyTwoHoursAgo = subHours(new Date(), 72);
 
   const recentlyUpdatedTasks = tasks
     .filter(task =>
       (task.assigneeId === currentUser?.id || task.collaboratorIds?.includes(currentUser?.id)) &&
       task.createdAt &&
-      isAfter(parseISO(task.createdAt), weekStart)
+      isAfter(parseISO(task.createdAt), seventyTwoHoursAgo)
     )
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
