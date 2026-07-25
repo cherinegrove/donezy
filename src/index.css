@@ -5,137 +5,75 @@
 @layer base {
   :root {
     /* ========================================== */
-    /* MODERN NEUTRAL + ACCENT THEME - Light Mode */
+    /* MODERN DESIGN SYSTEM - 8-POINT GRID */
     /* ========================================== */
 
-    --background: 0 0% 99%;   /* Off-white (not pure white) */
-    --foreground: 0 0% 15%;   /* Dark gray (not pure black) */
-
+    /* Colors - Neutral base + Blue accent */
+    --background: 0 0% 99%;   /* Off-white */
+    --foreground: 0 0% 15%;   /* Dark gray */
     --card: 0 0% 100%;        /* White cards */
-    --card-foreground: 0 0% 15%;  /* Dark gray text on cards */
+    --card-foreground: 0 0% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 15%;
 
-    --popover: 0 0% 100%;     /* White popovers */
-    --popover-foreground: 0 0% 15%;  /* Dark gray text on popovers */
+    /* PRIMARY = BLUE (professional accent) */
+    --primary: 210 100% 50%;
+    --primary-foreground: 0 0% 100%;
 
-    /* PRIMARY = BLUE (trust, focus, professional) */
-    --primary: 210 100% 50%;  /* Blue */
-    --primary-foreground: 0 0% 100%;  /* White text on blue */
+    /* SECONDARY = Light gray */
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 15%;
 
-    /* SECONDARY = Neutral gray */
-    --secondary: 0 0% 94%;    /* Light gray */
-    --secondary-foreground: 0 0% 15%;  /* Dark gray text */
-
-    /* MUTED = Neutral gray */
+    /* MUTED = Medium gray */
     --muted: 0 0% 90%;
-    --muted-foreground: 0 0% 50%;  /* Medium gray text */
+    --muted-foreground: 0 0% 50%;
 
-    /* ACCENT = BLUE (same as primary for now) */
-    --accent: 210 100% 50%;   /* Blue */
-    --accent-foreground: 0 0% 100%;  /* White text on blue */
+    --accent: 210 100% 50%;
+    --accent-foreground: 0 0% 100%;
 
-    /* DESTRUCTIVE = Red (urgency, errors) */
+    /* Status colors */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-
-    /* SUCCESS = Green (progress, completion) */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
-
-    /* WARNING = Amber (energy, attention) */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    /* BORDERS & INPUTS */
-    --border: 0 0% 92%;       /* Slightly darker gray border */
-    --input: 0 0% 92%;        /* Light gray input border */
-    --ring: 210 100% 50%;     /* Blue focus ring */
+    /* Spacing & Layout (8-point grid) */
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 210 100% 50%;
+    --radius: 0.5rem;
 
-    --radius: 0.875rem;       /* Increased from 0.625rem to 14px */
-
-    --task-card-bg: 0 0% 100%;  /* White task cards */
-
-    /* Custom theme variables - BLUE PRIMARY */
-    --button-primary-color: #2563eb;  /* Blue (professional, trustworthy) */
-    --button-text-color: #FFFFFF;     /* White text */
-    --sidebar-background-color: #0f172a;  /* Very dark blue-gray */
-    --sidebar-text-color: #f5f5f5;    /* Off-white text */
-
-    /* Kanban gradient colors - NEUTRAL BLUES (modern, calm) */
-    --kanban-backlog: linear-gradient(135deg, #f8fafc 0%, #f5f9ff 100%);  /* Soft off-white */
-    --kanban-todo: linear-gradient(135deg, #f0f4f8 0%, #f5f8fc 100%);     /* Soft light blue-gray */
-    --kanban-in-progress: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);  /* Light blue tint */
-    --kanban-review: linear-gradient(135deg, #cffafe 0%, #e0f9ff 100%);   /* Cyan tint */
-    --kanban-done: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);     /* Light green tint */
-
-    /* Smooth transitions */
-    --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-colors: color, background-color, border-color 0.2s ease;
-
-    /* Modern shadows */
+    /* Shadows - Modern but subtle */
     --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-    --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-    --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    /* Transitions */
+    --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
-    /* ========================================== */
-    /* MODERN NEUTRAL + ACCENT THEME - Dark Mode */
-    /* ========================================== */
-
-    --background: 0 0% 7%;    /* Very dark gray (not pure black) */
-    --foreground: 0 0% 96%;   /* Off-white text (not pure white) */
-
-    --card: 0 0% 12%;         /* Dark gray cards */
-    --card-foreground: 0 0% 96%;  /* Off-white text */
-
-    --popover: 0 0% 12%;      /* Dark gray */
-    --popover-foreground: 0 0% 96%;  /* Off-white text */
-
-    /* PRIMARY = BLUE (same as light mode) */
-    --primary: 210 100% 50%;  /* Blue */
-    --primary-foreground: 0 0% 100%;  /* White text on blue */
-
-    /* SECONDARY = Dark gray */
+    --background: 0 0% 7%;
+    --foreground: 0 0% 96%;
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 210 100% 50%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 20%;
     --secondary-foreground: 0 0% 96%;
-
-    /* MUTED = Dark gray */
     --muted: 0 0% 18%;
     --muted-foreground: 0 0% 65%;
-
-    /* ACCENT = BLUE (same as light mode) */
-    --accent: 210 100% 50%;   /* Blue */
-    --accent-foreground: 0 0% 100%;  /* White text on blue */
-
-    /* DESTRUCTIVE = Lighter red for dark mode */
-    --destructive: 0 84% 63%;
-    --destructive-foreground: 0 0% 100%;
-
-    /* SUCCESS = Green (slightly adjusted for dark) */
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-
-    /* WARNING = Orange (adjusted for dark) */
-    --warning: 38 92% 60%;
-    --warning-foreground: 0 0% 100%;
-
-    /* BORDERS & INPUTS */
-    --border: 0 0% 22%;       /* Dark gray border */
+    --border: 0 0% 22%;
     --input: 0 0% 22%;
-    --ring: 210 100% 50%;     /* Blue focus ring */
-
-    /* SIDEBAR = Slightly lighter than background */
-    --sidebar-background: 0 0% 9%;  /* Very dark gray */
-    --sidebar-foreground: 0 0% 96%;  /* Off-white text */
-    --sidebar-primary: 210 100% 50%;  /* Blue */
-    --sidebar-primary-foreground: 0 0% 100%;  /* White text */
-    --sidebar-accent: 0 0% 18%;  /* Dark gray for hover */
-    --sidebar-accent-foreground: 0 0% 96%;
-    --sidebar-border: 0 0% 18%;
-    --sidebar-ring: 210 100% 50%;
+    --destructive: 0 84% 63%;
+    --success: 142 71% 45%;
+    --warning: 38 92% 60%;
   }
 }
 
@@ -148,141 +86,97 @@
     @apply bg-background text-foreground antialiased;
   }
 
-  /* Global text wrapping - prevent horizontal scroll from long text */
   p, span, div, h1, h2, h3, h4, h5, h6, li, a, label {
     word-break: break-word;
     overflow-wrap: anywhere;
+  }
+
+  /* ========================================== */
+  /* TYPOGRAPHY SCALE */
+  /* ========================================== */
+
+  h1 {
+    @apply text-2xl md:text-3xl font-bold tracking-tight leading-snug mb-2;
+  }
+
+  h2 {
+    @apply text-xl md:text-2xl font-bold tracking-tight leading-snug mb-2;
+  }
+
+  h3 {
+    @apply text-lg font-semibold tracking-tight leading-snug mb-1;
+  }
+
+  h4 {
+    @apply text-base font-semibold leading-snug mb-1;
+  }
+
+  p {
+    @apply text-base leading-relaxed;
+  }
+
+  small, .text-sm {
+    @apply text-xs;
   }
 }
 
 @layer utilities {
   /* ========================================== */
-  /* 1. SPACIOUS LAYOUT - Generous Whitespace */
+  /* SPACING & LAYOUT */
   /* ========================================== */
 
-  .space-generous {
-    @apply space-y-8;
-  }
-
-  .gap-generous {
-    @apply gap-6;
-  }
-
-  /* Page section spacing with max-width for breathing room */
-  [class*="page"],
-  [class*="section"] {
-    @apply space-y-8 max-w-7xl mx-auto px-6 py-8;
-  }
-
-  /* Main content area spacing */
   main {
-    @apply px-6 py-8 md:px-8 md:py-10;
+    @apply px-4 py-4 md:px-6 md:py-6;
   }
 
-  /* Card container default spacing */
-  .card-container {
-    @apply space-y-8;
+  .page-section {
+    @apply space-y-6 md:space-y-8;
   }
 
   /* ========================================== */
-  /* 2. MODERN BUTTON DESIGN */
+  /* CARDS */
+  /* ========================================== */
+
+  .card {
+    @apply border border-border rounded-lg shadow-sm p-4 md:p-6 transition-all duration-200 hover:shadow-md;
+  }
+
+  /* ========================================== */
+  /* BUTTONS */
   /* ========================================== */
 
   .btn-primary {
-    @apply bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-100;
+    @apply bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md px-4 py-2 min-h-10;
   }
 
   .btn-secondary {
-    @apply bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-foreground font-semibold py-3 px-6 rounded-lg transition-all duration-200 hover:scale-105 active:scale-100;
+    @apply bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-foreground font-medium rounded-lg transition-all duration-200 px-4 py-2 min-h-10;
   }
 
   .btn-ghost {
-    @apply hover:bg-gray-100 dark:hover:bg-gray-800 text-foreground font-semibold py-3 px-6 rounded-lg transition-all duration-200 hover:scale-105;
+    @apply hover:bg-gray-100 dark:hover:bg-gray-800 text-foreground font-medium rounded-lg transition-colors duration-200 px-4 py-2 min-h-10;
   }
 
-  /* Larger button variants */
-  button:not([class*="size-icon"]):not([class*="size-sm"]) {
-    @apply min-h-12 px-6;
+  button {
+    @apply transition-all duration-200;
   }
 
-  .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+  button:hover:not(:disabled) {
+    @apply -translate-y-0.5;
   }
 
-  /* ========================================== */
-  /* 3. CARD REDESIGN - Depth & Visual Separation */
-  /* ========================================== */
-
-  [class*="bg-card"],
-  .card {
-    @apply border border-border/50 rounded-xl shadow-sm transition-all duration-300 hover:shadow-lg hover:border-border/80;
-  }
-
-  [class*="bg-card"]:hover,
-  .card:hover {
-    @apply shadow-lg;
-  }
-
-  /* Dashboard card container improvements */
-  [class*="dashboard-card"],
-  [class*="Card"] {
-    @apply rounded-xl border border-border/50 bg-card text-card-foreground shadow-sm hover:shadow-lg transition-all duration-300 p-6 md:p-8 space-y-6;
-  }
-
-  /* Card grid spacing */
-  .card-grid {
-    @apply grid gap-6 md:gap-8;
+  button:active:not(:disabled) {
+    @apply translate-y-0;
   }
 
   /* ========================================== */
-  /* 4. BETTER TYPOGRAPHY - Visual Hierarchy */
-  /* ========================================== */
-
-  h1 {
-    @apply text-4xl md:text-5xl font-bold tracking-tight leading-tight mb-4;
-  }
-
-  h2 {
-    @apply text-3xl md:text-4xl font-bold tracking-tight leading-snug mb-3;
-  }
-
-  h3 {
-    @apply text-2xl md:text-3xl font-semibold tracking-tight leading-snug mb-2;
-  }
-
-  h4 {
-    @apply text-xl font-semibold tracking-tight mb-2;
-  }
-
-  p {
-    @apply leading-relaxed text-base;
-  }
-
-  /* Text hierarchy utilities */
-  .text-subtle {
-    @apply text-muted-foreground text-sm;
-  }
-
-  .text-strong {
-    @apply font-semibold text-foreground;
-  }
-
-  .text-hero {
-    @apply text-5xl md:text-6xl font-bold tracking-tighter;
-  }
-
-  .text-display {
-    @apply text-3xl md:text-4xl font-bold tracking-tight;
-  }
-
-  /* ========================================== */
-  /* 5. MODERN FORM STYLING */
+  /* FORMS */
   /* ========================================== */
 
   input,
   textarea,
   select {
-    @apply rounded-lg border-2 border-input bg-background text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-blue-500 transition-all duration-200 px-4 py-3 text-base;
+    @apply w-full px-3 py-2 rounded-lg border border-input bg-background text-base text-foreground placeholder-muted-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
   }
 
   input::placeholder,
@@ -290,178 +184,82 @@
     @apply text-muted-foreground;
   }
 
-  /* Form group spacing */
   .form-group {
-    @apply space-y-3;
+    @apply space-y-2;
   }
 
   form {
-    @apply space-y-6;
+    @apply space-y-4 md:space-y-6;
   }
 
   label {
-    @apply block text-sm font-semibold text-foreground mb-2;
-  }
-
-  /* Larger checkbox and radio */
-  input[type="checkbox"],
-  input[type="radio"] {
-    @apply w-5 h-5 cursor-pointer;
+    @apply block text-sm font-medium text-foreground mb-1;
   }
 
   /* ========================================== */
-  /* 6. IMPROVED NAVIGATION - Modern Sidebar */
+  /* TABLES */
   /* ========================================== */
 
-  [class*="sidebar"],
-  [class*="Sidebar"] {
-    @apply border-r border-border/50 bg-background transition-all duration-300;
-  }
-
-  [class*="sidebar"] a,
-  [class*="Sidebar"] a {
-    @apply px-4 py-3 rounded-lg transition-all duration-200 font-medium text-base;
-  }
-
-  [class*="sidebar"] [class*="active"],
-  [class*="Sidebar"] [class*="active"] {
-    @apply bg-primary text-primary-foreground rounded-lg shadow-md;
-  }
-
-  nav a:hover {
-    @apply bg-muted rounded-lg;
-  }
-
-  /* ========================================== */
-  /* 7. SUBTLE ANIMATIONS & MICRO-INTERACTIONS */
-  /* ========================================== */
-
-  .smooth-transition {
-    transition: var(--transition-smooth);
-  }
-
-  .smooth-hover {
-    @apply transition-all duration-200 ease-in-out;
-  }
-
-  .smooth-hover:hover {
-    @apply -translate-y-1 shadow-lg;
-  }
-
-  .card-hover {
-    @apply transition-all duration-300 ease-in-out cursor-pointer;
-  }
-
-  .card-hover:hover {
-    @apply shadow-xl scale-[1.02] -translate-y-1;
-  }
-
-  /* Button animation on hover */
-  button {
-    @apply transition-all duration-200;
-  }
-
-  button:hover:not(:disabled) {
-    @apply translate-y-[-2px];
-  }
-
-  button:active:not(:disabled) {
-    @apply translate-y-0;
-  }
-
-  /* Link hover animation */
-  a {
-    @apply text-primary hover:text-primary/80 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded px-1;
-  }
-
-  /* Table styling */
   table {
-    @apply w-full text-base border-collapse;
+    @apply w-full text-sm border-collapse;
   }
 
   thead {
-    @apply bg-muted/60 border-b-2 border-border;
+    @apply bg-muted/50 border-b border-border;
   }
 
   th {
-    @apply px-6 py-4 text-left font-semibold text-foreground;
+    @apply px-3 py-2 text-left text-xs font-semibold text-foreground;
   }
 
   td {
-    @apply px-6 py-4 border-b border-border/50;
+    @apply px-3 py-2 border-b border-border/50;
   }
 
   tbody tr {
-    @apply hover:bg-muted/40 transition-all duration-200;
+    @apply hover:bg-muted/30 transition-colors duration-200;
   }
 
-  /* Badge styling improvements */
-  [class*="badge"],
-  .badge {
-    @apply inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold gap-2 transition-all duration-200;
+  /* ========================================== */
+  /* NAVIGATION */
+  /* ========================================== */
+
+  nav a {
+    @apply px-3 py-2 rounded-md text-sm font-medium transition-all duration-200;
   }
 
-  /* Status indicator improvements */
-  [class*="status"],
-  .status {
-    @apply inline-flex items-center gap-2 font-medium;
+  nav a:hover {
+    @apply bg-muted;
   }
 
-  /* Dialog/modal improvements */
-  [role="dialog"] {
-    @apply rounded-2xl border border-border bg-background shadow-xl;
+  /* ========================================== */
+  /* TEXT UTILITIES */
+  /* ========================================== */
+
+  .text-subtle {
+    @apply text-xs text-muted-foreground;
   }
 
-  /* Dropdown/select menu styling */
-  [role="menu"],
-  [role="listbox"] {
-    @apply rounded-xl border border-border bg-popover shadow-lg;
+  .text-strong {
+    @apply font-semibold text-foreground;
   }
 
-  /* Tooltip styling */
-  [role="tooltip"] {
-    @apply rounded-lg bg-foreground text-background px-4 py-2 text-sm font-semibold shadow-lg;
-  }
-
-  /* Loading and empty state improvements */
-  [class*="empty"],
-  [class*="loading"] {
-    @apply text-muted-foreground text-center py-12 space-y-4;
-  }
-
-  /* Disabled state styling */
-  button:disabled,
-  input:disabled,
-  select:disabled {
-    @apply opacity-60 cursor-not-allowed;
-  }
-
-  /* Transition improvements for smooth interactions */
-  button,
-  a,
-  input,
-  select {
-    @apply transition-all duration-200 ease-in-out;
-  }
-
-  /* Better contrast for success/error/warning states */
   .text-success {
-    @apply text-green-600 dark:text-green-400 font-semibold;
+    @apply text-green-600 dark:text-green-400;
   }
 
   .text-destructive {
-    @apply text-red-600 dark:text-red-400 font-semibold;
+    @apply text-red-600 dark:text-red-400;
   }
 
   .text-warning {
-    @apply text-amber-600 dark:text-amber-400 font-semibold;
+    @apply text-amber-600 dark:text-amber-400;
   }
 
-  .text-info {
-    @apply text-blue-600 dark:text-blue-400 font-semibold;
-  }
+  /* ========================================== */
+  /* FOCUS STATES */
+  /* ========================================== */
 
-  /* Border focus state for accessibility */
   button:focus-visible,
   a:focus-visible,
   input:focus-visible,
@@ -469,15 +267,18 @@
     @apply outline-none ring-2 ring-primary ring-offset-2 dark:ring-offset-0;
   }
 
-  /* Fade in animation */
+  /* ========================================== */
+  /* ANIMATIONS */
+  /* ========================================== */
+
   .fade-in {
-    animation: fadeIn 0.4s ease-in-out;
+    animation: fadeIn 0.3s ease-in-out;
   }
 
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: translateY(12px);
+      transform: translateY(8px);
     }
     to {
       opacity: 1;
@@ -485,52 +286,27 @@
     }
   }
 
-  /* Slide in animation */
-  .slide-in {
-    animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  .smooth-hover {
+    @apply transition-all duration-200 ease-in-out;
   }
 
-  @keyframes slideIn {
-    from {
-      transform: translateX(-100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
+  .smooth-hover:hover {
+    @apply -translate-y-0.5 shadow-md;
   }
 
-  /* Pulse animation for attention */
-  .pulse-subtle {
-    animation: pulseSubtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  .card-hover {
+    @apply transition-all duration-300 ease-in-out cursor-pointer;
   }
 
-  @keyframes pulseSubtle {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.8;
-    }
+  .card-hover:hover {
+    @apply shadow-lg -translate-y-0.5;
   }
 
-  /* Scale animation for interactive elements */
-  .scale-on-hover:hover {
-    @apply scale-105;
-  }
+  /* ========================================== */
+  /* LINKS */
+  /* ========================================== */
 
-  /* Underline animation for links */
-  .underline-animate {
-    @apply relative;
-  }
-
-  .underline-animate::after {
-    content: '';
-    @apply absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300;
-  }
-
-  .underline-animate:hover::after {
-    @apply w-full;
+  a {
+    @apply text-primary hover:text-primary/80 transition-colors duration-200;
   }
 }
