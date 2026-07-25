@@ -194,6 +194,52 @@
     @apply font-semibold text-foreground;
   }
 
+  /* Loading and empty state improvements */
+  [class*="empty"],
+  [class*="loading"] {
+    @apply text-muted-foreground text-center py-8;
+  }
+
+  /* Disabled state styling */
+  button:disabled,
+  input:disabled,
+  select:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  /* Transition improvements for smooth interactions */
+  button,
+  a,
+  input,
+  select {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  /* Better contrast for success/error/warning states */
+  .text-success {
+    @apply text-green-600 dark:text-green-400;
+  }
+
+  .text-destructive {
+    @apply text-red-600 dark:text-red-400;
+  }
+
+  .text-warning {
+    @apply text-amber-600 dark:text-amber-400;
+  }
+
+  .text-info {
+    @apply text-blue-600 dark:text-blue-400;
+  }
+
+  /* Border focus state for accessibility */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 dark:ring-offset-0;
+  }
+
   .smooth-transition {
     transition: var(--transition-smooth);
   }
@@ -221,20 +267,48 @@
 
   /* Better button styling */
   .btn-primary {
-    @apply bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+    @apply bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md;
   }
 
   .btn-secondary {
-    @apply bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-foreground font-medium py-2 px-4 rounded-lg transition-colors;
+    @apply bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-foreground font-medium py-2 px-4 rounded-lg transition-all duration-200;
   }
 
   .btn-ghost {
     @apply hover:bg-gray-100 dark:hover:bg-gray-800 text-foreground font-medium py-2 px-4 rounded-lg transition-colors;
   }
 
+  /* Sidebar styling improvements */
+  [class*="sidebar"],
+  [class*="Sidebar"] {
+    @apply border-r border-border;
+  }
+
+  [class*="sidebar"] a,
+  [class*="Sidebar"] a {
+    @apply transition-colors duration-200;
+  }
+
+  [class*="sidebar"] [class*="active"],
+  [class*="Sidebar"] [class*="active"] {
+    @apply bg-primary text-primary-foreground rounded-md;
+  }
+
   /* Enhanced card styling */
-  [class*="bg-card"] {
-    @apply border border-border rounded-lg shadow-sm;
+  [class*="bg-card"],
+  .card {
+    @apply border border-border rounded-lg shadow-sm transition-all duration-200;
+  }
+
+  [class*="bg-card"]:hover,
+  .card:hover {
+    @apply shadow-md border-border/50;
+  }
+
+  /* Dashboard card container improvements */
+  [class*="dashboard-card"],
+  [class*="Card"] {
+    @apply rounded-lg border border-border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all duration-200 p-4 md:p-6;
   }
 
   /* Better form element styling */
