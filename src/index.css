@@ -199,15 +199,26 @@
   /* ========================================== */
 
   [role="tablist"] {
-    @apply flex gap-4 border-b border-border bg-muted/30 p-2 rounded-t-lg;
+    @apply flex gap-2 border-b border-border bg-muted/30 p-1 rounded-t-lg;
   }
 
   [role="tab"] {
-    @apply px-6 py-4 font-semibold text-base rounded-t-lg transition-all duration-200 hover:bg-muted;
+    @apply px-3 py-2 font-semibold text-base rounded-t-lg transition-all duration-200 hover:bg-muted;
   }
 
   [role="tab"][aria-selected="true"] {
     @apply bg-primary text-primary-foreground shadow-md;
+  }
+
+  /* Notification panel - make full width */
+  [class*="notification"] {
+    @apply w-full;
+  }
+
+  [class*="notification-panel"],
+  [class*="notification-sidebar"],
+  [class*="notification-right"] {
+    @apply hidden;
   }
 
   /* ========================================== */
