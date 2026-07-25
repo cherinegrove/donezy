@@ -225,6 +225,19 @@
     @apply text-muted-foreground;
   }
 
+  /* Comment input area - proper spacing */
+  [class*="comment"] textarea,
+  [class*="comment-input"],
+  [contenteditable] {
+    @apply mt-3;
+  }
+
+  /* Comment container spacing */
+  [class*="comment-container"],
+  [class*="comment-form"] {
+    @apply space-y-3;
+  }
+
   form {
     @apply space-y-6;
   }
