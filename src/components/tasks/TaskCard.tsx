@@ -106,6 +106,10 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [],
       )}
       onClick={handleCardClick}
     >
+      {/* Waving hand for urgent/due today tasks */}
+      {shouldShake && (
+        <div className="absolute top-2 right-2 text-2xl animate-wave">👋</div>
+      )}
       {showSelection && (
         <div className="absolute top-2 right-2 z-10" data-checkbox>
           <Checkbox

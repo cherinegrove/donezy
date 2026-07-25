@@ -548,23 +548,39 @@
     }
   }
 
-  /* Gentle wave animation for urgent/due tasks */
-  .animate-shake {
-    animation: gentleWave 2.5s ease-in-out infinite;
+  /* Waving hand animation for urgent/due tasks */
+  .animate-wave {
+    animation: wave 1s ease-in-out infinite;
+    transform-origin: 70% 70%;
+    display: inline-block;
   }
 
-  @keyframes gentleWave {
+  @keyframes wave {
     0%, 100% {
-      transform: translateX(0) scale(1);
+      transform: rotate(0deg);
     }
     25% {
-      transform: translateX(3px) scale(1.01);
-    }
-    50% {
-      transform: translateX(0) scale(1);
+      transform: rotate(-20deg);
     }
     75% {
-      transform: translateX(-3px) scale(1.01);
+      transform: rotate(20deg);
+    }
+  }
+
+  /* Gentle sway animation for urgent/due tasks (fallback) */
+  .animate-shake {
+    animation: gentleSway 2s ease-in-out infinite;
+  }
+
+  @keyframes gentleSway {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(2px);
+    }
+    75% {
+      transform: translateX(-2px);
     }
   }
 
