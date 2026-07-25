@@ -150,6 +150,13 @@
     @apply rounded-lg border border-border/50 bg-card text-card-foreground shadow-sm hover:shadow-lg transition-all duration-300 p-6 space-y-6;
   }
 
+  /* Hide stray/undefined elements on cards */
+  [class*="card"] > div:only-child:empty,
+  [class*="task"] > button:only-child,
+  [class*="kanban"] input:not([type="checkbox"]):not([type="radio"]) {
+    @apply hidden;
+  }
+
   /* ========================================== */
   /* BIG BUTTONS - Bold & Prominent */
   /* ========================================== */
