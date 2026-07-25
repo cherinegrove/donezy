@@ -1,8 +1,9 @@
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSidebar, MobileSidebar } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   BarChart,
@@ -12,107 +13,120 @@ import {
   ListTodo,
   ShieldAlert,
   Settings,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from "lucide-react";
 
-function SidebarContent() {
-  const location = useLocation();
+const NAV_ITEMS = [
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", end: true },
+  { to: "/projects", icon: Briefcase, label: "Projects" },
+  { to: "/tasks", icon: ListTodo, label: "Tasks" },
+  { to: "/time", icon: Clock, label: "Time Tracking" },
+  { to: "/notifications", icon: Bell, label: "Notifications" },
+  { to: "/analytics", icon: BarChart, label: "Analytics" },
+  { to: "/settings", icon: Settings, label: "Settings" },
+];
+
+function SidebarContent({ collapsed }: { collapsed?: boolean }) {
   const { currentUser } = useAppContext();
-  const { setMobileOpen, isMobile } = useSidebar();
-  
-  // Check if user is admin using systemRoles (consolidated role system)
-  const isAdmin = currentUser?.systemRoles?.includes('platform_admin') || 
+
+  const isAdmin = currentUser?.systemRoles?.includes('platform_admin') ||
                   currentUser?.systemRoles?.includes('support_admin');
 
-  const handleNavClick = () => {
-    if (isMobile) {
-      setMobileOpen(false);
-    }
-  };
-  
-  const navItems = [
-    { to: "/", icon: LayoutDashboard, label: "Dashboard", end: true },
-    { to: "/projects", icon: Briefcase, label: "Projects" },
-    { to: "/tasks", icon: ListTodo, label: "Tasks" },
-    { to: "/time", icon: Clock, label: "Time Tracking" },
-    { to: "/notifications", icon: Bell, label: "Notifications" },
-    { to: "/analytics", icon: BarChart, label: "Analytics" },
-    { to: "/settings", icon: Settings, label: "Settings" },
+  const items = [
+    ...NAV_ITEMS,
+    ...(isAdmin ? [{ to: "/admin", icon: ShieldAlert, label: "Admin Dashboard" }] : []),
   ];
-  
+
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="h-14 flex items-center px-4 gap-4 border-b">
-        <NavLink to="/" className="flex items-center gap-2 font-semibold" onClick={handleNavClick}>
-          <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary">
-            <span className="text-primary-foreground text-sm">DZ</span>
-          </div>
-          <span className="text-lg">donezy</span>
-        </NavLink>
+    <ScrollArea className="flex-1 overflow-hidden">
+      <div className="py-4">
+        <nav className={cn("space-y-1", collapsed ? "px-1" : "px-2")}>
+          {items.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              title={collapsed ? item.label : undefined}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted",
+                  collapsed && "justify-center"
+                )
+              }
+            >
+              <item.icon className="h-4 w-4 flex-shrink-0" />
+              {!collapsed && <span>{item.label}</span>}
+            </NavLink>
+          ))}
+        </nav>
       </div>
-      
-      <ScrollArea className="flex-1 overflow-hidden">
-        <div className="py-4">
-          <nav className="px-2 space-y-1">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                onClick={handleNavClick}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  )
-                }
-              >
-                <item.icon className="h-4 w-4" />
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
-            
-            {isAdmin && (
-              <NavLink
-                to="/admin"
-                onClick={handleNavClick}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  )
-                }
-              >
-                <ShieldAlert className="h-4 w-4" />
-                <span>Admin Dashboard</span>
-              </NavLink>
-            )}
-          </nav>
-        </div>
-      </ScrollArea>
-    </div>
+    </ScrollArea>
   );
 }
 
 export function AppSidebar() {
-  const { isMobile } = useSidebar();
-  
+  const { isMobile, collapsed, setCollapsed, mobileOpen, setMobileOpen } = useSidebar();
+
   // On mobile, render sidebar inside a Sheet (drawer)
   if (isMobile) {
     return (
       <MobileSidebar>
-        <SidebarContent />
+        <div className="flex flex-col h-full bg-background">
+          <div className="h-14 flex items-center justify-between px-2 border-b">
+            <NavLink to="/" className="flex items-center gap-2 font-semibold flex-1 min-w-0">
+              <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary flex-shrink-0">
+                <span className="text-primary-foreground text-sm">DZ</span>
+              </div>
+              <span className="text-lg truncate">donezy</span>
+            </NavLink>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileOpen(false)}
+              className="h-8 w-8 flex-shrink-0"
+              title="Close menu"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <SidebarContent />
+        </div>
       </MobileSidebar>
     );
   }
-  
-  // On desktop, render fixed sidebar
+
+  // On desktop, render fixed sidebar with collapse option
   return (
-    <div className="w-[280px] flex-shrink-0 border-r border-border sticky top-0 h-screen">
-      <SidebarContent />
+    <div className={cn(
+      "flex-shrink-0 border-r border-border sticky top-0 h-screen flex flex-col transition-all duration-200",
+      collapsed ? "w-[70px]" : "w-[280px]"
+    )}>
+      <div className="h-14 flex items-center justify-between px-2 border-b">
+        {!collapsed && (
+          <NavLink to="/" className="flex items-center gap-2 font-semibold flex-1 min-w-0">
+            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary flex-shrink-0">
+              <span className="text-primary-foreground text-sm">DZ</span>
+            </div>
+            <span className="text-lg truncate">donezy</span>
+          </NavLink>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setCollapsed(!collapsed)}
+          className="h-8 w-8 flex-shrink-0"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </Button>
+      </div>
+
+      <SidebarContent collapsed={collapsed} />
     </div>
   );
 }
