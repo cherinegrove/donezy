@@ -2062,8 +2062,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             auth_user_id: session.user.id,
             action: 'due_date_changed',
             details: {
-              dueDate: updates.dueDate,
-              dueDateChangeReason: updates.dueDateChangeReason
+              old_due_date: currentTask.dueDate,
+              new_due_date: updates.dueDate,
+              reason: updates.dueDateChangeReason
             },
             timestamp: new Date().toISOString()
           });
