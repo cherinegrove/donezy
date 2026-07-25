@@ -479,6 +479,9 @@ function ProjectsTab() {
 }
 
 // ---- Tasks tab ------------------------------------------------------------
+interface OverdueTaskRow { assignee_id: string; assignee_name: string; task_count: number; avg_days_overdue: number; }
+interface RescheduleRow { assignee_id?: string; assignee_name?: string; project_id?: string; project_name?: string; client_id?: string; client_name?: string; reschedule_count: number; avg_days_moved: number; }
+
 function TasksTab({ statusLabel }: { statusLabel: (v: string | null) => string }) {
   const [preset, setPreset] = useState<TimeFramePreset>("month");
   const [custom, setCustom] = useState<DateRange | undefined>();
@@ -490,6 +493,10 @@ function TasksTab({ statusLabel }: { statusLabel: (v: string | null) => string }
   const byDue = useRpc<TaskRow>("report_task_breakdown", { p_group_by: "due_bucket" });
   const tasksCreated = useRpc<TaskCountRow>("report_tasks_created", base);
   const tasksClosed = useRpc<TaskCountRow>("report_tasks_closed", base);
+  const overdueByAssignee = useRpc<OverdueTaskRow>("report_overdue_tasks_by_assignee", {});
+  const rescheduledByAssignee = useRpc<RescheduleRow>("report_due_date_reschedules_by_assignee", {});
+  const rescheduledByProject = useRpc<RescheduleRow>("report_due_date_reschedules_by_project", {});
+  const rescheduledByClient = useRpc<RescheduleRow>("report_due_date_reschedules_by_client", {});
 
   const stageData = (byStage.data ?? []).map((r) => ({ name: statusLabel(r.dim_id), count: Number(r.task_count) }));
   const dueLabels: Record<string, string> = { overdue: "Overdue", today: "Today", this_week: "This Week", later: "Later", none: "No due date" };
@@ -554,6 +561,93 @@ function TasksTab({ statusLabel }: { statusLabel: (v: string | null) => string }
           )}
         </CardContent>
       </Card>
+
+      <Card className="border-l-4 border-l-red-500">
+        <CardHeader><CardTitle>Overdue Tasks by Assignee</CardTitle></CardHeader>
+        <CardContent>
+          {overdueByAssignee.isLoading ? <Loading /> : (overdueByAssignee.data ?? []).length === 0 ? <Empty msg="No overdue tasks." /> : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="py-2 pr-4 font-medium">Assignee</th>
+                    <th className="py-2 pr-4 font-medium text-right">Overdue Count</th>
+                    <th className="py-2 pr-4 font-medium text-right">Avg Days Overdue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(overdueByAssignee.data ?? []).map((r) => (
+                    <tr key={r.assignee_id ?? "unassigned"} className="border-b last:border-0">
+                      <td className="py-2 pr-4 font-medium">{r.assignee_name || "Unassigned"}</td>
+                      <td className="py-2 pr-4 text-right text-destructive font-semibold">{r.task_count}</td>
+                      <td className="py-2 pr-4 text-right text-destructive">{r.avg_days_overdue} days</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="border-l-4 border-l-amber-500">
+          <CardHeader><CardTitle className="text-base">Due Date Changes by Assignee</CardTitle></CardHeader>
+          <CardContent>
+            {rescheduledByAssignee.isLoading ? <Loading /> : (rescheduledByAssignee.data ?? []).length === 0 ? <Empty msg="No reschedules." /> : (
+              <div className="space-y-3">
+                {(rescheduledByAssignee.data ?? []).map((r) => (
+                  <div key={r.assignee_id ?? "unassigned"} className="flex justify-between items-center pb-3 border-b last:border-0">
+                    <div>
+                      <p className="text-sm font-medium">{r.assignee_name || "Unassigned"}</p>
+                      <p className="text-xs text-muted-foreground">{r.avg_days_moved}d avg movement</p>
+                    </div>
+                    <Badge variant="secondary">{r.reschedule_count}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader><CardTitle className="text-base">Due Date Changes by Project</CardTitle></CardHeader>
+          <CardContent>
+            {rescheduledByProject.isLoading ? <Loading /> : (rescheduledByProject.data ?? []).length === 0 ? <Empty msg="No reschedules." /> : (
+              <div className="space-y-3">
+                {(rescheduledByProject.data ?? []).slice(0, 10).map((r) => (
+                  <div key={r.project_id ?? "unknown"} className="flex justify-between items-center pb-3 border-b last:border-0">
+                    <div>
+                      <p className="text-sm font-medium truncate">{r.project_name || "Unknown"}</p>
+                      <p className="text-xs text-muted-foreground">{r.avg_days_moved}d avg movement</p>
+                    </div>
+                    <Badge variant="secondary">{r.reschedule_count}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader><CardTitle className="text-base">Due Date Changes by Client</CardTitle></CardHeader>
+          <CardContent>
+            {rescheduledByClient.isLoading ? <Loading /> : (rescheduledByClient.data ?? []).length === 0 ? <Empty msg="No reschedules." /> : (
+              <div className="space-y-3">
+                {(rescheduledByClient.data ?? []).slice(0, 10).map((r) => (
+                  <div key={r.client_id ?? "unknown"} className="flex justify-between items-center pb-3 border-b last:border-0">
+                    <div>
+                      <p className="text-sm font-medium truncate">{r.client_name || "Unknown"}</p>
+                      <p className="text-xs text-muted-foreground">{r.avg_days_moved}d avg movement</p>
+                    </div>
+                    <Badge variant="secondary">{r.reschedule_count}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
