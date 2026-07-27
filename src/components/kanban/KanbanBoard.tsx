@@ -558,7 +558,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                 >
                   <div className="flex justify-between items-center mb-2 gap-2">
                     <h3 className="font-medium text-sm">{column.title}</h3>
-                    <div className="flex items-center gap-1">
+                    <div className="flex flex-col items-center gap-0.5">
                       <button
                         onClick={() => handleColumnSort(column.id, true)}
                         className={`p-0.5 rounded hover:bg-background/50 transition-colors ${columnSorts[column.id] !== false ? 'bg-background/50' : ''}`}
