@@ -5,7 +5,7 @@ import { KanbanTaskCardWithComment } from "./KanbanTaskCardWithComment";
 import { useState, useEffect, lazy, Suspense } from "react";
 const EditTaskDialog = lazy(() => import("../tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { TaskStatusPromptDialog } from "../tasks/TaskStatusPromptDialog";
-import { Settings, Edit2, CheckSquare, Trash2, GripVertical } from "lucide-react";
+import { Settings, Edit2, CheckSquare, Trash2, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -21,13 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 type ViewMode = "list" | "kanban";
 type DisplayOption = "project" | "client" | "assignee" | "dueDate" | "priority" | "status" | "collaborators";
@@ -115,15 +108,15 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   // Task selection functionality
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
 
-  // Column sorting - per-stage
-  const [columnSorts, setColumnSorts] = useState<Record<TaskStatus, string>>(() => {
+  // Column sorting - per-stage (true = ascending by due date, false = descending)
+  const [columnSorts, setColumnSorts] = useState<Record<TaskStatus, boolean>>(() => {
     const saved = localStorage.getItem('kanban-column-sorts');
     return saved ? JSON.parse(saved) : {
-      backlog: 'recent',
-      todo: 'recent',
-      'in-progress': 'recent',
-      review: 'recent',
-      done: 'recent'
+      backlog: true,
+      todo: true,
+      'in-progress': true,
+      review: true,
+      done: true
     };
   });
 
@@ -149,43 +142,28 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
       title: status.label
     }));
   
-  // Sorting function based on sort type
-  const getSortFunction = (sortType: string) => {
+  // Sort by due date only (ascending or descending)
+  const getSortFunction = (ascending: boolean) => {
     return (a: Task, b: Task) => {
-      switch(sortType) {
-        case 'recent':
-          // Most recently created first
-          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-        case 'due-date':
-          // Due date ascending (soonest first)
-          if (!a.dueDate && !b.dueDate) return 0;
-          if (!a.dueDate) return 1;
-          if (!b.dueDate) return -1;
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        case 'priority':
-          // Priority order: urgent > high > medium > low
-          const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3, undefined: 4 };
-          return (priorityOrder[a.priority as keyof typeof priorityOrder] || 4) -
-                 (priorityOrder[b.priority as keyof typeof priorityOrder] || 4);
-        case 'name':
-          return a.title.localeCompare(b.title);
-        default:
-          return 0;
-      }
+      if (!a.dueDate && !b.dueDate) return 0;
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      const diff = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      return ascending ? diff : -diff;
     };
   };
 
   // Prepare tasks by status with per-column sorting
   const tasksByStatus = columns.reduce((acc, column) => {
-    const sortType = columnSorts[column.id] || 'recent';
+    const ascending = columnSorts[column.id] !== false;
     acc[column.id] = tasks
       .filter(task => task.status === column.id)
-      .sort(getSortFunction(sortType));
+      .sort(getSortFunction(ascending));
     return acc;
   }, {} as Record<TaskStatus, Task[]>);
 
-  const handleColumnSort = (columnId: TaskStatus, sortType: string) => {
-    const newSorts = { ...columnSorts, [columnId]: sortType };
+  const handleColumnSort = (columnId: TaskStatus, ascending: boolean) => {
+    const newSorts = { ...columnSorts, [columnId]: ascending };
     setColumnSorts(newSorts);
     localStorage.setItem('kanban-column-sorts', JSON.stringify(newSorts));
   };
@@ -580,18 +558,21 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                 >
                   <div className="flex justify-between items-center mb-2 gap-2">
                     <h3 className="font-medium text-sm">{column.title}</h3>
-                    <div className="flex items-center gap-2">
-                      <Select value={columnSorts[column.id] || 'recent'} onValueChange={(value) => handleColumnSort(column.id, value)}>
-                        <SelectTrigger className="h-7 w-24 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="recent">Recent</SelectItem>
-                          <SelectItem value="due-date">Due Date</SelectItem>
-                          <SelectItem value="priority">Priority</SelectItem>
-                          <SelectItem value="name">Name</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleColumnSort(column.id, true)}
+                        className={`p-1 rounded hover:bg-background/50 transition-colors ${columnSorts[column.id] !== false ? 'bg-background/50' : ''}`}
+                        title="Sort ascending (earliest first)"
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleColumnSort(column.id, false)}
+                        className={`p-1 rounded hover:bg-background/50 transition-colors ${columnSorts[column.id] === false ? 'bg-background/50' : ''}`}
+                        title="Sort descending (latest first)"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </button>
                       <span className="text-xs bg-background/40 px-2 py-1 rounded-full whitespace-nowrap">
                         {tasksByStatus[column.id].length}
                       </span>
