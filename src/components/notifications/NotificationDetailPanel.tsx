@@ -125,7 +125,7 @@ export function NotificationDetailPanel({ notification }: NotificationDetailPane
   const taskProject = task ? projects.find(p => p.id === task.projectId) : null;
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
+    <div className="max-w-2xl mx-auto p-3 space-y-3">
       {/* Main Notification Card */}
       <Card className={`border-l-4 shadow-sm ${
         isMentionNotification ? 'border-l-blue-500' :
@@ -134,16 +134,16 @@ export function NotificationDetailPanel({ notification }: NotificationDetailPane
         'border-l-gray-500'
       }`}>
         {/* Header */}
-        <CardHeader className={`pb-4 ${typeInfo.bgColor}`}>
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-start gap-3 flex-1">
-              <Avatar className="h-10 w-10 border border-border flex-shrink-0">
+        <CardHeader className={`pb-2 ${typeInfo.bgColor}`}>
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex items-start gap-1.5 flex-1">
+              <Avatar className="h-8 w-8 border border-border flex-shrink-0">
                 <AvatarImage src={sender?.avatar} />
                 <AvatarFallback>{sender?.name?.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="font-semibold text-base">{sender?.name || "Unknown User"}</span>
+                  <span className="font-semibold text-sm">{sender?.name || "Unknown User"}</span>
                   <Badge variant="outline" className="text-xs">
                     <IconComponent className="h-3 w-3 mr-1" />
                     {typeInfo.label}
@@ -158,29 +158,29 @@ export function NotificationDetailPanel({ notification }: NotificationDetailPane
         </CardHeader>
 
         {/* Content */}
-        <CardContent className="pt-4">
-          <div className="space-y-4">
+        <CardContent className="pt-2">
+          <div className="space-y-2">
             {/* Notification Message */}
             <div>
-              <p className="text-sm text-muted-foreground mb-2">Notification</p>
-              <p className="text-base leading-relaxed whitespace-pre-wrap">{notification.content}</p>
+              <p className="text-xs text-muted-foreground mb-1">Notification</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{notification.content}</p>
             </div>
 
             {/* Task Details (if task notification) */}
             {isTaskNotification && task && (
               <>
                 <Separator />
-                <div className="space-y-4">
-                  <h3 className="font-semibold flex items-center gap-2">
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-sm flex items-center gap-1.5">
                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                     Task Details
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 bg-muted/30 p-2 rounded-lg">
                     {/* Task Title */}
                     <div className="md:col-span-2">
-                      <p className="text-xs font-semibold text-muted-foreground mb-1">TASK</p>
-                      <p className="text-base font-medium">{task.title}</p>
+                      <p className="text-[10px] font-semibold text-muted-foreground mb-0.5">TASK</p>
+                      <p className="text-sm font-medium">{task.title}</p>
                     </div>
 
                     {/* Task Status */}
@@ -251,13 +251,13 @@ export function NotificationDetailPanel({ notification }: NotificationDetailPane
             {isProjectNotification && project && !isTaskNotification && (
               <>
                 <Separator />
-                <div className="space-y-4">
-                  <h3 className="font-semibold flex items-center gap-2">
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-sm flex items-center gap-1.5">
                     <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                     Project Details
                   </h3>
 
-                  <div className="bg-muted/30 p-4 rounded-lg space-y-3">
+                  <div className="bg-muted/30 p-2 rounded-lg space-y-1.5">
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground mb-1">PROJECT NAME</p>
                       <p className="text-base font-medium">{project.name}</p>
@@ -279,12 +279,12 @@ export function NotificationDetailPanel({ notification }: NotificationDetailPane
 
             {/* Activity Timeline */}
             <Separator />
-            <div className="space-y-3">
-              <h3 className="font-semibold flex items-center gap-2 text-sm">
-                <Activity className="h-4 w-4" />
+            <div className="space-y-1.5">
+              <h3 className="font-semibold text-xs flex items-center gap-1.5">
+                <Activity className="h-3 w-3" />
                 Activity
               </h3>
-              <div className="pl-4 border-l-2 border-muted space-y-3">
+              <div className="pl-2 border-l-2 border-muted space-y-1.5">
                 <div className="relative -ml-4 pl-4">
                   <div className="absolute -left-2 top-1.5 w-3 h-3 bg-primary rounded-full" />
                   <div>
@@ -301,7 +301,7 @@ export function NotificationDetailPanel({ notification }: NotificationDetailPane
       </Card>
 
       {/* Quick Action Buttons */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {isTaskNotification && task && (
           <>
             <Button
