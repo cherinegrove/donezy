@@ -52,7 +52,7 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [] 
     return isToday(parseISO(date));
   };
 
-  const shouldShake = isUrgent || (task.dueDate && isDueToday(task.dueDate));
+  const shouldShake = task.status !== 'done' && (isUrgent || (task.dueDate && isDueToday(task.dueDate)));
 
   const isCollaboratorTask = task.collaboratorIds?.includes(currentUser?.id) && task.assigneeId !== currentUser?.id;
 

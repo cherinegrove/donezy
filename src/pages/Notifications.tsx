@@ -1,5 +1,5 @@
 
-import { useState, lazy, Suspense } from "react";
+import { useState } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Message } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,21 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, MessageSquare, CheckCircle, Clock, User, ExternalLink, AtSign, AlertCircle } from "lucide-react";
+import { Bell, MessageSquare, CheckCircle, Clock, User, AtSign, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { NotificationReplySection } from "@/components/notifications/NotificationReplySection";
-const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
-import type { Task } from "@/types";
+import { NotificationDetailPanel } from "@/components/notifications/NotificationDetailPanel";
 
 export default function Notifications() {
   const { messages, users, projects, tasks, currentUser, markMessageAsRead } = useAppContext();
-  const navigate = useNavigate();
   const [selectedNotification, setSelectedNotification] = useState<Message | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [editTask, setEditTask] = useState<Task | null>(null);
-  const [editTaskOpen, setEditTaskOpen] = useState(false);
 
   // Get all notifications for current user
   const allNotifications = currentUser
@@ -64,15 +58,6 @@ export default function Notifications() {
   const handleNotificationClick = (notification: Message) => {
     if (!notification.read) markMessageAsRead(notification.id);
     setSelectedNotification(notification);
-
-    // If task-related, open the EditTaskDialog directly
-    if (notification.taskId) {
-      const task = tasks.find(t => t.id === notification.taskId);
-      if (task) {
-        setEditTask(task);
-        setEditTaskOpen(true);
-      }
-    }
   };
 
   const getNotificationTypeInfo = (message: Message) => {
@@ -134,9 +119,6 @@ export default function Notifications() {
       </div>
     );
   };
-
-  // For non-task notifications (project-only), show inline detail panel
-  const showDetailPanel = selectedNotification && !selectedNotification.taskId;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -201,50 +183,11 @@ export default function Notifications() {
         </Tabs>
       </div>
 
-      {/* Right panel — only for project-only notifications */}
+      {/* Right panel — Notification Detail View */}
       <div className="flex-1 overflow-y-auto bg-gradient-to-b from-background to-muted/20">
-        {showDetailPanel ? (
-          <div className="max-w-4xl mx-auto p-8 pb-12">
-            {selectedNotification.projectId && !selectedNotification.taskId && (() => {
-              const project = projects.find(p => p.id === selectedNotification.projectId);
-              if (!project) return (
-                <div className="text-center py-12 text-muted-foreground">
-                  <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                  <p className="text-sm">Project not found</p>
-                </div>
-              );
-              return (
-                <Card className="border-l-4 border-l-orange-500 shadow-sm mb-6">
-                  <CardHeader className="pb-3 bg-orange-50/50 dark:bg-orange-950/20">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-orange-100 dark:bg-orange-950/40 rounded-lg">
-                          <Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg">{project.name}</CardTitle>
-                          <p className="text-xs text-muted-foreground mt-1">Project Notification</p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate(`/projects/${project.id}`)}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        View Project
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-4">
-                    <p className="text-sm text-muted-foreground">{project.description}</p>
-                  </CardContent>
-                </Card>
-              );
-            })()}
-            <NotificationReplySection taskId={selectedNotification.taskId || ""} />
-          </div>
-        ) : !editTaskOpen && (
+        {selectedNotification ? (
+          <NotificationDetailPanel notification={selectedNotification} />
+        ) : (
           <div className="h-full flex items-center justify-center">
             <div className="text-center text-muted-foreground space-y-4">
               <div className="p-4 bg-muted/50 rounded-full w-fit mx-auto">
@@ -258,18 +201,6 @@ export default function Notifications() {
           </div>
         )}
       </div>
-
-      {/* Single unified EditTaskDialog for task notifications */}
-      {editTask && (
-        <EditTaskDialog
-          task={editTask}
-          open={editTaskOpen}
-          onOpenChange={(open) => {
-            setEditTaskOpen(open);
-            if (!open) setEditTask(null);
-          }}
-        />
-      )}
     </div>
   );
 }

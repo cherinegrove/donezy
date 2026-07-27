@@ -107,7 +107,19 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   
   // Task selection functionality
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
-  
+
+  // Column sorting - per-stage
+  const [columnSorts, setColumnSorts] = useState<Record<TaskStatus, string>>(() => {
+    const saved = localStorage.getItem('kanban-column-sorts');
+    return saved ? JSON.parse(saved) : {
+      backlog: 'recent',
+      todo: 'recent',
+      'in-progress': 'recent',
+      review: 'recent',
+      done: 'recent'
+    };
+  });
+
   // Global display options for all task cards - load from localStorage
   const [displayOptions, setDisplayOptions] = useState<DisplayOption[]>(() => {
     const saved = localStorage.getItem('kanban-display-options');
@@ -130,24 +142,46 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
       title: status.label
     }));
   
-  // Helper function to sort tasks by due date (soonest first, null dates at the end)
-  const sortByDueDate = (a: Task, b: Task) => {
-    // If neither has a due date, maintain original order
-    if (!a.dueDate && !b.dueDate) return 0;
-    // Tasks without due dates go to the end
-    if (!a.dueDate) return 1;
-    if (!b.dueDate) return -1;
-    // Sort by due date ascending (soonest first)
-    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+  // Sorting function based on sort type
+  const getSortFunction = (sortType: string) => {
+    return (a: Task, b: Task) => {
+      switch(sortType) {
+        case 'recent':
+          // Most recently created first
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        case 'due-date':
+          // Due date ascending (soonest first)
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1;
+          if (!b.dueDate) return -1;
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        case 'priority':
+          // Priority order: urgent > high > medium > low
+          const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3, undefined: 4 };
+          return (priorityOrder[a.priority as keyof typeof priorityOrder] || 4) -
+                 (priorityOrder[b.priority as keyof typeof priorityOrder] || 4);
+        case 'name':
+          return a.title.localeCompare(b.title);
+        default:
+          return 0;
+      }
+    };
   };
 
-  // Prepare tasks by status and sort by due date (soonest first)
+  // Prepare tasks by status with per-column sorting
   const tasksByStatus = columns.reduce((acc, column) => {
+    const sortType = columnSorts[column.id] || 'recent';
     acc[column.id] = tasks
       .filter(task => task.status === column.id)
-      .sort(sortByDueDate);
+      .sort(getSortFunction(sortType));
     return acc;
   }, {} as Record<TaskStatus, Task[]>);
+
+  const handleColumnSort = (columnId: TaskStatus, sortType: string) => {
+    const newSorts = { ...columnSorts, [columnId]: sortType };
+    setColumnSorts(newSorts);
+    localStorage.setItem('kanban-column-sorts', JSON.stringify(newSorts));
+  };
   
   // Drag and drop handler using @hello-pangea/dnd
   const handleDragEnd = async (result: DropResult) => {
@@ -537,11 +571,24 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                 <div
                   className="rounded-lg px-2 py-1 h-full bg-slate-100 dark:bg-slate-800/50"
                 >
-                  <div className="flex justify-between items-center mb-2">
+                  <div className="flex justify-between items-center mb-2 gap-2">
                     <h3 className="font-medium text-sm">{column.title}</h3>
-                    <span className="text-xs bg-background/40 px-2 py-1 rounded-full">
-                      {tasksByStatus[column.id].length}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <Select value={columnSorts[column.id] || 'recent'} onValueChange={(value) => handleColumnSort(column.id, value)}>
+                        <SelectTrigger className="h-7 w-24 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="recent">Recent</SelectItem>
+                          <SelectItem value="due-date">Due Date</SelectItem>
+                          <SelectItem value="priority">Priority</SelectItem>
+                          <SelectItem value="name">Name</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <span className="text-xs bg-background/40 px-2 py-1 rounded-full whitespace-nowrap">
+                        {tasksByStatus[column.id].length}
+                      </span>
+                    </div>
                   </div>
                   
                   <Droppable droppableId={column.id}>
