@@ -557,26 +557,21 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                   className="rounded-lg px-2 py-1 h-full bg-slate-100 dark:bg-slate-800/50"
                 >
                   <div className="flex justify-between items-center mb-2 gap-2">
-                    <h3 className="font-medium text-sm">{column.title}</h3>
-                    <div className="flex flex-col items-center gap-0.5">
-                      <button
-                        onClick={() => handleColumnSort(column.id, true)}
-                        className={`p-0.5 rounded hover:bg-background/50 transition-colors ${columnSorts[column.id] !== false ? 'bg-background/50' : ''}`}
-                        title="Sort ascending (earliest first)"
-                      >
-                        <ChevronUp className="h-2.5 w-2.5" />
-                      </button>
-                      <button
-                        onClick={() => handleColumnSort(column.id, false)}
-                        className={`p-0.5 rounded hover:bg-background/50 transition-colors ${columnSorts[column.id] === false ? 'bg-background/50' : ''}`}
-                        title="Sort descending (latest first)"
-                      >
-                        <ChevronDown className="h-2.5 w-2.5" />
-                      </button>
-                      <span className="text-xs bg-background/40 px-2 py-1 rounded-full whitespace-nowrap">
-                        {tasksByStatus[column.id].length}
-                      </span>
-                    </div>
+                    <button
+                      onClick={() => handleColumnSort(column.id, columnSorts[column.id] === false)}
+                      className="flex items-center gap-1 hover:opacity-70 transition-opacity"
+                      title="Click to sort by due date"
+                    >
+                      <h3 className="font-medium text-sm">{column.title}</h3>
+                      {columnSorts[column.id] !== false ? (
+                        <ChevronUp className="h-3 w-3 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                      )}
+                    </button>
+                    <span className="text-xs bg-background/40 px-2 py-1 rounded-full whitespace-nowrap">
+                      {tasksByStatus[column.id].length}
+                    </span>
                   </div>
                   
                   <Droppable droppableId={column.id}>
