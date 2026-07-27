@@ -528,16 +528,16 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
       
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="overflow-x-auto">
-          <div className="flex gap-3 pb-4">
+          <div className="flex gap-2 pb-3">
             {columns.map((column) => (
               <div
                 key={column.id}
                 className="w-[250px] flex-shrink-0"
               >
                 <div
-                  className="rounded-lg p-2 h-full bg-slate-100 dark:bg-slate-800/50"
+                  className="rounded-lg px-2 py-1 h-full bg-slate-100 dark:bg-slate-800/50"
                 >
-                  <div className="flex justify-between items-center mb-3">
+                  <div className="flex justify-between items-center mb-2">
                     <h3 className="font-medium text-sm">{column.title}</h3>
                     <span className="text-xs bg-background/40 px-2 py-1 rounded-full">
                       {tasksByStatus[column.id].length}
@@ -549,7 +549,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className={`space-y-2 min-h-[400px] max-h-[70vh] overflow-y-auto transition-colors ${
+                        className={`space-y-1 min-h-[400px] max-h-[70vh] overflow-y-auto transition-colors ${
                           snapshot.isDraggingOver ? 'bg-background/10 rounded-md' : ''
                         }`}
                       >
