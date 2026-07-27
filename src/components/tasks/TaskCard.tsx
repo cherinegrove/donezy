@@ -1,7 +1,6 @@
 import React, { memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Checkbox } from "@/components/ui/checkbox";
 import { format, parseISO, isBefore, isToday } from "date-fns";
 import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
@@ -12,12 +11,9 @@ interface TaskCardProps {
   onClick?: (e?: React.MouseEvent) => void;
   showProject?: boolean;
   displayOptions?: string[];
-  isSelected?: boolean;
-  onSelectionChange?: (taskId: string) => void;
-  showSelection?: boolean;
 }
 
-function TaskCardInner({ task, onClick, showProject = true, displayOptions = [], isSelected = false, onSelectionChange, showSelection = false }: TaskCardProps) {
+function TaskCardInner({ task, onClick, showProject = true, displayOptions = [] }: TaskCardProps) {
   const { projects, users, currentUser, clients, taskStatuses } = useAppContext();
   
   const project = projects.find(p => p.id === task.projectId);
@@ -60,26 +56,7 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [],
 
   const isCollaboratorTask = task.collaboratorIds?.includes(currentUser?.id) && task.assigneeId !== currentUser?.id;
 
-  const handleSelectionClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (onSelectionChange) {
-      onSelectionChange(task.id);
-    }
-  };
-
-  const handleSelectionChange = (checked: boolean | string) => {
-    if (onSelectionChange) {
-      onSelectionChange(task.id);
-    }
-  };
-
   const handleCardClick = (e: React.MouseEvent) => {
-    // Don't trigger card click if checkbox area was clicked
-    const target = e.target as HTMLElement;
-    if (target.closest('[data-checkbox]')) {
-      return;
-    }
     if (onClick) {
       onClick(e);
     }
@@ -98,9 +75,7 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [],
         task.priority === 'low' && "border-l-green-500 border border-green-200/50 dark:border-green-900/30",
         !task.priority && "border-l-gray-400 border border-gray-200/50 dark:border-gray-700/30",
         // Collaborator indicator
-        isCollaboratorTask && "border-t-2 border-t-blue-500",
-        // Selection state
-        isSelected && "ring-2 ring-primary bg-primary/5"
+        isCollaboratorTask && "border-t-2 border-t-blue-500"
       )}
       onClick={handleCardClick}
     >
@@ -108,20 +83,7 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [],
       {shouldShake && (
         <div className="absolute top-2 right-2 text-2xl animate-wave">🚩</div>
       )}
-      {showSelection && (
-        <div className="absolute top-2 right-2 z-10" data-checkbox>
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={handleSelectionChange}
-            onClick={handleSelectionClick}
-            className={cn(
-              "transition-opacity bg-background border-2 shadow-sm",
-              isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-            )}
-          />
-        </div>
-      )}
-      <div className={cn(showSelection && "pr-8")}>
+      <div>
         <div className="flex items-start gap-2 mb-2">
           <h4 className="font-semibold text-xs line-clamp-2 flex-1 break-words min-w-0 text-foreground">
             {task.title}
