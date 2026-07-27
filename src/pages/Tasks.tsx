@@ -21,7 +21,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, isToday, parseISO } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
@@ -160,6 +160,23 @@ export default function Tasks() {
         label: user.name,
       })),
     },
+    {
+      id: "priority",
+      name: "Priority",
+      options: [
+        { id: "urgent", label: "Urgent" },
+        { id: "high", label: "High" },
+        { id: "medium", label: "Medium" },
+        { id: "low", label: "Low" },
+      ],
+    },
+    {
+      id: "flagged",
+      name: "Flagged",
+      options: [
+        { id: "flagged", label: "Flagged (Urgent or Due Today)" },
+      ],
+    },
   ];
 
   // Memoize filter lookups for O(1) performance instead of O(n²)
@@ -167,6 +184,8 @@ export default function Tasks() {
     const clientFilter = activeFilters["clients"] || [];
     const projectFilter = activeFilters["projects"] || [];
     const assigneeFilter = activeFilters["assignees"] || [];
+    const priorityFilter = activeFilters["priority"] || [];
+    const flaggedFilter = activeFilters["flagged"] || [];
 
     // Precompute project IDs for selected clients (Set for O(1) lookup)
     const selectedClientIds = new Set(clientFilter);
@@ -183,9 +202,12 @@ export default function Tasks() {
       clientProjectIds: projectIdsForClients,
       selectedProjects: new Set(projectFilter),
       selectedAssignees: new Set(assigneeFilter),
+      selectedPriorities: new Set(priorityFilter),
+      hasFlaggedFilter: flaggedFilter.length > 0,
       hasClientFilter: selectedClientIds.size > 0,
       hasProjectFilter: projectFilter.length > 0,
       hasAssigneeFilter: assigneeFilter.length > 0,
+      hasPriorityFilter: priorityFilter.length > 0,
     };
   }, [activeFilters, projects]);
 
@@ -212,6 +234,19 @@ export default function Tasks() {
         return false;
       }
 
+      // Apply priority filter
+      if (filterLookups.hasPriorityFilter && !filterLookups.selectedPriorities.has(task.priority || 'none')) {
+        return false;
+      }
+
+      // Apply flagged filter
+      if (filterLookups.hasFlaggedFilter) {
+        const isFlagged = task.priority === 'urgent' || (task.dueDate && isToday(parseISO(task.dueDate)));
+        if (!isFlagged) {
+          return false;
+        }
+      }
+
       // Filter by start date
       if (startDate && task.createdAt) {
         const taskStartDate = new Date(task.createdAt);
@@ -232,7 +267,7 @@ export default function Tasks() {
     });
 
     setFilteredTasks(filtered);
-  }, [tasks, filterLookups, startDate, dueDate, statusFilter]);
+  }, [tasks, filterLookups, startDate, dueDate, statusFilter, activeFilters]);
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setActiveFilters(filters);
