@@ -5,7 +5,7 @@ import { KanbanTaskCardWithComment } from "./KanbanTaskCardWithComment";
 import { useState, useEffect, lazy, Suspense } from "react";
 const EditTaskDialog = lazy(() => import("../tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { TaskStatusPromptDialog } from "../tasks/TaskStatusPromptDialog";
-import { Settings, Edit2, CheckSquare, Trash2, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
+import { Settings, Edit2, CheckSquare, Trash2, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -558,20 +558,20 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                 >
                   <div className="flex justify-between items-center mb-2 gap-2">
                     <h3 className="font-medium text-sm">{column.title}</h3>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       <button
                         onClick={() => handleColumnSort(column.id, true)}
-                        className={`p-1 rounded hover:bg-background/50 transition-colors ${columnSorts[column.id] !== false ? 'bg-background/50' : ''}`}
+                        className={`p-0.5 rounded hover:bg-background/50 transition-colors ${columnSorts[column.id] !== false ? 'bg-background/50' : ''}`}
                         title="Sort ascending (earliest first)"
                       >
-                        <ArrowUp className="h-4 w-4" />
+                        <ChevronUp className="h-2.5 w-2.5" />
                       </button>
                       <button
                         onClick={() => handleColumnSort(column.id, false)}
-                        className={`p-1 rounded hover:bg-background/50 transition-colors ${columnSorts[column.id] === false ? 'bg-background/50' : ''}`}
+                        className={`p-0.5 rounded hover:bg-background/50 transition-colors ${columnSorts[column.id] === false ? 'bg-background/50' : ''}`}
                         title="Sort descending (latest first)"
                       >
-                        <ArrowDown className="h-4 w-4" />
+                        <ChevronDown className="h-2.5 w-2.5" />
                       </button>
                       <span className="text-xs bg-background/40 px-2 py-1 rounded-full whitespace-nowrap">
                         {tasksByStatus[column.id].length}
