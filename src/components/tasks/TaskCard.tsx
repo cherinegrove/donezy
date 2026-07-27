@@ -104,7 +104,13 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [] 
         </div>
 
         <div className="space-y-2">
-          {displayOptions.includes("project") && project && (
+          {client && (
+            <div className="truncate">
+              <span className="text-[11px] font-medium text-muted-foreground">{client.name}</span>
+            </div>
+          )}
+
+          {project && (
             <div className="truncate">
               <span className="text-[11px] font-medium text-muted-foreground">{project.name}</span>
             </div>
