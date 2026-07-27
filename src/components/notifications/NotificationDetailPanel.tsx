@@ -20,7 +20,6 @@ import {
   Users,
   Activity,
   Bell,
-  Snooze,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -344,7 +343,7 @@ export function NotificationDetailPanel({ notification }: NotificationDetailPane
           variant="outline"
           className={`gap-2 ${isSnoozed ? 'ring-2 ring-primary' : ''}`}
         >
-          <Snooze className="h-4 w-4" />
+          <Clock className="h-4 w-4" />
           {isSnoozed ? "Snoozed" : "Snooze"}
         </Button>
       </div>
