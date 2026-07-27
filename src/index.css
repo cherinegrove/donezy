@@ -16,8 +16,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 15%;
 
-    /* PRIMARY = BLUE (professional accent) */
-    --primary: 210 100% 50%;
+    /* PRIMARY = NAVY (professional accent) */
+    --primary: 214 68% 31%;
     --primary-foreground: 0 0% 100%;
 
     /* SECONDARY = Light gray */
@@ -28,7 +28,7 @@
     --muted: 0 0% 90%;
     --muted-foreground: 0 0% 50%;
 
-    --accent: 210 100% 50%;
+    --accent: 214 68% 31%;
     --accent-foreground: 0 0% 100%;
 
     /* Status colors */
@@ -42,7 +42,7 @@
     /* Spacing & Layout */
     --border: 0 0% 92%;
     --input: 0 0% 92%;
-    --ring: 210 100% 50%;
+    --ring: 214 68% 31%;
     --radius: 0.5rem;
 
     /* Shadows */
