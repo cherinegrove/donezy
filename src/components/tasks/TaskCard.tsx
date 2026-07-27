@@ -81,7 +81,7 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [] 
     >
       {/* Red flag for urgent/due today tasks */}
       {shouldShake && (
-        <div className="absolute top-2 right-2 text-2xl animate-wave">🚩</div>
+        <div className="absolute top-8 right-2 text-2xl animate-wave">🚩</div>
       )}
       <div>
         <div className="flex items-start gap-2 mb-2">
