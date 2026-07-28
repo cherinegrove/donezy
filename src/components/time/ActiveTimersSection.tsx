@@ -76,12 +76,12 @@ export function ActiveTimersSection({
   allActiveTimers = [],
   isSuperAdmin = false,
 }: ActiveTimersSectionProps) {
-  const { 
-    stopTimeTracking, 
-    startTimeTracking, 
-    pauseTimeTracking, 
-    activeTimeEntry, 
-    addTimeEntry, 
+  const {
+    stopTimeTracking,
+    startTimeTracking,
+    pauseTimeTracking,
+    activeTimeEntry,
+    addTimeEntry,
     currentUser,
     session,
     tasks,
@@ -90,11 +90,22 @@ export function ActiveTimersSection({
     clients,
     customRoles
   } = useAppContext();
-  
+
   const [stopDialogOpen, setStopDialogOpen] = useState(false);
   const [selectedLocalTimer, setSelectedLocalTimer] = useState<TimerItem | null>(null);
   const [notes, setNotes] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
+  const [, setRefreshTrigger] = useState(0); // Force re-render when timers update
+
+  // Listen for timer updates to refresh display
+  useEffect(() => {
+    const handleTimersUpdated = () => {
+      setRefreshTrigger(prev => prev + 1);
+    };
+
+    window.addEventListener('timersUpdated', handleTimersUpdated);
+    return () => window.removeEventListener('timersUpdated', handleTimersUpdated);
+  }, []);
 
   // Check if current user is admin
   const isAdminUser = () => {
@@ -594,27 +605,32 @@ export function ActiveTimersSection({
           const isBackendTimer = !timer.isLocalOnly && activeTimer && timer.id === activeTimer.timeEntry.id;
           const isOtherUserTimer = timer.isOtherUser;
           const now = Date.now();
-          
-          // For other users' timers, use the cached (static) elapsed time
-          // For current user's timers, calculate real-time
+
+          // Calculate elapsed time - accurate for both running and paused timers
           let elapsed: number;
           if (isOtherUserTimer && timer.cachedElapsed !== undefined) {
-            // Use pre-computed cached elapsed time - won't tick on re-renders
+            // Use pre-computed cached elapsed time for other users' timers
             elapsed = timer.cachedElapsed;
-          } else if (timer.isActive && !timer.isPaused && timer.isLocalOnly) {
-            elapsed = now - timer.startTime.getTime() - (timer.totalPausedTime || 0);
+          } else if (timer.isPaused) {
+            // Paused timer: use the exact elapsed time recorded at pause
+            elapsed = timer.elapsed || 0;
           } else if (timer.isActive && !timer.isPaused) {
-            elapsed = now - new Date(timer.startTime).getTime() - (timer.totalPausedTime || 0);
+            // Running timer: calculate from start time minus any pause periods
+            const startTimeMs = timer.startTime instanceof Date
+              ? timer.startTime.getTime()
+              : new Date(timer.startTime).getTime();
+            elapsed = now - startTimeMs - (timer.totalPausedTime || 0);
           } else {
-            elapsed = timer.elapsed;
+            // Fallback: use stored elapsed
+            elapsed = timer.elapsed || 0;
           }
-          
-          const displayTime = isBackendTimer ? activeTimer!.elapsedTime : formatTime(elapsed);
-          
-          // For other users' timers, we can't determine pause state - show as "Active" not "Live"
-          // Only the current user's backend timer can show accurate Live/Paused state
+
+          const displayTime = isBackendTimer ? activeTimer!.elapsedTime : formatTime(Math.max(0, elapsed));
+
+          // Determine timer status badge
           const isLive = isBackendTimer ? !isTimerPaused : (!isOtherUserTimer && timer.isActive && !timer.isPaused);
-          const showPlayButton = isBackendTimer ? isTimerPaused : timer.isPaused;
+          const isPausedState = isBackendTimer ? isTimerPaused : timer.isPaused;
+          const showPlayButton = isPausedState;
 
           // Check if timer is stale (> 24 hours)
           const HOURS_24_MS = 24 * 60 * 60 * 1000;
@@ -657,13 +673,13 @@ export function ActiveTimersSection({
                       <Badge variant="outline" className="text-xs">
                         Active
                       </Badge>
-                    ) : isLive ? (
-                      <Badge variant="default" className="text-xs">
-                        Live
+                    ) : isPausedState ? (
+                      <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200">
+                        ⏸ Paused
                       </Badge>
                     ) : (
-                      <Badge variant="secondary" className="text-xs">
-                        Paused
+                      <Badge variant="default" className="text-xs bg-green-600 hover:bg-green-700">
+                        ● Live
                       </Badge>
                     )}
                     {isStale && (
