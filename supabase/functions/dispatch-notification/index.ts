@@ -23,11 +23,11 @@ interface DispatchRequest {
 }
 
 const DEFAULTS: Record<EventType, { in_app: boolean; email: boolean }> = {
-  task_assigned: { in_app: true, email: true },
+  task_assigned: { in_app: true, email: false },
   task_status_changed: { in_app: true, email: false },
   task_updated: { in_app: true, email: false },
   task_commented: { in_app: true, email: false },
-  mentioned: { in_app: true, email: true },
+  mentioned: { in_app: true, email: false },
 }
 
 function template(eventType: EventType, ctx: Record<string, string | undefined>): { subject: string; content: string } {
