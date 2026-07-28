@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Upload, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ProjectSelect } from "./ProjectSelect";
@@ -40,24 +40,63 @@ const DAYS_OF_WEEK = [
 export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, initialTask }: RecurringTaskDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  
+
   const taskData = editTask || initialTask;
-  
-  const [title, setTitle] = useState(taskData?.title || "");
-  const [description, setDescription] = useState(taskData?.description || "");
-  const [projectId, setProjectId] = useState(taskData?.project_id || "");
-  const [assigneeId, setAssigneeId] = useState(taskData?.assignee_id || "");
-  const [priority, setPriority] = useState(taskData?.priority || "medium");
-  const [collaboratorIds, setCollaboratorIds] = useState<string[]>(taskData?.collaborator_ids || []);
-  const [estimatedHours, setEstimatedHours] = useState<number | undefined>(taskData?.estimated_hours);
-  
-  const [recurrencePattern, setRecurrencePattern] = useState<string>(editTask?.recurrence_pattern || "daily");
-  const [recurrenceInterval, setRecurrenceInterval] = useState(editTask?.recurrence_interval || 1);
-  const [selectedDaysOfWeek, setSelectedDaysOfWeek] = useState<number[]>(editTask?.days_of_week || []);
-  const [dayOfMonth, setDayOfMonth] = useState<number | undefined>(editTask?.day_of_month);
-  const [startDate, setStartDate] = useState<Date>(editTask?.start_date ? new Date(editTask.start_date) : new Date());
-  const [endDate, setEndDate] = useState<Date | undefined>(editTask?.end_date ? new Date(editTask.end_date) : undefined);
-  const [hasEndDate, setHasEndDate] = useState(!!editTask?.end_date);
+
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [projectId, setProjectId] = useState("");
+  const [assigneeId, setAssigneeId] = useState("");
+  const [priority, setPriority] = useState("medium");
+  const [collaboratorIds, setCollaboratorIds] = useState<string[]>([]);
+  const [estimatedHours, setEstimatedHours] = useState<number | undefined>();
+  const [fileIds, setFileIds] = useState<string[]>([]);
+
+  const [recurrencePattern, setRecurrencePattern] = useState("daily");
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [selectedDaysOfWeek, setSelectedDaysOfWeek] = useState<number[]>([]);
+  const [dayOfMonth, setDayOfMonth] = useState<number | undefined>();
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [hasEndDate, setHasEndDate] = useState(false);
+
+  // Update form when editTask changes
+  useEffect(() => {
+    if (taskData && open) {
+      setTitle(taskData.title || "");
+      setDescription(taskData.description || "");
+      setProjectId(taskData.project_id || "");
+      setAssigneeId(taskData.assignee_id || "");
+      setPriority(taskData.priority || "medium");
+      setCollaboratorIds(taskData.collaborator_ids || []);
+      setEstimatedHours(taskData.estimated_hours);
+      setFileIds(taskData.file_ids || []);
+      setRecurrencePattern(taskData.recurrence_pattern || "daily");
+      setRecurrenceInterval(taskData.recurrence_interval || 1);
+      setSelectedDaysOfWeek(taskData.days_of_week || []);
+      setDayOfMonth(taskData.day_of_month);
+      setStartDate(taskData.start_date ? new Date(taskData.start_date) : new Date());
+      setEndDate(taskData.end_date ? new Date(taskData.end_date) : undefined);
+      setHasEndDate(!!taskData.end_date);
+    } else if (!taskData && open) {
+      // Reset form for new task
+      setTitle("");
+      setDescription("");
+      setProjectId("");
+      setAssigneeId("");
+      setPriority("medium");
+      setCollaboratorIds([]);
+      setEstimatedHours(undefined);
+      setFileIds([]);
+      setRecurrencePattern("daily");
+      setRecurrenceInterval(1);
+      setSelectedDaysOfWeek([]);
+      setDayOfMonth(undefined);
+      setStartDate(new Date());
+      setEndDate(undefined);
+      setHasEndDate(false);
+    }
+  }, [open, taskData]);
 
   const handleSubmit = async () => {
     if (!title.trim() || !projectId) {
@@ -89,6 +128,7 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
         priority,
         collaborator_ids: collaboratorIds,
         estimated_hours: estimatedHours || null,
+        file_ids: fileIds,
         recurrence_pattern: recurrencePattern,
         recurrence_interval: recurrenceInterval,
         days_of_week: recurrencePattern === 'weekly' ? selectedDaysOfWeek : null,
@@ -206,6 +246,33 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
               onChange={(e) => setEstimatedHours(e.target.value ? Number(e.target.value) : undefined)}
               placeholder="Enter estimated hours"
             />
+          </div>
+
+          <div>
+            <Label>Files</Label>
+            <div className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-muted/50 transition-colors cursor-pointer">
+              <div className="flex flex-col items-center gap-2">
+                <Upload className="h-5 w-5 text-muted-foreground" />
+                <div className="text-sm text-muted-foreground">
+                  Click to add files (feature coming soon)
+                </div>
+              </div>
+            </div>
+            {fileIds.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {fileIds.map((fileId) => (
+                  <div key={fileId} className="flex items-center justify-between bg-muted/50 p-2 rounded text-sm">
+                    <span className="truncate">{fileId}</span>
+                    <button
+                      onClick={() => setFileIds(fileIds.filter(id => id !== fileId))}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="border-t pt-4">
