@@ -3547,9 +3547,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
       
       // Send notification for task updates if status changed
+      console.log('DEBUG reorderTasks - newStatus:', newStatus, 'task.status:', task.status, 'taskId:', taskId);
       if (newStatus && newStatus !== task.status && task.projectId && session?.user?.id) {
         const eventType = newStatus === 'done' ? 'task_completed' : 'status_changed';
         console.log(`🔔 Sending ${eventType} notification for task:`, taskId);
+        console.log('DEBUG - Checking celebration: newStatus===done?', newStatus === 'done', 'oldStatus!==done?', task.status !== 'done');
 
         // Trigger celebration if task marked as done
         if (newStatus === 'done' && task.status !== 'done') {
