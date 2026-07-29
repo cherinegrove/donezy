@@ -3550,6 +3550,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (newStatus && newStatus !== task.status && task.projectId && session?.user?.id) {
         const eventType = newStatus === 'done' ? 'task_completed' : 'status_changed';
         console.log(`🔔 Sending ${eventType} notification for task:`, taskId);
+
+        // Trigger celebration if task marked as done
+        if (newStatus === 'done' && task.status !== 'done') {
+          console.log('🎉 TASK COMPLETED EVENT - Dispatching celebration for:', task.title);
+          window.dispatchEvent(new CustomEvent('taskCompleted', {
+            detail: {
+              taskId: taskId,
+              taskTitle: task.title
+            }
+          }));
+        }
+
         supabase.functions.invoke('send-task-notification', {
           body: {
             taskId,
