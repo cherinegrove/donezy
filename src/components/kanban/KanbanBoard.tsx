@@ -107,7 +107,19 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
       window.removeEventListener('kanbanColorsUpdated', handleColorsUpdate);
     };
   }, []);
-  
+
+  // Listen for task completion event from context
+  useEffect(() => {
+    const handleTaskCompleted = (event: any) => {
+      const { taskTitle } = event.detail;
+      setCompletedTask({ title: taskTitle } as Task);
+      setShowCelebration(true);
+    };
+
+    window.addEventListener('taskCompleted', handleTaskCompleted);
+    return () => window.removeEventListener('taskCompleted', handleTaskCompleted);
+  }, []);
+
   // Task selection functionality
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
 
@@ -213,15 +225,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
         destination.index,
         sourceStatus !== destinationStatus ? destinationStatus : undefined
       );
-
-      // Show celebration if task moved to done
-      if (destinationStatus === 'done' && sourceStatus !== 'done') {
-        const task = tasks.find(t => t.id === draggableId);
-        if (task) {
-          setCompletedTask(task);
-          setShowCelebration(true);
-        }
-      }
+      // Celebration will trigger via taskCompleted event from context
     }
   };
 
@@ -253,12 +257,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
       if (moveTask) {
         await moveTask(statusPromptTask.id, newStatus as TaskStatus);
       }
-
-      // Show celebration if task moved to done
-      if (newStatus === 'done' && statusPromptTask.status !== 'done') {
-        setCompletedTask(statusPromptTask);
-        setShowCelebration(true);
-      }
+      // Celebration will trigger via taskCompleted event from context
 
       toast({
         title: "Task updated",

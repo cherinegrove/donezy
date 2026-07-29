@@ -2036,6 +2036,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             },
             timestamp: new Date().toISOString()
           });
+
+        // Trigger celebration if task marked as done
+        if (updates.status === 'done' && currentTask.status !== 'done') {
+          window.dispatchEvent(new CustomEvent('taskCompleted', {
+            detail: {
+              taskId: taskId,
+              taskTitle: currentTask.title
+            }
+          }));
+        }
       }
 
       if (updates.backlogReason !== undefined && currentUser) {
