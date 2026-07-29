@@ -115,6 +115,11 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
       console.log('🎊 CELEBRATION LISTENER TRIGGERED - Task:', event.detail.taskTitle);
       setShowConfetti(true);
       console.log('🎊 Showing confetti celebration');
+
+      // Reset after confetti duration
+      setTimeout(() => {
+        setShowConfetti(false);
+      }, 3500);
     };
 
     window.addEventListener('taskCompleted', handleTaskCompleted);
