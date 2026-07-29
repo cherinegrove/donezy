@@ -5,7 +5,7 @@ import { KanbanTaskCardWithComment } from "./KanbanTaskCardWithComment";
 import { useState, useEffect, lazy, Suspense } from "react";
 const EditTaskDialog = lazy(() => import("../tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { TaskStatusPromptDialog } from "../tasks/TaskStatusPromptDialog";
-import { TaskCompletionCelebration } from "../mascot/TaskCompletionCelebration";
+import { ConfettiCelebration } from "../mascot/ConfettiCelebration";
 import { Settings, Edit2, CheckSquare, Trash2, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,8 +43,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   const [statusPromptTask, setStatusPromptTask] = useState<Task | null>(null);
   const [newStatus, setNewStatus] = useState<string>("");
   const [statusPromptOpen, setStatusPromptOpen] = useState(false);
-  const [completedTask, setCompletedTask] = useState<Task | null>(null);
-  const [showCelebration, setShowCelebration] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   const { toast } = useToast();
   const [columnColors, setColumnColors] = useState<Record<TaskStatus, string>>({
     backlog: "var(--kanban-backlog)",
@@ -114,11 +113,8 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
 
     const handleTaskCompleted = (event: any) => {
       console.log('🎊 CELEBRATION LISTENER TRIGGERED - Task:', event.detail.taskTitle);
-      alert('🎉 Task Completed: ' + event.detail.taskTitle); // Debug: show alert
-      const { taskTitle } = event.detail;
-      setCompletedTask({ title: taskTitle } as Task);
-      setShowCelebration(true);
-      console.log('🎊 Setting showCelebration to true');
+      setShowConfetti(true);
+      console.log('🎊 Showing confetti celebration');
     };
 
     window.addEventListener('taskCompleted', handleTaskCompleted);
@@ -675,11 +671,8 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
         />
       )}
 
-      {showCelebration && completedTask && (
-        <TaskCompletionCelebration
-          taskTitle={completedTask.title}
-          onClose={() => setShowCelebration(false)}
-        />
+      {showConfetti && (
+        <ConfettiCelebration />
       )}
     </div>
   );
