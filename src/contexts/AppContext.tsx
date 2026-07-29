@@ -3534,19 +3534,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     // Background database update
     try {
+      console.log('🔄 Starting database update for', updates.length, 'tasks');
       // Batch update in database
       for (const update of updates) {
+        console.log('🔄 Updating task:', update.id, 'status:', update.status, 'order:', update.order_index);
         const { error } = await supabase
           .from('tasks')
-          .update({ 
+          .update({
             order_index: update.order_index,
             ...(update.status ? { status: update.status } : {})
           })
           .eq('id', update.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Database error for task', update.id, ':', error);
+          throw error;
+        }
+        console.log('✅ Task updated:', update.id);
       }
-      
+
       // Send notification for task updates if status changed
       console.log('DEBUG reorderTasks - newStatus:', newStatus, 'task.status:', task.status, 'taskId:', taskId);
       if (newStatus && newStatus !== task.status && task.projectId && session?.user?.id) {
