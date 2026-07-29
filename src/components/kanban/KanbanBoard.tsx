@@ -110,8 +110,11 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
 
   // Listen for task completion event from context
   useEffect(() => {
+    console.log('🎊 useEffect running - registering task completion listener');
+
     const handleTaskCompleted = (event: any) => {
       console.log('🎊 CELEBRATION LISTENER TRIGGERED - Task:', event.detail.taskTitle);
+      alert('🎉 Task Completed: ' + event.detail.taskTitle); // Debug: show alert
       const { taskTitle } = event.detail;
       setCompletedTask({ title: taskTitle } as Task);
       setShowCelebration(true);
