@@ -128,7 +128,6 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
         priority,
         collaborator_ids: collaboratorIds,
         estimated_hours: estimatedHours || null,
-        file_ids: fileIds,
         recurrence_pattern: recurrencePattern,
         recurrence_interval: recurrenceInterval,
         days_of_week: recurrencePattern === 'weekly' ? selectedDaysOfWeek : null,
