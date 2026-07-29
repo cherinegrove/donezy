@@ -2039,6 +2039,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
         // Trigger celebration if task marked as done
         if (updates.status === 'done' && currentTask.status !== 'done') {
+          console.log('🎉 TASK COMPLETED EVENT - Dispatching celebration for:', currentTask.title);
           window.dispatchEvent(new CustomEvent('taskCompleted', {
             detail: {
               taskId: taskId,
