@@ -3482,6 +3482,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   };
 
   const reorderTasks = async (taskId: string, newIndex: number, newStatus?: string) => {
+    console.log('🔄 reorderTasks called - taskId:', taskId, 'newIndex:', newIndex, 'newStatus:', newStatus);
     if (!session?.user) {
       toast({
         title: "Authentication required",
@@ -3490,7 +3491,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       });
       return;
     }
-    
+
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
