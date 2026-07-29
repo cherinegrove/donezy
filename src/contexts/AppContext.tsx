@@ -3497,7 +3497,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     // Determine the target status (use new status if provided, otherwise keep current)
     const targetStatus = newStatus || task.status;
-    
+
+    // Trigger celebration IMMEDIATELY if task marked as done
+    if (newStatus === 'done' && task.status !== 'done') {
+      console.log('🎉 TASK COMPLETED EVENT - Dispatching celebration for:', task.title);
+      window.dispatchEvent(new CustomEvent('taskCompleted', {
+        detail: {
+          taskId: taskId,
+          taskTitle: task.title
+        }
+      }));
+    }
+
     // Get all tasks in the target status
     const tasksInStatus = tasks
       .filter(t => t.status === targetStatus)
@@ -3505,7 +3516,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     // Remove the task being moved if it's in this status already
     const filteredTasks = tasksInStatus.filter(t => t.id !== taskId);
-    
+
     // Insert the task at the new position
     filteredTasks.splice(newIndex, 0, task);
 
