@@ -5,6 +5,7 @@ import { KanbanTaskCardWithComment } from "./KanbanTaskCardWithComment";
 import { useState, useEffect, lazy, Suspense } from "react";
 const EditTaskDialog = lazy(() => import("../tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { TaskStatusPromptDialog } from "../tasks/TaskStatusPromptDialog";
+import { TaskCompletionCelebration } from "../mascot/TaskCompletionCelebration";
 import { Settings, Edit2, CheckSquare, Trash2, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +43,8 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   const [statusPromptTask, setStatusPromptTask] = useState<Task | null>(null);
   const [newStatus, setNewStatus] = useState<string>("");
   const [statusPromptOpen, setStatusPromptOpen] = useState(false);
+  const [completedTask, setCompletedTask] = useState<Task | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
   const { toast } = useToast();
   const [columnColors, setColumnColors] = useState<Record<TaskStatus, string>>({
     backlog: "var(--kanban-backlog)",
@@ -210,6 +213,15 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
         destination.index,
         sourceStatus !== destinationStatus ? destinationStatus : undefined
       );
+
+      // Show celebration if task moved to done
+      if (destinationStatus === 'done' && sourceStatus !== 'done') {
+        const task = tasks.find(t => t.id === draggableId);
+        if (task) {
+          setCompletedTask(task);
+          setShowCelebration(true);
+        }
+      }
     }
   };
 
@@ -240,6 +252,12 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
       // Now perform the reorder/move
       if (moveTask) {
         await moveTask(statusPromptTask.id, newStatus as TaskStatus);
+      }
+
+      // Show celebration if task moved to done
+      if (newStatus === 'done' && statusPromptTask.status !== 'done') {
+        setCompletedTask(statusPromptTask);
+        setShowCelebration(true);
       }
 
       toast({
@@ -649,6 +667,13 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
           task={statusPromptTask}
           newStatus={newStatus}
           onConfirm={handleStatusPromptConfirm}
+        />
+      )}
+
+      {showCelebration && completedTask && (
+        <TaskCompletionCelebration
+          taskTitle={completedTask.title}
+          onClose={() => setShowCelebration(false)}
         />
       )}
     </div>
