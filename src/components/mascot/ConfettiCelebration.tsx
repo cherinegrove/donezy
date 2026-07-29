@@ -34,15 +34,6 @@ export function ConfettiCelebration() {
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden">
-      {/* Celebration message */}
-      <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
-        <div className="text-center animate-bounce">
-          <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-            🎉 Nice work! 🎉
-          </p>
-        </div>
-      </div>
-
       {/* Confetti pieces */}
       {confetti.map((piece) => (
         <div
