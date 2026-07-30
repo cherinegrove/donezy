@@ -598,14 +598,21 @@ export function CreateTaskDialog({
                                 className="w-full justify-start text-left font-normal"
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? format(new Date(field.value), "PPP") : "No due date"}
+                                {field.value ? format(new Date(field.value + "T00:00:00"), "PPP") : "No due date"}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
                               <Calendar
                                 mode="single"
-                                selected={field.value ? new Date(field.value) : undefined}
-                                onSelect={(date) => field.onChange(date?.toISOString())}
+                                selected={field.value ? new Date(field.value + "T00:00:00") : undefined}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    const year = date.getFullYear();
+                                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                                    const day = String(date.getDate()).padStart(2, '0');
+                                    field.onChange(`${year}-${month}-${day}`);
+                                  }
+                                }}
                                 initialFocus
                               />
                             </PopoverContent>
@@ -630,14 +637,21 @@ export function CreateTaskDialog({
                                 className="w-full justify-start text-left font-normal"
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? format(new Date(field.value), "PPP") : "No reminder set"}
+                                {field.value ? format(new Date(field.value + "T00:00:00"), "PPP") : "No reminder set"}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
                               <Calendar
                                 mode="single"
-                                selected={field.value ? new Date(field.value) : undefined}
-                                onSelect={(date) => field.onChange(date?.toISOString())}
+                                selected={field.value ? new Date(field.value + "T00:00:00") : undefined}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    const year = date.getFullYear();
+                                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                                    const day = String(date.getDate()).padStart(2, '0');
+                                    field.onChange(`${year}-${month}-${day}`);
+                                  }
+                                }}
                                 initialFocus
                               />
                             </PopoverContent>

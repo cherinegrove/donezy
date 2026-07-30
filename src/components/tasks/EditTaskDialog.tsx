@@ -77,12 +77,8 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   const [assigneeId, setAssigneeId] = useState(task.assigneeId);
   const [collaboratorIds, setCollaboratorIds] = useState(task.collaboratorIds || []);
   const [projectId, setProjectId] = useState(task.projectId);
-  const [dueDate, setDueDate] = useState<Date | undefined>(
-    task.dueDate ? new Date(task.dueDate) : undefined
-  );
-  const [reminderDate, setReminderDate] = useState<Date | undefined>(
-    task.reminderDate ? new Date(task.reminderDate) : undefined
-  );
+  const [dueDate, setDueDate] = useState<string | undefined>(task.dueDate);
+  const [reminderDate, setReminderDate] = useState<string | undefined>(task.reminderDate);
   const [estimatedHours, setEstimatedHours] = useState<number | undefined>(task.estimatedHours);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
@@ -99,8 +95,8 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     setAssigneeId(task.assigneeId);
     setCollaboratorIds(task.collaboratorIds || []);
     setProjectId(task.projectId);
-    setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
-    setReminderDate(task.reminderDate ? new Date(task.reminderDate) : undefined);
+    setDueDate(task.dueDate);
+    setReminderDate(task.reminderDate);
     setEstimatedHours(task.estimatedHours);
   }, [task]);
 
@@ -141,8 +137,8 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       assigneeId,
       collaboratorIds,
       projectId,
-      dueDate: dueDate ? dueDate.toISOString() : undefined,
-      reminderDate: reminderDate ? reminderDate.toISOString() : undefined,
+      dueDate: dueDate || undefined,
+      reminderDate: reminderDate || undefined,
       estimatedHours,
     };
 
@@ -159,7 +155,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       }
       if (additionalData.newDueDate) {
         updates.dueDate = additionalData.newDueDate;
-        setDueDate(new Date(additionalData.newDueDate));
+        setDueDate(additionalData.newDueDate);
       }
       if (additionalData.customFormResponses) {
         updates.customFormResponses = additionalData.customFormResponses;
@@ -358,14 +354,21 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                         className="w-full justify-start text-left font-normal"
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dueDate ? format(dueDate, "PPP") : "No due date"}
+                        {dueDate ? format(new Date(dueDate + "T00:00:00"), "PPP") : "No due date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
-                        selected={dueDate}
-                        onSelect={setDueDate}
+                        selected={dueDate ? new Date(dueDate + "T00:00:00") : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, '0');
+                            setDueDate(`${year}-${month}-${day}`);
+                          }
+                        }}
                         initialFocus
                       />
                     </PopoverContent>
@@ -390,14 +393,21 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                         className="w-full justify-start text-left font-normal"
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {reminderDate ? format(reminderDate, "PPP") : "No reminder set"}
+                        {reminderDate ? format(new Date(reminderDate + "T00:00:00"), "PPP") : "No reminder set"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
-                        selected={reminderDate}
-                        onSelect={setReminderDate}
+                        selected={reminderDate ? new Date(reminderDate + "T00:00:00") : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, '0');
+                            setReminderDate(`${year}-${month}-${day}`);
+                          }
+                        }}
                         initialFocus
                       />
                     </PopoverContent>
