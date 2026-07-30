@@ -4,7 +4,6 @@ import { TaskCard } from "../tasks/TaskCard";
 import { KanbanTaskCardWithComment } from "./KanbanTaskCardWithComment";
 import { useState, useEffect, lazy, Suspense } from "react";
 const EditTaskDialog = lazy(() => import("../tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
-import { TaskStatusPromptDialog } from "../tasks/TaskStatusPromptDialog";
 import { ConfettiCelebration } from "../mascot/ConfettiCelebration";
 import { Settings, Edit2, CheckSquare, Trash2, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
@@ -40,9 +39,6 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [nestedSelectedTask, setNestedSelectedTask] = useState<Task | null>(null);
   const [isNestedDialogOpen, setIsNestedDialogOpen] = useState(false);
-  const [statusPromptTask, setStatusPromptTask] = useState<Task | null>(null);
-  const [newStatus, setNewStatus] = useState<string>("");
-  const [statusPromptOpen, setStatusPromptOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const { toast } = useToast();
   const [columnColors, setColumnColors] = useState<Record<TaskStatus, string>>({
@@ -207,25 +203,8 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     
     const sourceStatus = source.droppableId as TaskStatus;
     const destinationStatus = destination.droppableId as TaskStatus;
-    
-    // Check if we need to prompt for additional info (backlog, in-progress, or awaiting-feedback statuses).
-    // "review" is the internal value of the org's "Awaiting Feedback (External)" stage.
-    const needsPrompt = destinationStatus === "backlog" ||
-                        destinationStatus === "in-progress" ||
-                        destinationStatus === "review";
-    
-    if (needsPrompt && sourceStatus !== destinationStatus) {
-      const task = tasks.find(t => t.id === draggableId);
-      if (task) {
-        setStatusPromptTask(task);
-        setNewStatus(destinationStatus);
-        setStatusPromptOpen(true);
-        // Don't reorder yet, wait for confirmation
-        return;
-      }
-    }
-    
-    // Reorder task
+
+    // Reorder task (no hardcoded prompts - only forms from account settings are active)
     if (reorderTasks) {
       await reorderTasks(
         draggableId,
@@ -236,50 +215,6 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     }
   };
 
-  const handleStatusPromptConfirm = async (data: any) => {
-    if (!statusPromptTask) return;
-
-    try {
-      // Update task with new status and additional fields
-      const updates: any = {
-        status: newStatus,
-      };
-
-      if (data.backlogReason) updates.backlog_reason = data.backlogReason;
-      if (data.awaitingFeedbackDetails) updates.awaiting_feedback_details = data.awaitingFeedbackDetails;
-      if (data.dueDateChangeReason) updates.due_date_change_reason = data.dueDateChangeReason;
-      if (data.newDueDate) {
-        updates.due_date = data.newDueDate;
-        updates.last_due_date_change = new Date().toISOString();
-      }
-
-      const { error } = await supabase
-        .from("tasks")
-        .update(updates)
-        .eq("id", statusPromptTask.id);
-
-      if (error) throw error;
-
-      // Now perform the reorder/move
-      if (moveTask) {
-        await moveTask(statusPromptTask.id, newStatus as TaskStatus);
-      }
-      // Celebration will trigger via taskCompleted event from context
-
-      toast({
-        title: "Task updated",
-        description: "Task has been moved and updated successfully",
-      });
-    } catch (error) {
-      console.error("Error updating task:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update task",
-        variant: "destructive",
-      });
-    }
-  };
-  
   const handleTaskClick = (task: Task, event?: React.MouseEvent) => {
     // If Ctrl/Cmd key is pressed or there are already selected tasks, toggle selection
     if (event?.ctrlKey || event?.metaKey || selectedTaskIds.length > 0) {
@@ -550,16 +485,6 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
             onOpenChange={setIsNestedDialogOpen}
           />
         )}
-
-        {statusPromptTask && (
-          <TaskStatusPromptDialog
-            open={statusPromptOpen}
-            onOpenChange={setStatusPromptOpen}
-            task={statusPromptTask}
-            newStatus={newStatus}
-            onConfirm={handleStatusPromptConfirm}
-          />
-        )}
       </div>
     );
   }
@@ -663,16 +588,6 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
           task={nestedSelectedTask}
           open={isNestedDialogOpen}
           onOpenChange={setIsNestedDialogOpen}
-        />
-      )}
-
-      {statusPromptTask && (
-        <TaskStatusPromptDialog
-          open={statusPromptOpen}
-          onOpenChange={setStatusPromptOpen}
-          task={statusPromptTask}
-          newStatus={newStatus}
-          onConfirm={handleStatusPromptConfirm}
         />
       )}
 
