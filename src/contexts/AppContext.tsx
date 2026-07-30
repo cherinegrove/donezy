@@ -2049,6 +2049,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         }
       }
 
+      // Create specific log entry for due date changes
+      if (updates.dueDate !== undefined && updates.dueDate !== currentTask.dueDate && currentUser) {
+        await supabase
+          .from('task_logs')
+          .insert({
+            task_id: taskId,
+            user_id: currentUser.id,
+            auth_user_id: session.user.id,
+            action: 'due_date_changed',
+            details: {
+              old_due_date: currentTask.dueDate || null,
+              new_due_date: updates.dueDate || null
+            },
+            timestamp: new Date().toISOString()
+          });
+      }
+
       if (updates.backlogReason !== undefined && currentUser) {
         await supabase
           .from('task_logs')
