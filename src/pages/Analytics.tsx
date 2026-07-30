@@ -590,6 +590,49 @@ function TasksTab({ statusLabel }: { statusLabel: (v: string | null) => string }
         </CardContent>
       </Card>
 
+      <Card className="border-l-4 border-l-orange-500">
+        <CardHeader><CardTitle>Task Push Rate by Assignee</CardTitle></CardHeader>
+        <CardContent>
+          {rescheduledByAssignee.isLoading ? <Loading /> : (byAssignee.data ?? []).length === 0 ? <Empty msg="No data." /> : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="py-2 pr-4 font-medium">Assignee</th>
+                    <th className="py-2 pr-4 font-medium text-right">Total Tasks</th>
+                    <th className="py-2 pr-4 font-medium text-right">Due Date Changes</th>
+                    <th className="py-2 pr-4 font-medium text-right">Push Rate</th>
+                    <th className="py-2 pr-4 font-medium text-right">Avg Days Moved</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(byAssignee.data ?? []).map((assignee) => {
+                    const reschedule = (rescheduledByAssignee.data ?? []).find(r => r.assignee_name === assignee.dim_label);
+                    const totalTasks = Number(assignee.task_count) || 0;
+                    const changes = reschedule?.reschedule_count ?? 0;
+                    const pushRate = totalTasks > 0 ? Math.round((changes / totalTasks) * 100) : 0;
+                    const avgDaysMoved = reschedule?.avg_days_moved ?? 0;
+                    return (
+                      <tr key={assignee.dim_id ?? "none"} className="border-b last:border-0">
+                        <td className="py-2 pr-4 font-medium">{assignee.dim_label || "Unassigned"}</td>
+                        <td className="py-2 pr-4 text-right">{totalTasks}</td>
+                        <td className="py-2 pr-4 text-right text-amber-600 dark:text-amber-400 font-semibold">{changes}</td>
+                        <td className="py-2 pr-4 text-right">
+                          <span className={pushRate > 50 ? "text-red-600 dark:text-red-400 font-semibold" : pushRate > 30 ? "text-amber-600 dark:text-amber-400 font-semibold" : ""}>
+                            {pushRate}%
+                          </span>
+                        </td>
+                        <td className="py-2 pr-4 text-right text-muted-foreground">{avgDaysMoved > 0 ? `+${avgDaysMoved}d` : "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="border-l-4 border-l-amber-500">
           <CardHeader><CardTitle className="text-base">Due Date Changes by Assignee</CardTitle></CardHeader>
