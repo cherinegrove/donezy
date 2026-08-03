@@ -2992,81 +2992,104 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const pauseTimeTracking = async () => {
     if (!activeTimeEntry || isTimerPaused) return;
-    
+
     // Prevent duplicate pause calls (race condition guard)
     if (isPausingTimer.current) {
       console.log('⚠️ Already pausing timer, ignoring duplicate call');
       return;
     }
     isPausingTimer.current = true;
-    
-    try {
-      const pausedAtTime = new Date();
-      setIsTimerPaused(true);
-      setPausedAt(pausedAtTime);
-      console.log('⏸️ Timer paused in AppContext');
 
-      // Log the pause event FIRST - if this fails, we don't update DB status
-      await logTimeEntryEvent(activeTimeEntry.id, 'paused', {
-        pausedAt: pausedAtTime.toISOString()
-      });
+    // OPTIMISTIC UPDATE: Update UI immediately, sync in background
+    const pausedAtTime = new Date();
+    setIsTimerPaused(true);
+    setPausedAt(pausedAtTime);
+    console.log('⏸️ Timer paused in AppContext (optimistic)');
 
-      // Update timer_status in database AFTER event is logged
-      const { error: updateError } = await supabase
-        .from('time_entries')
-        .update({ timer_status: 'paused' })
-        .eq('id', activeTimeEntry.id);
+    // Sync to database in background (fire and forget with error handling)
+    (async () => {
+      try {
+        // Log the pause event FIRST - if this fails, we still update DB
+        await logTimeEntryEvent(activeTimeEntry.id, 'paused', {
+          pausedAt: pausedAtTime.toISOString()
+        });
 
-      if (updateError) {
-        console.error('❌ Error pausing timer in DB:', updateError);
-        // Revert state if DB update fails
+        // Update timer_status in database AFTER event is logged
+        const { error: updateError } = await supabase
+          .from('time_entries')
+          .update({ timer_status: 'paused' })
+          .eq('id', activeTimeEntry.id);
+
+        if (updateError) {
+          console.error('❌ Error pausing timer in DB:', updateError);
+          // Revert state if DB update fails
+          setIsTimerPaused(false);
+          setPausedAt(null);
+        } else {
+          console.log('✅ Pause synced to database');
+        }
+      } catch (err) {
+        console.error('❌ Error during pause sync:', err);
+        // Revert state on error
         setIsTimerPaused(false);
         setPausedAt(null);
+      } finally {
+        isPausingTimer.current = false;
       }
-    } finally {
-      isPausingTimer.current = false;
-    }
+    })();
   };
 
   const resumeTimeTracking = async () => {
     if (!activeTimeEntry || !isTimerPaused || !pausedAt) return;
-    
-    console.log('▶️ Resuming paused timer:', activeTimeEntry.id);
-    
+
     const pauseDuration = Date.now() - pausedAt.getTime();
-    
+
     // Sanity check: if pause duration is absurdly long (> 24 hours), something is wrong
     // Log a warning but still record the actual calculated value
     const maxReasonablePause = 24 * 60 * 60 * 1000; // 24 hours in ms
     if (pauseDuration > maxReasonablePause) {
       console.warn('⚠️ Unusually long pause duration detected:', Math.floor(pauseDuration / (1000 * 60)), 'minutes. This may indicate stale state.');
     }
-    
+
+    // OPTIMISTIC UPDATE: Update UI immediately, sync in background
     setTotalPausedTime(prev => prev + pauseDuration);
     setIsTimerPaused(false);
     setPausedAt(null);
-    console.log('✅ Timer resumed successfully. Pause duration:', Math.floor(pauseDuration / (1000 * 60)), 'minutes');
+    console.log('▶️ Timer resumed (optimistic). Pause duration:', Math.floor(pauseDuration / (1000 * 60)), 'minutes');
 
-    // Log the resume event FIRST - if this fails, we don't update DB status
-    await logTimeEntryEvent(activeTimeEntry.id, 'resumed', {
-      pauseDuration,
-      pauseDurationMinutes: Math.floor(pauseDuration / (1000 * 60)),
-      resumedAt: new Date().toISOString()
-    });
+    // Sync to database in background (fire and forget with error handling)
+    (async () => {
+      try {
+        // Log the resume event FIRST - if this fails, we still update DB
+        await logTimeEntryEvent(activeTimeEntry.id, 'resumed', {
+          pauseDuration,
+          pauseDurationMinutes: Math.floor(pauseDuration / (1000 * 60)),
+          resumedAt: new Date().toISOString()
+        });
 
-    // Update timer_status in database AFTER event is logged
-    const { error: updateError } = await supabase
-      .from('time_entries')
-      .update({ timer_status: 'active' })
-      .eq('id', activeTimeEntry.id);
+        // Update timer_status in database AFTER event is logged
+        const { error: updateError } = await supabase
+          .from('time_entries')
+          .update({ timer_status: 'active' })
+          .eq('id', activeTimeEntry.id);
 
-    if (updateError) {
-      console.error('❌ Error resuming timer in DB:', updateError);
-      // Revert state if DB update fails
-      setIsTimerPaused(true);
-      setPausedAt(new Date());
-      setTotalPausedTime(prev => prev - pauseDuration);
-    }
+        if (updateError) {
+          console.error('❌ Error resuming timer in DB:', updateError);
+          // Revert state if DB update fails
+          setIsTimerPaused(true);
+          setPausedAt(new Date());
+          setTotalPausedTime(prev => prev - pauseDuration);
+        } else {
+          console.log('✅ Resume synced to database');
+        }
+      } catch (err) {
+        console.error('❌ Error during resume sync:', err);
+        // Revert state on error
+        setIsTimerPaused(true);
+        setPausedAt(new Date());
+        setTotalPausedTime(prev => prev - pauseDuration);
+      }
+    })();
   };
 
   const getElapsedTime = (timeEntry: TimeEntry | null = activeTimeEntry, applyLocalPauseState: boolean = true): string => {
