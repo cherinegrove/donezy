@@ -3071,13 +3071,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const getElapsedTime = (timeEntry: TimeEntry | null = activeTimeEntry, applyLocalPauseState: boolean = true): string => {
     if (!timeEntry) return "00:00:00";
-    
+
+    // NOTE: This function calculates elapsed time based on wall-clock time and React state (totalPausedTime)
+    // It is designed for the ACTIVE timer only. For paused timers from pausedTimeEntries, components should
+    // calculate elapsed time from pause events in the database for accuracy. Calling this function on a
+    // paused timer will return an incorrect (inflated) elapsed time since it doesn't account for pause events.
+
     const startTime = new Date(timeEntry.startTime).getTime();
     const now = Date.now();
-    
+
     // Base elapsed time from start_time (the source of truth from database)
     let elapsedMs = now - startTime;
-    
+
     // Only apply local pause state if this is the current user's active timer
     // This ensures all users see the same base elapsed time from the database
     if (applyLocalPauseState && activeTimeEntry && timeEntry.id === activeTimeEntry.id) {
