@@ -680,17 +680,17 @@ export function ActiveTimersSection({
                     {displayTime}
                   </div>
                   <div className="flex gap-1 flex-wrap">
-                    {isOtherUserTimer ? (
-                      <Badge variant="outline" className="text-xs">
-                        Active
-                      </Badge>
-                    ) : isPausedState ? (
+                    {isPausedState ? (
                       <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200">
                         ⏸ Paused
                       </Badge>
-                    ) : (
+                    ) : isLive ? (
                       <Badge variant="default" className="text-xs bg-green-600 hover:bg-green-700">
                         ● Live
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs">
+                        Stopped
                       </Badge>
                     )}
                     {isStale && (
