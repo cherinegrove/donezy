@@ -56,13 +56,13 @@ export function StartTimerDialog({
   const [selectedTaskId, setSelectedTaskId] = useState<string>(defaultTaskId || "");
   const [taskComboOpen, setTaskComboOpen] = useState(false);
   
-  // Reset form when dialog opens
+  // Reset form when dialog opens (only depend on open state, not data changes)
   useEffect(() => {
     if (open) {
       // Set task if provided
       if (defaultTaskId) {
         setSelectedTaskId(defaultTaskId);
-        
+
         // Auto-select project from task
         const task = tasks.find(t => t.id === defaultTaskId);
         if (task) {
@@ -76,7 +76,7 @@ export function StartTimerDialog({
       } else if (defaultProjectId) {
         setSelectedProjectId(defaultProjectId);
         setSelectedTaskId("");
-        
+
         // Auto-select client from project
         const project = projects.find(p => p.id === defaultProjectId);
         if (project) {
@@ -88,7 +88,7 @@ export function StartTimerDialog({
         setSelectedClientId("");
       }
     }
-  }, [open, defaultProjectId, defaultTaskId, projects, tasks]);
+  }, [open, defaultProjectId, defaultTaskId]);
   
   // Filter projects by selected client and exclude completed projects
   const clientProjects = selectedClientId 
