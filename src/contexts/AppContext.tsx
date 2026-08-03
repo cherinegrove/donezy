@@ -2382,12 +2382,54 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         if (!fetchError && activeTimers && activeTimers.length > 0) {
           console.log(`⚠️ Found ${activeTimers.length} active timer(s) that should have been stopped - stopping now`);
           for (const timer of activeTimers) {
-            const duration = Math.floor((Date.now() - new Date(timer.start_time).getTime()) / (1000 * 60));
+            // Calculate duration accounting for pause events (don't include pause time in duration)
+            const startTime = new Date(timer.start_time).getTime();
+            const endTime = Date.now();
+            const rawDuration = endTime - startTime;
+
+            // Fetch pause events to calculate actual elapsed time
+            let actualDuration = rawDuration;
+            try {
+              const { data: events, error: eventsError } = await supabase
+                .from('time_entry_events')
+                .select('event_type, event_timestamp')
+                .eq('time_entry_id', timer.id)
+                .in('event_type', ['paused', 'resumed', 'auto_paused'])
+                .order('event_timestamp', { ascending: true });
+
+              if (!eventsError && events && events.length > 0) {
+                let totalPausedMs = 0;
+                let lastPauseTime: number | null = null;
+
+                for (const event of events) {
+                  const eventTime = new Date(event.event_timestamp).getTime();
+                  if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
+                    lastPauseTime = eventTime;
+                  } else if (event.event_type === 'resumed' && lastPauseTime !== null) {
+                    totalPausedMs += eventTime - lastPauseTime;
+                    lastPauseTime = null;
+                  }
+                }
+
+                // If still paused, include pause time up to now
+                if (lastPauseTime !== null) {
+                  totalPausedMs += endTime - lastPauseTime;
+                }
+
+                actualDuration = rawDuration - totalPausedMs;
+                console.log(`📊 Auto-stop: Raw=${Math.floor(rawDuration / (1000 * 60))}min, Paused=${Math.floor(totalPausedMs / (1000 * 60))}min, Actual=${Math.floor(actualDuration / (1000 * 60))}min`);
+              }
+            } catch (err) {
+              console.error('Error calculating paused time for auto-stop:', err);
+              // Use raw duration as fallback
+            }
+
+            const durationMinutes = Math.max(1, Math.floor(actualDuration / (1000 * 60)));
             await supabase
               .from('time_entries')
               .update({
                 end_time: new Date().toISOString(),
-                duration: Math.max(1, duration),
+                duration: durationMinutes,
                 notes: 'Auto-stopped by system (safeguard)'
               })
               .eq('id', timer.id);
@@ -3042,13 +3084,29 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const resumeTimeTracking = async () => {
     if (!activeTimeEntry || !isTimerPaused || !pausedAt) return;
 
-    const pauseDuration = Date.now() - pausedAt.getTime();
+    // MEDIUM #12 FIX: Validate pausedAt is not corrupted (in the future or very far in the past)
+    const now = Date.now();
+    const pausedAtTime = pausedAt.getTime();
 
-    // Sanity check: if pause duration is absurdly long (> 24 hours), something is wrong
-    // Log a warning but still record the actual calculated value
+    // Check if pausedAt is in the future (corrupted)
+    if (pausedAtTime > now) {
+      console.error('❌ pausedAt is in the future! This indicates corrupted state.');
+      alert('Timer state is corrupted (pausedAt is in the future). Please refresh the page and start a new timer.');
+      // Revert state
+      setIsTimerPaused(false);
+      setPausedAt(null);
+      return;
+    }
+
+    const pauseDuration = now - pausedAtTime;
     const maxReasonablePause = 24 * 60 * 60 * 1000; // 24 hours in ms
+
+    // MEDIUM #9 FIX: Prevent resuming stale timers (> 24 hours paused)
     if (pauseDuration > maxReasonablePause) {
-      console.warn('⚠️ Unusually long pause duration detected:', Math.floor(pauseDuration / (1000 * 60)), 'minutes. This may indicate stale state.');
+      const hours = Math.floor(pauseDuration / (1000 * 60 * 60));
+      console.error('❌ Cannot resume timer: Paused for', hours, 'hours (>24h). This is likely stale. Stop and start a new timer instead.');
+      alert(`This timer has been paused for ${hours} hours. This is too long to resume safely.\n\nPlease stop this timer and start a new one if needed.`);
+      return;
     }
 
     // OPTIMISTIC UPDATE: Update UI immediately, sync in background

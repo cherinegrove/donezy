@@ -249,10 +249,14 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
         const task = tasks.find(t => t.id === entry.taskId);
         const project = entry.projectId ? projects.find(p => p.id === entry.projectId) : null;
         const client = project?.clientId ? clients.find(c => c.id === project.clientId) : null;
-        
-        // Calculate elapsed from events
+
+        // MEDIUM #10 FIX: Use wall-clock estimate initially, then update with accurate value
+        // This avoids showing 00:00:00 while waiting for async pause event calculation
+        const wallClockElapsed = Date.now() - startTime.getTime();
+
+        // Calculate elapsed from events (async, but continues in background)
         const elapsed = await calculatePausedElapsed(entry.id, startTime);
-        
+
         newTimers.push({
           id: entry.id,
           taskId: entry.taskId || '',
@@ -262,7 +266,8 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           projectId: entry.projectId,
           clientId: entry.clientId || project?.clientId,
           startTime,
-          elapsed,
+          // Use accurate elapsed if available, otherwise wall-clock estimate
+          elapsed: elapsed > 0 ? elapsed : wallClockElapsed,
           isPaused: true,
           pausedAt: undefined,
           totalPausedTime: 0,
