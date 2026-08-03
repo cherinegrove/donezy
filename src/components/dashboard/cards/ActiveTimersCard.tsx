@@ -6,7 +6,7 @@ import { Play, Pause, Square } from "lucide-react";
 import { format } from "date-fns";
 
 export function ActiveTimersCard() {
-  const { activeTimeEntry, pausedTimeEntries, isTimerPaused, getElapsedTime, tasks, projects, pauseTimeTracking, resumeTimeTracking } = useAppContext();
+  const { activeTimeEntry, pausedTimeEntries, isTimerPaused, getElapsedTime, tasks, projects, clients, pauseTimeTracking, resumeTimeTracking } = useAppContext();
   const [displayTime, setDisplayTime] = useState("00:00:00");
 
   // Update elapsed time every second if a timer is running (not paused)
@@ -63,7 +63,7 @@ export function ActiveTimersCard() {
                     {tasks.find(t => t.id === activeTimeEntry.taskId)?.title || 'Unknown Task'}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.name || 'No Project'}
+                    {clients.find(c => c.id === activeTimeEntry.clientId)?.name || 'No Client'} • {projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.name || 'No Project'}
                   </p>
                 </div>
                 <Button
@@ -102,7 +102,7 @@ export function ActiveTimersCard() {
                     {tasks.find(t => t.id === activeTimeEntry.taskId)?.title || 'Unknown Task'}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.name || 'No Project'}
+                    {clients.find(c => c.id === activeTimeEntry.clientId)?.name || 'No Client'} • {projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.name || 'No Project'}
                   </p>
                 </div>
                 <Button
