@@ -2766,19 +2766,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             .from('time_entries')
             .update({ timer_status: 'paused' })
             .eq('id', timer.id);
-          
+
           if (pauseError) {
             console.error('Error pausing timer in DB:', timer.id, pauseError);
           } else {
             console.log('✅ Timer paused in database:', timer.id);
           }
         }
-        
+
         // Clear local activeTimeEntry state
         setActiveTimeEntry(null);
         setIsTimerPaused(false);
         setPausedAt(null);
         setTotalPausedTime(0);
+
+        // CRITICAL: Sync paused timers immediately so pausedTimeEntries is updated
+        // This ensures UI components see the paused timer right away
+        await loadTimeEntries();
       }
       
       // Create new time entry
@@ -3001,17 +3005,24 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setIsTimerPaused(true);
       setPausedAt(pausedAtTime);
       console.log('⏸️ Timer paused in AppContext');
-      
-      // Update timer_status in database
-      await supabase
-        .from('time_entries')
-        .update({ timer_status: 'paused' })
-        .eq('id', activeTimeEntry.id);
-      
-      // Log the pause event
+
+      // Log the pause event FIRST - if this fails, we don't update DB status
       await logTimeEntryEvent(activeTimeEntry.id, 'paused', {
         pausedAt: pausedAtTime.toISOString()
       });
+
+      // Update timer_status in database AFTER event is logged
+      const { error: updateError } = await supabase
+        .from('time_entries')
+        .update({ timer_status: 'paused' })
+        .eq('id', activeTimeEntry.id);
+
+      if (updateError) {
+        console.error('❌ Error pausing timer in DB:', updateError);
+        // Revert state if DB update fails
+        setIsTimerPaused(false);
+        setPausedAt(null);
+      }
     } finally {
       isPausingTimer.current = false;
     }
@@ -3035,19 +3046,27 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setIsTimerPaused(false);
     setPausedAt(null);
     console.log('✅ Timer resumed successfully. Pause duration:', Math.floor(pauseDuration / (1000 * 60)), 'minutes');
-    
-    // Update timer_status in database
-    await supabase
-      .from('time_entries')
-      .update({ timer_status: 'active' })
-      .eq('id', activeTimeEntry.id);
-    
-    // Log the resume event with calculated pause duration
+
+    // Log the resume event FIRST - if this fails, we don't update DB status
     await logTimeEntryEvent(activeTimeEntry.id, 'resumed', {
       pauseDuration,
       pauseDurationMinutes: Math.floor(pauseDuration / (1000 * 60)),
       resumedAt: new Date().toISOString()
     });
+
+    // Update timer_status in database AFTER event is logged
+    const { error: updateError } = await supabase
+      .from('time_entries')
+      .update({ timer_status: 'active' })
+      .eq('id', activeTimeEntry.id);
+
+    if (updateError) {
+      console.error('❌ Error resuming timer in DB:', updateError);
+      // Revert state if DB update fails
+      setIsTimerPaused(true);
+      setPausedAt(new Date());
+      setTotalPausedTime(prev => prev - pauseDuration);
+    }
   };
 
   const getElapsedTime = (timeEntry: TimeEntry | null = activeTimeEntry, applyLocalPauseState: boolean = true): string => {
