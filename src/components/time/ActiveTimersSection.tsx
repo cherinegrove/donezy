@@ -549,6 +549,17 @@ export function ActiveTimersSection({
     }
   });
 
+  // Add current user's paused timers from database (unsaved)
+  allActiveTimers
+    .filter(timer => !timer.isOtherUser && timer.isPaused && !myTimers.find(t => t.id === timer.id))
+    .forEach(timer => {
+      myTimers.push({
+        ...timer,
+        userName: currentUser?.name,
+        isOtherUser: false,
+      });
+    });
+
   // For super admins, add other users' active timers
   // These already have cachedElapsed pre-computed with pauses accounted for
   const otherUsersTimersWithElapsed = useMemo(() => {
