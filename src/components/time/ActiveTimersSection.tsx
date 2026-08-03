@@ -619,12 +619,12 @@ export function ActiveTimersSection({
 
           // Calculate elapsed time - accurate for both running and paused timers
           let elapsed: number;
-          if (isOtherUserTimer && timer.cachedElapsed !== undefined) {
+          if (timer.isPaused) {
+            // Paused timer: use cachedElapsed (for DB timers) or elapsed (for local timers)
+            elapsed = timer.cachedElapsed !== undefined ? timer.cachedElapsed : (timer.elapsed || 0);
+          } else if (isOtherUserTimer && timer.cachedElapsed !== undefined) {
             // Use pre-computed cached elapsed time for other users' timers
             elapsed = timer.cachedElapsed;
-          } else if (timer.isPaused) {
-            // Paused timer: use the exact elapsed time recorded at pause
-            elapsed = timer.elapsed || 0;
           } else if (timer.isActive && !timer.isPaused) {
             // Running timer: calculate from start time minus any pause periods
             const startTimeMs = timer.startTime instanceof Date
@@ -632,8 +632,8 @@ export function ActiveTimersSection({
               : new Date(timer.startTime).getTime();
             elapsed = now - startTimeMs - (timer.totalPausedTime || 0);
           } else {
-            // Fallback: use stored elapsed
-            elapsed = timer.elapsed || 0;
+            // Fallback: use stored elapsed or cachedElapsed
+            elapsed = timer.cachedElapsed !== undefined ? timer.cachedElapsed : (timer.elapsed || 0);
           }
 
           const displayTime = isBackendTimer ? activeTimer!.elapsedTime : formatTime(Math.max(0, elapsed));
