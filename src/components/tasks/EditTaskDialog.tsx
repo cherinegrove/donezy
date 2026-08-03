@@ -39,7 +39,6 @@ import { CommentSection } from "./CommentSection";
 const RelatedTasksSection = lazy(() => import("./RelatedTasksSection").then(m => ({ default: m.RelatedTasksSection })));
 import { supabase } from "@/integrations/supabase/client";
 import { RecurringTaskDialog } from "./RecurringTaskDialog";
-import { TaskStatusPromptDialog } from "./TaskStatusPromptDialog";
 import { StatusHistorySection } from "./StatusHistorySection";
 
 import { Repeat } from "lucide-react";
@@ -83,8 +82,6 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
-  const [statusPromptOpen, setStatusPromptOpen] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   // Reset form state when task changes
   useEffect(() => {
@@ -220,40 +217,10 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   };
 
   const handleStatusChange = (value: string) => {
-    const statusValue = value as "backlog" | "todo" | "in-progress" | "review" | "done";
-    
-    // Check if this status change requires a prompt
-    const needsPrompt = statusValue === "backlog" || 
-                       statusValue === "in-progress" || 
-                       statusValue === "review";
-    
-    if (needsPrompt && statusValue !== task.status) {
-      // Save the pending status and show the prompt dialog
-      setPendingStatus(statusValue);
-      setStatusPromptOpen(true);
-    } else {
-      // Direct status change for statuses that don't need prompts
-      setStatus(statusValue);
-    }
+    // Directly update status - no hardcoded prompts
+    setStatus(value as any);
   };
 
-  const handleStatusPromptConfirm = async (data: {
-    backlogReason?: string;
-    awaitingFeedbackDetails?: string;
-    dueDateChangeReason?: string;
-    newDueDate?: string;
-  }) => {
-    if (pendingStatus) {
-      // Update the status
-      setStatus(pendingStatus as any);
-      
-      // Save changes with additional data
-      await handleSaveChanges(data);
-      
-      // Reset pending status
-      setPendingStatus(null);
-    }
-  };
 
   const handleProjectChange = (value: string) => {
     setProjectId(value);
@@ -534,20 +501,6 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
         }}
       />
 
-      {pendingStatus && (
-        <TaskStatusPromptDialog
-          open={statusPromptOpen}
-          onOpenChange={(open) => {
-            setStatusPromptOpen(open);
-            if (!open) {
-              setPendingStatus(null);
-            }
-          }}
-          task={task}
-          newStatus={pendingStatus}
-          onConfirm={handleStatusPromptConfirm}
-        />
-      )}
     </>
   );
 }
