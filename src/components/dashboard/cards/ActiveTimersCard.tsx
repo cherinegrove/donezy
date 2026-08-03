@@ -6,29 +6,24 @@ import { Play, Pause, Square } from "lucide-react";
 import { format } from "date-fns";
 
 export function ActiveTimersCard() {
-  const { activeTimeEntry, pausedTimeEntries, updateTimeEntry } = useAppContext();
-  const [elapsedTime, setElapsedTime] = useState(0);
+  const { activeTimeEntry, pausedTimeEntries, isTimerPaused, getElapsedTime } = useAppContext();
+  const [displayTime, setDisplayTime] = useState("00:00:00");
 
-  // Update elapsed time every second if a timer is running
+  // Update elapsed time every second if a timer is running (not paused)
   useEffect(() => {
     if (!activeTimeEntry) return;
 
-    const interval = setInterval(() => {
-      const startTime = new Date(activeTimeEntry.startTime).getTime();
-      const now = new Date().getTime();
-      const elapsed = Math.floor((now - startTime) / 1000); // in seconds
-      setElapsedTime(elapsed);
-    }, 1000);
+    // Update immediately and then every second
+    const updateDisplay = () => {
+      const elapsed = getElapsedTime(activeTimeEntry, true);
+      setDisplayTime(elapsed);
+    };
 
+    updateDisplay();
+
+    const interval = setInterval(updateDisplay, 1000);
     return () => clearInterval(interval);
-  }, [activeTimeEntry]);
-
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-  };
+  }, [activeTimeEntry, isTimerPaused, getElapsedTime]);
 
   if (!activeTimeEntry && (!pausedTimeEntries || pausedTimeEntries.length === 0)) {
     return (
@@ -57,13 +52,13 @@ export function ActiveTimersCard() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Active Timer */}
-        {activeTimeEntry && (
+        {/* Active/Running Timer */}
+        {activeTimeEntry && !isTimerPaused && (
           <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border-2 border-blue-500 dark:border-blue-600">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Running</p>
               <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 font-mono">
-                {formatTime(elapsedTime)}
+                {displayTime}
               </p>
               <p className="text-sm text-muted-foreground">
                 Started {format(new Date(activeTimeEntry.startTime), "h:mm a")}
@@ -72,8 +67,23 @@ export function ActiveTimersCard() {
           </div>
         )}
 
-        {/* Paused Timers */}
-        {pausedTimeEntries && pausedTimeEntries.length > 0 && (
+        {/* Currently Active But Paused Timer */}
+        {activeTimeEntry && isTimerPaused && (
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border-2 border-yellow-500 dark:border-yellow-600">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Paused</p>
+              <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400 font-mono">
+                {displayTime}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Started {format(new Date(activeTimeEntry.startTime), "h:mm a")}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Other Paused Timers */}
+        {pausedTimeEntries && pausedTimeEntries.length > 0 && activeTimeEntry?.id !== pausedTimeEntries[0]?.id && (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Paused</p>
             {pausedTimeEntries.map((entry) => (

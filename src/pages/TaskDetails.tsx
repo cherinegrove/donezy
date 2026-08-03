@@ -34,31 +34,51 @@ export default function TaskDetails() {
           .eq('id', taskId)
           .single();
 
-        if (!error && data) {
-          setFetchedTask({
-            id: data.id,
-            title: data.title,
-            description: data.description || '',
-            status: data.status as any,
-            priority: data.priority as any,
-            projectId: data.project_id,
-            assigneeId: data.assignee_id || undefined,
-            collaboratorIds: data.collaborator_ids || [],
-            dueDate: data.due_date || undefined,
-            reminderDate: data.reminder_date || undefined,
-            createdAt: data.created_at,
-            estimatedHours: data.estimated_hours || undefined,
-            actualHours: data.actual_hours || undefined,
-            relatedTaskIds: data.related_task_ids || [],
-            backlogReason: data.backlog_reason || undefined,
-            awaitingFeedbackDetails: data.awaiting_feedback_details || undefined,
-            dueDateChangeReason: data.due_date_change_reason || undefined,
-            watcherIds: data.watcher_ids || [],
-            checklist: Array.isArray(data.checklist) ? data.checklist as any : [],
-            orderIndex: data.order_index || 0,
-          });
+        if (error) {
+          console.error('Error fetching task:', error);
+          setIsLoading(false);
+          return;
         }
-      } finally {
+
+        if (!data) {
+          console.warn('No task data returned for taskId:', taskId);
+          setIsLoading(false);
+          return;
+        }
+
+        setFetchedTask({
+          id: data.id,
+          title: data.title,
+          description: data.description || '',
+          status: data.status as any,
+          priority: data.priority as any,
+          projectId: data.project_id,
+          assigneeId: data.assignee_id || undefined,
+          collaboratorIds: data.collaborator_ids || [],
+          dueDate: data.due_date || undefined,
+          reminderDate: data.reminder_date || undefined,
+          startDate: data.start_date || undefined,
+          createdAt: data.created_at,
+          estimatedHours: data.estimated_hours || undefined,
+          actualHours: data.actual_hours || undefined,
+          relatedTaskIds: data.related_task_ids || [],
+          linkedTaskIds: data.linked_task_ids || [],
+          backlogReason: data.backlog_reason || undefined,
+          awaitingFeedbackDetails: data.awaiting_feedback_details || undefined,
+          awaitingFeedbackFollowUpDate: data.awaiting_feedback_follow_up_date || undefined,
+          dueDateChangeReason: data.due_date_change_reason || undefined,
+          watcherIds: data.watcher_ids || [],
+          checklist: Array.isArray(data.checklist) ? data.checklist as any : [],
+          orderIndex: data.order_index || 0,
+          customFields: data.custom_fields || {},
+          files: data.files || [],
+          comments: data.comments || [],
+          timeEntries: data.time_entries || [],
+          subtasks: data.subtasks || [],
+        });
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Exception fetching task:', err);
         setIsLoading(false);
       }
     };

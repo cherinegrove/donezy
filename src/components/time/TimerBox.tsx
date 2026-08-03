@@ -549,14 +549,89 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           </CardHeader>
           
           <CardContent className="space-y-3">
-            {timers.length === 0 ? (
+            {!activeTimeEntry && timers.length === 0 ? (
               <div className="text-center py-8">
                 <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground">No active timers</p>
                 <p className="text-sm text-muted-foreground">Start a timer from the + menu</p>
               </div>
             ) : (
-              timers.map((timer) => {
+              <>
+                {/* Active/Running Timer from Backend */}
+                {activeTimeEntry && (
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between p-3 rounded-lg border-2 border-primary bg-card">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm truncate">{tasks.find(t => t.id === activeTimeEntry.taskId)?.title || 'Unknown Task'}</h4>
+                        {tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId && projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.name && (
+                          <p className="text-xs text-muted-foreground">{projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.name}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="font-mono text-lg font-bold">
+                            {getElapsedTime(activeTimeEntry)}
+                          </div>
+                          <div className="flex gap-1">
+                            {!isTimerPaused && (
+                              <Badge variant="default" className="text-xs bg-green-600">Live</Badge>
+                            )}
+                            {isTimerPaused && (
+                              <Badge variant="secondary" className="text-xs">Paused</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 ml-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => isTimerPaused ? resumeTimeTracking() : pauseTimeTracking()}
+                          className={cn(
+                            "h-8 w-8 p-0",
+                            isTimerPaused ? "text-success hover:text-success/80" : "text-warning hover:text-warning/80"
+                          )}
+                        >
+                          {isTimerPaused ? (
+                            <Play className="h-4 w-4" />
+                          ) : (
+                            <Pause className="h-4 w-4" />
+                          )}
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTimer({
+                              id: activeTimeEntry.id,
+                              taskId: activeTimeEntry.taskId || '',
+                              taskTitle: tasks.find(t => t.id === activeTimeEntry.taskId)?.title || 'Unknown Task',
+                              projectName: projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.name,
+                              clientName: clients.find(c => c.id === projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.clientId)?.name,
+                              projectId: activeTimeEntry.projectId,
+                              clientId: activeTimeEntry.clientId,
+                              startTime: new Date(activeTimeEntry.startTime),
+                              elapsed: 0,
+                              isPaused: isTimerPaused,
+                              pausedAt: undefined,
+                              totalPausedTime: 0,
+                              isActive: !isTimerPaused,
+                              isLocalOnly: false,
+                              userId: activeTimeEntry.userId,
+                            });
+                            setStopDialogOpen(true);
+                          }}
+                          className="h-8 w-8 p-0 text-primary hover:text-primary/80"
+                        >
+                          <Save className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Other Timers */}
+                {timers.map((timer) => {
                 const isLoading = loadingTimerId === timer.id;
                 const isSaving = savingTimerId === timer.id;
                 const showPlay = !timer.isActive || timer.isPaused || (!timer.isLocalOnly && isTimerPaused);
@@ -651,6 +726,8 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                 </div>
                 );
               })
+            }
+              </>
             )}
           </CardContent>
         </Card>
