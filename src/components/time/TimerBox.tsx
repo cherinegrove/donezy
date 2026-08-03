@@ -630,8 +630,8 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                   </div>
                 )}
 
-                {/* Other Timers */}
-                {timers.map((timer) => {
+                {/* Other Paused Timers (exclude active timer to avoid duplication) */}
+                {timers.filter(timer => !activeTimeEntry || timer.id !== activeTimeEntry.id).map((timer) => {
                 const isLoading = loadingTimerId === timer.id;
                 const isSaving = savingTimerId === timer.id;
                 const showPlay = !timer.isActive || timer.isPaused || (!timer.isLocalOnly && isTimerPaused);
