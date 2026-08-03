@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
 
 interface StartTimerDialogProps {
   open: boolean;
@@ -55,6 +56,7 @@ export function StartTimerDialog({
   const [selectedProjectId, setSelectedProjectId] = useState<string>(defaultProjectId || "");
   const [selectedTaskId, setSelectedTaskId] = useState<string>(defaultTaskId || "");
   const [taskComboOpen, setTaskComboOpen] = useState(false);
+  const [notes, setNotes] = useState<string>("");
   
   // Reset form when dialog opens (only depend on open state, not data changes)
   useEffect(() => {
@@ -135,9 +137,10 @@ export function StartTimerDialog({
     
     if (selectedClientId) {
       console.log('🚀 StartTimerDialog: Calling AppContext startTimeTracking...');
-      startTimeTracking(selectedTaskId || undefined, selectedProjectId || undefined, selectedClientId);
+      startTimeTracking(selectedTaskId || undefined, selectedProjectId || undefined, selectedClientId, undefined, notes || undefined);
       onStartTimer();
       onOpenChange(false);
+      setNotes(""); // Reset notes after starting timer
     } else {
       console.error('❌ StartTimerDialog: No client selected!');
     }
@@ -249,6 +252,17 @@ export function StartTimerDialog({
                 </Command>
               </PopoverContent>
             </Popover>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Textarea
+              id="notes"
+              placeholder="Add notes about what you're working on..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="h-20 resize-none"
+            />
           </div>
         </div>
         <DialogFooter>

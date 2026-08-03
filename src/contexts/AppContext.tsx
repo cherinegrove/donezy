@@ -2684,7 +2684,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const isStartingTimer = React.useRef(false);
   const isPausingTimer = React.useRef(false);
 
-  const startTimeTracking = async (taskId?: string, projectId?: string, clientId?: string, resumeFromElapsedMs?: number) => {
+  const startTimeTracking = async (taskId?: string, projectId?: string, clientId?: string, resumeFromElapsedMs?: number, notes?: string) => {
     if (!session?.user || !currentUser) return;
     
     // Prevent race conditions - if already starting a timer, ignore this call
@@ -2846,7 +2846,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         startTime: startTime,
         endTime: null,
         duration: null,
-        description: null,
+        description: notes || null,
         billable: true,
         status: 'pending' as TimeEntryStatus,
       };

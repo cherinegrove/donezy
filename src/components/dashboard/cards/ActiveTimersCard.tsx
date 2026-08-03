@@ -6,7 +6,7 @@ import { Play, Pause, Square } from "lucide-react";
 import { format } from "date-fns";
 
 export function ActiveTimersCard() {
-  const { activeTimeEntry, pausedTimeEntries, isTimerPaused, getElapsedTime } = useAppContext();
+  const { activeTimeEntry, pausedTimeEntries, isTimerPaused, getElapsedTime, tasks, projects, pauseTimeTracking, resumeTimeTracking } = useAppContext();
   const [displayTime, setDisplayTime] = useState("00:00:00");
 
   // Update elapsed time every second if a timer is running (not paused)
@@ -55,12 +55,36 @@ export function ActiveTimersCard() {
         {/* Active/Running Timer */}
         {activeTimeEntry && !isTimerPaused && (
           <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border-2 border-blue-500 dark:border-blue-600">
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Running</p>
+            <div className="space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground">Running</p>
+                  <p className="text-sm font-semibold truncate">
+                    {tasks.find(t => t.id === activeTimeEntry.taskId)?.title || 'Unknown Task'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.name || 'No Project'}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => pauseTimeTracking()}
+                  className="h-8 w-8 p-0 text-warning hover:text-warning/80"
+                  title="Pause timer"
+                >
+                  <Pause className="h-4 w-4" />
+                </Button>
+              </div>
               <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 font-mono">
                 {displayTime}
               </p>
-              <p className="text-sm text-muted-foreground">
+              {activeTimeEntry.description && (
+                <p className="text-xs text-muted-foreground italic">
+                  "{activeTimeEntry.description}"
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
                 Started {format(new Date(activeTimeEntry.startTime), "h:mm a")}
               </p>
             </div>
@@ -70,12 +94,36 @@ export function ActiveTimersCard() {
         {/* Currently Active But Paused Timer */}
         {activeTimeEntry && isTimerPaused && (
           <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border-2 border-yellow-500 dark:border-yellow-600">
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Paused</p>
+            <div className="space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground">Paused</p>
+                  <p className="text-sm font-semibold truncate">
+                    {tasks.find(t => t.id === activeTimeEntry.taskId)?.title || 'Unknown Task'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.name || 'No Project'}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => resumeTimeTracking()}
+                  className="h-8 w-8 p-0 text-success hover:text-success/80"
+                  title="Resume timer"
+                >
+                  <Play className="h-4 w-4" />
+                </Button>
+              </div>
               <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400 font-mono">
                 {displayTime}
               </p>
-              <p className="text-sm text-muted-foreground">
+              {activeTimeEntry.description && (
+                <p className="text-xs text-muted-foreground italic">
+                  "{activeTimeEntry.description}"
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
                 Started {format(new Date(activeTimeEntry.startTime), "h:mm a")}
               </p>
             </div>
