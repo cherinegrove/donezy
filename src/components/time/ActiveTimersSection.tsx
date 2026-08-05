@@ -637,7 +637,7 @@ export function ActiveTimersSection({
           const displayTime = isBackendTimer ? activeTimer!.elapsedTime : formatTime(Math.max(0, elapsed));
 
           // Determine timer status badge
-          const isLive = isBackendTimer ? !isTimerPaused : (!isOtherUserTimer && timer.isActive && !timer.isPaused);
+          const isLive = isBackendTimer ? !isTimerPaused : (timer.isActive && !timer.isPaused);
           const isPausedState = isBackendTimer ? isTimerPaused : timer.isPaused;
           const showPlayButton = isPausedState;
 
