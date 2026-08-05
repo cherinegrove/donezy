@@ -277,26 +277,38 @@ export function CreateTaskDialog({
     }
   };
   
+  // Watch for project changes and auto-set client
+  useEffect(() => {
+    const projectId = form.watch("projectId");
+    const currentClientId = form.watch("clientId");
+
+    if (projectId) {
+      // Project is selected - auto-populate client from project
+      const selectedProject = projects.find(p => p.id === projectId);
+      if (selectedProject && selectedProject.clientId !== currentClientId) {
+        form.setValue("clientId", selectedProject.clientId);
+      }
+    }
+  }, [form.watch("projectId")]);
+
   // Filter projects by selected client
   useEffect(() => {
     const clientId = form.watch("clientId");
-    if (!clientId) {
-      setClientProjects(projects);
-      return;
-    }
-    
-    // Filter projects by client and exclude completed projects
-    const filteredProjects = projects.filter(project => {
-      if (project.clientId !== clientId) return false;
+    const projectId = form.watch("projectId");
+
+    // Get all non-completed projects
+    let filteredProjects = projects.filter(project => {
       const projectStatus = projectStatuses.find(s => s.value === project.status);
       return !projectStatus?.isFinal;
     });
-    setClientProjects(filteredProjects);
-    
-    if (clientId !== selectedClientId) {
-      form.setValue("projectId", "");
-      setSelectedClientId(clientId);
+
+    // If client is selected (either manually or via project), filter to that client
+    if (clientId) {
+      filteredProjects = filteredProjects.filter(p => p.clientId === clientId);
     }
+
+    setClientProjects(filteredProjects);
+    setSelectedClientId(clientId);
   }, [form.watch("clientId"), projects, selectedClientId, projectStatuses]);
   
   const onSubmit = async (data: TaskFormData, startTimerAfterSave = false) => {
@@ -479,8 +491,14 @@ export function CreateTaskDialog({
                       name="clientId"
                       render={({ field }) => (
                         <div className="space-y-2">
-                          <Label>Client *</Label>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Label>
+                            Client * {form.watch("projectId") && "(auto-selected)"}
+                          </Label>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            disabled={!!form.watch("projectId")}
+                          >
                             <SelectTrigger>
                               <SelectValue placeholder="Select a client" />
                             </SelectTrigger>
@@ -521,16 +539,28 @@ export function CreateTaskDialog({
                       render={({ field }) => (
                         <div className="space-y-2">
                           <Label>Project *</Label>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={!form.watch("clientId")}>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger>
-                              <SelectValue placeholder={form.watch("clientId") ? "Select a project" : "Select a client first"} />
+                              <SelectValue
+                                placeholder={
+                                  form.watch("clientId")
+                                    ? "Select a project"
+                                    : "Select a client or project"
+                                }
+                              />
                             </SelectTrigger>
                             <SelectContent>
-                              {clientProjects.map((project) => (
-                                <SelectItem key={project.id} value={project.id}>
-                                  {project.name}
-                                </SelectItem>
-                              ))}
+                              {clientProjects.length > 0 ? (
+                                clientProjects.map((project) => (
+                                  <SelectItem key={project.id} value={project.id}>
+                                    {project.name}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                                  No projects available
+                                </div>
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />

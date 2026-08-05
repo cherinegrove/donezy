@@ -92,35 +92,59 @@ export function StartTimerDialog({
     }
   }, [open, defaultProjectId, defaultTaskId]);
   
-  // Filter projects by selected client and exclude completed projects
-  const clientProjects = selectedClientId 
-    ? projects.filter(project => {
-        if (project.clientId !== selectedClientId) return false;
-        const projectStatus = projectStatuses.find(s => s.value === project.status);
-        return !projectStatus?.isFinal;
-      })
-    : projects.filter(project => {
-        const projectStatus = projectStatuses.find(s => s.value === project.status);
-        return !projectStatus?.isFinal;
-      });
-  
+  // If Project is selected, use its client; otherwise use manually selected client
+  const effectiveClientId = selectedProjectId
+    ? projects.find(p => p.id === selectedProjectId)?.clientId || selectedClientId
+    : selectedClientId;
+
+  // Filter projects - show all non-completed projects, then filter by client if one is selected
+  const clientProjects = projects.filter(project => {
+    const projectStatus = projectStatuses.find(s => s.value === project.status);
+    if (projectStatus?.isFinal) return false;
+
+    // If a client is selected (manually or via project), filter to that client
+    if (effectiveClientId && project.clientId !== effectiveClientId) return false;
+    return true;
+  });
+
   // Filter tasks by selected project and sort alphabetically
-  const projectTasks = selectedProjectId 
+  const projectTasks = selectedProjectId
     ? tasks
         .filter(task => task.projectId === selectedProjectId)
         .sort((a, b) => a.title.localeCompare(b.title))
     : [];
-  
+
   // Get selected task name for display
   const selectedTask = tasks.find(t => t.id === selectedTaskId);
-  
+
+  // Determine if client field should be disabled (locked by project selection)
+  const isClientDisabled = !!selectedProjectId;
+
+  const handleProjectChange = (projectId: string) => {
+    setSelectedProjectId(projectId);
+    setSelectedTaskId(""); // Clear task when project changes
+
+    // Auto-set client from project
+    const project = projects.find(p => p.id === projectId);
+    if (project) {
+      setSelectedClientId(project.clientId);
+    }
+  };
+
+  const handleClientChange = (clientId: string) => {
+    setSelectedClientId(clientId);
+    setSelectedProjectId(""); // Clear project when client changes (if not already set via project)
+    setSelectedTaskId(""); // Clear task
+  };
+
   const handleStartTimer = () => {
     console.log('🎯 StartTimerDialog: handleStartTimer called with:', {
       selectedClientId,
+      effectiveClientId,
       selectedProjectId,
       selectedTaskId
     });
-    
+
     // Check if project is completed
     if (selectedProjectId) {
       const selectedProject = projects.find(p => p.id === selectedProjectId);
@@ -134,10 +158,10 @@ export function StartTimerDialog({
         }
       }
     }
-    
-    if (selectedClientId) {
+
+    if (effectiveClientId) {
       console.log('🚀 StartTimerDialog: Calling AppContext startTimeTracking...');
-      startTimeTracking(selectedTaskId || undefined, selectedProjectId || undefined, selectedClientId, undefined, notes || undefined);
+      startTimeTracking(selectedTaskId || undefined, selectedProjectId || undefined, effectiveClientId, undefined, notes || undefined);
       onStartTimer();
       onOpenChange(false);
       setNotes(""); // Reset notes after starting timer
@@ -145,9 +169,9 @@ export function StartTimerDialog({
       console.error('❌ StartTimerDialog: No client selected!');
     }
   };
-  
-  // Only enable the Start Timer button when a client is selected
-  const canStartTimer = !!selectedClientId;
+
+  // Enable start button when either a client OR project is selected
+  const canStartTimer = !!effectiveClientId;
   
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
@@ -167,10 +191,13 @@ export function StartTimerDialog({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="client">Client (Required)</Label>
+            <Label htmlFor="client">
+              Client {isClientDisabled && "(auto-selected)"}
+            </Label>
             <Select
-              value={selectedClientId}
-              onValueChange={setSelectedClientId}
+              value={effectiveClientId}
+              onValueChange={handleClientChange}
+              disabled={isClientDisabled}
             >
               <SelectTrigger id="client">
                 <SelectValue placeholder="Select client" />
@@ -184,26 +211,28 @@ export function StartTimerDialog({
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="grid gap-2">
             <Label htmlFor="project">Project (Optional)</Label>
             <Select
               value={selectedProjectId}
-              onValueChange={(value) => {
-                setSelectedProjectId(value);
-                setSelectedTaskId(""); // Clear task when project changes
-              }}
-              disabled={!selectedClientId}
+              onValueChange={handleProjectChange}
             >
               <SelectTrigger id="project">
                 <SelectValue placeholder="Select project (optional)" />
               </SelectTrigger>
               <SelectContent>
-                {clientProjects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
+                {clientProjects.length > 0 ? (
+                  clientProjects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                    No projects available
+                  </div>
+                )}
               </SelectContent>
             </Select>
           </div>
