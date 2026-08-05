@@ -108,4 +108,19 @@ function KanbanTaskCardWithCommentInner({
   );
 }
 
-export const KanbanTaskCardWithComment = memo(KanbanTaskCardWithCommentInner);
+export const KanbanTaskCardWithComment = memo(
+  KanbanTaskCardWithCommentInner,
+  (prevProps, nextProps) => {
+    // Custom comparison: re-render only if content-bearing props change
+    // (onClick changes frequently due to closure, but doesn't need to trigger re-render)
+    return (
+      prevProps.task.id === nextProps.task.id &&
+      prevProps.task.updated_at === nextProps.task.updated_at &&
+      prevProps.task.comments?.length === nextProps.task.comments?.length &&
+      prevProps.displayOptions === nextProps.displayOptions &&
+      prevProps.isSelected === nextProps.isSelected &&
+      prevProps.showSelection === nextProps.showSelection &&
+      prevProps.onSelectionChange === nextProps.onSelectionChange
+    );
+  }
+);

@@ -369,7 +369,6 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
           ]);
 
           window.dispatchEvent(new CustomEvent('timersUpdated'));
-          window.location.reload();
         } catch (err) {
           console.error('Error resuming DB timer:', err);
           toast.error('Failed to resume timer');

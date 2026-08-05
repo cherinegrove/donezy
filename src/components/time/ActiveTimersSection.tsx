@@ -216,11 +216,9 @@ export function ActiveTimersSection({
           });
           
           console.log('✅ Timer resumed in DB (no delete):', timer.id.slice(0, 8));
-          
-          // Reload time entries to pick up the change
+
+          // Trigger context update via custom event (no page reload needed)
           window.dispatchEvent(new CustomEvent('timersUpdated'));
-          // Force a reload of context state
-          window.location.reload();
         } catch (err) {
           console.error('Error resuming DB timer:', err);
         }

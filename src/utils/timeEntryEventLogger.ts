@@ -57,12 +57,14 @@ export async function logTimeEntryEvent(
       });
 
     if (error) {
-      console.error('Error logging time entry event:', error);
+      console.error('❌ CRITICAL: Error logging time entry event:', error);
+      throw new Error(`Failed to log time entry event: ${eventType} - ${error.message}`);
     } else {
       console.log(`📝 Time entry event logged: ${eventType}`, details);
     }
   } catch (err) {
-    console.error('Error logging time entry event:', err);
+    console.error('❌ CRITICAL: Unhandled error in logTimeEntryEvent:', err);
+    throw err;
   }
 }
 

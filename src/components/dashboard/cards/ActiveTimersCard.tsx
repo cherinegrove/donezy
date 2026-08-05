@@ -1,5 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, Square } from "lucide-react";
@@ -8,6 +8,25 @@ import { format } from "date-fns";
 export function ActiveTimersCard() {
   const { activeTimeEntry, pausedTimeEntries, isTimerPaused, getElapsedTime, tasks, projects, clients, pauseTimeTracking, resumeTimeTracking } = useAppContext();
   const [displayTime, setDisplayTime] = useState("00:00:00");
+
+  // Pre-compute lookup maps to avoid O(n²) lookups
+  const taskMap = useMemo(() => new Map(tasks.map(t => [t.id, t])), [tasks]);
+  const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
+  const clientMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
+
+  // Pre-compute current task info
+  const currentTask = useMemo(() =>
+    activeTimeEntry ? taskMap.get(activeTimeEntry.taskId) : null,
+    [activeTimeEntry?.taskId, taskMap]
+  );
+  const currentProject = useMemo(() =>
+    currentTask ? projectMap.get(currentTask.projectId) : null,
+    [currentTask?.projectId, projectMap]
+  );
+  const currentClient = useMemo(() =>
+    activeTimeEntry ? clientMap.get(activeTimeEntry.clientId) : null,
+    [activeTimeEntry?.clientId, clientMap]
+  );
 
   // Update elapsed time every second if a timer is running (not paused)
   useEffect(() => {
@@ -60,10 +79,10 @@ export function ActiveTimersCard() {
                 <div className="flex-1">
                   <p className="text-sm font-medium text-muted-foreground">Running</p>
                   <p className="text-sm font-semibold truncate">
-                    {tasks.find(t => t.id === activeTimeEntry.taskId)?.title || 'Unknown Task'}
+                    {currentTask?.title || 'Unknown Task'}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {clients.find(c => c.id === activeTimeEntry.clientId)?.name || 'No Client'} • {projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.name || 'No Project'}
+                    {currentClient?.name || 'No Client'} • {currentProject?.name || 'No Project'}
                   </p>
                 </div>
                 <Button
@@ -99,10 +118,10 @@ export function ActiveTimersCard() {
                 <div className="flex-1">
                   <p className="text-sm font-medium text-muted-foreground">Paused</p>
                   <p className="text-sm font-semibold truncate">
-                    {tasks.find(t => t.id === activeTimeEntry.taskId)?.title || 'Unknown Task'}
+                    {currentTask?.title || 'Unknown Task'}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {clients.find(c => c.id === activeTimeEntry.clientId)?.name || 'No Client'} • {projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.name || 'No Project'}
+                    {currentClient?.name || 'No Client'} • {currentProject?.name || 'No Project'}
                   </p>
                 </div>
                 <Button
@@ -131,20 +150,34 @@ export function ActiveTimersCard() {
         )}
 
         {/* Other Paused Timers */}
-        {pausedTimeEntries && pausedTimeEntries.length > 0 && activeTimeEntry?.id !== pausedTimeEntries[0]?.id && (
+        {pausedTimeEntries && pausedTimeEntries.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Paused</p>
-            {pausedTimeEntries.map((entry) => (
-              <div key={entry.id} className="bg-white dark:bg-slate-800 p-3 rounded border border-yellow-200 dark:border-yellow-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">{entry.duration} mins</p>
-                    <p className="text-xs text-muted-foreground">Paused</p>
+            {pausedTimeEntries
+              .filter(entry => entry.id !== activeTimeEntry?.id) // Exclude active timer
+              .map((entry) => {
+                const task = tasks.find(t => t.id === entry.taskId);
+                const project = task ? projects.find(p => p.id === task.projectId) : null;
+                const client = project ? clients.find(c => c.id === project.clientId) : null;
+
+                return (
+                  <div key={entry.id} className="bg-white dark:bg-slate-800 p-3 rounded border border-yellow-200 dark:border-yellow-800">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{task?.title || 'Unknown Task'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {client?.name || 'No Client'} • {project?.name || 'No Project'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">Paused</p>
+                      </div>
+                      <Pause className="h-4 w-4 text-yellow-600 dark:text-yellow-500 mt-1 ml-2 flex-shrink-0" />
+                    </div>
+                    <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400 mt-2">
+                      {Math.floor(entry.duration / 60)}h {entry.duration % 60}m
+                    </p>
                   </div>
-                  <Pause className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
-                </div>
-              </div>
-            ))}
+                );
+              })}
           </div>
         )}
       </CardContent>

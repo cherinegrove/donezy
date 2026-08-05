@@ -32,6 +32,13 @@ export function StatusSelect({ field, value, onChange }: StatusSelectProps) {
     if (onChange) onChange(value);
   };
 
+  // Deduplicate statuses by value (keep only first occurrence)
+  const uniqueStatuses = taskStatuses
+    .sort((a, b) => a.order - b.order)
+    .filter((status, index, self) =>
+      index === self.findIndex(s => s.value === status.value)
+    );
+
   return (
     <Select
       value={actualValue}
@@ -42,14 +49,12 @@ export function StatusSelect({ field, value, onChange }: StatusSelectProps) {
         <SelectValue placeholder="Select status" />
       </SelectTrigger>
       <SelectContent>
-        {taskStatuses && taskStatuses.length > 0 ? (
-          taskStatuses
-            .sort((a, b) => a.order - b.order)
-            .map((status) => (
-              <SelectItem key={status.id} value={status.value}>
-                {status.label}
-              </SelectItem>
-            ))
+        {uniqueStatuses && uniqueStatuses.length > 0 ? (
+          uniqueStatuses.map((status) => (
+            <SelectItem key={status.id} value={status.value}>
+              {status.label}
+            </SelectItem>
+          ))
         ) : (
           // No hardcoded status fallback: the org's definitions are the single
           // source of truth. Offering made-up values here (the old behavior)

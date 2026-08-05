@@ -89,12 +89,24 @@ export default function Tasks() {
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     persistedFilters.activeFilters || {},
   );
-  const [startDate, setStartDate] = useState<Date | undefined>(
-    persistedFilters.startDate ? new Date(persistedFilters.startDate) : undefined,
-  );
-  const [dueDate, setDueDate] = useState<Date | undefined>(
-    persistedFilters.dueDate ? new Date(persistedFilters.dueDate) : undefined,
-  );
+  const [startDate, setStartDate] = useState<Date | undefined>(() => {
+    if (!persistedFilters.startDate) return undefined;
+    try {
+      const date = new Date(persistedFilters.startDate);
+      return isNaN(date.getTime()) ? undefined : date;
+    } catch {
+      return undefined;
+    }
+  });
+  const [dueDate, setDueDate] = useState<Date | undefined>(() => {
+    if (!persistedFilters.dueDate) return undefined;
+    try {
+      const date = new Date(persistedFilters.dueDate);
+      return isNaN(date.getTime()) ? undefined : date;
+    } catch {
+      return undefined;
+    }
+  });
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">(
     persistedFilters.statusFilter || "all",
   );

@@ -24,6 +24,20 @@ interface AppProviderProps {
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const { toast } = useToast();
+
+  // Helper function to safely invoke Supabase functions with error handling
+  const safeInvoke = (functionName: string, body: any) => {
+    supabase.functions.invoke(functionName, { body })
+      .then(({ error }) => {
+        if (error) {
+          console.error(`❌ ${functionName} failed:`, error);
+        }
+      })
+      .catch(err => {
+        console.error(`❌ ${functionName} network/invocation error:`, err);
+      });
+  };
+
   // State management
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -553,13 +567,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setTotalPausedTime(0);
       }
       
-      const pausedEntries = convertedTimeEntries.filter(entry => 
-        !entry.endTime && (entry as any).timerStatus === 'paused' && (
-          entry.userId === currentAuthUserId || 
-          entry.authUserId === currentAuthUserId ||
-          entry.userId === currentAuthUserId.toString()
+      const pausedEntries = convertedTimeEntries
+        .filter(entry =>
+          !entry.endTime && (entry as any).timerStatus === 'paused' && (
+            entry.userId === currentAuthUserId ||
+            entry.authUserId === currentAuthUserId ||
+            entry.userId === currentAuthUserId.toString()
+          )
         )
-      );
+        .map(entry => {
+          // Enrich with task/project/client names for display
+          const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
+          const project = task ? projects.find(p => p.id === task.projectId) : null;
+          const client = project ? clients.find(c => c.id === project.clientId) : null;
+          return {
+            ...entry,
+            taskTitle: task?.title || 'Unknown Task',
+            projectName: project?.name,
+            clientName: client?.name
+          } as any;
+        });
       setPausedTimeEntries(pausedEntries);
     } catch (error) {
       console.error('Error loading time entries:', error);
@@ -691,13 +718,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const loadTaskStatuses = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
+      if (!session?.user) {
+        console.warn('⚠️ No user session for loadTaskStatuses');
+        return;
+      }
 
       const { data: orgMemberships } = await supabase
         .from('user_organizations')
         .select('organization_id')
         .eq('user_id', session.user.id);
       const orgIds = (orgMemberships || []).map((o) => o.organization_id);
+      console.log('📊 Loading task statuses for user:', session.user.id, 'Org IDs:', orgIds);
 
       const { data, error } = await supabase
         .from('task_status_definitions')
@@ -711,9 +742,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         .order('order_index');
 
       if (error) {
-        console.error('Error loading task statuses:', error);
+        console.error('❌ Error loading task statuses from DB:', error);
         return;
       }
+
+      console.log('📊 Task statuses from DB:', data?.length || 0, 'results', data);
 
       if (data && data.length > 0) {
         const convertedStatuses: TaskStatusDefinition[] = data.map(status => ({
@@ -723,10 +756,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           color: status.color,
           order: status.order_index,
         }));
+        console.log('✅ Setting task statuses:', convertedStatuses);
         setTaskStatuses(convertedStatuses);
+      } else {
+        console.warn('⚠️ No task statuses found in database, keeping defaults');
       }
     } catch (error) {
-      console.error('Error loading task statuses:', error);
+      console.error('❌ Exception loading task statuses:', error);
     }
   };
 
@@ -3048,10 +3084,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setPausedAt(pausedAtTime);
     console.log('⏸️ Timer paused in AppContext (optimistic)');
 
-    // Sync to database in background (fire and forget with error handling)
+    // Sync to database in background (with error handling and revert)
     (async () => {
       try {
-        // Log the pause event FIRST - if this fails, we still update DB
+        // Log the pause event FIRST - must succeed before DB update
         await logTimeEntryEvent(activeTimeEntry.id, 'paused', {
           pausedAt: pausedAtTime.toISOString()
         });
@@ -3071,10 +3107,16 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           console.log('✅ Pause synced to database');
         }
       } catch (err) {
-        console.error('❌ Error during pause sync:', err);
-        // Revert state on error
+        console.error('❌ CRITICAL: Error during pause sync - reverting UI:', err);
+        // CRITICAL: If event logging failed, revert the UI pause
         setIsTimerPaused(false);
         setPausedAt(null);
+        // Show error to user
+        toast({
+          title: "⚠️ Pause Failed",
+          description: "Timer pause was not saved to database. Timer is still running. Please try again.",
+          variant: "destructive"
+        });
       } finally {
         isPausingTimer.current = false;
       }
@@ -3141,11 +3183,17 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           console.log('✅ Resume synced to database');
         }
       } catch (err) {
-        console.error('❌ Error during resume sync:', err);
-        // Revert state on error
+        console.error('❌ CRITICAL: Error during resume sync - reverting UI:', err);
+        // CRITICAL: If event logging failed, revert the UI resume
         setIsTimerPaused(true);
         setPausedAt(new Date());
         setTotalPausedTime(prev => prev - pauseDuration);
+        // Show error to user
+        toast({
+          title: "⚠️ Resume Failed",
+          description: "Timer resume was not saved to database. Timer is still paused. Please try again.",
+          variant: "destructive"
+        });
       }
     })();
   };

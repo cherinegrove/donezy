@@ -2,7 +2,7 @@ import { Task, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
 import { KanbanTaskCardWithComment } from "./KanbanTaskCardWithComment";
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense, useCallback } from "react";
 const EditTaskDialog = lazy(() => import("../tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { ConfettiCelebration } from "../mascot/ConfettiCelebration";
 import { Settings, Edit2, CheckSquare, Trash2, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
@@ -158,7 +158,11 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     .map(status => ({
       id: status.value as TaskStatus,
       title: status.label
-    }));
+    }))
+    .filter((column, index, self) =>
+      // Deduplicate: keep only the first occurrence of each column.id
+      index === self.findIndex(c => c.id === column.id)
+    );
   
   // Sort by due date only (ascending or descending)
   const getSortFunction = (ascending: boolean) => {
@@ -189,20 +193,39 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   // Drag and drop handler using @hello-pangea/dnd
   const handleDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
-    
+
+    // DEBUG: Log column order and drag operation
+    console.log('🔍 DRAG DEBUG - taskStatuses order values:', taskStatuses.map(s => `${s.value}:${s.order}`).join(', '));
+    console.log('🔍 DRAG DEBUG - Column Order (as rendered):', columns.map(c => `${c.id}(${c.title})`).join(' → '));
+    console.log('🔍 DRAG DEBUG - Source:', { droppableId: source.droppableId, index: source.index });
+    console.log('🔍 DRAG DEBUG - Destination:', destination ? { droppableId: destination.droppableId, index: destination.index } : 'Outside');
+    console.log('🔍 DRAG DEBUG - Task ID:', draggableId);
+
     // Dropped outside any droppable area
-    if (!destination) return;
-    
+    if (!destination) {
+      console.log('⚠️ Dropped outside droppable area - no change');
+      return;
+    }
+
     // Same position, no change
     if (
       source.droppableId === destination.droppableId &&
       source.index === destination.index
     ) {
+      console.log('ℹ️ Same position - no change needed');
       return;
     }
-    
+
     const sourceStatus = source.droppableId as TaskStatus;
     const destinationStatus = destination.droppableId as TaskStatus;
+
+    // Highlight New/Backlog issue specifically
+    if ((sourceStatus === 'new' && destinationStatus === 'backlog') ||
+        (sourceStatus === 'backlog' && destinationStatus === 'new')) {
+      console.warn('🚨 NEW ↔ BACKLOG DRAG DETECTED:', sourceStatus, '→', destinationStatus);
+    }
+
+    console.log('✅ DRAG DEBUG - Moving task from', sourceStatus, 'to', destinationStatus, 'at index', destination.index);
 
     // Reorder task (no hardcoded prompts - only forms from account settings are active)
     if (reorderTasks) {
@@ -215,7 +238,15 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     }
   };
 
-  const handleTaskClick = (task: Task, event?: React.MouseEvent) => {
+  const handleTaskSelection = useCallback((taskId: string) => {
+    setSelectedTaskIds(prev =>
+      prev.includes(taskId)
+        ? prev.filter(id => id !== taskId)
+        : [...prev, taskId]
+    );
+  }, []);
+
+  const handleTaskClick = useCallback((task: Task, event?: React.MouseEvent) => {
     // If Ctrl/Cmd key is pressed or there are already selected tasks, toggle selection
     if (event?.ctrlKey || event?.metaKey || selectedTaskIds.length > 0) {
       handleTaskSelection(task.id);
@@ -229,21 +260,12 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
       setSelectedTask(task);
       setIsEditDialogOpen(true);
     }
-  };
+  }, [selectedTaskIds.length, onTaskOpen, handleTaskSelection]);
 
-  const handleNestedTaskClick = (task: Task) => {
+  const handleNestedTaskClick = useCallback((task: Task) => {
     setNestedSelectedTask(task);
     setIsNestedDialogOpen(true);
-  };
-
-  // Task selection functions
-  const handleTaskSelection = (taskId: string) => {
-    setSelectedTaskIds(prev => 
-      prev.includes(taskId) 
-        ? prev.filter(id => id !== taskId)
-        : [...prev, taskId]
-    );
-  };
+  }, []);
 
   const handleSelectAll = () => {
     if (selectedTaskIds.length === tasks.length) {
@@ -548,7 +570,9 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
                               >
                                 <KanbanTaskCardWithComment
                                   task={task}
-                                  onClick={(e) => handleTaskClick(task, e)}
+                                  onClick={(e) => {
+                                    handleTaskClick(task, e);
+                                  }}
                                   displayOptions={displayOptions}
                                   isSelected={selectedTaskIds.includes(task.id)}
                                   onSelectionChange={handleTaskSelection}

@@ -45,7 +45,7 @@ interface TaskSidebarPanelProps {
 }
 
 export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
-  const { deleteTask, updateTask, projects, users } = useAppContext();
+  const { deleteTask, updateTask, projects, users, taskStatuses } = useAppContext();
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
@@ -56,12 +56,20 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
   const [priority, setPriority] = useState(task.priority);
   const [assigneeId, setAssigneeId] = useState(task.assigneeId);
   const [collaboratorIds, setCollaboratorIds] = useState(task.collaboratorIds || []);
-  const [dueDate, setDueDate] = useState<Date | undefined>(
-    task.dueDate ? new Date(task.dueDate) : undefined
-  );
-  const [reminderDate, setReminderDate] = useState<Date | undefined>(
-    task.reminderDate ? new Date(task.reminderDate) : undefined
-  );
+
+  // Safe date parsing to prevent "Invalid time value" errors
+  const parseDate = (dateStr: string | undefined): Date | undefined => {
+    if (!dateStr) return undefined;
+    try {
+      const parsed = new Date(dateStr);
+      return isNaN(parsed.getTime()) ? undefined : parsed;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const [dueDate, setDueDate] = useState<Date | undefined>(parseDate(task.dueDate));
+  const [reminderDate, setReminderDate] = useState<Date | undefined>(parseDate(task.reminderDate));
   const [estimatedHours, setEstimatedHours] = useState<number | undefined>(task.estimatedHours);
 
   const project = projects.find(p => p.id === task.projectId);
@@ -137,11 +145,16 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="backlog">Backlog</SelectItem>
-                  <SelectItem value="todo">To Do</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
-                  <SelectItem value="review">Review</SelectItem>
-                  <SelectItem value="done">Done</SelectItem>
+                  {taskStatuses
+                    .sort((a, b) => a.order - b.order)
+                    .filter((s, index, self) =>
+                      index === self.findIndex(st => st.value === s.value)
+                    )
+                    .map((status) => (
+                      <SelectItem key={status.id} value={status.value}>
+                        {status.label}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>

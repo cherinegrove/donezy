@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, lazy, Suspense, useMemo, memo } from "react";
 import { format, isBefore, isToday, parseISO, startOfToday } from "date-fns";
 import { useAppContext } from "@/contexts/AppContext";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +27,18 @@ const Home = () => {
 
   const today = startOfToday();
 
+  // Safe date parsing to prevent "Invalid time value" errors
+  const safeParseDate = (dateStr: string | undefined) => {
+    if (!dateStr) return undefined;
+    try {
+      const date = parseISO(dateStr);
+      return isNaN(date.getTime()) ? undefined : date;
+    } catch {
+      console.warn('Invalid date:', dateStr);
+      return undefined;
+    }
+  };
+
   // Filter tasks for current user
   const filteredTasks = tasks.filter(task => 
     task.assigneeId === currentUser?.id || 
@@ -46,16 +58,16 @@ const Home = () => {
   );
 
   // Tasks due today
-  const tasksDueToday = filteredTasks.filter(task => 
-    task.dueDate && isToday(parseISO(task.dueDate)) && task.status !== "done"
-  );
+  const tasksDueToday = filteredTasks.filter(task => {
+    const dueDate = safeParseDate(task.dueDate);
+    return dueDate && isToday(dueDate) && task.status !== "done";
+  });
 
   // Overdue tasks
-  const overdueTasks = filteredTasks.filter(task => 
-    task.dueDate && 
-    isBefore(parseISO(task.dueDate), today) &&
-    task.status !== "done"
-  );
+  const overdueTasks = filteredTasks.filter(task => {
+    const dueDate = safeParseDate(task.dueDate);
+    return dueDate && isBefore(dueDate, today) && task.status !== "done";
+  });
 
   // All active tasks (excluding done)
   const activeTasks = filteredTasks.filter(task => task.status !== "done");
@@ -80,13 +92,15 @@ const Home = () => {
     }
   };
 
-  // Compact task list row component
-  const CompactTaskRow = ({ task }: { task: Task }) => {
-    const project = projects.find(p => p.id === task.projectId);
-    const assignee = users.find(u => u.id === task.assigneeId);
-    const collaborators = (task.collaboratorIds || [])
-      .map(id => users.find(u => u.id === id))
-      .filter(Boolean);
+  // Pre-compute lookup maps to avoid O(n²) find operations
+  const userMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
+  const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
+
+  // Compact task list row component (memoized to avoid re-renders)
+  const CompactTaskRow = memo(({ task }: { task: Task }) => {
+    const project = projectMap.get(task.projectId);
+    const assignee = userMap.get(task.assigneeId);
+    const dueDate = safeParseDate(task.dueDate);
 
     return (
       <div
@@ -98,12 +112,12 @@ const Home = () => {
           <p className="text-xs text-muted-foreground">{project?.name || "No Project"}</p>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
-          {task.dueDate && <span>{format(parseISO(task.dueDate), "MMM dd")}</span>}
+          {dueDate && <span>{format(dueDate, "MMM dd")}</span>}
           {assignee && <span className="text-blue-600 dark:text-blue-400">{assignee.name}</span>}
         </div>
       </div>
     );
-  };
+  });
 
   // Count active tasks
   const inProgressTasks = activeTasks.filter(t => t.status === "in-progress").length;

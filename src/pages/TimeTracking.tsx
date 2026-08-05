@@ -133,15 +133,18 @@ const TimeTracking = () => {
       console.log('⏱️ Found', data.length, 'active timers across all users');
       
       // Helper function to calculate actual elapsed time accounting for pauses
-      const calculateElapsedWithPauses = (entryId: string, startTime: Date): number => {
-        const now = Date.now();
-        const totalElapsedMs = now - startTime.getTime();
-        
+      const calculateElapsedWithPauses = (entry: any): number => {
+        const startTime = new Date(entry.start_time).getTime();
+
+        // For stopped timers, use end_time; for active/paused, use now
+        const endTime = entry.end_time ? new Date(entry.end_time).getTime() : Date.now();
+        const totalElapsedMs = endTime - startTime;
+
         // Get all pause/resume events for this entry
-        const entryEvents = allEvents.filter(e => e.time_entry_id === entryId);
+        const entryEvents = allEvents.filter(e => e.time_entry_id === entry.id);
         let totalPausedMs = 0;
         let lastPauseTime: Date | null = null;
-        
+
         for (const event of entryEvents) {
           if (event.event_type === 'paused') {
             lastPauseTime = new Date(event.event_timestamp);
@@ -151,12 +154,12 @@ const TimeTracking = () => {
             lastPauseTime = null;
           }
         }
-        
-        // If still paused (no matching resume), add time from last pause to now
+
+        // If still paused (no matching resume), add time from last pause to endTime (not now)
         if (lastPauseTime) {
-          totalPausedMs += now - lastPauseTime.getTime();
+          totalPausedMs += endTime - lastPauseTime.getTime();
         }
-        
+
         return Math.max(0, totalElapsedMs - totalPausedMs);
       };
       
@@ -174,10 +177,10 @@ const TimeTracking = () => {
         const task = entry.task_id ? tasks.find(t => t.id === entry.task_id) : null;
         const project = entry.project_id ? projects.find(p => p.id === entry.project_id) : null;
         const client = project?.clientId ? clients.find(c => c.id === project.clientId) : null;
-        
+
         const startTime = new Date(entry.start_time);
         const isPaused = isTimerPaused(entry.id);
-        const actualElapsed = calculateElapsedWithPauses(entry.id, startTime);
+        const actualElapsed = calculateElapsedWithPauses(entry);
         
         return {
           id: entry.id,
@@ -215,6 +218,17 @@ const TimeTracking = () => {
       fetchAllActiveTimers();
     }
   }, [isSuperAdmin, users, tasks, projects, clients]);
+
+  // Refresh all active timers every 5 seconds to account for pause/resume events
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+
+    const interval = setInterval(() => {
+      fetchAllActiveTimers();
+    }, 5000); // 5 second refresh for near-real-time updates
+
+    return () => clearInterval(interval);
+  }, [isSuperAdmin]);
 
   // Fetch all abnormal time entries: cancelled, orphaned, lost, or otherwise non-standard
   const fetchCancelledEntries = async () => {

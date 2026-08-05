@@ -6,8 +6,8 @@ import { toast as sonnerToast } from "sonner";
 import { useAppContext } from "@/contexts/AppContext";
 import { VoiceDescriptionButton } from "@/components/tasks/VoiceDescriptionButton";
 
-interface ProposedAction {
-  type: "create_task";
+interface ProposedTask {
+  id: string; // For tracking individual task confirmation status
   title: string;
   description?: string;
   projectId: string;
@@ -16,6 +16,11 @@ interface ProposedAction {
   assigneeName?: string;
   dueDate?: string;
   priority?: "low" | "medium" | "high" | "urgent";
+}
+
+interface ProposedAction {
+  type: "create_tasks"; // Changed from "create_task" to support bulk
+  tasks: ProposedTask[];
 }
 
 type ActionStatus = "pending" | "confirmed" | "cancelled" | "error";
@@ -28,6 +33,7 @@ interface Message {
   proposedAction?: ProposedAction;
   actionStatus?: ActionStatus;
   actionError?: string;
+  taskStatuses?: Record<string, ActionStatus>; // Track individual task statuses
 }
 
 const QUICK_PROMPTS = [
@@ -128,29 +134,66 @@ export function AIChatbot() {
     inFlightActionsRef.current.add(message.id);
 
     try {
-      const taskId = await addTask({
-        title: action.title,
-        description: action.description ?? "",
-        projectId: action.projectId,
-        assigneeId: action.assigneeId,
-        status: "backlog",
-        priority: action.priority ?? "medium",
-        dueDate: action.dueDate,
-        subtasks: [],
-        watcherIds: [],
-        collaboratorIds: [],
-        relatedTaskIds: [],
-        checklist: [],
+      const taskStatuses: Record<string, ActionStatus> = {};
+      const createdTaskIds: string[] = [];
+
+      // Create all tasks in parallel
+      const taskPromises = action.tasks.map(async (task) => {
+        try {
+          const taskId = await addTask({
+            title: task.title,
+            description: task.description ?? "",
+            projectId: task.projectId,
+            assigneeId: task.assigneeId,
+            status: "backlog",
+            priority: task.priority ?? "medium",
+            dueDate: task.dueDate,
+            subtasks: [],
+            watcherIds: [],
+            collaboratorIds: [],
+            relatedTaskIds: [],
+            checklist: [],
+          });
+
+          if (!taskId) throw new Error("Task was not created");
+
+          taskStatuses[task.id] = "confirmed";
+          createdTaskIds.push(taskId);
+          return { taskId, title: task.title };
+        } catch (error: any) {
+          console.error(`Error creating task "${task.title}":`, error);
+          taskStatuses[task.id] = "error";
+          return null;
+        }
       });
 
-      if (!taskId) throw new Error("Task was not created");
+      const results = await Promise.all(taskPromises);
+      const successCount = createdTaskIds.length;
+      const totalCount = action.tasks.length;
 
-      setMessageAction(message.id, "confirmed");
-      sonnerToast.success(`Task created in ${action.projectName}`, {
-        action: { label: "View Task", onClick: () => navigate(`/tasks/${taskId}`) },
-      });
+      // Update message with task statuses
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === message.id
+            ? { ...m, actionStatus: successCount > 0 ? "confirmed" : "error", taskStatuses }
+            : m
+        )
+      );
+
+      // Show success toast
+      if (successCount === totalCount) {
+        sonnerToast.success(`Created ${successCount} task${successCount !== 1 ? "s" : ""} in ${action.tasks[0].projectName}`, {
+          action: { label: "View Project", onClick: () => navigate(`/projects`) },
+        });
+      } else if (successCount > 0) {
+        sonnerToast.warning(`Created ${successCount} of ${totalCount} tasks (${totalCount - successCount} failed)`, {
+          action: { label: "View Project", onClick: () => navigate(`/projects`) },
+        });
+      } else {
+        sonnerToast.error(`Failed to create ${totalCount} task${totalCount !== 1 ? "s" : ""}`);
+      }
     } catch (error: any) {
-      console.error("Error creating task from chat:", error);
+      console.error("Error creating tasks from chat:", error);
       setMessageAction(message.id, "error", error.message);
     } finally {
       inFlightActionsRef.current.delete(message.id);
@@ -336,17 +379,38 @@ export function AIChatbot() {
 
       const data = await response.json();
 
-      if (!data || !data.response) {
+      if (!data || !data.message) {
         throw new Error('No response from chatbot');
       }
 
-      const proposedAction: ProposedAction | undefined =
-        data.proposedAction?.type === "create_task" ? data.proposedAction : undefined;
+      // Transform edge function response to ProposedAction format
+      let proposedAction: ProposedAction | undefined;
+      if (data.tasks && Array.isArray(data.tasks) && data.tasks.length > 0) {
+        const projectName = data.projectName || "Unknown Project";
+        const projectId = projects.find(p => p.name === projectName)?.id;
+
+        if (projectId) {
+          proposedAction = {
+            type: "create_tasks",
+            tasks: data.tasks.map((task: any, index: number) => ({
+              id: `task-${index}-${Date.now()}`,
+              title: task.title || "",
+              description: task.description || "",
+              projectId: projectId,
+              projectName: projectName,
+              assigneeId: task.assigneeId,
+              assigneeName: task.assigneeName,
+              dueDate: task.dueDate,
+              priority: task.priority || "medium",
+            })),
+          };
+        }
+      }
 
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: data.response,
+        content: data.message,
         timestamp: new Date(),
         ...(proposedAction
           ? { proposedAction, actionStatus: "pending" as ActionStatus }
@@ -440,27 +504,38 @@ export function AIChatbot() {
               )}
 
               {message.proposedAction && (
-                <div className="mt-2 rounded-md border border-border bg-background p-3 space-y-1.5">
+                <div className="mt-2 rounded-md border border-border bg-background p-3 space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    New task
+                    {message.proposedAction.tasks.length === 1 ? "New task" : `Create ${message.proposedAction.tasks.length} tasks`}
                   </p>
-                  <p className="text-sm font-medium">{message.proposedAction.title}</p>
-                  {message.proposedAction.description && (
-                    <p className="text-xs text-muted-foreground whitespace-pre-wrap">
-                      {message.proposedAction.description}
-                    </p>
-                  )}
-                  <div className="text-xs text-muted-foreground space-y-0.5">
-                    <p>Project: {message.proposedAction.projectName}</p>
-                    {message.proposedAction.assigneeName && (
-                      <p>Assignee: {message.proposedAction.assigneeName}</p>
-                    )}
-                    {message.proposedAction.dueDate && (
-                      <p>Due: {message.proposedAction.dueDate}</p>
-                    )}
-                    <p>Priority: {message.proposedAction.priority ?? "medium"}</p>
+
+                  {/* Task list */}
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {message.proposedAction.tasks.map((task) => (
+                      <div key={task.id} className="border border-border/50 rounded p-2 bg-muted/30 space-y-1">
+                        <p className="text-sm font-medium">{task.title}</p>
+                        {task.description && (
+                          <p className="text-xs text-muted-foreground whitespace-pre-wrap">{task.description}</p>
+                        )}
+                        <div className="text-xs text-muted-foreground space-y-0.5">
+                          <p>Project: {task.projectName}</p>
+                          {task.assigneeName && <p>Assignee: {task.assigneeName}</p>}
+                          {task.dueDate && <p>Due: {task.dueDate}</p>}
+                          <p>Priority: {task.priority ?? "medium"}</p>
+                        </div>
+
+                        {/* Individual task status indicator */}
+                        {message.taskStatuses?.[task.id] === "confirmed" && (
+                          <p className="text-xs text-green-600 dark:text-green-400">✓ Created</p>
+                        )}
+                        {message.taskStatuses?.[task.id] === "error" && (
+                          <p className="text-xs text-red-600 dark:text-red-400">✗ Failed</p>
+                        )}
+                      </div>
+                    ))}
                   </div>
 
+                  {/* Action buttons */}
                   {message.actionStatus === "pending" && (
                     <div className="flex gap-2 pt-1.5">
                       <button
@@ -468,7 +543,7 @@ export function AIChatbot() {
                         onClick={() => confirmAction(message)}
                         className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:opacity-90"
                       >
-                        Confirm
+                        Create All
                       </button>
                       <button
                         type="button"
@@ -480,14 +555,16 @@ export function AIChatbot() {
                     </div>
                   )}
                   {message.actionStatus === "confirmed" && (
-                    <p className="text-xs text-green-600 dark:text-green-400 pt-1">✓ Task created</p>
+                    <p className="text-xs text-green-600 dark:text-green-400 pt-1">
+                      ✓ {message.proposedAction.tasks.length} task{message.proposedAction.tasks.length !== 1 ? "s" : ""} created
+                    </p>
                   )}
                   {message.actionStatus === "cancelled" && (
                     <p className="text-xs text-muted-foreground pt-1">Cancelled — nothing was created</p>
                   )}
                   {message.actionStatus === "error" && (
                     <p className="text-xs text-destructive pt-1">
-                      Couldn't create the task: {message.actionError || "unknown error"}
+                      {message.actionError || "Some tasks failed to create"}
                     </p>
                   )}
                 </div>
