@@ -41,15 +41,30 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [] 
   };
 
   const formatDueDate = (date: string) => {
-    return format(new Date(date), "MMM dd");
+    if (!date || !date.trim()) return "";
+    try {
+      return format(new Date(date), "MMM dd");
+    } catch {
+      return "";
+    }
   };
 
   const isOverdue = (date: string) => {
-    return isBefore(parseISO(date), new Date());
+    if (!date || !date.trim()) return false;
+    try {
+      return isBefore(parseISO(date), new Date());
+    } catch {
+      return false;
+    }
   };
 
   const isDueToday = (date: string) => {
-    return isToday(parseISO(date));
+    if (!date || !date.trim()) return false;
+    try {
+      return isToday(parseISO(date));
+    } catch {
+      return false;
+    }
   };
 
   const shouldShake = task.status !== 'done' && (isUrgent || (task.dueDate && isDueToday(task.dueDate)));
