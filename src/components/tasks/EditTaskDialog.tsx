@@ -321,13 +321,13 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                         className="w-full justify-start text-left font-normal"
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dueDate ? format(new Date(dueDate + "T00:00:00"), "PPP") : "No due date"}
+                        {dueDate && dueDate.trim() ? format(new Date(dueDate + "T00:00:00"), "PPP") : "No due date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
-                        selected={dueDate ? new Date(dueDate + "T00:00:00") : undefined}
+                        selected={dueDate && dueDate.trim() ? new Date(dueDate + "T00:00:00") : undefined}
                         onSelect={(date) => {
                           if (date) {
                             const year = date.getFullYear();
@@ -360,13 +360,13 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                         className="w-full justify-start text-left font-normal"
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {reminderDate ? format(new Date(reminderDate + "T00:00:00"), "PPP") : "No reminder set"}
+                        {reminderDate && reminderDate.trim() ? format(new Date(reminderDate + "T00:00:00"), "PPP") : "No reminder set"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
-                        selected={reminderDate ? new Date(reminderDate + "T00:00:00") : undefined}
+                        selected={reminderDate && reminderDate.trim() ? new Date(reminderDate + "T00:00:00") : undefined}
                         onSelect={(date) => {
                           if (date) {
                             const year = date.getFullYear();
