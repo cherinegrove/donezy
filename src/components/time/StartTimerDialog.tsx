@@ -220,7 +220,7 @@ export function StartTimerDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="project">Project (Optional)</Label>
+            <Label htmlFor="project">Project</Label>
             <Select
               value={selectedProjectId}
               onValueChange={handleProjectChange}
