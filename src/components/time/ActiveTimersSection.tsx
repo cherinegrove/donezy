@@ -664,8 +664,10 @@ export function ActiveTimersSection({
                     </Badge>
                   </div>
                 )}
-                <h4 className="font-medium text-sm truncate">{timer.taskTitle}</h4>
-                {timer.description && (
+                <h4 className="font-medium text-sm truncate">
+                  {timer.taskTitle === 'Unknown Task' && timer.description ? timer.description : timer.taskTitle}
+                </h4>
+                {timer.taskTitle !== 'Unknown Task' && timer.description && (
                   <p className="text-xs text-muted-foreground italic mt-1">{timer.description}</p>
                 )}
                 {timer.projectName && (
