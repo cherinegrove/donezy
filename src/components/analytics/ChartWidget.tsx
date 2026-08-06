@@ -68,7 +68,13 @@ export const ChartWidget = ({ type, data, dataKey, nameKey, onDataClick, stacked
           metadata: {
             ...(item.priority && { Priority: item.priority }),
             ...(item.assigneeId && { Assignee: item.assigneeId }),
-            ...(item.dueDate && { "Due Date": new Date(item.dueDate).toLocaleDateString() }),
+            ...(item.dueDate && item.dueDate.trim() && (() => {
+              try {
+                return { "Due Date": new Date(item.dueDate).toLocaleDateString() };
+              } catch {
+                return {};
+              }
+            })()),
           },
           path: item.title ? `/tasks/${item.id}` : `/projects/${item.id}`
         };

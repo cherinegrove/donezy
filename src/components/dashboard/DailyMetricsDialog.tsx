@@ -78,15 +78,23 @@ export function DailyMetricsDialog({ open, onOpenChange }: DailyMetricsDialogPro
 
   // Calculate metrics
   const tasksDueToday = userTasks.filter((task) => {
-    if (!task.dueDate) return false;
-    return isToday(new Date(task.dueDate));
+    if (!task.dueDate || !task.dueDate.trim()) return false;
+    try {
+      return isToday(new Date(task.dueDate));
+    } catch {
+      return false;
+    }
   });
 
   const tasksOverdue = userTasks.filter((task) => {
-    if (!task.dueDate) return false;
-    const dueDate = startOfDay(new Date(task.dueDate));
-    const today = startOfDay(new Date());
-    return isBefore(dueDate, today);
+    if (!task.dueDate || !task.dueDate.trim()) return false;
+    try {
+      const dueDate = startOfDay(new Date(task.dueDate));
+      const today = startOfDay(new Date());
+      return isBefore(dueDate, today);
+    } catch {
+      return false;
+    }
   });
 
   const unreadNotifications: number = 0;
@@ -243,7 +251,13 @@ export function DailyMetricsDialog({ open, onOpenChange }: DailyMetricsDialogPro
                               {task.priority && (
                                 <Badge variant="outline" className="mr-2">{task.priority}</Badge>
                               )}
-                              {task.dueDate && format(new Date(task.dueDate), "p")}
+                              {task.dueDate && task.dueDate.trim() && (() => {
+                                try {
+                                  return format(new Date(task.dueDate), "p");
+                                } catch {
+                                  return null;
+                                }
+                              })()}
                             </p>
                           </div>
                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -300,7 +314,13 @@ export function DailyMetricsDialog({ open, onOpenChange }: DailyMetricsDialogPro
                               {task.priority && (
                                 <Badge variant="outline" className="mr-2">{task.priority}</Badge>
                               )}
-                              Due {task.dueDate && format(new Date(task.dueDate), "MMM d, yyyy")}
+                              {task.dueDate && task.dueDate.trim() && (() => {
+                                try {
+                                  return `Due ${format(new Date(task.dueDate), "MMM d, yyyy")}`;
+                                } catch {
+                                  return null;
+                                }
+                              })()}
                             </p>
                           </div>
                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
