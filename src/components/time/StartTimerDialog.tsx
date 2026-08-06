@@ -159,9 +159,16 @@ export function StartTimerDialog({
       }
     }
 
+    if (!selectedProjectId) {
+      toast('Project is required', {
+        description: 'Please select a project to start a timer',
+      });
+      return;
+    }
+
     if (effectiveClientId) {
       console.log('🚀 StartTimerDialog: Calling AppContext startTimeTracking...');
-      startTimeTracking(selectedTaskId || undefined, selectedProjectId || undefined, effectiveClientId, undefined, notes || undefined);
+      startTimeTracking(selectedTaskId || undefined, selectedProjectId, effectiveClientId, undefined, notes || undefined);
       onStartTimer();
       onOpenChange(false);
       setNotes(""); // Reset notes after starting timer
@@ -170,8 +177,8 @@ export function StartTimerDialog({
     }
   };
 
-  // Enable start button when either a client OR project is selected
-  const canStartTimer = !!effectiveClientId;
+  // Enable start button only when a project is selected (which auto-selects client)
+  const canStartTimer = !!selectedProjectId;
   
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
