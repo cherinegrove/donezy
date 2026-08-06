@@ -32,6 +32,7 @@ interface AllActiveTimer {
   id: string;
   taskId: string;
   taskTitle: string;
+  description?: string;
   projectName?: string;
   clientName?: string;
   startTime: Date;
@@ -664,6 +665,9 @@ export function ActiveTimersSection({
                   </div>
                 )}
                 <h4 className="font-medium text-sm truncate">{timer.taskTitle}</h4>
+                {timer.description && (
+                  <p className="text-xs text-muted-foreground italic mt-1">{timer.description}</p>
+                )}
                 {timer.projectName && (
                   <p className="text-xs text-muted-foreground">{timer.projectName}</p>
                 )}

@@ -33,13 +33,12 @@ import {
 import { TaskDetailTabs } from "./TaskDetailTabs";
 import { FileSection } from "./FileSection";
 import { TimerSection } from "./TimerSection";
-import { TaskLogsSection } from "./TaskLogsSection";
 import { ChecklistSection } from "./ChecklistSection";
 import { CommentSection } from "./CommentSection";
 const RelatedTasksSection = lazy(() => import("./RelatedTasksSection").then(m => ({ default: m.RelatedTasksSection })));
 import { supabase } from "@/integrations/supabase/client";
 import { RecurringTaskDialog } from "./RecurringTaskDialog";
-import { StatusHistorySection } from "./StatusHistorySection";
+import { TaskActivityLog } from "./TaskActivityLog";
 
 import { Repeat } from "lucide-react";
 
@@ -249,8 +248,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="files">Files</TabsTrigger>
               <TabsTrigger value="time">Time</TabsTrigger>
-              <TabsTrigger value="history">Status History</TabsTrigger>
-              <TabsTrigger value="logs">Activity Log</TabsTrigger>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
             </TabsList>
 
             <TabsContent value="details" className="space-y-4">
@@ -415,8 +413,8 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
               <TimerSection taskId={task.id} />
             </TabsContent>
             
-            <TabsContent value="history">
-              <StatusHistorySection
+            <TabsContent value="activity">
+              <TaskActivityLog
                 taskId={task.id}
                 currentStatus={status}
                 currentBacklogReason={task.backlogReason}
@@ -425,15 +423,11 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                 currentAwaitingFeedbackDetails={task.awaitingFeedbackDetails}
                 customFormResponses={task.customFormResponses}
                 onStatusInfoUpdated={() => {
-                  // Status info was updated - the task will be refreshed by AppContext
+                  // Activity was updated - the task will be refreshed by AppContext
                 }}
               />
             </TabsContent>
-            
-            <TabsContent value="logs">
-              <TaskLogsSection taskId={task.id} />
-            </TabsContent>
-            
+
               </Tabs>
             </div>
           </div>

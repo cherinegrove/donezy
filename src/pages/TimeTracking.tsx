@@ -136,30 +136,35 @@ const TimeTracking = () => {
       const calculateElapsedWithPauses = (entry: any): number => {
         const startTime = new Date(entry.start_time).getTime();
 
-        // For stopped timers, use end_time; for active/paused, use now
-        const endTime = entry.end_time ? new Date(entry.end_time).getTime() : Date.now();
-        const totalElapsedMs = endTime - startTime;
-
         // Get all pause/resume events for this entry
         const entryEvents = allEvents.filter(e => e.time_entry_id === entry.id);
         let totalPausedMs = 0;
         let lastPauseTime: Date | null = null;
+        let lastResumeTime = startTime;
 
         for (const event of entryEvents) {
-          if (event.event_type === 'paused') {
+          if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
             lastPauseTime = new Date(event.event_timestamp);
           } else if (event.event_type === 'resumed' && lastPauseTime) {
             const resumeTime = new Date(event.event_timestamp);
             totalPausedMs += resumeTime.getTime() - lastPauseTime.getTime();
+            lastResumeTime = resumeTime.getTime();
             lastPauseTime = null;
           }
         }
 
-        // If still paused (no matching resume), add time from last pause to endTime (not now)
+        // If currently paused, elapsed time is from start to pause point minus pause durations
+        // If running, elapsed time is from start to now minus pause durations
+        let effectiveEndTime: number;
         if (lastPauseTime) {
-          totalPausedMs += endTime - lastPauseTime.getTime();
+          // Timer is currently paused - end time is when it was paused
+          effectiveEndTime = lastPauseTime.getTime();
+        } else {
+          // Timer is running - use current time or end_time if stopped
+          effectiveEndTime = entry.end_time ? new Date(entry.end_time).getTime() : Date.now();
         }
 
+        const totalElapsedMs = effectiveEndTime - startTime;
         return Math.max(0, totalElapsedMs - totalPausedMs);
       };
       
@@ -168,7 +173,7 @@ const TimeTracking = () => {
         const entryEvents = allEvents.filter(e => e.time_entry_id === entryId);
         if (entryEvents.length === 0) return false;
         const lastEvent = entryEvents[entryEvents.length - 1];
-        return lastEvent.event_type === 'paused';
+        return lastEvent.event_type === 'paused' || lastEvent.event_type === 'auto_paused';
       };
       
       // Convert to timer format with user info and correct elapsed time
@@ -186,6 +191,7 @@ const TimeTracking = () => {
           id: entry.id,
           taskId: entry.task_id || '',
           taskTitle: task?.title || 'Unknown Task',
+          description: entry.description || entry.notes,
           projectName: project?.name,
           clientName: client?.name,
           startTime: startTime,

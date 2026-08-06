@@ -26,10 +26,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { FileSection } from "./FileSection";
 import { TimerSection } from "./TimerSection";
-import { TaskLogsSection } from "./TaskLogsSection";
+import { TaskActivityLog } from "./TaskActivityLog";
 import { ChecklistSection } from "./ChecklistSection";
 import { CommentSection } from "./CommentSection";
-import { StatusHistorySection } from "./StatusHistorySection";
 import {
   Select,
   SelectContent,
@@ -304,8 +303,7 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="files">Files</TabsTrigger>
             <TabsTrigger value="time">Time</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="logs">Logs</TabsTrigger>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="space-y-4 mt-4">
@@ -324,8 +322,8 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
             <TimerSection taskId={task.id} />
           </TabsContent>
 
-          <TabsContent value="history" className="mt-4">
-            <StatusHistorySection
+          <TabsContent value="activity" className="mt-4">
+            <TaskActivityLog
               taskId={task.id}
               currentStatus={task.status}
               currentBacklogReason={task.backlogReason}
@@ -335,10 +333,6 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
               customFormResponses={task.customFormResponses}
               onStatusInfoUpdated={() => {}}
             />
-          </TabsContent>
-
-          <TabsContent value="logs" className="mt-4">
-            <TaskLogsSection taskId={task.id} />
           </TabsContent>
         </Tabs>
 
