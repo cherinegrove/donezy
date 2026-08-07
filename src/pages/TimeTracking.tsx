@@ -135,12 +135,12 @@ const TimeTracking = () => {
       // Helper function to calculate actual elapsed time accounting for pauses
       const calculateElapsedWithPauses = (entry: any): number => {
         const startTime = new Date(entry.start_time).getTime();
+        const now = Date.now();
 
         // Get all pause/resume events for this entry
         const entryEvents = allEvents.filter(e => e.time_entry_id === entry.id);
         let totalPausedMs = 0;
         let lastPauseTime: Date | null = null;
-        let lastResumeTime = startTime;
 
         for (const event of entryEvents) {
           if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
@@ -148,22 +148,18 @@ const TimeTracking = () => {
           } else if (event.event_type === 'resumed' && lastPauseTime) {
             const resumeTime = new Date(event.event_timestamp);
             totalPausedMs += resumeTime.getTime() - lastPauseTime.getTime();
-            lastResumeTime = resumeTime.getTime();
             lastPauseTime = null;
           }
         }
 
-        // If currently paused, elapsed time is from start to pause point minus pause durations
-        // If running, elapsed time is from start to now minus pause durations
-        let effectiveEndTime: number;
+        // If currently paused, add the ongoing pause duration (from pause point to now)
         if (lastPauseTime) {
-          // Timer is currently paused - end time is when it was paused
-          effectiveEndTime = lastPauseTime.getTime();
-        } else {
-          // Timer is running - use current time or end_time if stopped
-          effectiveEndTime = entry.end_time ? new Date(entry.end_time).getTime() : Date.now();
+          totalPausedMs += now - lastPauseTime.getTime();
         }
 
+        // Calculate total elapsed time from start to now (or end_time if stopped)
+        // Subtract all pause durations (both completed and ongoing)
+        const effectiveEndTime = entry.end_time ? new Date(entry.end_time).getTime() : now;
         const totalElapsedMs = effectiveEndTime - startTime;
         return Math.max(0, totalElapsedMs - totalPausedMs);
       };
