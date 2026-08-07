@@ -70,13 +70,17 @@ export default function ProjectDetails() {
     };
   } | null>(null);
   
+  // Create lookup maps for O(1) access
+  const projectMapForId = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
+  const clientMapForProject = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
+
   // Update project when projects state changes
   useEffect(() => {
     console.log("Projects state updated:", projects.length);
-    const foundProject = projects.find(p => p.id === projectId);
+    const foundProject = projectMapForId.get(projectId);
     console.log("Looking for project with ID:", projectId, "Found:", foundProject);
     setProject(foundProject || null);
-  }, [projects, projectId]);
+  }, [projectMapForId, projectId]);
 
   // Load roundup settings from project
   useEffect(() => {
@@ -90,19 +94,24 @@ export default function ProjectDetails() {
       });
     } else if (project) {
       // Default recipient to client email
+      const projectClient = clientMapForProject.get(project.clientId);
       setRoundupSettings(prev => ({
         ...prev,
-        recipientEmail: clients.find(c => c.id === project.clientId)?.email ?? "",
+        recipientEmail: projectClient?.email ?? "",
       }));
     }
-  }, [project?.id]);
-  
-  const client = project ? clients.find(c => c.id === project.clientId) : null;
+  }, [project?.id, clientMapForProject]);
+
+  const client = project ? clientMapForProject.get(project.clientId) : null;
 
   const projectTasks = tasks.filter(task => task.projectId === projectId);
   
   // Get unique task owners for the filter dropdown
   const taskOwners = useMemo(() => {
+    // Create lookup maps for O(1) access instead of O(n) find() calls
+    const userIdMap = new Map(users.map(u => [u.id, u]));
+    const userAuthIdMap = new Map(users.map(u => [u.auth_user_id, u]));
+
     const ownerIds = new Set<string>();
     projectTasks.forEach(task => {
       if (task.assigneeId) {
@@ -110,7 +119,7 @@ export default function ProjectDetails() {
       }
     });
     return Array.from(ownerIds).map(id => {
-      const user = users.find(u => u.id === id || u.auth_user_id === id);
+      const user = userIdMap.get(id) || userAuthIdMap.get(id);
       return { id, name: user?.name || "Unknown" };
     });
   }, [projectTasks, users]);
@@ -183,22 +192,27 @@ export default function ProjectDetails() {
   const daysLeft = calculateDaysLeft(project?.dueDate);
   const totalHoursFormatted = Math.round((totalHours / 60) * 10) / 10;
 
-  // Helper functions to get user details
-  const getOwnerName = () => {
-    if (!project?.ownerId) return "No owner assigned";
-    const owner = users.find(user => user.id === project.ownerId);
-    return owner ? owner.name : "Unknown user";
-  };
+  // Helper functions to get user details with O(1) lookup
+  const { getOwnerName, getCollaboratorNames } = useMemo(() => {
+    const userMap = new Map(users.map(u => [u.id, u]));
 
-  const getCollaboratorNames = () => {
-    if (!project?.collaboratorIds || project.collaboratorIds.length === 0) {
-      return [];
-    }
-    return project.collaboratorIds.map(id => {
-      const collaborator = users.find(user => user.id === id);
-      return collaborator ? collaborator.name : "Unknown user";
-    });
-  };
+    return {
+      getOwnerName: () => {
+        if (!project?.ownerId) return "No owner assigned";
+        const owner = userMap.get(project.ownerId);
+        return owner ? owner.name : "Unknown user";
+      },
+      getCollaboratorNames: () => {
+        if (!project?.collaboratorIds || project.collaboratorIds.length === 0) {
+          return [];
+        }
+        return project.collaboratorIds.map(id => {
+          const collaborator = userMap.get(id);
+          return collaborator ? collaborator.name : "Unknown user";
+        });
+      }
+    };
+  }, [users, project?.ownerId, project?.collaboratorIds]);
 
   // Show loading state while searching for project
   if (!project && projects.length > 0) {
