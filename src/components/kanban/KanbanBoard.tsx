@@ -2,7 +2,7 @@ import { Task, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
 import { KanbanTaskCardWithComment } from "./KanbanTaskCardWithComment";
-import { useState, useEffect, lazy, Suspense, useCallback } from "react";
+import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from "react";
 const EditTaskDialog = lazy(() => import("../tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { ConfettiCelebration } from "../mascot/ConfettiCelebration";
 import { Settings, Edit2, CheckSquare, Trash2, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
@@ -279,10 +279,13 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     setSelectedTaskIds([]);
   };
 
+  // Create task lookup map for O(1) access instead of O(n) find() calls
+  const taskMap = useMemo(() => new Map(tasks.map(t => [t.id, t])), [tasks]);
+
   const handleEdit = () => {
     if (selectedTaskIds.length === 1) {
       // Single task edit
-      const task = tasks.find(t => t.id === selectedTaskIds[0]);
+      const task = taskMap.get(selectedTaskIds[0]);
       if (task) {
         setSelectedTask(task);
         setIsEditDialogOpen(true);
