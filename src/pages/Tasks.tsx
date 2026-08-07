@@ -305,6 +305,12 @@ export default function Tasks() {
     setIsBulkEditOpen(true);
   };
 
+  // Create task lookup map for O(1) access instead of O(n) find() calls
+  const selectedTask = React.useMemo(() => {
+    const taskMap = new Map(tasks.map(t => [t.id, t]));
+    return selectedTaskId ? taskMap.get(selectedTaskId) : null;
+  }, [tasks, selectedTaskId]);
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
@@ -491,9 +497,9 @@ export default function Tasks() {
               </div>
             }
             right={
-              selectedTaskId && tasks.find(t => t.id === selectedTaskId) ? (
+              selectedTask ? (
                 <TaskSidebarPanel
-                  task={tasks.find(t => t.id === selectedTaskId)!}
+                  task={selectedTask}
                   onClose={() => setSelectedTaskId(null)}
                 />
               ) : null
