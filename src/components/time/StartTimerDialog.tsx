@@ -226,7 +226,7 @@ export function StartTimerDialog({
               onValueChange={handleProjectChange}
             >
               <SelectTrigger id="project">
-                <SelectValue placeholder="Select project (optional)" />
+                <SelectValue placeholder="Select project" />
               </SelectTrigger>
               <SelectContent>
                 {clientProjects.length > 0 ? (
