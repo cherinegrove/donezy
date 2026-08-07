@@ -179,12 +179,19 @@ const TimeTracking = () => {
         return lastEvent.event_type === 'paused' || lastEvent.event_type === 'auto_paused';
       };
       
+      // Create lookup maps for O(1) access instead of O(n) find() calls
+      const userMap = new Map(users.map(u => [u.id, u]));
+      const userAuthMap = new Map(users.map(u => [u.auth_user_id, u]));
+      const taskMap = new Map(tasks.map(t => [t.id, t]));
+      const projectMap = new Map(projects.map(p => [p.id, p]));
+      const clientMap = new Map(clients.map(c => [c.id, c]));
+
       // Convert to timer format with user info and correct elapsed time
       const timersWithInfo = data.map(entry => {
-        const user = users.find(u => u.auth_user_id === entry.user_id || u.id === entry.user_id);
-        const task = entry.task_id ? tasks.find(t => t.id === entry.task_id) : null;
-        const project = entry.project_id ? projects.find(p => p.id === entry.project_id) : null;
-        const client = project?.clientId ? clients.find(c => c.id === project.clientId) : null;
+        const user = userMap.get(entry.user_id) || userAuthMap.get(entry.user_id);
+        const task = entry.task_id ? taskMap.get(entry.task_id) : null;
+        const project = entry.project_id ? projectMap.get(entry.project_id) : null;
+        const client = project?.clientId ? clientMap.get(project.clientId) : null;
 
         const startTime = new Date(entry.start_time);
         const isPaused = isTimerPaused(entry);
@@ -342,10 +349,15 @@ const TimeTracking = () => {
 
   // Convert DB-backed paused timers to the timer format
   const dbPausedTimers = useMemo(() => {
+    // Create lookup maps for O(1) access instead of O(n) find() calls
+    const taskMap = new Map(tasks.map(t => [t.id, t]));
+    const projectMap = new Map(projects.map(p => [p.id, p]));
+    const clientMap = new Map(clients.map(c => [c.id, c]));
+
     return pausedTimeEntries.map(entry => {
-      const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
-      const project = entry.projectId ? projects.find(p => p.id === entry.projectId) : null;
-      const client = project?.clientId ? clients.find(c => c.id === project.clientId) : null;
+      const task = entry.taskId ? taskMap.get(entry.taskId) : null;
+      const project = entry.projectId ? projectMap.get(entry.projectId) : null;
+      const client = project?.clientId ? clientMap.get(project.clientId) : null;
       return {
         id: entry.id,
         taskId: entry.taskId || '',
