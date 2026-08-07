@@ -332,9 +332,9 @@
     @apply bg-muted;
   }
 
-  /* Ensure dropdown select aligns */
+  /* Ensure dropdown select aligns with other form fields */
   select {
-    @apply h-10 align-middle;
+    @apply align-middle;
   }
 
   /* ========================================== */
