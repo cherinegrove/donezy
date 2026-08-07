@@ -121,7 +121,8 @@ function TimeTab() {
   const byUser = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "user" });
   const byProject = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "project" });
   const byClient = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "client" });
-  const allClients = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "client" });
+  // Reuse byClient instead of making duplicate RPC call
+  const allClients = byClient;
 
   // Calculate metrics
   const userCount = (byUser.data ?? []).length;
@@ -157,21 +158,33 @@ function TimeTab() {
 
   const toBar = (rows?: HoursRow[]) => (rows ?? []).map((r) => ({ name: r.dim_label, hours: Number(r.hours) })).slice(0, 12);
 
+  // PERFORMANCE: Create lookup maps once (O(n)) instead of repeated find() calls (O(n²))
+  const lookupMaps = useMemo(() => {
+    return {
+      taskMap: new Map(tasks.map(t => [t.id, t])),
+      projectMap: new Map(projects.map(p => [p.id, p])),
+      userMap: new Map(users.map(u => [u.auth_user_id, u])),
+      clientMap: new Map(clients.map(c => [c.id, c])),
+      statusLabelMap: new Map(taskStatuses.map(s => [s.value, s.label]))
+    };
+  }, [tasks, projects, users, clients, taskStatuses]);
+
   // Convert project data to format for display with user breakdown
   const projectDataWithUser = useMemo(() => {
     const projectMap = new Map<string, { project: string; total: number; byUser: Map<string, number> }>();
+    const { taskMap, projectMap: pMap, userMap } = lookupMaps;
 
-    // Group time entries by project and user
+    // Group time entries by project and user - O(n) instead of O(n*m*p*q)
     timeEntries.forEach(entry => {
       if (!entry.startTime || !entry.endTime) return;
       const entryStart = new Date(entry.startTime);
       if (entryStart >= from && entryStart <= to) {
-        const task = tasks.find(t => t.id === entry.taskId);
-        const project = projects.find(p => p.id === task?.projectId);
+        const task = taskMap.get(entry.taskId);
+        const project = task ? pMap.get(task.projectId) : null;
         if (project) {
           const durationMs = new Date(entry.endTime).getTime() - entryStart.getTime();
           const hours = durationMs / (1000 * 60 * 60);
-          const user = users.find(u => u.auth_user_id === entry.userId);
+          const user = userMap.get(entry.userId);
           const userName = user?.name || "Unassigned";
 
           if (!projectMap.has(project.id)) {
@@ -185,24 +198,25 @@ function TimeTab() {
     });
 
     return Array.from(projectMap.values());
-  }, [timeEntries, tasks, projects, users, from, to]);
+  }, [timeEntries, lookupMaps, from, to]);
 
   // Convert client data to format for display with user breakdown
   const clientDataWithUser = useMemo(() => {
     const clientMap = new Map<string, { client: string; total: number; byUser: Map<string, number> }>();
+    const { taskMap, projectMap: pMap, userMap, clientMap: cMap } = lookupMaps;
 
-    // Group time entries by client and user
+    // Group time entries by client and user - O(n) instead of O(n*m*p*q)
     timeEntries.forEach(entry => {
       if (!entry.startTime || !entry.endTime) return;
       const entryStart = new Date(entry.startTime);
       if (entryStart >= from && entryStart <= to) {
-        const task = tasks.find(t => t.id === entry.taskId);
-        const project = projects.find(p => p.id === task?.projectId);
-        const client = project?.clientId ? clients.find(c => c.id === project.clientId) : null;
+        const task = taskMap.get(entry.taskId);
+        const project = task ? pMap.get(task.projectId) : null;
+        const client = project?.clientId ? cMap.get(project.clientId) : null;
         if (client) {
           const durationMs = new Date(entry.endTime).getTime() - entryStart.getTime();
           const hours = durationMs / (1000 * 60 * 60);
-          const user = users.find(u => u.auth_user_id === entry.userId);
+          const user = userMap.get(entry.userId);
           const userName = user?.name || "Unassigned";
 
           if (!clientMap.has(client.id)) {
@@ -216,13 +230,14 @@ function TimeTab() {
     });
 
     return Array.from(clientMap.values());
-  }, [timeEntries, tasks, projects, clients, users, from, to]);
+  }, [timeEntries, lookupMaps, from, to]);
 
   // Calculate hours by task status from app context
   const statusData = useMemo(() => {
     const statusHours: Record<string, number> = {};
+    const { taskMap, statusLabelMap } = lookupMaps;
 
-    // Group time entries by task status
+    // Group time entries by task status - O(n) instead of O(n*m)
     timeEntries.forEach(entry => {
       if (!entry.startTime || !entry.endTime) return;
       const entryStart = new Date(entry.startTime);
@@ -230,21 +245,21 @@ function TimeTab() {
 
       // Check if entry falls within date range
       if (entryStart >= from && entryStart <= to) {
-        const task = tasks.find(t => t.id === entry.taskId);
+        const task = taskMap.get(entry.taskId);
         const status = task?.status || "unknown";
         // Calculate hours from start and end time
         const durationMs = entryEnd.getTime() - entryStart.getTime();
-        const hours = durationMs / (1000 * 60 * 60); // Convert milliseconds to hours
+        const hours = durationMs / (1000 * 60 * 60);
         statusHours[status] = (statusHours[status] || 0) + hours;
       }
     });
 
     // Convert to chart format with labels
     return Object.entries(statusHours).map(([status, hours]) => ({
-      name: taskStatuses.find(s => s.value === status)?.label || status.charAt(0).toUpperCase() + status.slice(1),
+      name: statusLabelMap.get(status) || status.charAt(0).toUpperCase() + status.slice(1),
       hours: Math.round(hours * 10) / 10
     }));
-  }, [timeEntries, tasks, taskStatuses, from, to]);
+  }, [timeEntries, lookupMaps, from, to]);
 
   return (
     <div className="space-y-6">
