@@ -273,22 +273,27 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
 
   const userTimeEntries = useMemo(() => {
     if (!targetUserId) return [];
-    
+
     // Find the user's record ID - targetUserId may be auth_user_id, so we need to resolve to record id
     const userRecordId = targetUser?.id;
-    
+
+    // Create lookup maps for O(1) access instead of O(n) find() calls
+    const taskMap = new Map(tasks.map(t => [t.id, t]));
+    const projectMap = new Map(projects.map(p => [p.id, p]));
+    const clientMap = new Map(clients.map(c => [c.id, c]));
+
     return timeEntries.filter(entry => {
       // Filter by user - entry.userId stores the user record id, not auth_user_id
       if (entry.userId !== userRecordId) return false;
 
       // Get task and project for filtering
-      const task = entry.taskId ? tasks.find(t => t.id === entry.taskId) : null;
-      const project = task 
-        ? projects.find(p => p.id === task.projectId) 
-        : (entry.projectId ? projects.find(p => p.id === entry.projectId) : null);
-      const client = project 
-        ? clients.find(c => c.id === project.clientId) 
-        : (entry.clientId ? clients.find(c => c.id === entry.clientId) : null);
+      const task = entry.taskId ? taskMap.get(entry.taskId) : null;
+      const project = task
+        ? projectMap.get(task.projectId)
+        : (entry.projectId ? projectMap.get(entry.projectId) : null);
+      const client = project
+        ? clientMap.get(project.clientId)
+        : (entry.clientId ? clientMap.get(entry.clientId) : null);
 
       // Check client filter
       if (selectedFilters.client?.length > 0) {
@@ -318,6 +323,11 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
       return true;
     });
   }, [timeEntries, targetUserId, targetUser, selectedFilters, tasks, projects, clients]);
+
+  // Create lookup maps once for all period calculations - O(1) access instead of O(n) find() calls
+  const projectMapForPeriod = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
+  const taskMapForPeriod = useMemo(() => new Map(tasks.map(t => [t.id, t])), [tasks]);
+  const clientMapForPeriod = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
 
   const calculatePeriodData = (startDate: Date, endDate: Date): PeriodData => {
     const entries = userTimeEntries.filter(entry => {
@@ -350,9 +360,9 @@ export const UserTimeTrackingReport = ({ userId, showTitle = true }: UserTimeTra
     }, 0);
 
     const byClient = entries.reduce((acc, entry) => {
-      const project = projects.find(p => p.id === entry.projectId);
-      const task = tasks.find(t => t.id === entry.taskId);
-      const client = clients.find(c => c.id === entry.clientId);
+      const project = projectMapForPeriod.get(entry.projectId);
+      const task = taskMapForPeriod.get(entry.taskId);
+      const client = clientMapForPeriod.get(entry.clientId);
       
       const clientId = entry.clientId || 'no-client';
       const clientName = client?.name || 'No Client';
