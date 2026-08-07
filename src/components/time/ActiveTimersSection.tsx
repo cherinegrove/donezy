@@ -688,7 +688,7 @@ export function ActiveTimersSection({
                       </Badge>
                     ) : isLive ? (
                       <Badge variant="default" className="text-xs bg-green-600 hover:bg-green-700">
-                        ● Live
+                        ● Running
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="text-xs">

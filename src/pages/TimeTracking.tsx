@@ -168,9 +168,13 @@ const TimeTracking = () => {
         return Math.max(0, totalElapsedMs - totalPausedMs);
       };
       
-      // Check if timer is currently paused by looking at last event
-      const isTimerPaused = (entryId: string): boolean => {
-        const entryEvents = allEvents.filter(e => e.time_entry_id === entryId);
+      // Check if timer is currently paused by looking at both events AND timer_status
+      const isTimerPaused = (entry: any): boolean => {
+        // First check the timer_status field
+        if (entry.timer_status === 'paused') return true;
+
+        // If timer_status is 'active', check the last event to confirm
+        const entryEvents = allEvents.filter(e => e.time_entry_id === entry.id);
         if (entryEvents.length === 0) return false;
         const lastEvent = entryEvents[entryEvents.length - 1];
         return lastEvent.event_type === 'paused' || lastEvent.event_type === 'auto_paused';
@@ -184,7 +188,7 @@ const TimeTracking = () => {
         const client = project?.clientId ? clients.find(c => c.id === project.clientId) : null;
 
         const startTime = new Date(entry.start_time);
-        const isPaused = isTimerPaused(entry.id);
+        const isPaused = isTimerPaused(entry);
         const actualElapsed = calculateElapsedWithPauses(entry);
         
         return {
