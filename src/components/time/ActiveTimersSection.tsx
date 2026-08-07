@@ -2,13 +2,15 @@ import { useState, useMemo, useEffect } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Play, Pause, Save, Trash2 } from "lucide-react";
+import { Clock, Play, Pause, Save, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { TimeEntry } from "@/types";
 import { format } from "date-fns";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
+import { EditTimerDialog } from "@/components/time/EditTimerDialog";
+import { TimeEntryEventLog } from "@/components/time/TimeEntryEventLog";
 
 interface TimerItem {
   id: string;
@@ -97,6 +99,9 @@ export function ActiveTimersSection({
   const [notes, setNotes] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
   const [, setRefreshTrigger] = useState(0); // Force re-render when timers update
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [expandedTimerIds, setExpandedTimerIds] = useState<Set<string>>(new Set());
+  const [isSavingTimer, setIsSavingTimer] = useState(false);
 
   // Listen for timer updates to refresh display
   useEffect(() => {
@@ -266,70 +271,73 @@ export function ActiveTimersSection({
 
   const handleLocalTimerStop = (timer: TimerItem) => {
     setSelectedLocalTimer(timer);
-    setStopDialogOpen(true);
+    setEditDialogOpen(true);
   };
 
-  const confirmLocalTimerStop = async () => {
+  const calculateTimerElapsedMs = async (timer: TimerItem): Promise<number> => {
+    const endTime = new Date();
+    const startTime = new Date(timer.startTime);
+
+    if (!timer.isLocalOnly) {
+      // DB-backed timer - fetch events to calculate accurate elapsed
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data: events } = await supabase
+          .from('time_entry_events')
+          .select('event_type, event_timestamp')
+          .eq('time_entry_id', timer.id)
+          .in('event_type', ['paused', 'resumed', 'auto_paused'])
+          .order('event_timestamp', { ascending: true });
+
+        let totalPausedMs = 0;
+        let lastPauseTime: Date | null = null;
+        if (events) {
+          for (const event of events) {
+            const eventTime = new Date(event.event_timestamp);
+            if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
+              lastPauseTime = eventTime;
+            } else if (event.event_type === 'resumed' && lastPauseTime) {
+              totalPausedMs += eventTime.getTime() - lastPauseTime.getTime();
+              lastPauseTime = null;
+            }
+          }
+          if (lastPauseTime) {
+            totalPausedMs += endTime.getTime() - lastPauseTime.getTime();
+          }
+        }
+        return Math.max(0, endTime.getTime() - startTime.getTime() - totalPausedMs);
+      } catch (err) {
+        console.warn('Error fetching events, using raw elapsed:', err);
+        return endTime.getTime() - startTime.getTime();
+      }
+    } else if (timer.isPaused) {
+      return timer.elapsed;
+    } else if (timer.isActive) {
+      return endTime.getTime() - startTime.getTime() - (timer.totalPausedTime || 0);
+    } else {
+      return timer.elapsed;
+    }
+  };
+
+  const confirmLocalTimerStop = async (adjustedElapsedMs: number, finalNotes: string) => {
     if (!selectedLocalTimer || !currentUser) return;
 
+    setIsSavingTimer(true);
     try {
       const endTime = new Date();
       const startTime = new Date(selectedLocalTimer.startTime);
-      
-      // For DB-backed paused timers, calculate elapsed from events
-      let actualElapsedMs: number;
-      
-      if (!selectedLocalTimer.isLocalOnly) {
-        // DB-backed timer - fetch events to calculate accurate elapsed
-        try {
-          const { supabase } = await import('@/integrations/supabase/client');
-          const { data: events } = await supabase
-            .from('time_entry_events')
-            .select('event_type, event_timestamp')
-            .eq('time_entry_id', selectedLocalTimer.id)
-            .in('event_type', ['paused', 'resumed', 'auto_paused'])
-            .order('event_timestamp', { ascending: true });
-          
-          let totalPausedMs = 0;
-          let lastPauseTime: Date | null = null;
-          if (events) {
-            for (const event of events) {
-              const eventTime = new Date(event.event_timestamp);
-              if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
-                lastPauseTime = eventTime;
-              } else if (event.event_type === 'resumed' && lastPauseTime) {
-                totalPausedMs += eventTime.getTime() - lastPauseTime.getTime();
-                lastPauseTime = null;
-              }
-            }
-            if (lastPauseTime) {
-              totalPausedMs += endTime.getTime() - lastPauseTime.getTime();
-            }
-          }
-          actualElapsedMs = Math.max(0, endTime.getTime() - startTime.getTime() - totalPausedMs);
-        } catch (err) {
-          console.warn('Error fetching events, using raw elapsed:', err);
-          actualElapsedMs = endTime.getTime() - startTime.getTime();
-        }
-      } else if (selectedLocalTimer.isPaused) {
-        actualElapsedMs = selectedLocalTimer.elapsed;
-      } else if (selectedLocalTimer.isActive) {
-        actualElapsedMs = endTime.getTime() - startTime.getTime() - (selectedLocalTimer.totalPausedTime || 0);
-      } else {
-        actualElapsedMs = selectedLocalTimer.elapsed;
-      }
-      
-      const durationMinutes = Math.floor(actualElapsedMs / (1000 * 60));
-      
+      const durationMinutes = Math.floor(adjustedElapsedMs / (1000 * 60));
+
       const task = tasks.find(t => t.id === selectedLocalTimer.taskId);
       const project = projects.find(p => p.id === task?.projectId);
-      
+
       console.log('💾 Saving timer as completed time entry:', {
         taskTitle: selectedLocalTimer.taskTitle,
         durationMinutes,
         isLocalOnly: selectedLocalTimer.isLocalOnly,
+        adjustedTime: adjustedElapsedMs,
       });
-      
+
       if (!selectedLocalTimer.isLocalOnly) {
         // DB-backed timer - update existing entry with end_time
         const { supabase } = await import('@/integrations/supabase/client');
@@ -338,7 +346,7 @@ export function ActiveTimersSection({
           .update({
             end_time: endTime.toISOString(),
             duration: Math.max(1, durationMinutes),
-            notes: notes || null,
+            notes: finalNotes || null,
             timer_status: 'completed'
           })
           .eq('id', selectedLocalTimer.id);
@@ -352,11 +360,11 @@ export function ActiveTimersSection({
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
           duration: durationMinutes,
-          description: notes || null,
+          description: finalNotes || null,
           billable: true,
           status: 'pending',
         });
-        
+
         // Remove from localStorage
         const savedTimers = localStorage.getItem('activeTimers');
         if (savedTimers) {
@@ -366,12 +374,14 @@ export function ActiveTimersSection({
           window.dispatchEvent(new CustomEvent('timersUpdated'));
         }
       }
-      
-      setStopDialogOpen(false);
+
+      setEditDialogOpen(false);
       setSelectedLocalTimer(null);
       setNotes("");
     } catch (error) {
       console.error('Error stopping timer:', error);
+    } finally {
+      setIsSavingTimer(false);
     }
   };
 
@@ -647,135 +657,165 @@ export function ActiveTimersSection({
           const isStale = elapsed > HOURS_24_MS;
           const hoursRunning = Math.floor(elapsed / (1000 * 60 * 60));
 
+          const isExpanded = expandedTimerIds.has(timer.id);
+          const canViewLogs = !isOtherUserTimer || isAdminUser() || isSuperAdmin;
+
           return (
-            <div
-              key={timer.id}
-              className={cn(
-                "flex items-start justify-between p-3 rounded-lg border bg-card",
-                isOtherUserTimer && "border-muted-foreground/30",
-                isStale && "border-red-500/50 bg-red-50/30 dark:bg-red-950/20"
-              )}
-            >
-              <div className="flex-1 min-w-0">
-                {isOtherUserTimer && timer.userName && (
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
-                      {timer.userName}
-                    </Badge>
-                  </div>
+            <div key={timer.id} className="space-y-2">
+              <div
+                className={cn(
+                  "flex items-start justify-between p-3 rounded-lg border bg-card",
+                  isOtherUserTimer && "border-muted-foreground/30",
+                  isStale && "border-red-500/50 bg-red-50/30 dark:bg-red-950/20"
                 )}
-                <h4 className="font-medium text-sm truncate">{timer.taskTitle}</h4>
-                {timer.description && (
-                  <p className="text-xs text-muted-foreground italic mt-1">{timer.description}</p>
-                )}
-                {timer.projectName && (
-                  <p className="text-xs text-muted-foreground">{timer.projectName}</p>
-                )}
-                {timer.clientName && (
-                  <p className="text-xs text-muted-foreground/80">Client: {timer.clientName}</p>
-                )}
-                <p className="text-xs text-muted-foreground/60 mt-1">
-                  Started: {format(new Date(timer.startTime), "HH:mm")}
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="font-mono text-lg font-bold">
-                    {displayTime}
-                  </div>
-                  <div className="flex gap-1 flex-wrap">
-                    {isPausedState ? (
-                      <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200">
-                        ⏸ Paused
+              >
+                <div className="flex-1 min-w-0">
+                  {isOtherUserTimer && timer.userName && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                        {timer.userName}
                       </Badge>
-                    ) : isLive ? (
-                      <Badge variant="default" className="text-xs bg-green-600 hover:bg-green-700">
-                        ● Running
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs">
-                        Stopped
-                      </Badge>
-                    )}
-                    {isStale && (
-                      <Badge className="text-xs bg-red-600 hover:bg-red-700">
-                        ⚠️ {hoursRunning}h+
-                      </Badge>
-                    )}
+                    </div>
+                  )}
+                  <h4 className="font-medium text-sm truncate">{timer.taskTitle}</h4>
+                  {timer.description && (
+                    <p className="text-xs text-muted-foreground italic mt-1">{timer.description}</p>
+                  )}
+                  {timer.projectName && (
+                    <p className="text-xs text-muted-foreground">{timer.projectName}</p>
+                  )}
+                  {timer.clientName && (
+                    <p className="text-xs text-muted-foreground/80">Client: {timer.clientName}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground/60 mt-1">
+                    Started: {format(new Date(timer.startTime), "HH:mm")}
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="font-mono text-lg font-bold">
+                      {displayTime}
+                    </div>
+                    <div className="flex gap-1 flex-wrap">
+                      {isPausedState ? (
+                        <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200">
+                          ⏸ Paused
+                        </Badge>
+                      ) : isLive ? (
+                        <Badge variant="default" className="text-xs bg-green-600 hover:bg-green-700">
+                          ● Running
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">
+                          Stopped
+                        </Badge>
+                      )}
+                      {isStale && (
+                        <Badge className="text-xs bg-red-600 hover:bg-red-700">
+                          ⚠️ {hoursRunning}h+
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                {/* Controls for own timers */}
+                {!isOtherUserTimer && (
+                  <div className="flex items-center gap-1 ml-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (isBackendTimer) {
+                          onPauseTimer();
+                        } else {
+                          handleLocalTimerPause(timer as TimerItem);
+                        }
+                      }}
+                      className={cn(
+                        "h-8 w-8 p-0",
+                        showPlayButton ? "text-green-600 hover:text-green-700" : "text-yellow-600 hover:text-yellow-700"
+                      )}
+                    >
+                      {showPlayButton ? (
+                        <Play className="h-4 w-4" />
+                      ) : (
+                        <Pause className="h-4 w-4" />
+                      )}
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (isBackendTimer) {
+                          onStopTimer();
+                        } else {
+                          handleLocalTimerStop(timer as TimerItem);
+                        }
+                      }}
+                      className="h-8 w-8 p-0 text-primary hover:text-primary/80"
+                    >
+                      <Save className="h-4 w-4" />
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (isBackendTimer) {
+                          handleDeleteBackendTimer();
+                        } else {
+                          handleDeleteLocalTimer(timer.id, timer.isLocalOnly ?? true);
+                        }
+                      }}
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive/90"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Abandon button for admins on stale other-user timers */}
+                {isOtherUserTimer && isStale && isSuperAdmin && (
+                  <div className="flex items-center gap-1 ml-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        handleDeleteLocalTimer(timer.id, timer.isLocalOnly ?? false);
+                      }}
+                      className="h-8 px-2 text-xs"
+                      title="Abandon this stale timer"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Abandon
+                    </Button>
+                  </div>
+                )}
               </div>
-              
-              {/* Controls for own timers */}
-              {!isOtherUserTimer && (
-                <div className="flex items-center gap-1 ml-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      if (isBackendTimer) {
-                        onPauseTimer();
-                      } else {
-                        handleLocalTimerPause(timer as TimerItem);
-                      }
-                    }}
-                    className={cn(
-                      "h-8 w-8 p-0",
-                      showPlayButton ? "text-green-600 hover:text-green-700" : "text-yellow-600 hover:text-yellow-700"
-                    )}
-                  >
-                    {showPlayButton ? (
-                      <Play className="h-4 w-4" />
-                    ) : (
-                      <Pause className="h-4 w-4" />
-                    )}
-                  </Button>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      if (isBackendTimer) {
-                        onStopTimer();
-                      } else {
-                        handleLocalTimerStop(timer as TimerItem);
-                      }
-                    }}
-                    className="h-8 w-8 p-0 text-primary hover:text-primary/80"
-                  >
-                    <Save className="h-4 w-4" />
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      if (isBackendTimer) {
-                        handleDeleteBackendTimer();
-                      } else {
-                        handleDeleteLocalTimer(timer.id, timer.isLocalOnly ?? true);
-                      }
-                    }}
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive/90"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
+              {/* Event Log Toggle - only for DB-backed timers and if user has permission */}
+              {!timer.isLocalOnly && canViewLogs && (
+                <button
+                  onClick={() => {
+                    const newExpanded = new Set(expandedTimerIds);
+                    if (newExpanded.has(timer.id)) {
+                      newExpanded.delete(timer.id);
+                    } else {
+                      newExpanded.add(timer.id);
+                    }
+                    setExpandedTimerIds(newExpanded);
+                  }}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-full px-3 py-2"
+                >
+                  {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  Event Log
+                </button>
               )}
 
-              {/* Abandon button for admins on stale other-user timers */}
-              {isOtherUserTimer && isStale && isSuperAdmin && (
-                <div className="flex items-center gap-1 ml-2">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      handleDeleteLocalTimer(timer.id, timer.isLocalOnly ?? false);
-                    }}
-                    className="h-8 px-2 text-xs"
-                    title="Abandon this stale timer"
-                  >
-                    <Trash2 className="h-3 w-3 mr-1" />
-                    Abandon
-                  </Button>
+              {/* Event Log Display */}
+              {!timer.isLocalOnly && canViewLogs && isExpanded && (
+                <div className="border-t bg-muted/30 rounded-b-lg max-h-48 overflow-y-auto">
+                  <TimeEntryEventLog timeEntryId={timer.id} />
                 </div>
               )}
             </div>
@@ -783,52 +823,25 @@ export function ActiveTimersSection({
         })}
       </div>
 
-      {/* Stop Local Timer Dialog */}
-      <Dialog open={stopDialogOpen} onOpenChange={setStopDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Stop Timer</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {selectedLocalTimer && (
-              <>
-                <div>
-                  <p className="text-sm font-medium mb-1">Task</p>
-                  <p>{selectedLocalTimer.taskTitle}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium mb-1">Time Elapsed</p>
-                  <p className="text-2xl font-mono font-bold">
-                    {formatTime(
-                      selectedLocalTimer.isActive && !selectedLocalTimer.isPaused
-                        ? Date.now() - selectedLocalTimer.startTime.getTime() - (selectedLocalTimer.totalPausedTime || 0)
-                        : selectedLocalTimer.elapsed
-                    )}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium mb-1">Notes (optional)</p>
-                  <Textarea
-                    placeholder="Add notes about your work..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setStopDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={confirmLocalTimerStop}>
-              <Save className="h-4 w-4 mr-2" />
-              Save Time Entry
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Edit Timer Dialog */}
+      {selectedLocalTimer && (
+        <EditTimerDialog
+          isOpen={editDialogOpen}
+          onClose={() => {
+            setEditDialogOpen(false);
+            setSelectedLocalTimer(null);
+          }}
+          onConfirm={confirmLocalTimerStop}
+          taskTitle={selectedLocalTimer.taskTitle}
+          originalElapsedMs={
+            selectedLocalTimer.isActive && !selectedLocalTimer.isPaused
+              ? Date.now() - selectedLocalTimer.startTime.getTime() - (selectedLocalTimer.totalPausedTime || 0)
+              : selectedLocalTimer.elapsed
+          }
+          initialNotes={notes}
+          isSaving={isSavingTimer}
+        />
+      )}
     </div>
   );
 }
