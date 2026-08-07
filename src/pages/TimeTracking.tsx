@@ -152,14 +152,17 @@ const TimeTracking = () => {
           }
         }
 
-        // If currently paused, add the ongoing pause duration (from pause point to now)
+        // Calculate total elapsed time from start to now (or end_time if stopped)
+        const effectiveEndTime = entry.end_time ? new Date(entry.end_time).getTime() : now;
+
+        // If currently paused, add the ongoing pause duration
         if (lastPauseTime) {
-          totalPausedMs += now - lastPauseTime.getTime();
+          // For active timers (no end_time), use current time
+          // For stopped timers (has end_time), use the stop time
+          totalPausedMs += effectiveEndTime - lastPauseTime.getTime();
         }
 
-        // Calculate total elapsed time from start to now (or end_time if stopped)
-        // Subtract all pause durations (both completed and ongoing)
-        const effectiveEndTime = entry.end_time ? new Date(entry.end_time).getTime() : now;
+        // Subtract all pause durations (both completed and ongoing) from total elapsed
         const totalElapsedMs = effectiveEndTime - startTime;
         return Math.max(0, totalElapsedMs - totalPausedMs);
       };
