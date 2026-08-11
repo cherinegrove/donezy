@@ -566,9 +566,12 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                   <div className="space-y-3">
                     <div className="flex items-start justify-between p-3 rounded-lg border-2 border-primary bg-card">
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate">{tasks.find(t => t.id === activeTimeEntry.taskId)?.title || 'Unknown Task'}</h4>
-                        {tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId && projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.name && (
-                          <p className="text-xs text-muted-foreground">{projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.name}</p>
+                        <h4 className="font-medium text-sm truncate">{activeTimeEntry.taskTitle || 'Unknown Task'}</h4>
+                        {activeTimeEntry.projectName && (
+                          <p className="text-xs text-muted-foreground">{activeTimeEntry.projectName}</p>
+                        )}
+                        {activeTimeEntry.clientName && (
+                          <p className="text-xs text-muted-foreground/80">Client: {activeTimeEntry.clientName}</p>
                         )}
                         <div className="flex items-center gap-2 mt-2">
                           <div className="font-mono text-lg font-bold">
@@ -609,9 +612,9 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                             setSelectedTimer({
                               id: activeTimeEntry.id,
                               taskId: activeTimeEntry.taskId || '',
-                              taskTitle: tasks.find(t => t.id === activeTimeEntry.taskId)?.title || 'Unknown Task',
-                              projectName: projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.name,
-                              clientName: clients.find(c => c.id === projects.find(p => p.id === tasks.find(t => t.id === activeTimeEntry.taskId)?.projectId)?.clientId)?.name,
+                              taskTitle: activeTimeEntry.taskTitle || 'Unknown Task',
+                              projectName: activeTimeEntry.projectName,
+                              clientName: activeTimeEntry.clientName,
                               projectId: activeTimeEntry.projectId,
                               clientId: activeTimeEntry.clientId,
                               startTime: new Date(activeTimeEntry.startTime),

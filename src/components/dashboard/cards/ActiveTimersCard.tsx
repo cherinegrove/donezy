@@ -6,27 +6,8 @@ import { Play, Pause, Square } from "lucide-react";
 import { format } from "date-fns";
 
 export function ActiveTimersCard() {
-  const { activeTimeEntry, pausedTimeEntries, isTimerPaused, getElapsedTime, tasks, projects, clients, pauseTimeTracking, resumeTimeTracking } = useAppContext();
+  const { activeTimeEntry, pausedTimeEntries, isTimerPaused, getElapsedTime, pauseTimeTracking, resumeTimeTracking } = useAppContext();
   const [displayTime, setDisplayTime] = useState("00:00:00");
-
-  // Pre-compute lookup maps to avoid O(n²) lookups
-  const taskMap = useMemo(() => new Map(tasks.map(t => [t.id, t])), [tasks]);
-  const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
-  const clientMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
-
-  // Pre-compute current task info
-  const currentTask = useMemo(() =>
-    activeTimeEntry ? taskMap.get(activeTimeEntry.taskId) : null,
-    [activeTimeEntry?.taskId, taskMap]
-  );
-  const currentProject = useMemo(() =>
-    currentTask ? projectMap.get(currentTask.projectId) : null,
-    [currentTask?.projectId, projectMap]
-  );
-  const currentClient = useMemo(() =>
-    activeTimeEntry ? clientMap.get(activeTimeEntry.clientId) : null,
-    [activeTimeEntry?.clientId, clientMap]
-  );
 
   // Update elapsed time every second if a timer is running (not paused)
   useEffect(() => {
@@ -79,10 +60,10 @@ export function ActiveTimersCard() {
                 <div className="flex-1">
                   <p className="text-sm font-medium text-muted-foreground">Running</p>
                   <p className="text-sm font-semibold truncate">
-                    {currentTask?.title || 'Unknown Task'}
+                    {activeTimeEntry.taskTitle || 'Unknown Task'}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {currentClient?.name || 'No Client'} • {currentProject?.name || 'No Project'}
+                    {activeTimeEntry.clientName || 'No Client'} • {activeTimeEntry.projectName || 'No Project'}
                   </p>
                 </div>
                 <Button
@@ -118,10 +99,10 @@ export function ActiveTimersCard() {
                 <div className="flex-1">
                   <p className="text-sm font-medium text-muted-foreground">Paused</p>
                   <p className="text-sm font-semibold truncate">
-                    {currentTask?.title || 'Unknown Task'}
+                    {activeTimeEntry.taskTitle || 'Unknown Task'}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {currentClient?.name || 'No Client'} • {currentProject?.name || 'No Project'}
+                    {activeTimeEntry.clientName || 'No Client'} • {activeTimeEntry.projectName || 'No Project'}
                   </p>
                 </div>
                 <Button
@@ -156,17 +137,13 @@ export function ActiveTimersCard() {
             {pausedTimeEntries
               .filter(entry => entry.id !== activeTimeEntry?.id) // Exclude active timer
               .map((entry) => {
-                const task = tasks.find(t => t.id === entry.taskId);
-                const project = task ? projects.find(p => p.id === task.projectId) : null;
-                const client = project ? clients.find(c => c.id === project.clientId) : null;
-
                 return (
                   <div key={entry.id} className="bg-white dark:bg-slate-800 p-3 rounded border border-yellow-200 dark:border-yellow-800">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{task?.title || 'Unknown Task'}</p>
+                        <p className="text-sm font-medium truncate">{entry.taskTitle || 'Unknown Task'}</p>
                         <p className="text-xs text-muted-foreground">
-                          {client?.name || 'No Client'} • {project?.name || 'No Project'}
+                          {entry.clientName || 'No Client'} • {entry.projectName || 'No Project'}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">Paused</p>
                       </div>

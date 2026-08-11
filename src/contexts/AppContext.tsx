@@ -124,6 +124,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  // Helper function to enrich time entries with cached metadata
+  const enrichTimeEntries = (entries: TimeEntry[], tasksList: Task[], projectsList: Project[], clientsList: Client[]): TimeEntry[] => {
+    const taskMap = new Map(tasksList.map(t => [t.id, t]));
+    const projectMap = new Map(projectsList.map(p => [p.id, p]));
+    const clientMap = new Map(clientsList.map(c => [c.id, c]));
+
+    return entries.map(entry => {
+      const task = taskMap.get(entry.taskId);
+      const project = task ? projectMap.get(task.projectId) : (entry.projectId ? projectMap.get(entry.projectId) : null);
+      const client = entry.clientId ? clientMap.get(entry.clientId) : (project ? clientMap.get(project.clientId) : null);
+
+      return {
+        ...entry,
+        taskTitle: entry.taskTitle || task?.title || 'Unknown Task',
+        projectName: entry.projectName || project?.name || 'Unknown Project',
+        clientName: entry.clientName || client?.name || 'Unknown Client'
+      };
+    });
+  };
+
   // Helper function to convert database users to User type
   const convertDbUserToUser = (dbUser: any): User => {
     return {
@@ -983,6 +1003,30 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Enrich time entries with cached metadata whenever tasks, projects, or clients change
+  useEffect(() => {
+    if (timeEntries.length > 0) {
+      const enriched = enrichTimeEntries(timeEntries, tasks, projects, clients);
+      setTimeEntries(enriched);
+    }
+  }, [tasks, projects, clients]);
+
+  // Enrich active time entry when it changes
+  useEffect(() => {
+    if (activeTimeEntry && (tasks.length > 0 || projects.length > 0 || clients.length > 0)) {
+      const enriched = enrichTimeEntries([activeTimeEntry], tasks, projects, clients);
+      setActiveTimeEntry(enriched[0]);
+    }
+  }, [tasks, projects, clients, activeTimeEntry?.taskId]);
+
+  // Enrich paused time entries when supporting data changes
+  useEffect(() => {
+    if (pausedTimeEntries.length > 0) {
+      const enriched = enrichTimeEntries(pausedTimeEntries, tasks, projects, clients);
+      setPausedTimeEntries(enriched);
+    }
+  }, [tasks, projects, clients]);
 
   // ============================================
   // REALTIME SUBSCRIPTIONS - INSTANT UPDATES

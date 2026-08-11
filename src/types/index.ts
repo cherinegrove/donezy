@@ -230,6 +230,9 @@ export interface TimeEntry {
   edited?: boolean;
   rejectionReason?: string;
   timerStatus?: string;
+  taskTitle?: string; // Cached task title
+  projectName?: string; // Cached project name
+  clientName?: string; // Cached client name
 }
 
 export interface Message {
