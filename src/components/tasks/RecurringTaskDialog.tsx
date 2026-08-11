@@ -130,7 +130,7 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
         estimated_hours: estimatedHours || null,
         recurrence_pattern: recurrencePattern,
         recurrence_interval: recurrenceInterval,
-        days_of_week: recurrencePattern === 'weekly' ? selectedDaysOfWeek : null,
+        days_of_week: (recurrencePattern === 'weekly' || recurrencePattern === 'daily') ? selectedDaysOfWeek : null,
         day_of_month: recurrencePattern === 'monthly' ? dayOfMonth : null,
         start_date: startDate.toISOString(),
         end_date: hasEndDate && endDate ? endDate.toISOString() : null,
@@ -310,6 +310,33 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
                 </div>
               </div>
             </div>
+
+            {recurrencePattern === 'daily' && (
+              <div className="mt-4">
+                <Label>Days to Include</Label>
+                <p className="text-sm text-muted-foreground mb-3">Select which days to repeat (leave empty for every day)</p>
+                <div className="flex flex-wrap gap-2">
+                  {DAYS_OF_WEEK.map((day) => (
+                    <div key={day.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`daily-day-${day.value}`}
+                        checked={selectedDaysOfWeek.includes(day.value)}
+                        onCheckedChange={() => toggleDayOfWeek(day.value)}
+                      />
+                      <label
+                        htmlFor={`daily-day-${day.value}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {day.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-950 rounded text-xs text-muted-foreground">
+                  💡 Example: Select Mon-Fri for weekdays only, or leave blank for daily
+                </div>
+              </div>
+            )}
 
             {recurrencePattern === 'weekly' && (
               <div className="mt-4">

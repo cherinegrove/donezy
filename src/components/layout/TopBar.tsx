@@ -2,7 +2,8 @@ import { useAppContext } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSidebar } from "@/components/ui/sidebar";
-import { Menu, Moon, Plus, Search, Sun, Timer } from "lucide-react";
+import { Menu, Moon, Plus, Search, Sun, Timer, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StartTimerDialog } from "@/components/time/StartTimerDialog";
@@ -27,6 +28,7 @@ export function TopBar() {
   const { currentUser } = useAppContext();
   const { theme, setTheme } = useTheme();
   const { toggleSidebar, isMobile } = useSidebar();
+  const navigate = useNavigate();
   const [isTimerDialogOpen, setIsTimerDialogOpen] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [isManualEntryDialogOpen, setIsManualEntryDialogOpen] = useState(false);
@@ -100,13 +102,25 @@ export function TopBar() {
               <Timer className="h-5 w-5" />
               <span className="sr-only">Toggle timer box</span>
             </Button>
-            
-            <TimerBox 
-              isOpen={isTimerBoxOpen} 
-              onClose={() => setIsTimerBoxOpen(false)} 
+
+            <TimerBox
+              isOpen={isTimerBoxOpen}
+              onClose={() => setIsTimerBoxOpen(false)}
             />
           </div>
-          
+
+          {/* AI Assistant Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/ai-assistant")}
+            className="text-muted-foreground hover:text-foreground"
+            title="Open AI Assistant"
+          >
+            <Sparkles className="h-5 w-5" />
+            <span className="sr-only">AI Assistant</span>
+          </Button>
+
           {/* Quick Action Plus Button */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

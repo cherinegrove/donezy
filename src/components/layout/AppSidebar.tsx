@@ -16,12 +16,14 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Sparkles,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", end: true },
   { to: "/projects", icon: Briefcase, label: "Projects" },
   { to: "/tasks", icon: ListTodo, label: "Tasks" },
+  { to: "/ai-assistant", icon: Sparkles, label: "AI Assistant" },
   { to: "/time", icon: Clock, label: "Time Tracking" },
   { to: "/notifications", icon: Bell, label: "Notifications" },
   { to: "/analytics", icon: BarChart, label: "Analytics" },

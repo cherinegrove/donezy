@@ -70,6 +70,16 @@ Deno.serve(async (req) => {
           continue
         }
 
+        // For weekly or daily tasks with specific days, check if today is one of the selected days
+        if ((recurringTask.recurrence_pattern === 'weekly' || recurringTask.recurrence_pattern === 'daily') &&
+            recurringTask.days_of_week && recurringTask.days_of_week.length > 0) {
+          const todayDayOfWeek = now.getDay()
+          if (!recurringTask.days_of_week.includes(todayDayOfWeek)) {
+            console.log(`Skipping recurring task ${recurringTask.id} - today (${todayDayOfWeek}) is not in selected days`)
+            continue
+          }
+        }
+
         // Calculate due date based on next generation date
         const dueDate = new Date(recurringTask.next_generation_date)
         dueDate.setHours(23, 59, 59, 999) // Set to end of day
