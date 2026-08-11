@@ -2,12 +2,18 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Square } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Play, Pause, Square, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 export function ActiveTimersCard() {
-  const { activeTimeEntry, pausedTimeEntries, isTimerPaused, getElapsedTime, pauseTimeTracking, resumeTimeTracking } = useAppContext();
+  const { activeTimeEntry, pausedTimeEntries, isTimerPaused, getElapsedTime, pauseTimeTracking, resumeTimeTracking, stopTimeTracking } = useAppContext();
   const [displayTime, setDisplayTime] = useState("00:00:00");
+  const [showStopDialog, setShowStopDialog] = useState(false);
+  const [stopNotes, setStopNotes] = useState("");
 
   // Update elapsed time every second if a timer is running (not paused)
   useEffect(() => {
@@ -65,16 +71,30 @@ export function ActiveTimersCard() {
                   <p className="text-xs text-muted-foreground">
                     {activeTimeEntry.clientName || 'No Client'} • {activeTimeEntry.projectName || 'No Project'}
                   </p>
+                  {activeTimeEntry.description && (
+                    <p className="text-xs text-muted-foreground italic mt-1">📝 {activeTimeEntry.description}</p>
+                  )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => pauseTimeTracking()}
-                  className="h-8 w-8 p-0 text-warning hover:text-warning/80"
-                  title="Pause timer"
-                >
-                  <Pause className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => pauseTimeTracking()}
+                    className="h-8 w-8 p-0 text-warning hover:text-warning/80"
+                    title="Pause timer"
+                  >
+                    <Pause className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowStopDialog(true)}
+                    className="h-8 w-8 p-0 text-primary hover:text-primary/80"
+                    title="Save timer"
+                  >
+                    <Square className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 font-mono">
                 {displayTime}
@@ -145,6 +165,9 @@ export function ActiveTimersCard() {
                         <p className="text-xs text-muted-foreground">
                           {entry.clientName || 'No Client'} • {entry.projectName || 'No Project'}
                         </p>
+                        {entry.description && (
+                          <p className="text-xs text-muted-foreground italic mt-1">📝 {entry.description}</p>
+                        )}
                         <p className="text-xs text-muted-foreground mt-1">Paused</p>
                       </div>
                       <Pause className="h-4 w-4 text-yellow-600 dark:text-yellow-500 mt-1 ml-2 flex-shrink-0" />
@@ -158,6 +181,68 @@ export function ActiveTimersCard() {
           </div>
         )}
       </CardContent>
+
+      {/* Stop Timer Dialog */}
+      <Dialog open={showStopDialog} onOpenChange={setShowStopDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Timer</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {activeTimeEntry && (
+              <>
+                <div>
+                  <p className="text-sm font-medium mb-1">Task</p>
+                  <p className="text-sm">{activeTimeEntry.taskTitle || 'Unknown Task'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Start Time</p>
+                  <p className="text-sm">{format(new Date(activeTimeEntry.startTime), "MMM d, yyyy h:mm a")}</p>
+                </div>
+                <div>
+                  <Label htmlFor="end-time">End Time</Label>
+                  <input
+                    id="end-time"
+                    type="datetime-local"
+                    defaultValue={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Add any notes..."
+                    value={stopNotes}
+                    onChange={(e) => setStopNotes(e.target.value)}
+                    defaultValue={activeTimeEntry.description || ""}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowStopDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                try {
+                  const notesToSave = stopNotes || activeTimeEntry?.description || undefined;
+                  await stopTimeTracking(notesToSave);
+                  setShowStopDialog(false);
+                  setStopNotes("");
+                  toast.success("Timer saved");
+                } catch (error) {
+                  toast.error("Failed to save timer");
+                }
+              }}
+            >
+              Save Timer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

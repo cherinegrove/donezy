@@ -573,6 +573,9 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                         {activeTimeEntry.clientName && (
                           <p className="text-xs text-muted-foreground/80">Client: {activeTimeEntry.clientName}</p>
                         )}
+                        {activeTimeEntry.description && (
+                          <p className="text-xs text-muted-foreground italic mt-1">📝 {activeTimeEntry.description}</p>
+                        )}
                         <div className="flex items-center gap-2 mt-2">
                           <div className="font-mono text-lg font-bold">
                             {getElapsedTime(activeTimeEntry)}
@@ -652,6 +655,9 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                       )}
                       {timer.clientName && (
                         <p className="text-xs text-muted-foreground/80">Client: {timer.clientName}</p>
+                      )}
+                      {(timer as any).description && (
+                        <p className="text-xs text-muted-foreground italic mt-1">📝 {(timer as any).description}</p>
                       )}
                       <div className="flex items-center gap-2 mt-2">
                         <div className="font-mono text-lg font-bold">
@@ -754,13 +760,29 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
                   <p>{selectedTimer.taskTitle}</p>
                 </div>
                 <div>
+                  <p className="text-sm font-medium mb-1">Start Time</p>
+                  <input
+                    type="datetime-local"
+                    defaultValue={selectedTimer.startTime ? new Date(selectedTimer.startTime).toISOString().slice(0, 16) : ''}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-background"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">End Time</p>
+                  <input
+                    type="datetime-local"
+                    defaultValue={new Date().toISOString().slice(0, 16)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-background"
+                  />
+                </div>
+                <div>
                   <p className="text-sm font-medium mb-1">Time Elapsed</p>
                   <p className="font-mono text-lg">{formatTime(selectedTimer.elapsed)}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Notes</p>
-                  <Textarea 
-                    placeholder="What did you work on?" 
+                  <Textarea
+                    placeholder="What did you work on?"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                   />
