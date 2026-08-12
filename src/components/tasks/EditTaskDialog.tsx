@@ -82,6 +82,24 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   const [activeTab, setActiveTab] = useState("details");
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
 
+  // Helper to safely parse date strings
+  const parseDate = (dateStr: string | undefined): Date | undefined => {
+    if (!dateStr || !dateStr.trim()) return undefined;
+    try {
+      // Support ISO date format (YYYY-MM-DD)
+      if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const date = new Date(dateStr + "T00:00:00");
+        if (!isNaN(date.getTime())) return date;
+      }
+      // Fallback: try parsing as-is
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) return date;
+    } catch (e) {
+      console.warn('Failed to parse date:', dateStr, e);
+    }
+    return undefined;
+  };
+
   // Reset form state when task changes
   useEffect(() => {
     setTitle(task.title);
@@ -319,13 +337,13 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                         className="w-full justify-start text-left font-normal"
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dueDate && dueDate.trim() ? format(new Date(dueDate + "T00:00:00"), "PPP") : "No due date"}
+                        {parseDate(dueDate) ? format(parseDate(dueDate)!, "PPP") : "No due date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
-                        selected={dueDate && dueDate.trim() ? new Date(dueDate + "T00:00:00") : undefined}
+                        selected={parseDate(dueDate)}
                         onSelect={(date) => {
                           if (date) {
                             const year = date.getFullYear();
@@ -358,13 +376,13 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                         className="w-full justify-start text-left font-normal"
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {reminderDate && reminderDate.trim() ? format(new Date(reminderDate + "T00:00:00"), "PPP") : "No reminder set"}
+                        {parseDate(reminderDate) ? format(parseDate(reminderDate)!, "PPP") : "No reminder set"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
-                        selected={reminderDate && reminderDate.trim() ? new Date(reminderDate + "T00:00:00") : undefined}
+                        selected={parseDate(reminderDate)}
                         onSelect={(date) => {
                           if (date) {
                             const year = date.getFullYear();
