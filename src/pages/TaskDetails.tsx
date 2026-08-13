@@ -6,8 +6,8 @@ import { useState, useEffect, useRef } from "react";
 import { Task } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
-// Inline the dialog to avoid circular dep — lazy-load the heavy EditTaskDialog chunk
-import React, { lazy, Suspense } from "react";
+// Lazy-load the heavy EditTaskDialog chunk
+import { lazy, Suspense } from "react";
 const EditTaskDialog = lazy(() =>
   import("@/components/tasks/EditTaskDialog").then((m) => ({ default: m.EditTaskDialog }))
 );
