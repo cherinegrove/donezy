@@ -200,6 +200,17 @@ const handler = async (req: Request): Promise<Response> => {
       }
       
       for (const recipient of recipients) {
+        // Check notification preferences before sending email
+        const { data: prefs } = await supabase
+          .from('notification_preferences')
+          .select('email')
+          .eq('auth_user_id', recipient.auth_user_id)
+          .eq('event_type', 'task_reminder')
+          .maybeSingle();
+
+        // Only send email if user has NOT disabled it (default: enabled)
+        const shouldSendEmail = prefs ? prefs.email : true;
+
         const variables = {
           user_name: recipient.name,
           task_title: task.title,
@@ -209,12 +220,17 @@ const handler = async (req: Request): Promise<Response> => {
           task_description: task.description || 'No description',
           company_name: 'Donezy'
         };
-        
+
         const subject = processTemplate(templateSubject, variables);
         const content = processTemplate(templateContent, variables);
-        
-        const emailSent = await sendEmail(recipient.email, subject, content);
-        if (emailSent) emailsSent++;
+
+        let emailSent = false;
+        if (shouldSendEmail) {
+          emailSent = await sendEmail(recipient.email, subject, content);
+          if (emailSent) emailsSent++;
+        } else {
+          console.log(`Email notification disabled for user ${recipient.auth_user_id} - skipping task reminder email`);
+        }
         
         const { data: recipientUser } = await supabase
           .from('users')
@@ -280,6 +296,17 @@ const handler = async (req: Request): Promise<Response> => {
       }
       
       for (const recipient of recipients) {
+        // Check notification preferences before sending email
+        const { data: prefs } = await supabase
+          .from('notification_preferences')
+          .select('email')
+          .eq('auth_user_id', recipient.auth_user_id)
+          .eq('event_type', 'task_reminder')
+          .maybeSingle();
+
+        // Only send email if user has NOT disabled it (default: enabled)
+        const shouldSendEmail = prefs ? prefs.email : true;
+
         const variables = {
           user_name: recipient.name,
           task_title: task.title,
@@ -289,12 +316,17 @@ const handler = async (req: Request): Promise<Response> => {
           task_description: task.description || 'No description',
           company_name: 'Donezy'
         };
-        
+
         const subject = processTemplate(templateSubject, variables);
         const content = processTemplate(templateContent, variables);
-        
-        const emailSent = await sendEmail(recipient.email, subject, content);
-        if (emailSent) emailsSent++;
+
+        let emailSent = false;
+        if (shouldSendEmail) {
+          emailSent = await sendEmail(recipient.email, subject, content);
+          if (emailSent) emailsSent++;
+        } else {
+          console.log(`Email notification disabled for user ${recipient.auth_user_id} - skipping task reminder email`);
+        }
         
         await supabase.from('task_reminders').insert({
           task_id: task.id,

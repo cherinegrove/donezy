@@ -168,35 +168,50 @@ serve(async (req) => {
     const isActive = template ? template.is_active : true;
     
     let emailSent = false;
-    
+
     if (isActive) {
-      const templateSubject = template?.subject || defaultMentionTemplate.subject;
-      const templateContent = template?.content || defaultMentionTemplate.content;
-      
-      let taskTitle = 'a comment';
-      if (taskId) {
-        const { data: task } = await supabase
-          .from('tasks')
-          .select('title')
-          .eq('id', taskId)
-          .single();
-        if (task) taskTitle = task.title;
+      // Check notification preferences before sending email
+      const { data: prefs } = await supabase
+        .from('notification_preferences')
+        .select('email')
+        .eq('auth_user_id', mentionedUserId)
+        .eq('event_type', 'mentioned')
+        .maybeSingle();
+
+      // Only send email if user has NOT disabled it (default: enabled)
+      const shouldSendEmail = prefs ? prefs.email : true;
+
+      if (shouldSendEmail) {
+        const templateSubject = template?.subject || defaultMentionTemplate.subject;
+        const templateContent = template?.content || defaultMentionTemplate.content;
+
+        let taskTitle = 'a comment';
+        if (taskId) {
+          const { data: task } = await supabase
+            .from('tasks')
+            .select('title')
+            .eq('id', taskId)
+            .single();
+          if (task) taskTitle = task.title;
+        }
+
+        const variables = {
+          user_name: mentionedUser.name,
+          mention_by: mentionerName,
+          context_type: taskId ? 'task' : 'comment',
+          context_title: taskTitle,
+          mention_message: plainText,
+          project_name: projectName || 'Unknown Project',
+          company_name: 'Donezy'
+        };
+
+        const subject = processTemplate(templateSubject, variables);
+        const content = processTemplate(templateContent, variables);
+
+        emailSent = await sendEmail(mentionedUser.email, subject, content);
+      } else {
+        console.log(`Email notification disabled for user ${mentionedUserId} - skipping mention email`);
       }
-      
-      const variables = {
-        user_name: mentionedUser.name,
-        mention_by: mentionerName,
-        context_type: taskId ? 'task' : 'comment',
-        context_title: taskTitle,
-        mention_message: plainText,
-        project_name: projectName || 'Unknown Project',
-        company_name: 'Donezy'
-      };
-      
-      const subject = processTemplate(templateSubject, variables);
-      const content = processTemplate(templateContent, variables);
-      
-      emailSent = await sendEmail(mentionedUser.email, subject, content);
     } else {
       console.log('Mention email template is inactive - skipping email');
     }
