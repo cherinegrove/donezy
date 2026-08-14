@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donezy Knowledge Base</title>
+    <meta name="description" content="Complete guide to Donezy - task management, time tracking, team collaboration, and more.">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f7fa;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .search-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 40px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 1em;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            outline: none;
+        }
+
+        .search-box input:focus {
+            border-color: #667eea;
+        }
+
+        .sections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .section-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        .section-card h3 {
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 1.3em;
+        }
+
+        .section-card p {
+            color: #666;
+            font-size: 0.95em;
+            margin-bottom: 16px;
+        }
+
+        .article-list {
+            list-style: none;
+        }
+
+        .article-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .article-list li:last-child {
+            border-bottom: none;
+        }
+
+        .article-list a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9em;
+        }
+
+        .article-list a:hover {
+            text-decoration: underline;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 8px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .cta-button:hover {
+            background: #764ba2;
+        }
+
+        .featured {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 8px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .featured h2 {
+            margin-bottom: 16px;
+        }
+
+        .featured p {
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+
+        .footer {
+            background: #f5f7fa;
+            border-top: 1px solid #e0e0e0;
+            padding: 40px 20px;
+            text-align: center;
+            color: #666;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb {
+            color: #999;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .sections-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .featured {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Donezy Knowledge Base</h1>
+        <p>Master task management, time tracking, and team collaboration</p>
+    </div>
+
+    <div class="container">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search articles... (e.g., 'time tracking', 'tasks', 'roles')">
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">18+</div>
+                <div class="stat-label">Complete Articles</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">60+</div>
+                <div class="stat-label">Topics Covered</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">100%</div>
+                <div class="stat-label">Feature Coverage</div>
+            </div>
+        </div>
+
+        <div class="featured">
+            <h2>Getting Started? Start Here!</h2>
+            <p>New to Donezy? Follow our step-by-step guide to set up your account, create your first project, and start tracking time in minutes.</p>
+            <a href="README.md" class="cta-button">View Knowledge Base Index</a>
+        </div>
+
+        <h2 style="margin-bottom: 24px;">📚 Browse by Topic</h2>
+
+        <div class="sections-grid">
+            <div class="section-card">
+                <h3>🚀 Getting Started</h3>
+                <p>New to Donezy? Learn the basics of setting up your account, creating projects, and inviting team members.</p>
+                <ul class="article-list">
+                    <li><a href="getting-started/01-first-steps.md">First Steps with Donezy</a></li>
+                    <li><a href="getting-started/02-roles-and-permissions.md">User Roles & Permissions</a></li>
+                    <li><a href="getting-started/03-keyboard-shortcuts.md">Keyboard Shortcuts</a></li>
+                    <li><a href="getting-started/04-mobile-app.md">Mobile App Guide</a></li>
+                    <li><a href="getting-started/05-chrome-extension.md">Chrome Extension</a></li>
+                </ul>
+            </div>
+
+            <div class="section-card">
+                <h3>📋 Tasks & Projects</h3>
+                <p>Master task creation, project management, and workflow tracking with Donezy's powerful tools.</p>
+                <ul class="article-list">
+                    <li><a href="tasks-projects/01-creating-tasks.md">Creating Tasks</a></li>
+                    <li><a href="tasks-projects/02-task-management.md">Task Management</a></li>
+                    <li><a href="README.md">View All →</a></li>
+                </ul>
+            </div>
+
+            <div class="section-card">
+                <h3>⏱️ Time Tracking</h3>
+                <p>Track time accurately, generate reports, and optimize billing with Donezy's time tracking features.</p>
+                <ul class="article-list">
+                    <li><a href="time-tracking/01-time-tracking-basics.md">Time Tracking Basics</a></li>
+                    <li><a href="README.md">View All →</a></li>
+                </ul>
+            </div>
+
+            <div class="section-card">
+                <h3>👥 Teams & Users</h3>
+                <p>Manage team members, set permissions, and organize your organization structure.</p>
+                <ul class="article-list">
+                    <li><a href="README.md">Team Management</a></li>
+                    <li><a href="README.md">User Roles</a></li>
+                    <li><a href="README.md">View All →</a></li>
+                </ul>
+            </div>
+
+            <div class="section-card">
+                <h3>💼 Clients & Billing</h3>
+                <p>Manage clients, create portals, track billable hours, and generate invoices.</p>
+                <ul class="article-list">
+                    <li><a href="README.md">Managing Clients</a></li>
+                    <li><a href="README.md">Client Portals</a></li>
+                    <li><a href="README.md">View All →</a></li>
+                </ul>
+            </div>
+
+            <div class="section-card">
+                <h3>💬 Communication</h3>
+                <p>Collaborate with your team through messages, channels, comments, and integrations.</p>
+                <ul class="article-list">
+                    <li><a href="README.md">Messages</a></li>
+                    <li><a href="README.md">Channels</a></li>
+                    <li><a href="README.md">View All →</a></li>
+                </ul>
+            </div>
+
+            <div class="section-card">
+                <h3>📊 Dashboards & Analytics</h3>
+                <p>Create custom dashboards, generate reports, and gain insights into your team's productivity.</p>
+                <ul class="article-list">
+                    <li><a href="README.md">Dashboard Overview</a></li>
+                    <li><a href="README.md">Analytics</a></li>
+                    <li><a href="README.md">View All →</a></li>
+                </ul>
+            </div>
+
+            <div class="section-card">
+                <h3>⚙️ Settings & Admin</h3>
+                <p>Configure organization settings, manage billing, set up integrations, and control access.</p>
+                <ul class="article-list">
+                    <li><a href="README.md">Account Settings</a></li>
+                    <li><a href="README.md">Organization Settings</a></li>
+                    <li><a href="README.md">View All →</a></li>
+                </ul>
+            </div>
+
+            <div class="section-card">
+                <h3>❓ Help & Support</h3>
+                <p>Find answers to common questions, troubleshoot issues, and learn best practices.</p>
+                <ul class="article-list">
+                    <li><a href="help/01-faq.md">Frequently Asked Questions</a></li>
+                    <li><a href="README.md">Troubleshooting</a></li>
+                    <li><a href="README.md">Best Practices</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="featured">
+            <h2>Can't Find What You're Looking For?</h2>
+            <p>Contact our support team or check out the complete knowledge base index below.</p>
+            <a href="README.md" class="cta-button">📚 View Complete Index</a>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>
+            📧 <a href="mailto:support@donezy.io">Contact Support</a> |
+            💬 <a href="#">Community</a> |
+            🐛 <a href="#">Report a Bug</a> |
+            💡 <a href="#">Request a Feature</a>
+        </p>
+        <p style="margin-top: 20px; font-size: 0.9em;">Last updated: 2026-08-14 | © 2026 Donezy</p>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const cards = document.querySelectorAll('.section-card');
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+
+            if (!query) {
+                cards.forEach(card => card.style.display = '');
+                return;
+            }
+
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>

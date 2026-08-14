@@ -26,6 +26,10 @@ chrome.contextMenus.create({
   id: 'createTaskFromSelection',
   title: 'Create Donezy task from selection',
   contexts: ['selection']
+}, () => {
+  if (chrome.runtime.lastError) {
+    console.error('Failed to create context menu:', chrome.runtime.lastError);
+  }
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {

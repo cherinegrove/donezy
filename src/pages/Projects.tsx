@@ -27,6 +27,25 @@ const Projects = () => {
 
   const { projects, tasks, clients, teams, users, currentUser, deleteProject } = useAppContext();
 
+  const { toast } = useToast();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreateTemplateDialogOpen, setIsCreateTemplateDialogOpen] = useState(false);
+  const [isUseTemplateDialogOpen, setIsUseTemplateDialogOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
+  const [activeTab, setActiveTab] = useState("projects");
+
+  // Load saved view preference from localStorage
+  const [currentView, setCurrentViewState] = useState<"list" | "kanban" | "timeline">(() => {
+    const saved = localStorage.getItem('projectsView');
+    return (saved as "list" | "kanban" | "timeline") || "kanban";
+  });
+
+  // Wrapper to save view preference when it changes
+  const setCurrentView = (view: "list" | "kanban" | "timeline") => {
+    setCurrentViewState(view);
+    localStorage.setItem('projectsView', view);
+  };
+
   // Listen for template creation events to refresh the templates list
   useEffect(() => {
     const handleTemplateCreated = () => {
@@ -36,20 +55,14 @@ const Projects = () => {
     window.addEventListener('templateCreated', handleTemplateCreated);
     return () => window.removeEventListener('templateCreated', handleTemplateCreated);
   }, []);
-  console.log("Projects component: Context data", { 
-    projectsCount: projects?.length || 0, 
-    tasksCount: tasks?.length || 0, 
-    clientsCount: clients?.length || 0, 
-    teamsCount: teams?.length || 0 
+  console.log("Projects component: Context data", {
+    projectsCount: projects?.length || 0,
+    tasksCount: tasks?.length || 0,
+    clientsCount: clients?.length || 0,
+    teamsCount: teams?.length || 0
   });
 
-  const { toast } = useToast();
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isCreateTemplateDialogOpen, setIsCreateTemplateDialogOpen] = useState(false);
-  const [isUseTemplateDialogOpen, setIsUseTemplateDialogOpen] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
-  const [activeTab, setActiveTab] = useState("projects");
-  const [currentView, setCurrentView] = useState<"list" | "kanban" | "timeline">("kanban");
+  console.log("Projects component: State initialized");
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const navigate = useNavigate();
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});

@@ -2,6 +2,16 @@
 const SUPABASE_URL = 'https://puwxkygdlclcbyxrtppd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1d3hreWdkbGNsY2J5eHJ0cHBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMDU2OTUsImV4cCI6MjA2MTY4MTY5NX0._p3ZxKJSSzOkZO6xml4kvg9vOA64Qlxhg5HNhuEAF-0';
 
+// Helper to add timeout to fetch requests (prevent UI freeze)
+function timeoutFetch(url, options, timeoutMs = 10000) {
+  return Promise.race([
+    fetch(url, options),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+    )
+  ]);
+}
+
 // Completed/closed task statuses to filter out (dynamically loaded)
 let COMPLETED_STATUSES = ['done', 'completed', 'closed', 'cancelled'];
 
@@ -46,7 +56,32 @@ const tabContents = document.querySelectorAll('.tab-content');
 document.addEventListener('DOMContentLoaded', async () => {
   await checkAuthState();
   setupEventListeners();
+  await checkAndLoadQuickTask();
 });
+
+// Check for pre-filled quick task data from context menu
+async function checkAndLoadQuickTask() {
+  try {
+    const result = await chrome.storage.local.get(['quickTaskTitle', 'quickTaskUrl']);
+    if (result.quickTaskTitle && mainSection.style.display !== 'none') {
+      taskTitle.value = result.quickTaskTitle;
+      taskDescription.value = result.quickTaskUrl ? `Source: ${result.quickTaskUrl}` : '';
+
+      // Switch to tasks tab
+      tabs.forEach(t => t.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+      document.querySelector('[data-tab="tasks"]').classList.add('active');
+      document.getElementById('tasksTab').classList.add('active');
+
+      // Clear from storage since we've used it
+      await chrome.storage.local.remove(['quickTaskTitle', 'quickTaskUrl']);
+
+      showToast('Pre-filled from selection - edit and create', 'info');
+    }
+  } catch (error) {
+    console.error('Error loading quick task:', error);
+  }
+}
 
 // Setup event listeners
 function setupEventListeners() {
@@ -103,7 +138,7 @@ async function checkAuthState() {
       }
       
       // Verify session is still valid by making a test request
-      const testResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      const testResponse = await timeoutFetch(`${SUPABASE_URL}/auth/v1/user`, {
         headers: {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${currentSession.access_token}`,
@@ -179,7 +214,7 @@ function isTokenExpiringSoon(token) {
 // Refresh session using refresh token
 async function refreshSession(refreshToken) {
   try {
-    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+    const response = await timeoutFetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -266,7 +301,7 @@ async function handleLogin() {
   loginButton.textContent = 'Signing in...';
   
   try {
-    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    const response = await timeoutFetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -433,8 +468,8 @@ async function startTimer() {
   // TIMER RULE: Only one timer can run at a time
   // Stop any existing active timer before starting a new one
   try {
-    const existingResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/time_entries?auth_user_id=eq.${currentSession.user.id}&timer_status=in.(active,paused)`,
+    const existingResponse = await timeoutFetch(
+      `${SUPABASE_URL}/rest/v1/time_entries?auth_user_id=eq.${currentSession.user.id}&status=in.(active,paused)`,
       {
         headers: {
           'apikey': SUPABASE_ANON_KEY,
@@ -449,7 +484,7 @@ async function startTimer() {
       for (const timer of existingTimers) {
         const endTime = new Date();
         const duration = Math.floor((endTime - new Date(timer.start_time)) / 1000 / 60);
-        await fetch(`${SUPABASE_URL}/rest/v1/time_entries?id=eq.${timer.id}`, {
+        await timeoutFetch(`${SUPABASE_URL}/rest/v1/time_entries?id=eq.${timer.id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -470,8 +505,10 @@ async function startTimer() {
   // Find client_id from project
   const project = projectsCache.find(p => p.id === projectId);
   const clientId = project?.client_id || null;
-  
+
   timerStartTime = new Date();
+  // Store in chrome.storage so it persists when popup closes
+  await chrome.storage.local.set({ timerStartTime: timerStartTime.toISOString() });
   
   try {
     const timeEntry = {
@@ -481,10 +518,10 @@ async function startTimer() {
       project_id: projectId,
       task_id: selectedTaskId,
       client_id: clientId,
-      status: 'pending',
+      status: 'active',
     };
     
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/time_entries`, {
+    const response = await timeoutFetch(`${SUPABASE_URL}/rest/v1/time_entries`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -527,7 +564,7 @@ async function stopTimer() {
   const duration = Math.floor((endTime - timerStartTime) / 1000 / 60);
   
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/time_entries?id=eq.${currentTimeEntry.id}`, {
+    const response = await timeoutFetch(`${SUPABASE_URL}/rest/v1/time_entries?id=eq.${currentTimeEntry.id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -579,8 +616,8 @@ function updateTimerDisplay() {
 
 async function checkActiveTimer() {
   try {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/time_entries?auth_user_id=eq.${currentSession.user.id}&timer_status=in.(active,paused)&order=created_at.desc&limit=1`,
+    const response = await timeoutFetch(
+      `${SUPABASE_URL}/rest/v1/time_entries?auth_user_id=eq.${currentSession.user.id}&status=in.(active,paused)&order=created_at.desc&limit=1`,
       {
         headers: {
           'apikey': SUPABASE_ANON_KEY,
@@ -588,12 +625,14 @@ async function checkActiveTimer() {
         },
       }
     );
-    
+
     if (response.ok) {
       const data = await response.json();
       if (data.length > 0) {
         currentTimeEntry = data[0];
         timerStartTime = new Date(currentTimeEntry.start_time);
+        // Also save to storage for persistence
+        await chrome.storage.local.set({ timerStartTime: timerStartTime.toISOString() });
         timerInterval = setInterval(updateTimerDisplay, 1000);
         timerButton.textContent = 'Stop Timer';
         timerButton.classList.add('button-stop');
@@ -652,7 +691,7 @@ async function handleCreateTask() {
       created_at: new Date().toISOString(),
     };
     
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/tasks`, {
+    const response = await timeoutFetch(`${SUPABASE_URL}/rest/v1/tasks`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -665,6 +704,7 @@ async function handleCreateTask() {
     if (response.ok) {
       taskTitle.value = '';
       taskDescription.value = '';
+      taskProject.value = '';
       taskStatus.value = 'backlog';
       taskAssignee.value = '';
       taskDueDate.value = '';
@@ -687,7 +727,7 @@ async function loadProjects() {
     console.log('Access token present:', !!currentSession?.access_token);
     
     // Filter by auth_user_id to ensure we get projects the user owns
-    const response = await fetch(
+    const response = await timeoutFetch(
       `${SUPABASE_URL}/rest/v1/projects?select=id,name,client_id,auth_user_id&order=name.asc`,
       {
         headers: {
@@ -730,7 +770,7 @@ async function loadProjects() {
 async function loadUsers() {
   try {
     console.log('Loading users...');
-    const response = await fetch(
+    const response = await timeoutFetch(
       `${SUPABASE_URL}/rest/v1/users?select=auth_user_id,name,email&order=name.asc`,
       {
         headers: {
@@ -739,28 +779,30 @@ async function loadUsers() {
         },
       }
     );
-    
+
     if (response.ok) {
       usersCache = await response.json();
       console.log('Users loaded:', usersCache.length);
-      
+
       // Update assignee dropdown
-      const optionsHtml = '<option value="">Select owner (optional)</option>' + 
+      const optionsHtml = '<option value="">Select owner (optional)</option>' +
         usersCache.map(u => `<option value="${u.auth_user_id}">${escapeHtml(u.name || u.email)}</option>`).join('');
-      
+
       taskAssignee.innerHTML = optionsHtml;
     } else {
       console.error('Failed to load users:', response.status, await response.text());
+      showToast('Failed to load users', 'error');
     }
   } catch (error) {
     console.error('Error loading users:', error);
+    showToast('Error loading users: ' + error.message, 'error');
   }
 }
 
 async function loadTaskStatuses() {
   try {
     console.log('Loading task statuses...');
-    const response = await fetch(
+    const response = await timeoutFetch(
       `${SUPABASE_URL}/rest/v1/task_status_definitions?select=id,name,value,color,is_final,order_index&order=order_index.asc`,
       {
         headers: {
@@ -791,6 +833,7 @@ async function loadTaskStatuses() {
       taskStatus.innerHTML = optionsHtml || '<option value="backlog">Backlog</option>';
     } else {
       console.error('Failed to load task statuses:', response.status, await response.text());
+      showToast('Failed to load task statuses', 'error');
       // Fallback to default statuses
       taskStatus.innerHTML = `
         <option value="backlog">Backlog</option>
@@ -800,6 +843,7 @@ async function loadTaskStatuses() {
     }
   } catch (error) {
     console.error('Error loading task statuses:', error);
+    showToast('Error loading task statuses: ' + error.message, 'error');
     // Fallback to default statuses
     taskStatus.innerHTML = `
       <option value="backlog">Backlog</option>
@@ -836,7 +880,7 @@ async function handleCreateNote() {
       tags: [],
     };
     
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/project_notes`, {
+    const response = await timeoutFetch(`${SUPABASE_URL}/rest/v1/project_notes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
