@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NotificationsPopover } from "@/components/notifications/NotificationsPopover";
+import { HelpButton } from "@/components/help/HelpButton";
 import { UserProfileDialog } from "@/components/users/UserProfileDialog";
 import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 import { TimerBox } from "@/components/time/TimerBox";
@@ -90,7 +91,10 @@ export function TopBar() {
           
           {/* Notifications */}
           <NotificationsPopover />
-          
+
+          {/* Help */}
+          <HelpButton />
+
           {/* Timer Box Toggle */}
           <div className="relative">
             <Button

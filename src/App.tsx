@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import React, { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppProvider } from "./contexts/AppContext";
+import { HelpProvider } from "./contexts/HelpContext";
 import { EmailConfirmation } from "./components/auth/EmailConfirmation";
 import ConfirmInvite from "./pages/ConfirmInvite";
 import { AuthVerify } from '@/components/auth/AuthVerify';
@@ -240,9 +241,10 @@ const App = () => {
         <TooltipProvider>
           <BrowserRouter>
             <AppProvider>
-              <Suspense fallback={null}>
-                <GlobalSearch />
-              </Suspense>
+              <HelpProvider>
+                <Suspense fallback={null}>
+                  <GlobalSearch />
+                </Suspense>
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   {/* Standalone auth routes - no protection needed */}
@@ -328,6 +330,7 @@ const App = () => {
               </Suspense>
               <Toaster />
               <Sonner />
+              </HelpProvider>
             </AppProvider>
           </BrowserRouter>
         </TooltipProvider>
