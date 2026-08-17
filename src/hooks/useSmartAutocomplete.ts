@@ -10,6 +10,7 @@ interface UseSmartAutocompleteOptions {
   options: AutocompleteOption[];
   maxSuggestions?: number;
   enableFuzzyMatch?: boolean;
+  storageKey?: string; // Unique key for each filter's recent searches
 }
 
 interface UseSmartAutocompleteReturn {
@@ -21,14 +22,16 @@ interface UseSmartAutocompleteReturn {
   clearRecent: () => void;
 }
 
-const RECENT_SEARCHES_KEY = "smart-autocomplete-recent";
+const DEFAULT_RECENT_SEARCHES_KEY = "smart-autocomplete-recent";
 const MAX_RECENT_SEARCHES = 5;
 
 export function useSmartAutocomplete({
   options,
   maxSuggestions = 10,
   enableFuzzyMatch = true,
+  storageKey,
 }: UseSmartAutocompleteOptions): UseSmartAutocompleteReturn {
+  const recentSearchesKey = storageKey || DEFAULT_RECENT_SEARCHES_KEY;
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState<AutocompleteOption[]>([]);
   const [recentSearches, setRecentSearches] = useState<AutocompleteOption[]>([]);
@@ -36,14 +39,14 @@ export function useSmartAutocomplete({
   // Load recent searches from localStorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+      const stored = localStorage.getItem(recentSearchesKey);
       if (stored) {
         setRecentSearches(JSON.parse(stored));
       }
     } catch (error) {
       console.error("Failed to load recent searches:", error);
     }
-  }, []);
+  }, [recentSearchesKey]);
 
   // Fuzzy match algorithm
   const fuzzyMatch = useCallback((str: string, pattern: string): boolean => {
@@ -116,30 +119,30 @@ export function useSmartAutocomplete({
     setRecentSearches(prev => {
       // Remove if already exists
       const filtered = prev.filter(item => item.id !== option.id);
-      
+
       // Add to beginning
       const updated = [option, ...filtered].slice(0, MAX_RECENT_SEARCHES);
-      
+
       // Save to localStorage
       try {
-        localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+        localStorage.setItem(recentSearchesKey, JSON.stringify(updated));
       } catch (error) {
         console.error("Failed to save recent searches:", error);
       }
-      
+
       return updated;
     });
-  }, []);
+  }, [recentSearchesKey]);
 
   // Clear recent searches
   const clearRecent = useCallback(() => {
     setRecentSearches([]);
     try {
-      localStorage.removeItem(RECENT_SEARCHES_KEY);
+      localStorage.removeItem(recentSearchesKey);
     } catch (error) {
       console.error("Failed to clear recent searches:", error);
     }
-  }, []);
+  }, [recentSearchesKey]);
 
   return {
     suggestions,

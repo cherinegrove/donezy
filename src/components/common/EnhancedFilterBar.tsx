@@ -254,6 +254,7 @@ export function EnhancedFilterBar({
           const filteredOptions = getFilteredOptions(filter);
           const autocomplete = useSmartAutocomplete({
             options: filter.options.map(opt => ({ id: opt.id, label: opt.label })),
+            storageKey: `autocomplete-${filter.id}`,
           });
 
           return (
