@@ -11,6 +11,8 @@ import { format } from "date-fns";
 import { FilterBar, FilterOption } from "@/components/common/FilterBar";
 import { EditTimerDialog } from "@/components/time/EditTimerDialog";
 import { TimeEntryEventLog } from "@/components/time/TimeEntryEventLog";
+import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface TimerItem {
   id: string;
@@ -18,6 +20,8 @@ interface TimerItem {
   taskTitle: string;
   projectName?: string;
   clientName?: string;
+  notes?: string; // Notes entered when timer was started
+  description?: string; // Alternative field for notes
   startTime: Date;
   elapsed: number; // Elapsed time at moment of pause (if paused)
   isPaused: boolean;
@@ -271,6 +275,8 @@ export function ActiveTimersSection({
 
   const handleLocalTimerStop = (timer: TimerItem) => {
     setSelectedLocalTimer(timer);
+    // Populate notes from the timer so user doesn't have to re-enter them
+    setNotes(timer.notes || timer.description || "");
     setEditDialogOpen(true);
   };
 
@@ -341,7 +347,7 @@ export function ActiveTimersSection({
       if (!selectedLocalTimer.isLocalOnly) {
         // DB-backed timer - update existing entry with end_time
         const { supabase } = await import('@/integrations/supabase/client');
-        await supabase
+        const { error: updateError } = await supabase
           .from('time_entries')
           .update({
             end_time: endTime.toISOString(),
@@ -350,6 +356,10 @@ export function ActiveTimersSection({
             timer_status: 'completed'
           })
           .eq('id', selectedLocalTimer.id);
+
+        if (updateError) {
+          throw new Error(`Failed to save timer: ${updateError.message}`);
+        }
       } else {
         // Local-only timer - create new entry
         await addTimeEntry({
@@ -375,11 +385,20 @@ export function ActiveTimersSection({
         }
       }
 
+      // Only close dialog and show success on successful save
       setEditDialogOpen(false);
       setSelectedLocalTimer(null);
       setNotes("");
+
+      // Show success toast
+      toast.success('Time entry saved');
     } catch (error) {
-      console.error('Error stopping timer:', error);
+      console.error('❌ Error stopping timer:', error);
+      // Show error toast to user
+      const errorMsg = error instanceof Error ? error.message : 'Failed to save timer entry';
+      toast.error('Failed to save timer', {
+        description: errorMsg
+      });
     } finally {
       setIsSavingTimer(false);
     }
@@ -532,6 +551,8 @@ export function ActiveTimersSection({
       taskTitle: activeTimer.task?.title || 'Unknown Task',
       projectName: activeTimer.project?.name,
       clientName: activeTimer.client?.name,
+      notes: activeTimer.timeEntry.notes || '',
+      description: activeTimer.timeEntry.description || '',
       startTime: new Date(activeTimer.timeEntry.startTime),
       elapsed: 0, // Will use elapsedTime string instead
       isPaused: isTimerPaused,
