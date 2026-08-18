@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useAppContext } from "@/contexts/AppContext";
 import { toast } from "sonner";
+import { useAppContext } from "@/contexts/AppContext";
 import {
   Dialog,
   DialogContent,
@@ -137,7 +137,7 @@ export function StartTimerDialog({
     setSelectedTaskId(""); // Clear task
   };
 
-  const handleStartTimer = () => {
+  const handleStartTimer = async () => {
     console.log('🎯 StartTimerDialog: handleStartTimer called with:', {
       selectedClientId,
       effectiveClientId,
@@ -151,7 +151,7 @@ export function StartTimerDialog({
       if (selectedProject) {
         const projectStatus = projectStatuses.find(s => s.value === selectedProject.status);
         if (projectStatus?.isFinal) {
-          toast('Cannot start timer for completed projects', {
+          toast.error('Cannot start timer for completed projects', {
             description: 'Please select a different project',
           });
           return;
@@ -160,20 +160,36 @@ export function StartTimerDialog({
     }
 
     if (!selectedProjectId) {
-      toast('Project is required', {
+      toast.error('Project is required', {
         description: 'Please select a project to start a timer',
       });
       return;
     }
 
     if (effectiveClientId) {
-      console.log('🚀 StartTimerDialog: Calling AppContext startTimeTracking...');
-      startTimeTracking(selectedTaskId || undefined, selectedProjectId, effectiveClientId, undefined, notes || undefined);
-      onStartTimer();
-      onOpenChange(false);
-      setNotes(""); // Reset notes after starting timer
+      try {
+        console.log('🚀 StartTimerDialog: Calling AppContext startTimeTracking...');
+        await startTimeTracking(selectedTaskId || undefined, selectedProjectId, effectiveClientId, undefined, notes || undefined);
+
+        // Only proceed if successful
+        onStartTimer();
+        onOpenChange(false);
+        setNotes(""); // Reset notes after starting timer
+        toast.success('Timer started', {
+          description: `Started tracking time on ${selectedTask?.title || 'task'}`,
+        });
+      } catch (error) {
+        console.error('❌ Failed to start timer:', error);
+        const errorMsg = error instanceof Error ? error.message : 'Failed to start timer. Please check your connection and try again.';
+        toast.error('Failed to start timer', {
+          description: errorMsg,
+        });
+      }
     } else {
       console.error('❌ StartTimerDialog: No client selected!');
+      toast.error('No client available', {
+        description: 'Please select a valid project with a client',
+      });
     }
   };
 
