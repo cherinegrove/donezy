@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Filter, X, Save, Star, Clock } from "lucide-react";
 import {
@@ -19,6 +19,102 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useSmartAutocomplete } from "@/hooks/useSmartAutocomplete";
+
+// Separate component to properly use hooks for each filter
+interface FilterItemProps {
+  filter: FilterOption;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  onFilterChange: (filterId: string, value: string) => void;
+}
+
+function FilterItem({ filter, searchTerm, onSearchChange, onFilterChange }: FilterItemProps) {
+  const autocomplete = useSmartAutocomplete({
+    options: filter.options.map(opt => ({ id: opt.id, label: opt.label })),
+    storageKey: `autocomplete-${filter.id}`,
+  });
+
+  const filteredOptions = useMemo(() => {
+    if (!searchTerm) return filter.options;
+    return filter.options.filter(option =>
+      option.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm, filter.options]);
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-9">
+          {filter.name}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-2" align="start">
+        <div className="grid gap-2">
+          <h4 className="font-medium text-sm px-2 py-1">{filter.name}</h4>
+
+          {/* Search input */}
+          <Input
+            placeholder={`Search ${filter.name.toLowerCase()}...`}
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="h-8"
+          />
+
+          <Separator />
+
+          {/* Recent searches */}
+          {autocomplete.recentSearches.length > 0 && !searchTerm && (
+            <>
+              <div className="px-2">
+                <p className="text-xs text-muted-foreground mb-1">Recent</p>
+                <div className="grid gap-1">
+                  {autocomplete.recentSearches.map(recent => (
+                    <Button
+                      key={recent.id}
+                      variant="ghost"
+                      size="sm"
+                      className="justify-start font-normal"
+                      onClick={() => {
+                        onFilterChange(filter.id, recent.id);
+                        autocomplete.addToRecent(recent);
+                      }}
+                    >
+                      <Clock className="mr-2 h-3 w-3 text-muted-foreground" />
+                      {recent.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
+
+          {/* Options list */}
+          <div className="grid gap-1 max-h-64 overflow-y-auto">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map(option => (
+                <Button
+                  key={option.id}
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start font-normal"
+                  onClick={() => {
+                    onFilterChange(filter.id, option.id);
+                    autocomplete.addToRecent({ id: option.id, label: option.label });
+                  }}
+                >
+                  {option.label}
+                </Button>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground px-2 py-2">No results found</p>
+            )}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export interface FilterOption {
   id: string;
@@ -192,15 +288,6 @@ export function EnhancedFilterBar({
     return badges;
   };
 
-  const getFilteredOptions = (filter: FilterOption) => {
-    const searchTerm = searchTerms[filter.id] || "";
-    if (!searchTerm) return filter.options;
-
-    return filter.options.filter(option =>
-      option.label.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
-
   const activeBadges = getActiveBadges();
   const hasActiveFilters = activeBadges.length > 0;
 
@@ -250,87 +337,15 @@ export function EnhancedFilterBar({
         )}
 
         {/* Filter options */}
-        {filters.map(filter => {
-          const filteredOptions = getFilteredOptions(filter);
-          const autocomplete = useSmartAutocomplete({
-            options: filter.options.map(opt => ({ id: opt.id, label: opt.label })),
-            storageKey: `autocomplete-${filter.id}`,
-          });
-
-          return (
-            <Popover key={filter.id}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9">
-                  {filter.name}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-2" align="start">
-                <div className="grid gap-2">
-                  <h4 className="font-medium text-sm px-2 py-1">{filter.name}</h4>
-                  
-                  {/* Search input */}
-                  <Input
-                    placeholder={`Search ${filter.name.toLowerCase()}...`}
-                    value={searchTerms[filter.id] || ""}
-                    onChange={(e) => setSearchTerms(prev => ({ ...prev, [filter.id]: e.target.value }))}
-                    className="h-8"
-                  />
-                  
-                  <Separator />
-                  
-                  {/* Recent searches */}
-                  {autocomplete.recentSearches.length > 0 && !searchTerms[filter.id] && (
-                    <>
-                      <div className="px-2">
-                        <p className="text-xs text-muted-foreground mb-1">Recent</p>
-                        <div className="grid gap-1">
-                          {autocomplete.recentSearches.map(recent => (
-                            <Button
-                              key={recent.id}
-                              variant="ghost"
-                              size="sm"
-                              className="justify-start font-normal"
-                              onClick={() => {
-                                handleFilterChange(filter.id, recent.id);
-                                autocomplete.addToRecent(recent);
-                              }}
-                            >
-                              <Clock className="mr-2 h-3 w-3 text-muted-foreground" />
-                              {recent.label}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                      <Separator />
-                    </>
-                  )}
-                  
-                  {/* Options list */}
-                  <div className="grid gap-1 max-h-64 overflow-y-auto">
-                    {filteredOptions.length > 0 ? (
-                      filteredOptions.map(option => (
-                        <Button
-                          key={option.id}
-                          variant="ghost"
-                          size="sm"
-                          className="justify-start font-normal"
-                          onClick={() => {
-                            handleFilterChange(filter.id, option.id);
-                            autocomplete.addToRecent({ id: option.id, label: option.label });
-                          }}
-                        >
-                          {option.label}
-                        </Button>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground px-2 py-2">No results found</p>
-                    )}
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          );
-        })}
+        {filters.map(filter => (
+          <FilterItem
+            key={filter.id}
+            filter={filter}
+            searchTerm={searchTerms[filter.id] || ""}
+            onSearchChange={(value) => setSearchTerms(prev => ({ ...prev, [filter.id]: value }))}
+            onFilterChange={handleFilterChange}
+          />
+        ))}
         
         {/* Action buttons */}
         {hasActiveFilters && (
