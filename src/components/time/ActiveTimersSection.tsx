@@ -288,33 +288,55 @@ export function ActiveTimersSection({
       // DB-backed timer - fetch events to calculate accurate elapsed
       try {
         const { supabase } = await import('@/integrations/supabase/client');
-        const { data: events } = await supabase
+        const { data: events, error: fetchError } = await supabase
           .from('time_entry_events')
           .select('event_type, event_timestamp')
           .eq('time_entry_id', timer.id)
           .in('event_type', ['paused', 'resumed', 'auto_paused'])
           .order('event_timestamp', { ascending: true });
 
+        if (fetchError) {
+          throw new Error(`Failed to fetch pause events: ${fetchError.message}`);
+        }
+
         let totalPausedMs = 0;
         let lastPauseTime: Date | null = null;
-        if (events) {
+        if (events && events.length > 0) {
+          console.log('📊 Processing', events.length, 'pause/resume events for timer', timer.id.slice(0, 8));
           for (const event of events) {
             const eventTime = new Date(event.event_timestamp);
             if (event.event_type === 'paused' || event.event_type === 'auto_paused') {
               lastPauseTime = eventTime;
             } else if (event.event_type === 'resumed' && lastPauseTime) {
-              totalPausedMs += eventTime.getTime() - lastPauseTime.getTime();
+              const pausedDuration = eventTime.getTime() - lastPauseTime.getTime();
+              totalPausedMs += pausedDuration;
+              console.log('⏸️ Pause duration:', pausedDuration, 'ms, cumulative:', totalPausedMs, 'ms');
               lastPauseTime = null;
             }
           }
+          // If currently paused, add the ongoing pause duration
           if (lastPauseTime) {
-            totalPausedMs += endTime.getTime() - lastPauseTime.getTime();
+            const ongoingPause = endTime.getTime() - lastPauseTime.getTime();
+            totalPausedMs += ongoingPause;
+            console.log('⏸️ Ongoing pause duration:', ongoingPause, 'ms, total paused:', totalPausedMs, 'ms');
           }
         }
-        return Math.max(0, endTime.getTime() - startTime.getTime() - totalPausedMs);
+
+        const elapsedMs = Math.max(0, endTime.getTime() - startTime.getTime() - totalPausedMs);
+        console.log('✅ Calculated active time:', elapsedMs, 'ms (total - paused:', totalPausedMs, 'ms)');
+        return elapsedMs;
       } catch (err) {
-        console.warn('Error fetching events, using raw elapsed:', err);
-        return endTime.getTime() - startTime.getTime();
+        console.error('❌ ERROR fetching pause events - THIS COULD CAUSE DURATION BUG:', err);
+        console.error('⚠️ FALLBACK: Using wall-clock time instead of accurate active time!');
+        // Use the timer's stored elapsed instead of wall-clock
+        if (timer.elapsed > 0) {
+          console.log('📌 Using stored elapsed from timer:', timer.elapsed, 'ms');
+          return timer.elapsed;
+        }
+        // Only use wall-clock as absolute last resort
+        const wallClockMs = endTime.getTime() - startTime.getTime();
+        console.warn('⚠️ Using wall-clock time as fallback:', wallClockMs, 'ms - ACCURACY WARNING');
+        return wallClockMs;
       }
     } else if (timer.isPaused) {
       return timer.elapsed;
