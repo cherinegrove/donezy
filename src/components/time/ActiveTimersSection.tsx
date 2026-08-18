@@ -567,12 +567,27 @@ export function ActiveTimersSection({
 
   // Add backend timer if exists (current user's active timer)
   if (activeTimer) {
+    // Look up task from context to ensure we have the correct data
+    const taskId = activeTimer.timeEntry.taskId || '';
+    const taskFromContext = taskId ? tasks.find(t => t.id === taskId) : null;
+    const taskTitle = taskFromContext?.title || activeTimer.task?.title || 'Unknown Task';
+
+    // Look up project from context
+    const projectId = activeTimer.project?.id || taskFromContext?.projectId;
+    const projectFromContext = projectId ? projects.find(p => p.id === projectId) : null;
+    const projectName = projectFromContext?.name || activeTimer.project?.name;
+
+    // Look up client from context
+    const clientId = activeTimer.client?.id || projectFromContext?.clientId;
+    const clientFromContext = clientId ? clients.find(c => c.id === clientId) : null;
+    const clientName = clientFromContext?.name || activeTimer.client?.name;
+
     myTimers.push({
       id: activeTimer.timeEntry.id,
-      taskId: activeTimer.timeEntry.taskId || '',
-      taskTitle: activeTimer.task?.title || 'Unknown Task',
-      projectName: activeTimer.project?.name,
-      clientName: activeTimer.client?.name,
+      taskId: taskId,
+      taskTitle: taskTitle,
+      projectName: projectName,
+      clientName: clientName,
       notes: activeTimer.timeEntry.notes || '',
       description: activeTimer.timeEntry.description || '',
       startTime: new Date(activeTimer.timeEntry.startTime),
@@ -584,8 +599,8 @@ export function ActiveTimersSection({
       isLocalOnly: false,
       userName: currentUser?.name,
       isOtherUser: false,
-      projectId: activeTimer.project?.id,
-      clientId: activeTimer.client?.id,
+      projectId: projectId,
+      clientId: clientId,
     });
   }
 
