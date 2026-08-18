@@ -20,6 +20,15 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useSmartAutocomplete } from "@/hooks/useSmartAutocomplete";
 
+export interface FilterOption {
+  id: string;
+  name: string;
+  options: {
+    id: string;
+    label: string;
+  }[];
+}
+
 // Separate component to properly use hooks for each filter
 interface FilterItemProps {
   filter: FilterOption;
@@ -114,15 +123,6 @@ function FilterItem({ filter, searchTerm, onSearchChange, onFilterChange }: Filt
       </PopoverContent>
     </Popover>
   );
-}
-
-export interface FilterOption {
-  id: string;
-  name: string;
-  options: {
-    id: string;
-    label: string;
-  }[];
 }
 
 interface FilterPreset {
