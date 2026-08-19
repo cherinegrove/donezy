@@ -291,8 +291,9 @@ function TimeTab() {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
-          {overTime.isLoading || overTimeByUser.isLoading ? <Loading /> : overTimeData.length === 0 ? <Empty msg="No time logged in this period." /> :
-            <ChartWidget type="stacked-bar" data={stackedOverTime.length > 0 ? stackedOverTime : overTimeData} dataKey="hours" nameKey="name" />}
+          {overTimeByUser.isLoading ? <Loading /> : overTimeByUserData.length === 0 ? <Empty msg="No time logged in this period." /> :
+            stackedOverTime.length > 0 ? <ChartWidget type="stacked-bar" data={stackedOverTime} dataKey="hours" nameKey="name" /> :
+            <Empty msg="No user breakdown data available." />}
         </CardContent>
       </Card>
 
