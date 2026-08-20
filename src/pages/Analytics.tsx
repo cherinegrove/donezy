@@ -152,17 +152,46 @@ function TimeTab() {
     [overTimeByUserData]
   );
 
-  // Group by period and stack by user, then filter by selected users
+  // Create array of all days in the month for X-axis
+  const allDaysInMonth = useMemo(() => {
+    const days = [];
+    const current = new Date(from);
+    while (current <= to) {
+      const formatted = granularity === "day"
+        ? format(current, "d MMM")
+        : format(current, periodFmt);
+      days.push(formatted);
+      current.setDate(current.getDate() + 1);
+    }
+    return days;
+  }, [from, to, granularity, periodFmt]);
+
+  // Group by period and stack by user, including ALL days even with 0 hours
   const stackedOverTime = useMemo(() => {
-    const stacked = Array.from(new Map(
-      overTimeByUserData.map(item => [item.period, {}])
-    ).entries()).map(([period, _]) => {
-      const periodData = overTimeByUserData.filter(item => item.period === period);
-      return {
-        name: period,
-        ...Object.fromEntries(periodData.map(item => [item.user, item.hours]))
-      };
-    }).filter(item => Object.keys(item).length > 1); // Only keep periods that have user data
+    // Create a map of periods to user data
+    const periodMap = new Map<string, Record<string, number>>();
+
+    // Initialize all days with all users (default 0)
+    allDaysInMonth.forEach(day => {
+      const userEntry: Record<string, number> = {};
+      uniqueUsers.forEach(user => {
+        userEntry[user] = 0;
+      });
+      periodMap.set(day, userEntry);
+    });
+
+    // Fill in actual data
+    overTimeByUserData.forEach(item => {
+      if (periodMap.has(item.period)) {
+        periodMap.get(item.period)![item.user] = item.hours;
+      }
+    });
+
+    // Convert to stacked format
+    const stacked = Array.from(periodMap.entries()).map(([period, users]) => ({
+      name: period,
+      ...users
+    }));
 
     // Filter by selected users if any are selected
     if (selectedUsers.length === 0) return stacked;
@@ -172,8 +201,8 @@ function TimeTab() {
         if (item[user] !== undefined) filtered[user] = item[user];
       });
       return filtered;
-    }).filter(item => Object.keys(item).length > 1); // Remove periods with no selected users
-  }, [overTimeByUserData, selectedUsers]);
+    });
+  }, [overTimeByUserData, allDaysInMonth, uniqueUsers, selectedUsers]);
 
   const toBar = (rows?: HoursRow[]) => (rows ?? []).map((r) => ({ name: r.dim_label, hours: Number(r.hours) })).slice(0, 12);
 
