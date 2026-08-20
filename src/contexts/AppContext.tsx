@@ -2536,7 +2536,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           notes: timeEntry.description ?? timeEntry.notes,
           status: timeEntry.status || 'pending',
           rejection_reason: timeEntry.rejectionReason,
-          timer_status: timerStatus
+          timer_status: timerStatus,
+          organization_id: currentUser?.organizationId
         })
         .select()
         .single();
