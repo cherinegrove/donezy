@@ -111,6 +111,7 @@ function TimeTab() {
   const [preset, setPreset] = useState<TimeFramePreset>("month");
   const [custom, setCustom] = useState<DateRange | undefined>();
   const [granularity, setGranularity] = useState<"day" | "week" | "month" | "year">("day");
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]); // Filter by selected users
   const { from, to } = rangeFor(preset, custom);
   const base = { p_start: from.toISOString(), p_end: to.toISOString(), p_tz: TZ };
   const { timeEntries, tasks, taskStatuses, projects, users, clients } = useAppContext();
@@ -145,16 +146,34 @@ function TimeTab() {
     user: r.dim_label,
   }));
 
-  // Group by period and stack by user
-  const stackedOverTime = Array.from(new Map(
-    overTimeByUserData.map(item => [item.period, {}])
-  ).entries()).map(([period, _]) => {
-    const periodData = overTimeByUserData.filter(item => item.period === period);
-    return {
-      name: period,
-      ...Object.fromEntries(periodData.map(item => [item.user, item.hours]))
-    };
-  }).filter(item => Object.keys(item).length > 1); // Only keep periods that have user data
+  // Get unique users for filtering
+  const uniqueUsers = useMemo(() =>
+    Array.from(new Set(overTimeByUserData.map(item => item.user))).sort(),
+    [overTimeByUserData]
+  );
+
+  // Group by period and stack by user, then filter by selected users
+  const stackedOverTime = useMemo(() => {
+    const stacked = Array.from(new Map(
+      overTimeByUserData.map(item => [item.period, {}])
+    ).entries()).map(([period, _]) => {
+      const periodData = overTimeByUserData.filter(item => item.period === period);
+      return {
+        name: period,
+        ...Object.fromEntries(periodData.map(item => [item.user, item.hours]))
+      };
+    }).filter(item => Object.keys(item).length > 1); // Only keep periods that have user data
+
+    // Filter by selected users if any are selected
+    if (selectedUsers.length === 0) return stacked;
+    return stacked.map(item => {
+      const filtered: any = { name: item.name };
+      selectedUsers.forEach(user => {
+        if (item[user] !== undefined) filtered[user] = item[user];
+      });
+      return filtered;
+    }).filter(item => Object.keys(item).length > 1); // Remove periods with no selected users
+  }, [overTimeByUserData, selectedUsers]);
 
   const toBar = (rows?: HoursRow[]) => (rows ?? []).map((r) => ({ name: r.dim_label, hours: Number(r.hours) })).slice(0, 12);
 
@@ -285,10 +304,35 @@ function TimeTab() {
 
       <Card className="border-l-4 border-l-blue-500 shadow-sm">
         <CardHeader className="pb-3 bg-blue-50/50 dark:bg-blue-950/20">
-          <CardTitle className="text-base flex items-center gap-2 text-foreground">
-            <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            Hours Over Time (by User)
-          </CardTitle>
+          <div className="flex flex-col gap-3">
+            <CardTitle className="text-base flex items-center gap-2 text-foreground">
+              <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              Hours Over Time (by User)
+            </CardTitle>
+            {uniqueUsers.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {uniqueUsers.map(user => (
+                  <button
+                    key={user}
+                    onClick={() => {
+                      setSelectedUsers(prev =>
+                        prev.includes(user)
+                          ? prev.filter(u => u !== user)
+                          : [...prev, user]
+                      );
+                    }}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                      selectedUsers.includes(user)
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    {user}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="pt-6">
           {overTimeByUser.isLoading ? <Loading /> : overTimeByUserData.length === 0 ? <Empty msg="No time logged in this period." /> :
