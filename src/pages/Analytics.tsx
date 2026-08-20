@@ -118,10 +118,6 @@ function TimeTab() {
   // Fetch hours data grouped by different dimensions
   const overTime = useRpc<HoursRow>("report_hours", { ...base, p_granularity: granularity, p_group_by: "none" });
   const overTimeByUser = useRpc<HoursRow>("report_hours", { ...base, p_granularity: granularity, p_group_by: "user" });
-
-  // Debug RPC calls
-  console.log("RPC Query Params:", { ...base, p_granularity: granularity, p_group_by: "user" });
-  console.log("overTimeByUser query state:", { isLoading: overTimeByUser.isLoading, isError: overTimeByUser.isError, error: overTimeByUser.error });
   const byUser = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "user" });
   const byProject = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "project" });
   const byClient = useRpc<HoursRow>("report_hours", { ...base, p_granularity: "none", p_group_by: "client" });
@@ -148,16 +144,6 @@ function TimeTab() {
     hours: Number(r.hours),
     user: r.dim_label,
   }));
-
-  // Debug logging
-  console.log("═══ Hours Over Time (by User) Debug ═══");
-  console.log("overTimeByUser.isLoading:", overTimeByUser.isLoading);
-  console.log("overTimeByUser.isError:", overTimeByUser.isError);
-  console.log("overTimeByUser.error:", overTimeByUser.error);
-  console.log("overTimeByUser.data:", overTimeByUser.data);
-  console.log("overTimeByUserData.length:", overTimeByUserData.length, "data:", overTimeByUserData);
-  console.log("stackedOverTime.length:", stackedOverTime.length, "data:", stackedOverTime);
-  console.log("Rendering chart:", stackedOverTime.length > 0 ? "YES - showing chart" : "NO - " + (overTimeByUserData.length === 0 ? "no data" : "stacked empty"));
 
   // Group by period and stack by user
   const stackedOverTime = Array.from(new Map(
