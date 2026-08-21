@@ -67,7 +67,7 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [] 
     }
   };
 
-  const shouldShake = task.status !== 'done' && (isUrgent || (task.dueDate && isDueToday(task.dueDate)));
+  const shouldShowFlag = task.status !== 'done' && (isUrgent || (task.dueDate && isOverdue(task.dueDate)));
 
   const isCollaboratorTask = task.collaboratorIds?.includes(currentUser?.id) && task.assigneeId !== currentUser?.id;
 
@@ -94,8 +94,8 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [] 
       )}
       onClick={handleCardClick}
     >
-      {/* Red flag for urgent/due today tasks */}
-      {shouldShake && (
+      {/* Red flag for urgent or overdue tasks */}
+      {shouldShowFlag && (
         <div className="absolute top-8 right-2 text-2xl animate-wave">🚩</div>
       )}
       <div>

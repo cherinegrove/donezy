@@ -116,6 +116,9 @@ export const KanbanTaskCardWithComment = memo(
     return (
       prevProps.task.id === nextProps.task.id &&
       prevProps.task.updated_at === nextProps.task.updated_at &&
+      prevProps.task.dueDate === nextProps.task.dueDate &&
+      prevProps.task.status === nextProps.task.status &&
+      prevProps.task.priority === nextProps.task.priority &&
       prevProps.task.comments?.length === nextProps.task.comments?.length &&
       prevProps.displayOptions === nextProps.displayOptions &&
       prevProps.isSelected === nextProps.isSelected &&
