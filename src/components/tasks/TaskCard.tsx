@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format, parseISO, isBefore, isToday } from "date-fns";
@@ -171,4 +171,17 @@ function TaskCardInner({ task, onClick, showProject = true, displayOptions = [] 
   );
 }
 
-export const TaskCard = memo(TaskCardInner);
+export const TaskCard = memo(TaskCardInner, (prev, next) => {
+  // Only re-render if task content or display options actually change
+  return (
+    prev.task.id === next.task.id &&
+    prev.task.title === next.task.title &&
+    prev.task.priority === next.task.priority &&
+    prev.task.status === next.task.status &&
+    prev.task.dueDate === next.task.dueDate &&
+    prev.task.projectId === next.task.projectId &&
+    prev.task.assigneeId === next.task.assigneeId &&
+    (prev.displayOptions || []).join(',') === (next.displayOptions || []).join(',') &&
+    prev.showProject === next.showProject
+  );
+});

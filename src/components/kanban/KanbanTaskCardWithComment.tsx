@@ -111,19 +111,20 @@ function KanbanTaskCardWithCommentInner({
 export const KanbanTaskCardWithComment = memo(
   KanbanTaskCardWithCommentInner,
   (prevProps, nextProps) => {
-    // Custom comparison: re-render only if content-bearing props change
-    // (onClick changes frequently due to closure, but doesn't need to trigger re-render)
+    // Aggressive memoization: only re-render if task data or display settings actually change
+    // Ignore function prop changes (onClick, onSelectionChange) as they don't affect display
     return (
       prevProps.task.id === nextProps.task.id &&
       prevProps.task.updated_at === nextProps.task.updated_at &&
       prevProps.task.dueDate === nextProps.task.dueDate &&
       prevProps.task.status === nextProps.task.status &&
       prevProps.task.priority === nextProps.task.priority &&
+      prevProps.task.title === nextProps.task.title &&
+      prevProps.task.description === nextProps.task.description &&
       prevProps.task.comments?.length === nextProps.task.comments?.length &&
-      prevProps.displayOptions === nextProps.displayOptions &&
+      prevProps.displayOptions.join(',') === nextProps.displayOptions.join(',') &&
       prevProps.isSelected === nextProps.isSelected &&
-      prevProps.showSelection === nextProps.showSelection &&
-      prevProps.onSelectionChange === nextProps.onSelectionChange
+      prevProps.showSelection === nextProps.showSelection
     );
   }
 );
