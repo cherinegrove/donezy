@@ -13,11 +13,6 @@ export interface User {
   clientId?: string;
   phone?: string;
   employmentType?: 'full-time' | 'part-time' | 'contract';
-  billingType?: 'hourly' | 'monthly';
-  hourlyRate?: number;
-  monthlyRate?: number;
-  billingRate?: number;
-  currency?: string;
   clientRole?: string;
   permissions?: {
     canViewClients?: boolean;
@@ -94,10 +89,6 @@ export interface Client {
   website?: string;
   notes?: string;
   createdAt: string;
-  billableRate?: number;
-  currency?: string;
-  serviceType?: 'retainer' | 'payasyougo' | 'bank-hours';
-  allocatedHours?: number;
   status?: 'active' | 'inactive';
   memberIds?: string[];
   hubspot_company_id?: string;
@@ -109,10 +100,8 @@ export interface Project {
   description: string;
   clientId: string;
   status: string;
-  serviceType: 'project' | 'bank-hours' | 'pay-as-you-go';
   startDate?: string;
   dueDate?: string;
-  allocatedHours?: number;
   usedHours: number;
   teamIds?: string[];
   watcherIds?: string[];
@@ -209,7 +198,7 @@ export interface Task {
   userMentioned?: boolean;
 }
 
-export type TimeEntryStatus = 'pending' | 'approved' | 'rejected' | 'approved-billable' | 'approved-non-billable' | 'declined';
+export type TimeEntryStatus = 'pending' | 'approved' | 'rejected' | 'declined';
 
 export interface TimeEntry {
   id: string;
@@ -222,7 +211,6 @@ export interface TimeEntry {
   endTime?: string;
   duration: number; // in minutes
   description?: string;
-  billable?: boolean;
   status?: TimeEntryStatus;
   notes?: string;
   manuallyAdded?: boolean;
@@ -324,20 +312,6 @@ export interface TaskLog {
   timestamp: string;
 }
 
-export interface ClientAgreement {
-  id: string;
-  clientId: string;
-  serviceType: 'retainer' | 'payasyougo' | 'bank-hours';
-  startDate: string;
-  endDate?: string;
-  allocatedHours?: number;
-  usedHours?: number;
-  rate: number;
-  currency: string;
-  description: string;
-  status: 'active' | 'completed' | 'cancelled';
-}
-
 export interface ClientFile {
   id: string;
   clientId: string;
@@ -365,7 +339,6 @@ export interface CustomField {
 
 export type NotificationTimeframe = 'same-day' | '1-day' | '3-days' | '1-week';
 export type AccessLevel = 'none' | 'view' | 'create' | 'edit' | 'delete';
-export type BillingType = 'hourly' | 'monthly';
 export type EmploymentType = 'full-time' | 'part-time' | 'contract';
 export type Role = 'admin' | 'manager' | 'developer' | 'client';
 export type ClientRole = 'primary' | 'secondary' | 'viewer';

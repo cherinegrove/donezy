@@ -14,13 +14,10 @@ export const ClientDashboard = ({ clientId }: ClientDashboardProps) => {
   const client = getClientById(clientId);
   const clientProjects = projects.filter(project => project.clientId === clientId);
   
-  // Calculate total hours and cost based on billable rate
+  // Calculate total hours tracked
   const totalHours = clientProjects.reduce((sum, project) => sum + project.usedHours, 0);
-  const billableRate = client?.billableRate || 0;
-  const currency = client?.currency || "USD";
-  const totalCost = totalHours * billableRate;
-  
-  // Get current month for billing period display
+
+  // Get current month
   const currentMonth = format(new Date(), "MMMM yyyy");
   
   return (
@@ -28,40 +25,28 @@ export const ClientDashboard = ({ clientId }: ClientDashboardProps) => {
       <div>
         <h1 className="text-3xl font-bold">Client Dashboard</h1>
         <p className="text-muted-foreground mt-1">
-          Track your projects and billing
+          Track your projects and hours
         </p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Current Period</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{currentMonth}</div>
-            <p className="text-muted-foreground text-sm">Billing period</p>
+            <p className="text-muted-foreground text-sm">Tracking period</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Hours Used</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Hours Tracked</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalHours.toFixed(1)}h</div>
-            <p className="text-muted-foreground text-sm">
-              {billableRate > 0 ? `at ${currency} ${billableRate}/hour` : ""}
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Estimated Cost</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{currency} {totalCost.toFixed(2)}</div>
-            <p className="text-muted-foreground text-sm">For this month</p>
+            <p className="text-muted-foreground text-sm">Across all projects</p>
           </CardContent>
         </Card>
       </div>

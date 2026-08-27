@@ -75,10 +75,7 @@ export function TimeEntryTable({ taskId, projectId, userId, showAllDetails = fal
   const getStatusColor = (status: TimeEntryStatus) => {
     switch (status) {
       case 'approved':
-      case 'approved-billable':
         return 'bg-green-100 text-green-800';
-      case 'approved-non-billable':
-        return 'bg-blue-100 text-blue-800';
       case 'rejected':
       case 'declined':
         return 'bg-red-100 text-red-800';

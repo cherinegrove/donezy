@@ -69,6 +69,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     { id: '5', label: 'Done', value: 'done', color: 'bg-green-500', order: 4 },
   ]);
   const [projectStatuses, setProjectStatuses] = useState<ProjectStatusDefinition[]>([]);
+  const [organizationUnitLabel, setOrganizationUnitLabel] = useState<string>('Client');
   const [customDashboards, setCustomDashboards] = useState<CustomDashboard[]>([
     {
       id: 'projects-dashboard',
@@ -5121,6 +5122,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     projectStatuses,
     customDashboards,
     savedReports,
+    organizationUnitLabel,
+    setOrganizationUnitLabel,
     login,
     logout,
     addUser,

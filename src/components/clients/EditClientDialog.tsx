@@ -39,11 +39,6 @@ const clientSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   website: z.string().optional(),
-  billableRate: z.preprocess(
-    (val) => (val === "" || val === undefined) ? undefined : Number(val),
-    z.number().min(0).optional()
-  ),
-  currency: z.string().optional(),
   status: z.enum(["active", "inactive"]),
 });
 
@@ -56,7 +51,7 @@ interface EditClientDialogProps {
 }
 
 export function EditClientDialog({ client, open, onClose }: EditClientDialogProps) {
-  const { updateClient } = useAppContext();
+  const { updateClient, organizationUnitLabel } = useAppContext();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -69,8 +64,6 @@ export function EditClientDialog({ client, open, onClose }: EditClientDialogProp
       phone: client.phone || "",
       address: client.address || "",
       website: client.website || "",
-      billableRate: client.billableRate || undefined,
-      currency: client.currency || "USD",
       status: client.status || "active",
     },
   });
@@ -84,8 +77,6 @@ export function EditClientDialog({ client, open, onClose }: EditClientDialogProp
         phone: client.phone || "",
         address: client.address || "",
         website: client.website || "",
-        billableRate: client.billableRate || undefined,
-        currency: client.currency || "USD",
         status: client.status || "active",
       });
     }
@@ -103,8 +94,6 @@ export function EditClientDialog({ client, open, onClose }: EditClientDialogProp
         phone: data.phone || "",
         address: data.address || "",
         website: data.website || "",
-        billableRate: data.billableRate || 0,
-        currency: data.currency || "USD",
         status: data.status,
       });
 
@@ -132,9 +121,9 @@ export function EditClientDialog({ client, open, onClose }: EditClientDialogProp
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
-          <DialogTitle>Edit Client</DialogTitle>
+          <DialogTitle>Edit {organizationUnitLabel}</DialogTitle>
           <DialogDescription>
-            Update client information and settings.
+            Update {organizationUnitLabel.toLowerCase()} information and settings.
           </DialogDescription>
         </DialogHeader>
         
@@ -145,7 +134,7 @@ export function EditClientDialog({ client, open, onClose }: EditClientDialogProp
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Client Name</FormLabel>
+                  <FormLabel>{organizationUnitLabel} Name</FormLabel>
                   <FormControl>
                     <Input placeholder="Acme Corp" {...field} />
                   </FormControl>
@@ -225,49 +214,6 @@ export function EditClientDialog({ client, open, onClose }: EditClientDialogProp
                 </FormItem>
               )}
             />
-            
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="billableRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Billable Rate</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="100" 
-                        {...field}
-                        onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="currency"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Currency</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a currency" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="EUR">EUR</SelectItem>
-                        <SelectItem value="GBP">GBP</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
             
             <FormField
               control={form.control}

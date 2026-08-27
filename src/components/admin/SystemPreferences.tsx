@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Globe, DollarSign, Plus, Trash2 } from "lucide-react";
+import { Settings, Globe, Building2, DollarSign, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAppContext } from "@/contexts/AppContext";
@@ -30,10 +30,20 @@ const DEFAULT_CURRENCIES = [
   { code: "CAD", name: "Canadian Dollar", symbol: "C$" }
 ];
 
+const ORGANIZATION_UNIT_OPTIONS = [
+  { value: "Client", label: "Client" },
+  { value: "Team", label: "Team" },
+  { value: "Department", label: "Department" },
+  { value: "Division", label: "Division" },
+  { value: "Organization", label: "Organization" },
+  { value: "Group", label: "Group" },
+];
+
 export function SystemPreferences() {
   const { toast } = useToast();
-  const { currentUser } = useAppContext();
+  const { currentUser, setOrganizationUnitLabel } = useAppContext();
   const [selectedTimezone, setSelectedTimezone] = useState("UTC");
+  const [organizationUnitLabel, setOrgUnitLabel] = useState("Client");
   const [currencies, setCurrencies] = useState(DEFAULT_CURRENCIES);
   const [newCurrency, setNewCurrency] = useState({ code: "", name: "", symbol: "" });
   const [isSaving, setIsSaving] = useState(false);
@@ -55,6 +65,7 @@ export function SystemPreferences() {
       }
       const settings = (data?.settings as any) || {};
       if (settings.defaultTimezone) setSelectedTimezone(settings.defaultTimezone);
+      if (settings.organizationUnitLabel) setOrgUnitLabel(settings.organizationUnitLabel);
       if (Array.isArray(settings.currencies) && settings.currencies.length > 0) {
         setCurrencies(settings.currencies);
       }
@@ -94,8 +105,12 @@ export function SystemPreferences() {
       const merged = {
         ...((existing?.settings as any) || {}),
         defaultTimezone: selectedTimezone,
+        organizationUnitLabel,
         currencies,
       };
+
+      // Update the context so UI reflects the change immediately
+      setOrganizationUnitLabel(organizationUnitLabel);
 
       const { error } = await supabase
         .from("organizations")
@@ -127,7 +142,7 @@ export function SystemPreferences() {
           <Settings className="h-5 w-5 text-primary" />
           Account Settings
         </CardTitle>
-        <CardDescription>Default timezone and currencies for your organization</CardDescription>
+        <CardDescription>Customize your workspace settings and organization</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Timezone Selection */}
@@ -144,6 +159,29 @@ export function SystemPreferences() {
               {TIMEZONES.map((tz) => (
                 <SelectItem key={tz.value} value={tz.value}>
                   {tz.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Organization Unit Label */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-primary" />
+            <Label className="font-medium">Organization Unit Label</Label>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            How to refer to your top-level grouping in the interface
+          </p>
+          <Select value={organizationUnitLabel} onValueChange={setOrgUnitLabel}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select label" />
+            </SelectTrigger>
+            <SelectContent>
+              {ORGANIZATION_UNIT_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
                 </SelectItem>
               ))}
             </SelectContent>

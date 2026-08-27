@@ -39,22 +39,7 @@ const clientSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   website: z.string().optional(),
-  billableRate: z.preprocess(
-    (val) => (val === "" || val === undefined) ? undefined : Number(val),
-    z.number().min(0).optional()
-  ),
-  currency: z.string().optional(),
   status: z.enum(["active", "inactive"]).default("active"),
-  packageType: z.enum(["retainer", "paygo", "project"]).optional(),
-  retainerPeriod: z.enum(["monthly", "quarterly", "annually"]).optional(),
-  retainerHours: z.preprocess(
-    (val) => (val === "" || val === undefined) ? undefined : Number(val),
-    z.number().min(0).optional()
-  ),
-  paygoMonthlyLimit: z.preprocess(
-    (val) => (val === "" || val === undefined) ? undefined : Number(val),
-    z.number().min(0).optional()
-  ),
 });
 
 type ClientFormData = z.infer<typeof clientSchema>;
@@ -65,7 +50,7 @@ interface AddClientDialogProps {
 }
 
 export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
-  const { session, addClient } = useAppContext();
+  const { session, addClient, organizationUnitLabel } = useAppContext();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -78,13 +63,7 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
       phone: "",
       address: "",
       website: "",
-      billableRate: undefined,
-      currency: "USD",
       status: "active",
-      packageType: undefined,
-      retainerPeriod: undefined,
-      retainerHours: undefined,
-      paygoMonthlyLimit: undefined,
     },
   });
 
@@ -117,8 +96,6 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
         website: data.website || "",
         status: data.status,
         contactName: data.contactName || "",
-        billableRate: data.billableRate || 0,
-        currency: data.currency || "USD",
         createdAt: new Date().toISOString(),
       });
       console.log("✅ addClient completed successfully");
@@ -146,9 +123,9 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
-          <DialogTitle>Add New Client</DialogTitle>
+          <DialogTitle>Add New {organizationUnitLabel}</DialogTitle>
           <DialogDescription>
-            Create a new client profile with contact and billing information.
+            Create a new {organizationUnitLabel.toLowerCase()} profile with contact information.
           </DialogDescription>
         </DialogHeader>
         
@@ -159,7 +136,7 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Client Name *</FormLabel>
+                  <FormLabel>{organizationUnitLabel} Name *</FormLabel>
                   <FormControl>
                     <Input placeholder="Acme Corp" {...field} />
                   </FormControl>
@@ -239,148 +216,6 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
                 </FormItem>
               )}
             />
-            
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="billableRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Billable Rate (per hour)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="100" 
-                        step="0.01"
-                        min="0"
-                        {...field}
-                        onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="currency"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Currency</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select currency" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="EUR">EUR</SelectItem>
-                        <SelectItem value="GBP">GBP</SelectItem>
-                        <SelectItem value="AUD">AUD</SelectItem>
-                        <SelectItem value="CAD">CAD</SelectItem>
-                        <SelectItem value="ZAR">ZAR</SelectItem>
-                        <SelectItem value="JPY">JPY</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="packageType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Package Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select package type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="retainer">Retainer</SelectItem>
-                      <SelectItem value="paygo">PayGo</SelectItem>
-                      <SelectItem value="project">Project</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {form.watch("packageType") === "retainer" && (
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="retainerPeriod"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Retainer Period</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select period" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                          <SelectItem value="quarterly">Quarterly</SelectItem>
-                          <SelectItem value="annually">Annually</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="retainerHours"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Retainer Hours</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          placeholder="40" 
-                          step="1"
-                          min="0"
-                          {...field}
-                          onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-
-            {form.watch("packageType") === "paygo" && (
-              <FormField
-                control={form.control}
-                name="paygoMonthlyLimit"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Monthly Limit</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="100" 
-                        step="1"
-                        min="0"
-                        {...field}
-                        onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
             
             <FormField
               control={form.control}

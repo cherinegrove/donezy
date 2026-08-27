@@ -223,8 +223,7 @@ export function ClientTimeReport() {
   // Calculate totals by status
   const totals = useMemo(() => {
     let total = 0;
-    let approvedBillable = 0;
-    let approvedNonBillable = 0;
+    let approved = 0;
     let declined = 0;
 
     clientData.forEach(({ projects: projectsData }) => {
@@ -232,10 +231,8 @@ export function ClientTimeReport() {
         entries.forEach(entry => {
           total += entry.duration;
           const status = entry.status || 'pending';
-          if (status === 'approved-billable') {
-            approvedBillable += entry.duration;
-          } else if (status === 'approved-non-billable') {
-            approvedNonBillable += entry.duration;
+          if (status === 'approved') {
+            approved += entry.duration;
           } else if (status === 'declined') {
             declined += entry.duration;
           }
@@ -243,7 +240,7 @@ export function ClientTimeReport() {
       });
     });
 
-    return { total, approvedBillable, approvedNonBillable, declined };
+    return { total, approved, declined };
   }, [clientData]);
 
   const totalMinutes = totals.total;
@@ -461,21 +458,8 @@ export function ClientTimeReport() {
                 <CheckCircle className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Approved Billable</p>
-                <p className="text-2xl font-bold">{formatDuration(totals.approvedBillable)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <FileText className="h-5 w-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Approved Non-Billable</p>
-                <p className="text-2xl font-bold">{formatDuration(totals.approvedNonBillable)}</p>
+                <p className="text-sm text-muted-foreground">Approved</p>
+                <p className="text-2xl font-bold">{formatDuration(totals.approved)}</p>
               </div>
             </div>
           </CardContent>

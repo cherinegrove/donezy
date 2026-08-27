@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/contexts/AppContext";
 import { ProjectSelect } from "@/components/tasks/ProjectSelect";
@@ -52,7 +51,6 @@ const {
   const [endTime, setEndTime] = useState<string>("");
   const [duration, setDuration] = useState<number>(0);
   const [notes, setNotes] = useState<string>("");
-  const [billable, setBillable] = useState<boolean>(true); // Changed from useState<true>
   const [status, setStatus] = useState<TimeEntryStatus>("pending");
 
   // Initialize form with existing timeEntry data if editing
@@ -77,7 +75,6 @@ const {
       
       setDuration(timeEntry.duration);
       setNotes(timeEntry.notes || "");
-      setBillable(timeEntry.billable);
       setStatus(timeEntry.status || "pending");
     } else {
       // Set defaults for new entry
@@ -86,7 +83,6 @@ const {
       setStartTime(format(now, "HH:mm"));
       setEndDate(format(now, "yyyy-MM-dd"));
       setEndTime(format(now, "HH:mm"));
-      setBillable(true);
       setStatus("pending");
       
       // Clear other fields
@@ -213,7 +209,6 @@ const {
       duration,
       notes,
       status,
-      billable,
       manuallyAdded: isNewEntry || (timeEntry?.manuallyAdded ?? true),
       edited: isNewEntry ? false : true
     };
@@ -429,33 +424,22 @@ const {
             />
           </div>
           
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="billable">Billable</Label>
-              <Switch 
-                id="billable" 
-                checked={billable}
-                onCheckedChange={(checked) => setBillable(checked)} 
-              />
+          {isAdmin && (
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={status} onValueChange={(value) => setStatus(value as TimeEntryStatus)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="declined">Declined</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            
-            {isAdmin && (
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select value={status} onValueChange={(value) => setStatus(value as TimeEntryStatus)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved-billable">Approved (Billable)</SelectItem>
-                    <SelectItem value="approved-non-billable">Approved (Non-billable)</SelectItem>
-                    <SelectItem value="declined">Declined</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
+          )}
         </div>
         
         {!taskId && (

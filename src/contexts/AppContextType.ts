@@ -30,7 +30,9 @@ export interface AppContextType {
   projectStatuses: ProjectStatusDefinition[];
   customDashboards: CustomDashboard[];
   savedReports: SavedReport[];
-  
+  organizationUnitLabel: string;
+  setOrganizationUnitLabel: (label: string) => void;
+
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<boolean>;
   

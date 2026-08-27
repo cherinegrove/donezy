@@ -135,8 +135,6 @@ export const mockClients: Client[] = [
     email: 'john@acme.com',
     phone: '555-1234',
     createdAt: '2024-01-01T00:00:00Z',
-    billableRate: 150,
-    currency: 'USD',
     status: 'active'
   },
   {
@@ -146,8 +144,6 @@ export const mockClients: Client[] = [
     email: 'jane@globex.com',
     phone: '555-5678',
     createdAt: '2024-01-01T00:00:00Z',
-    billableRate: 175,
-    currency: 'USD',
     status: 'active'
   },
   {
@@ -157,8 +153,6 @@ export const mockClients: Client[] = [
     email: 'michael@initech.com',
     phone: '555-9012',
     createdAt: '2024-01-01T00:00:00Z',
-    billableRate: 125,
-    currency: 'USD',
     status: 'inactive'
   }
 ];
@@ -173,8 +167,6 @@ export const mockProjects: Project[] = [
     startDate: "2025-05-01",
     dueDate: "2025-06-30",
     status: "in-progress",
-    serviceType: "project",
-    allocatedHours: 120,
     usedHours: 45,
   },
   {
@@ -186,8 +178,6 @@ export const mockProjects: Project[] = [
     startDate: "2025-05-15",
     dueDate: "2025-08-15",
     status: "todo",
-    serviceType: "bank-hours",
-    allocatedHours: 200,
     usedHours: 0,
   },
   {
@@ -199,8 +189,6 @@ export const mockProjects: Project[] = [
     startDate: "2025-06-01",
     dueDate: "2025-07-31",
     status: "in-progress",
-    serviceType: "project",
-    allocatedHours: 150,
     usedHours: 60,
   },
   {
@@ -212,8 +200,6 @@ export const mockProjects: Project[] = [
     startDate: "2025-07-01",
     dueDate: "2025-08-31",
     status: "todo",
-    serviceType: "project",
-    allocatedHours: 200,
     usedHours: 0,
   }
 ];
@@ -257,7 +243,6 @@ export const mockTimeEntries: TimeEntry[] = [
     endTime: "2025-05-10T12:30:00Z",
     duration: 210,
     notes: "Initial wireframing",
-    billable: true,
     status: "pending"
   },
 ];

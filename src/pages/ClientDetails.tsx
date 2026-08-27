@@ -72,23 +72,7 @@ export default function ClientDetails() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Billing Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p>
-                <span className="font-semibold">Billable Rate:</span> {client?.billableRate}
-              </p>
-              <p>
-                <span className="font-semibold">Currency:</span> {client?.currency}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
+<Card>
           <CardHeader>
             <CardTitle>Team Members</CardTitle>
           </CardHeader>
