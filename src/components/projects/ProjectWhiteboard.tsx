@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,18 @@ interface ProjectWhiteboardProps {
   projectId: string;
 }
 
+// Lazy load Excalidraw to avoid import issues
+const Excalidraw = lazy(() =>
+  import("@excalidraw/excalidraw").then(m => ({
+    default: m.Excalidraw
+  }))
+);
+
 export function ProjectWhiteboard({ projectId }: ProjectWhiteboardProps) {
   const { currentUser } = useAppContext();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const excalidrawAPI = require("@excalidraw/excalidraw");
-  const Excalidraw = excalidrawAPI.Excalidraw;
 
   const [drawingData, setDrawingData] = useState<any>(null);
 
@@ -127,17 +132,20 @@ export function ProjectWhiteboard({ projectId }: ProjectWhiteboardProps) {
       </div>
 
       <div className="border rounded-lg overflow-hidden h-96 bg-background">
-        {typeof window !== "undefined" && Excalidraw ? (
+        <Suspense
+          fallback={
+            <div className="flex h-full items-center justify-center text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+              Loading whiteboard...
+            </div>
+          }
+        >
           <Excalidraw
             initialData={drawingData}
             onChange={handleChange}
             user={{ name: currentUser?.name || "User" }}
           />
-        ) : (
-          <div className="flex h-full items-center justify-center text-muted-foreground">
-            Loading whiteboard...
-          </div>
-        )}
+        </Suspense>
       </div>
 
       <p className="text-xs text-muted-foreground">
