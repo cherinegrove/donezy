@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Calendar, Edit, Clock, AlertTriangle, User, Users, CheckSquare, FileText, Files, Bell, Mail, GanttChart, X, Link2, Save } from "lucide-react";
+import { Calendar, Edit, Clock, AlertTriangle, User, Users, CheckSquare, FileText, Files, Bell, Mail, GanttChart, X, Link2, Save, Lightbulb } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format, differenceInDays, parseISO, isValid, isBefore, isAfter, startOfDay, endOfDay } from "date-fns";
@@ -18,6 +18,7 @@ import { ConvertToTemplateDialog } from "@/components/projects/ConvertToTemplate
 import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
 import { ProjectNotesSimple } from "@/components/projects/ProjectNotesSimple";
 import { ProjectFilesAdvanced } from "@/components/projects/ProjectFilesAdvanced";
+import { ProjectWhiteboard } from "@/components/projects/ProjectWhiteboard";
 import { BulkEditTasksDialog } from "@/components/tasks/BulkEditTasksDialog";
 import { GoogleChatSettings } from "@/components/projects/GoogleChatSettings";
 import { WeeklyRoundupDialog } from "@/components/projects/WeeklyRoundupDialog";
@@ -502,8 +503,16 @@ export default function ProjectDetails() {
               {projectTasks.length}
             </Badge>
           </TabsTrigger>
-          
-          <TabsTrigger 
+
+          <TabsTrigger
+            value="whiteboard"
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md hover:bg-background/60 gap-2 group"
+          >
+            <Lightbulb className="h-4 w-4 transition-transform group-data-[state=active]:scale-110" />
+            <span>Whiteboard</span>
+          </TabsTrigger>
+
+          <TabsTrigger
             value="notes"
             className="inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md hover:bg-background/60 gap-2 group"
           >
@@ -601,7 +610,11 @@ export default function ProjectDetails() {
             onBulkEdit={handleBulkEdit}
           />
         </TabsContent>
-        
+
+        <TabsContent value="whiteboard" className="mt-6 animate-fade-in">
+          <ProjectWhiteboard projectId={projectId!} />
+        </TabsContent>
+
         <TabsContent value="notes" className="mt-6 animate-fade-in">
           <ProjectNotesSimple projectId={projectId!} />
         </TabsContent>

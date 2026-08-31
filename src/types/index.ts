@@ -366,6 +366,18 @@ export interface AccountLimits {
   can_add_guest: boolean;
 }
 
+export interface ProjectWhiteboard {
+  id: string;
+  project_id: string;
+  drawing_data: {
+    elements?: any[];
+    appState?: any;
+  };
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Utility functions for permission checking
 export const hasPermission = (userRole: CustomRole | undefined, feature: string, requiredLevel: AccessLevel): boolean => {
   if (!userRole) return false;
