@@ -51,19 +51,20 @@ export function ProjectWhiteboard({ projectId }: ProjectWhiteboardProps) {
           const img = new Image();
           img.onload = () => {
             ctx.drawImage(img, 0, 0);
-            saveToHistory();
+            setHistory([ctx.getImageData(0, 0, canvas.width, canvas.height)]);
+            setIsLoading(false);
           };
           img.onerror = () => {
             ctx.fillStyle = "white";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            saveToHistory();
+            setHistory([ctx.getImageData(0, 0, canvas.width, canvas.height)]);
             setIsLoading(false);
           };
           img.src = data.drawing_data.imageData;
         } else {
           ctx.fillStyle = "white";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-          saveToHistory();
+          setHistory([ctx.getImageData(0, 0, canvas.width, canvas.height)]);
           setIsLoading(false);
         }
       } catch (err) {
