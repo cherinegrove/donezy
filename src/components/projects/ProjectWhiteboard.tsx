@@ -20,10 +20,16 @@ export function ProjectWhiteboard({ projectId }: ProjectWhiteboardProps) {
   // Initialize canvas
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      setIsLoading(false);
+      return;
+    }
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) {
+      setIsLoading(false);
+      return;
+    }
 
     // Set canvas size
     const rect = canvas.parentElement?.getBoundingClientRect();
@@ -47,19 +53,24 @@ export function ProjectWhiteboard({ projectId }: ProjectWhiteboardProps) {
             ctx.drawImage(img, 0, 0);
             saveToHistory();
           };
+          img.onerror = () => {
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            saveToHistory();
+            setIsLoading(false);
+          };
           img.src = data.drawing_data.imageData;
         } else {
-          // Clear canvas (white background)
           ctx.fillStyle = "white";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           saveToHistory();
+          setIsLoading(false);
         }
       } catch (err) {
         console.error("Error loading whiteboard:", err);
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         saveToHistory();
-      } finally {
         setIsLoading(false);
       }
     };
