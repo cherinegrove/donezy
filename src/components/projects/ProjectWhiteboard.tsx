@@ -38,11 +38,15 @@ export function ProjectWhiteboard({ projectId }: ProjectWhiteboardProps) {
       return;
     }
 
-    // Set canvas size
+    // Set canvas size with proper DPI scaling
     const rect = canvas.parentElement?.getBoundingClientRect();
     if (rect) {
-      canvas.width = rect.width;
-      canvas.height = rect.height;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      ctx.scale(dpr, dpr);
     }
 
     // Load existing drawing
@@ -407,15 +411,17 @@ export function ProjectWhiteboard({ projectId }: ProjectWhiteboardProps) {
       </div>
 
       <div className="border rounded-lg overflow-hidden bg-white">
-        <canvas
-          ref={canvasRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          className="w-full cursor-crosshair block"
-          style={{ height: "600px", display: "block" }}
-        />
+        <div style={{ height: "600px", width: "100%" }}>
+          <canvas
+            ref={canvasRef}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            className="w-full h-full cursor-crosshair block"
+            style={{ display: "block" }}
+          />
+        </div>
       </div>
 
       <p className="text-xs text-muted-foreground">
