@@ -38,13 +38,11 @@ export function ProjectWhiteboard({ projectId }: ProjectWhiteboardProps) {
       return;
     }
 
-    // Set canvas size with proper DPI scaling
+    // Set canvas size to match container
     const rect = canvas.parentElement?.getBoundingClientRect();
     if (rect) {
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.scale(dpr, dpr);
+      canvas.width = rect.width;
+      canvas.height = rect.height;
     }
 
     // Load existing drawing
