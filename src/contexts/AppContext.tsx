@@ -1856,7 +1856,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         title: task.title,
         description: task.description,
         project_id: task.projectId || null,
-        assignee_id: task.assigneeId || null,
+        assignee_id: task.assigneeId || session.user.id,
         status: task.status,
         priority: task.priority,
         due_date: task.dueDate || null,
