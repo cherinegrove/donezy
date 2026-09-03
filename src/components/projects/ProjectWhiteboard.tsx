@@ -38,15 +38,21 @@ export function ProjectWhiteboard({ projectId }: ProjectWhiteboardProps) {
       return;
     }
 
-    // Set canvas size to match container
-    const rect = canvas.parentElement?.getBoundingClientRect();
-    if (rect) {
-      canvas.width = rect.width;
-      canvas.height = rect.height;
-    }
+    // Set canvas size - wait for layout then get actual displayed size
+    const resizeCanvas = () => {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        canvas.width = Math.floor(rect.width);
+        canvas.height = Math.floor(rect.height);
+      }
+    };
 
-    // Load existing drawing
-    const loadDrawing = async () => {
+    // Resize on mount and after a brief delay to ensure layout is complete
+    resizeCanvas();
+    setTimeout(async () => {
+      resizeCanvas();
+
+      // Load existing drawing after canvas is properly sized
       try {
         const { data } = await supabase
           .from("project_whiteboards")
@@ -81,9 +87,7 @@ export function ProjectWhiteboard({ projectId }: ProjectWhiteboardProps) {
         setHistory([ctx.getImageData(0, 0, canvas.width, canvas.height)]);
         setIsLoading(false);
       }
-    };
-
-    loadDrawing();
+    }, 0);
   }, [projectId]);
 
   const saveToHistory = () => {
