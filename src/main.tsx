@@ -2,10 +2,10 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { initSentry } from './utils/sentry'
+// import { initSentry } from './utils/sentry'
 
-// Initialize Sentry for error tracking
-initSentry()
+// TODO: Initialize Sentry for error tracking once DSN is configured
+// initSentry()
 
 // Every deploy changes the content-hashed filenames of lazily-loaded page
 // chunks (e.g. TimeTracking-DGqwnigu.js). A browser tab left open since
