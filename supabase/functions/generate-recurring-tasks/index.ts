@@ -13,6 +13,7 @@ interface RecurringTask {
   project_id: string
   assignee_id: string | null
   priority: string
+  status: string
   collaborator_ids: string[]
   estimated_hours: number | null
   recurrence_pattern: string
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
             priority: recurringTask.priority,
             collaborator_ids: recurringTask.collaborator_ids,
             estimated_hours: recurringTask.estimated_hours,
-            status: 'backlog',
+            status: recurringTask.status || 'backlog',
             due_date: dueDate.toISOString(),
             auth_user_id: recurringTask.auth_user_id
           })

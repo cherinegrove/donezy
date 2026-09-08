@@ -52,6 +52,7 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
   const [estimatedHours, setEstimatedHours] = useState<number | undefined>();
   const [fileIds, setFileIds] = useState<string[]>([]);
 
+  const [status, setStatus] = useState("backlog");
   const [recurrencePattern, setRecurrencePattern] = useState("daily");
   const [recurrenceInterval, setRecurrenceInterval] = useState(1);
   const [selectedDaysOfWeek, setSelectedDaysOfWeek] = useState<number[]>([]);
@@ -71,6 +72,7 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
       setCollaboratorIds(taskData.collaborator_ids || []);
       setEstimatedHours(taskData.estimated_hours);
       setFileIds(taskData.file_ids || []);
+      setStatus(taskData.status || "backlog");
       setRecurrencePattern(taskData.recurrence_pattern || "daily");
       setRecurrenceInterval(taskData.recurrence_interval || 1);
       setSelectedDaysOfWeek(taskData.days_of_week || []);
@@ -88,6 +90,7 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
       setCollaboratorIds([]);
       setEstimatedHours(undefined);
       setFileIds([]);
+      setStatus("backlog");
       setRecurrencePattern("daily");
       setRecurrenceInterval(1);
       setSelectedDaysOfWeek([]);
@@ -128,6 +131,7 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
         priority,
         collaborator_ids: collaboratorIds,
         estimated_hours: estimatedHours || null,
+        status,
         recurrence_pattern: recurrencePattern,
         recurrence_interval: recurrenceInterval,
         days_of_week: (recurrencePattern === 'weekly' || recurrencePattern === 'daily') ? selectedDaysOfWeek : null,
@@ -226,6 +230,25 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
 
             <div className="flex items-end pb-2">
               <UrgentSelect value={priority} onChange={setPriority} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Initial Task Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="backlog">Backlog</SelectItem>
+                  <SelectItem value="todo">To Do</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="review">Review</SelectItem>
+                  <SelectItem value="awaiting-feedback">Awaiting Feedback</SelectItem>
+                  <SelectItem value="done">Done</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
