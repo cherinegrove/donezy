@@ -17,6 +17,7 @@ import {
   ChevronRight,
   X,
   Sparkles,
+  Users,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -36,8 +37,13 @@ function SidebarContent({ collapsed }: { collapsed?: boolean }) {
   const isAdmin = currentUser?.systemRoles?.includes('platform_admin') ||
                   currentUser?.systemRoles?.includes('support_admin');
 
+  const isManager = currentUser?.roleId && ['admin', 'manager'].some(role =>
+    currentUser.roleId?.toLowerCase().includes(role.toLowerCase())
+  );
+
   const items = [
     ...NAV_ITEMS,
+    ...(isAdmin || isManager ? [{ to: "/capacity", icon: Users, label: "Capacity Tracker" }] : []),
     ...(isAdmin ? [{ to: "/admin", icon: ShieldAlert, label: "Admin Dashboard" }] : []),
   ];
 

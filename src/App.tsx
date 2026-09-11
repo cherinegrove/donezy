@@ -42,6 +42,7 @@ const Analytics = lazy(() => import("./pages/Analytics"));
 const Activity = lazy(() => import("./pages/Activity"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AIAssistant = lazy(() => import("./pages/AIAssistant"));
+const CapacityTracker = lazy(() => import("./pages/CapacityTracker").then(m => ({ default: m.CapacityTracker })));
 
 // Admin Portal (multi-tenant)
 const AdminPortalLayout = lazy(() => import("./components/admin-portal/AdminPortalLayout").then(m => ({ default: m.AdminPortalLayout })));
@@ -322,6 +323,15 @@ const App = () => {
                     />
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/activity" element={<Activity />} />
+                    <Route
+                      path="/capacity"
+                      element={
+                        <ProtectedRoute
+                          element={<CapacityTracker />}
+                          allowedRoles={['admin', 'manager']}
+                        />
+                      }
+                    />
                   </Route>
                   
                   {/* Catch-all 404 route - must be last */}
