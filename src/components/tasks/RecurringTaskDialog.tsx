@@ -54,7 +54,7 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
   const [estimatedHours, setEstimatedHours] = useState<number | undefined>();
   const [fileIds, setFileIds] = useState<string[]>([]);
 
-  const [status, setStatus] = useState("todo");
+  const [status, setStatus] = useState("new");
   const [recurrencePattern, setRecurrencePattern] = useState("daily");
   const [recurrenceInterval, setRecurrenceInterval] = useState(1);
   const [selectedDaysOfWeek, setSelectedDaysOfWeek] = useState<number[]>([]);
@@ -74,7 +74,7 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
       setCollaboratorIds(taskData.collaborator_ids || []);
       setEstimatedHours(taskData.estimated_hours);
       setFileIds(taskData.file_ids || []);
-      setStatus(taskData.status || "todo");
+      setStatus(taskData.status || "new");
       setRecurrencePattern(taskData.recurrence_pattern || "daily");
       setRecurrenceInterval(taskData.recurrence_interval || 1);
       setSelectedDaysOfWeek(taskData.days_of_week || []);
@@ -92,7 +92,7 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
       setCollaboratorIds([]);
       setEstimatedHours(undefined);
       setFileIds([]);
-      setStatus("todo");
+      setStatus("new");
       setRecurrencePattern("daily");
       setRecurrenceInterval(1);
       setSelectedDaysOfWeek([]);

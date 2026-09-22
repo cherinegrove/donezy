@@ -100,8 +100,8 @@ function calculateDeadlineRisk(
         acknowledged: false,
       };
     }
-  } else if (daysUntilDue <= 7 && task.status === "todo") {
-    // Todo and due within 7 days
+  } else if (daysUntilDue <= 7 && task.status === "new") {
+    // New task due within 7 days
     score = 50;
     alert = {
       id: `alert-due-week-${task.id}`,

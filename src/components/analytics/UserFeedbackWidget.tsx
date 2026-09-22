@@ -69,7 +69,7 @@ export const UserFeedbackWidget = ({ data }: UserFeedbackWidgetProps) => {
         },
         tasksCompleted: userTasks.filter(t => t.status === 'done').length,
         tasksInProgress: userTasks.filter(t => t.status === 'in-progress').length,
-        tasksPending: userTasks.filter(t => t.status === 'todo').length,
+        tasksPending: userTasks.filter(t => t.status === 'new').length,
         totalTasks: userTasks.length,
         projectsInvolved: userProjects.length,
         totalHoursLogged: userTimeEntries.reduce((sum, e) => sum + (e.duration || 0), 0) / 60,

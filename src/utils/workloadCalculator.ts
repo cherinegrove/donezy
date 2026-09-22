@@ -186,7 +186,7 @@ export function calculateTeamWorkload(
   }
 
   const tasksWithoutAssignee = userWorkloads.reduce(
-    (sum, u) => sum + u.assignedTasks.filter((t) => t.status === "todo").length,
+    (sum, u) => sum + u.assignedTasks.filter((t) => t.status === "new").length,
     0
   );
   if (tasksWithoutAssignee > 3) {

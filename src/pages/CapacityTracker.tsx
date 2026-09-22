@@ -236,7 +236,7 @@ export function CapacityTracker() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {tasks.filter((t) => t.status === 'todo').length}
+              {tasks.filter((t) => t.status === 'new').length}
             </div>
           </CardContent>
         </Card>
