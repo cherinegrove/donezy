@@ -17,12 +17,9 @@ interface FilterState {
 
 export function CapacityTracker() {
   const navigate = useNavigate();
-  const { currentUser } = useAppContext();
+  const { currentUser, users, projects, clients } = useAppContext();
   const [tasks, setTasks] = useState<GanttTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [owners, setOwners] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
 
   const [filters, setFilters] = useState<FilterState>({
     owner: '',
@@ -32,43 +29,8 @@ export function CapacityTracker() {
   });
 
   useEffect(() => {
-    loadFilters();
-    loadTasks();
-  }, []);
-
-  useEffect(() => {
     loadTasks();
   }, [filters]);
-
-  const loadFilters = async () => {
-    try {
-      // Load owners (users in organization)
-      const { data: usersData } = await supabase
-        .from('users')
-        .select('id, name')
-        .order('name');
-
-      setOwners(usersData || []);
-
-      // Load projects
-      const { data: projectsData } = await supabase
-        .from('projects')
-        .select('id, name, clientId')
-        .order('name');
-
-      setProjects(projectsData || []);
-
-      // Load clients
-      const { data: clientsData } = await supabase
-        .from('clients')
-        .select('id, name')
-        .order('name');
-
-      setClients(clientsData || []);
-    } catch (error) {
-      console.error('Error loading filters:', error);
-    }
-  };
 
   const loadTasks = async () => {
     try {
@@ -84,8 +46,7 @@ export function CapacityTracker() {
           dueDate,
           startDate,
           createdAt,
-          projectId,
-          projects(name, clientId)
+          projectId
         `)
         .neq('status', 'done')
         .order('dueDate', { ascending: true });
@@ -96,7 +57,7 @@ export function CapacityTracker() {
       }
 
       if (filters.project) {
-        query = query.eq('project_id', filters.project);
+        query = query.eq('projectId', filters.project);
       }
 
       const { data: tasksData } = await query;
@@ -106,9 +67,10 @@ export function CapacityTracker() {
 
         // Filter by client if selected
         if (filters.client) {
-          filtered = filtered.filter(
-            (task: any) => task.projects?.clientId === filters.client
-          );
+          filtered = filtered.filter((task: any) => {
+            const project = projects.find(p => p.id === task.projectId);
+            return project?.clientId === filters.client;
+          });
         }
 
         // Filter by date range
@@ -121,15 +83,18 @@ export function CapacityTracker() {
           return dueDate <= maxDate;
         });
 
-        const ganttTasks: GanttTask[] = filtered.map((task: any) => ({
-          id: task.id,
-          title: task.title,
-          owner: task.assigneeId, // Can enhance to show name
-          startDate: task.startDate || task.createdAt,
-          dueDate: task.dueDate || new Date().toISOString(),
-          status: task.status,
-          onClick: () => navigate(`/tasks/${task.id}`),
-        }));
+        const ganttTasks: GanttTask[] = filtered.map((task: any) => {
+          const assignee = users.find(u => u.id === task.assigneeId);
+          return {
+            id: task.id,
+            title: task.title,
+            owner: assignee?.name || task.assigneeId || 'Unassigned',
+            startDate: task.startDate || task.createdAt,
+            dueDate: task.dueDate || new Date().toISOString(),
+            status: task.status,
+            onClick: () => navigate(`/tasks/${task.id}`),
+          };
+        });
 
         setTasks(ganttTasks);
       }
@@ -176,9 +141,9 @@ export function CapacityTracker() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All team members</SelectItem>
-                  {owners.map((owner) => (
-                    <SelectItem key={owner.id} value={owner.id}>
-                      {owner.name}
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

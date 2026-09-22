@@ -434,7 +434,7 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
   // Render list view with drag-and-drop
   if (viewMode === "list") {
     // Sort tasks by due date (soonest first)
-    const sortedTasks = [...tasks].sort(sortByDueDate);
+    const sortedTasks = [...tasks].sort(getSortFunction(true));
     
     return (
       <div className="w-full">

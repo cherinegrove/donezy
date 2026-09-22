@@ -304,9 +304,12 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
       setTimers(prev => prev.map(timer => {
         // For backend timers, use the shared elapsed time calculation
         if (!timer.isLocalOnly && activeTimeEntry && timer.id === activeTimeEntry.id) {
-          const elapsedTimeStr = getElapsedTime(activeTimeEntry);
-          const [hours, minutes, seconds] = elapsedTimeStr.split(':').map(Number);
-          timer.elapsed = (hours * 60 * 60 + minutes * 60 + seconds) * 1000;
+          // Only update elapsed time if timer is NOT paused
+          if (!isTimerPaused) {
+            const elapsedTimeStr = getElapsedTime(activeTimeEntry);
+            const [hours, minutes, seconds] = elapsedTimeStr.split(':').map(Number);
+            timer.elapsed = (hours * 60 * 60 + minutes * 60 + seconds) * 1000;
+          }
         } else if (timer.isActive && !timer.isPaused) {
           // For local-only timers, keep the existing calculation
           const now = Date.now();
@@ -319,7 +322,7 @@ export function TimerBox({ isOpen, onClose }: TimerBoxProps) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [activeTimeEntry, getElapsedTime]);
+  }, [activeTimeEntry, getElapsedTime, isTimerPaused]);
 
   const formatTime = (milliseconds: number): string => {
     const seconds = Math.floor((milliseconds / 1000) % 60);

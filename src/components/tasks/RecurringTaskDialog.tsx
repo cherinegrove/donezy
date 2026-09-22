@@ -18,6 +18,7 @@ import { CollaboratorSelect } from "./CollaboratorSelect";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { RecurringTask } from "@/types/recurring";
+import { useAppContext } from "@/contexts/AppContext";
 
 interface RecurringTaskDialogProps {
   open: boolean;
@@ -39,6 +40,7 @@ const DAYS_OF_WEEK = [
 
 export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, initialTask }: RecurringTaskDialogProps) {
   const { toast } = useToast();
+  const { taskStatuses } = useAppContext();
   const [loading, setLoading] = useState(false);
 
   const taskData = editTask || initialTask;
@@ -52,7 +54,7 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
   const [estimatedHours, setEstimatedHours] = useState<number | undefined>();
   const [fileIds, setFileIds] = useState<string[]>([]);
 
-  const [status, setStatus] = useState("backlog");
+  const [status, setStatus] = useState("todo");
   const [recurrencePattern, setRecurrencePattern] = useState("daily");
   const [recurrenceInterval, setRecurrenceInterval] = useState(1);
   const [selectedDaysOfWeek, setSelectedDaysOfWeek] = useState<number[]>([]);
@@ -72,7 +74,7 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
       setCollaboratorIds(taskData.collaborator_ids || []);
       setEstimatedHours(taskData.estimated_hours);
       setFileIds(taskData.file_ids || []);
-      setStatus(taskData.status || "backlog");
+      setStatus(taskData.status || "todo");
       setRecurrencePattern(taskData.recurrence_pattern || "daily");
       setRecurrenceInterval(taskData.recurrence_interval || 1);
       setSelectedDaysOfWeek(taskData.days_of_week || []);
@@ -90,7 +92,7 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
       setCollaboratorIds([]);
       setEstimatedHours(undefined);
       setFileIds([]);
-      setStatus("backlog");
+      setStatus("todo");
       setRecurrencePattern("daily");
       setRecurrenceInterval(1);
       setSelectedDaysOfWeek([]);
@@ -241,12 +243,11 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="backlog">Backlog</SelectItem>
-                  <SelectItem value="todo">To Do</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
-                  <SelectItem value="review">Review</SelectItem>
-                  <SelectItem value="awaiting-feedback">Awaiting Feedback</SelectItem>
-                  <SelectItem value="done">Done</SelectItem>
+                  {taskStatuses.map((status) => (
+                    <SelectItem key={status.value} value={status.value}>
+                      {status.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
