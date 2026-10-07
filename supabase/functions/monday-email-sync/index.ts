@@ -16,6 +16,8 @@ const HUBSPOT_API = 'https://api.hubapi.com/conversations/v3/conversations';
 const MONDAY_SENDER = 'notifications@monday.com';
 // Re-scan this far behind the last successful run; message-id dedup makes overlap free.
 const OVERLAP_MS = 2 * 60 * 60 * 1000;
+// Non-secret description of the configured token, included in auth errors.
+let tokenShape = 'unset';
 
 type Route = {
   id: string;
@@ -47,8 +49,11 @@ const normalizeKey = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
 // Pull the Monday item name out of the notification's first line / subject.
 function parseItemName(headline: string, subject: string): string | null {
   const patterns = [
-    /\bon an update on (.+?):?\s*$/i,          // "X mentioned you on an update on <item>:"
-    /\breplied to (?:an|your) update on (.+?):?\s*$/i,
+    // "X mentioned you on an update on <item>:", "X mentioned you in a reply on <item>:",
+    // "X wrote a reply on <item>:", "X replied to your update on <item>:"
+    /\b(?:on an update|in a reply|a reply|an update|your update) on (.+?):?\s*$/i,
+    // Subject form: '[New mention]  Re: "<item>" - ...'
+    /^\[New [^\]]+\]\s*Re:\s*"(.+?)"/i,
     /\bassigned (?:you|your team .+?) to (.+?)(?: on board .+)?:?\s*$/i,
     /\bon (?:the item|item) (.+?):?\s*$/i,
   ];
@@ -66,7 +71,7 @@ async function hubspot(path: string, token: string) {
   const res = await fetch(`${HUBSPOT_API}${path}`, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   });
-  if (!res.ok) throw new Error(`HubSpot ${res.status} on ${path}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`HubSpot ${res.status} on ${path} (token ${tokenShape}): ${await res.text()}`);
   return res.json();
 }
 
@@ -80,8 +85,11 @@ serve(async (req) => {
   const summary = { threads: 0, mondayMessages: 0, tasksCreated: 0, commentsAdded: 0, unrouted: 0, skipped: 0, errors: 0 };
 
   try {
-    const token = Deno.env.get('HUBSPOT_MONDAY_SYNC_TOKEN');
+    // Tolerate secrets pasted with quotes, whitespace or a "Bearer " prefix.
+    const token = (Deno.env.get('HUBSPOT_MONDAY_SYNC_TOKEN') ?? '')
+      .trim().replace(/^["']|["']$/g, '').replace(/^Bearer\s+/i, '').trim();
     if (!token) throw new Error('HUBSPOT_MONDAY_SYNC_TOKEN secret is not set');
+    tokenShape = `len=${token.length}, starts pat-=${token.startsWith('pat-')}`;
     const inboxId = Deno.env.get('MONDAY_SYNC_HUBSPOT_INBOX_ID') ?? '1851455790'; // Jordan SR Pro
 
     const { data: state } = await supabase.from('monday_sync_state').select('cursor_ts').eq('id', 1).single();
