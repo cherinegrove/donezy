@@ -3,7 +3,7 @@ import { RefObject, useLayoutEffect } from "react";
 export function useAutoGrowTextarea(
   ref: RefObject<HTMLTextAreaElement>,
   value: string,
-  maxLines = 10
+  maxLines = 30
 ) {
   useLayoutEffect(() => {
     const el = ref.current;
