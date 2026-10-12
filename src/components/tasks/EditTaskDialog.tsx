@@ -1,4 +1,5 @@
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { useAutoGrowTextarea } from "@/hooks/useAutoGrowTextarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -70,6 +71,8 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
 
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || "");
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  useAutoGrowTextarea(descriptionRef, description);
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState(task.priority);
   const [assigneeId, setAssigneeId] = useState(task.assigneeId);
@@ -288,11 +291,13 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                   />
                 </div>
                 <Textarea
+                  ref={descriptionRef}
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Enter task description or use the mic to dictate..."
-                  rows={5}
+                  rows={1}
+                  className="min-h-0 resize-none"
                 />
               </div>
               

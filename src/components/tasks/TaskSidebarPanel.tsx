@@ -1,4 +1,5 @@
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { useAutoGrowTextarea } from "@/hooks/useAutoGrowTextarea";
 import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
@@ -51,6 +52,8 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
 
   // Editable state
   const [description, setDescription] = useState(task.description || "");
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  useAutoGrowTextarea(descriptionRef, description);
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState(task.priority);
   const [assigneeId, setAssigneeId] = useState(task.assigneeId);
@@ -126,11 +129,12 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
         <div>
           <h2 className="text-2xl font-bold mb-2">{task.title}</h2>
           <Textarea
+            ref={descriptionRef}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Add description..."
-            rows={3}
-            className="text-sm"
+            rows={1}
+            className="text-sm min-h-0 resize-none"
           />
         </div>
 
