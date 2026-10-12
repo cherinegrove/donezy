@@ -49,8 +49,8 @@ async function enrichTaskWithContext(
 ): Promise<TaskWithContext> {
   // Fetch latest comment
   const { data: comments } = await supabase
-    .from("task_comments")
-    .select("id, content, user_id, created_at, users(name)")
+    .from("comments")
+    .select("id, content, auth_user_id, created_at")
     .eq("task_id", task.id)
     .order("created_at", { ascending: false })
     .limit(1);
@@ -58,9 +58,14 @@ async function enrichTaskWithContext(
   let latest_comment: { content: string; author: string; date: string } | undefined;
   if (comments?.length > 0) {
     const c = comments[0];
+    const { data: author } = await supabase
+      .from("users")
+      .select("name")
+      .eq("auth_user_id", c.auth_user_id)
+      .maybeSingle();
     latest_comment = {
       content: c.content,
-      author: c.users?.name || "Team member",
+      author: author?.name || "Team member",
       date: new Date(c.created_at).toLocaleDateString("en-GB", { month: "short", day: "numeric" }),
     };
   }
