@@ -134,7 +134,7 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Add description..."
             rows={1}
-            className="text-sm min-h-0 resize-none"
+            className="text-sm resize-none"
           />
         </div>
 

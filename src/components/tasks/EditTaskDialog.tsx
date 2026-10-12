@@ -297,7 +297,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Enter task description or use the mic to dictate..."
                   rows={1}
-                  className="min-h-0 resize-none"
+                  className="resize-none"
                 />
               </div>
               
