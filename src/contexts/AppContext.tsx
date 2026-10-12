@@ -421,15 +421,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if ((initialData?.length || 0) >= INITIAL_BATCH_SIZE) {
         setTimeout(async () => {
           try {
-            const { data: remainingData, error: remainingError } = await supabase
-              .from("tasks")
-              .select("*")
-              .order("created_at", { ascending: false })
-              .range(INITIAL_BATCH_SIZE, 10000);
+            const PAGE_SIZE = 1000;
+            let offset = INITIAL_BATCH_SIZE;
+            let hasMore = true;
+            while (hasMore) {
+              const { data: pageData, error: pageError } = await supabase
+                .from("tasks")
+                .select("*")
+                .order("created_at", { ascending: false })
+                .range(offset, offset + PAGE_SIZE - 1);
 
-            if (!remainingError && remainingData) {
-              const convertedRemainingTasks = convertTaskData(remainingData);
-              setTasks(prev => [...prev, ...convertedRemainingTasks]);
+              if (pageError) {
+                console.error('Error loading remaining tasks:', pageError);
+                break;
+              }
+              if (!pageData || pageData.length === 0) break;
+
+              const convertedPageTasks = convertTaskData(pageData);
+              setTasks(prev => [...prev, ...convertedPageTasks]);
+              offset += pageData.length;
+              hasMore = pageData.length === PAGE_SIZE;
             }
           } catch (err) {
             console.error('Error loading remaining tasks:', err);
