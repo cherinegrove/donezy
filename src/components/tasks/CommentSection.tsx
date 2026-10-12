@@ -16,6 +16,12 @@ interface CommentSectionProps {
   taskId: string;
 }
 
+const getPlainTextFromHtml = (html: string) => {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent || div.innerText || '';
+};
+
 export function CommentSection({ taskId }: CommentSectionProps) {
   const { tasks, users, currentUser, addComment, updateComment } = useAppContext();
   const [comment, setComment] = useState("");
@@ -184,13 +190,6 @@ export function CommentSection({ taskId }: CommentSectionProps) {
     } finally {
       setIsUploading(false);
     }
-  };
-
-  // Helper function to extract plain text from HTML
-  const getPlainTextFromHtml = (html: string) => {
-    const div = document.createElement('div');
-    div.innerHTML = html;
-    return div.textContent || div.innerText || '';
   };
 
   // Handle mention selection
