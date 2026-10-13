@@ -1895,6 +1895,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
       console.log('🟢 Task inserted successfully:', data);
 
+      if (currentUser) {
+        await supabase
+          .from('task_logs')
+          .insert({
+            task_id: data.id,
+            user_id: currentUser.id,
+            auth_user_id: data.auth_user_id,
+            action: 'created task',
+            timestamp: new Date().toISOString()
+          });
+      }
+
       if (data) {
         const newTask: Task = {
           id: data.id,
@@ -2010,7 +2022,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
       if (updates.assigneeId !== undefined && updates.assigneeId !== currentTask.assigneeId) {
         dbUpdates.assignee_id = updates.assigneeId;
-        const assignee = users.find(u => u.id === updates.assigneeId);
+        const assignee = users.find(u => u.auth_user_id === updates.assigneeId);
         changes.push(`assigned to ${assignee?.name || 'someone'}`);
       }
       if (updates.status !== undefined && updates.status !== currentTask.status) {
@@ -4331,6 +4343,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (error) {
         console.error('Supabase error adding comment:', error);
         throw error;
+      }
+
+      if (currentUser) {
+        await supabase
+          .from('task_logs')
+          .insert({
+            task_id: taskId,
+            user_id: currentUser.id,
+            auth_user_id: session.user.id,
+            action: 'added a comment',
+            details: { commentId: data.id },
+            timestamp: new Date().toISOString()
+          });
       }
 
       const newComment = {
