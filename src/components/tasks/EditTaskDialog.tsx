@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { useAutoGrowTextarea } from "@/hooks/useAutoGrowTextarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -71,8 +71,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
 
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || "");
-  const descriptionRef = useRef<HTMLTextAreaElement>(null);
-  useAutoGrowTextarea(descriptionRef, description);
+  const descriptionRef = useAutoGrowTextarea(description);
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState(task.priority);
   const [assigneeId, setAssigneeId] = useState(task.assigneeId);

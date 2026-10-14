@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { useAutoGrowTextarea } from "@/hooks/useAutoGrowTextarea";
 import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
@@ -52,8 +52,7 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
 
   // Editable state
   const [description, setDescription] = useState(task.description || "");
-  const descriptionRef = useRef<HTMLTextAreaElement>(null);
-  useAutoGrowTextarea(descriptionRef, description);
+  const descriptionRef = useAutoGrowTextarea(description);
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState(task.priority);
   const [assigneeId, setAssigneeId] = useState(task.assigneeId);
