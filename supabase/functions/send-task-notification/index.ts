@@ -192,9 +192,9 @@ serve(async (req) => {
       .replace(/{changes}/g, changesSummary)
       .replace(/{task_link}/g, taskUrl);
 
-    // Each task gets a stable threadKey so all its notifications live in one thread
-    // and replies can be routed back to the correct task in Donezy.
-    const threadKey = `task-${taskId}`;
+    // Unique key per message so each update posts as its own message; the mapping
+    // still routes replies back to the task.
+    const threadKey = `task-${taskId}-${crypto.randomUUID()}`;
 
     console.log('Sending message to Google Chat via google-chat-send:', message);
 
