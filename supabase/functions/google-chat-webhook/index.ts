@@ -27,6 +27,11 @@ const chatReply = (text: string, threadName?: string) => ({
   },
 });
 
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const mentionsName = (text: string, name: string) =>
+  new RegExp(`@${escapeRegex(name)}(?![\\w])`, 'i').test(text);
+
 async function isFromGoogleChat(event: any): Promise<boolean> {
   const token = event.authorizationEventObject?.systemIdToken;
   if (!token) return false;
@@ -75,7 +80,7 @@ serve(async (req) => {
       const command = text.split(' ')[0].toLowerCase();
       if (command === '/help') {
         return jsonResponse(chatReply(
-          "*Donezy Google Chat Integration*\n\n• *Reply* to any task notification → comment appears in Donezy automatically\n• */help* – show this message"
+          "*Donezy Google Chat Integration*\n\n• *Reply* to any task notification → comment appears in Donezy automatically\n• Type *@Name* to notify someone in Donezy\n• */help* – show this message"
         ));
       }
       return jsonResponse(chatReply("Unknown command. Type /help to see available commands."));
@@ -123,19 +128,28 @@ serve(async (req) => {
       author = adminUser;
     }
 
+    const { data: allUsers } = await supabase
+      .from('users')
+      .select('auth_user_id, name');
+    const mentionedAuthIds = (allUsers ?? [])
+      .filter((u) => u.name && u.auth_user_id && (mentionsName(text, u.name) || mentionsName(text, u.name.split(' ')[0])))
+      .map((u) => u.auth_user_id as string);
+
     const content = author
       ? `[Google Chat] ${text}`
       : `[Google Chat] ${senderName}: ${text}`;
 
-    const { error: commentError } = await supabase
+    const { data: insertedComment, error: commentError } = await supabase
       .from('comments')
       .insert({
         task_id: mapping.task_id,
         user_id: author?.id ?? 'system',
         auth_user_id: author?.auth_user_id ?? '00000000-0000-0000-0000-000000000000',
         content,
-        mentioned_user_ids: [],
-      });
+        mentioned_user_ids: mentionedAuthIds,
+      })
+      .select('id')
+      .single();
 
     if (commentError) {
       console.error('Failed to insert comment:', commentError);
@@ -144,6 +158,50 @@ serve(async (req) => {
         threadName
       ));
     }
+
+    try {
+      const { data: taskRow } = await supabase
+        .from('tasks')
+        .select('title, project_id')
+        .eq('id', mapping.task_id)
+        .maybeSingle();
+      const { data: projectRow } = taskRow?.project_id
+        ? await supabase.from('projects').select('name').eq('id', taskRow.project_id).maybeSingle()
+        : { data: null };
+
+      const context = {
+        taskTitle: taskRow?.title,
+        actorName: senderName,
+        projectName: projectRow?.name,
+        commentPreview: text.length > 100 ? `${text.slice(0, 100)}...` : text,
+      };
+
+      await supabase.functions.invoke('dispatch-notification', {
+        body: {
+          eventType: 'task_commented',
+          actorId: author?.auth_user_id,
+          taskId: mapping.task_id,
+          excludeRecipientIds: mentionedAuthIds,
+          context,
+        },
+      });
+
+      if (mentionedAuthIds.length > 0) {
+        await supabase.functions.invoke('dispatch-notification', {
+          body: {
+            eventType: 'mentioned',
+            actorId: author?.auth_user_id,
+            taskId: mapping.task_id,
+            recipientIds: mentionedAuthIds,
+            context,
+          },
+        });
+      }
+    } catch (notifyErr) {
+      console.error('Comment saved but notification failed:', notifyErr);
+    }
+
+    console.log('Comment saved from Google Chat:', insertedComment?.id, 'mentions:', mentionedAuthIds.length);
 
     return jsonResponse(chatReply("✅ Added as a comment in Donezy.", threadName));
   } catch (error) {
