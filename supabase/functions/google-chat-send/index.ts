@@ -74,6 +74,25 @@ serve(async (req) => {
       }
     }
 
+    // Map Google's thread name too, since add-on replies carry that instead of our threadKey
+    const googleThreadName = result?.thread?.name;
+    if (taskId && projectId && googleThreadName) {
+      try {
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+        await supabaseClient
+          .from('google_chat_thread_mappings')
+          .upsert(
+            { thread_key: googleThreadName, task_id: taskId, project_id: projectId, space_name: result?.space?.name ?? null },
+            { onConflict: 'thread_key' }
+          );
+      } catch (mappingErr) {
+        console.error("Thread name mapping save error:", mappingErr);
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true, result }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -7,28 +7,36 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const CHAT_ISSUER = 'chat@system.gserviceaccount.com';
-const CHAT_CERTS_URL = `https://www.googleapis.com/service_accounts/v1/metadata/x509/${CHAT_ISSUER}`;
+const ADDON_SERVICE_ACCOUNT = 'service-175039974377@gcp-sa-gsuiteaddons.iam.gserviceaccount.com';
 const DEFAULT_AUDIENCE = 'https://puwxkygdlclcbyxrtppd.supabase.co/functions/v1/google-chat-webhook';
+const GOOGLE_JWKS = jose.createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'));
 
-async function isFromGoogleChat(req: Request): Promise<boolean> {
-  const authHeader = req.headers.get('authorization') ?? '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+const jsonResponse = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+
+const chatReply = (text: string, threadName?: string) => ({
+  hostAppDataAction: {
+    chatDataAction: {
+      createMessageAction: {
+        message: threadName ? { text, thread: { name: threadName } } : { text },
+      },
+    },
+  },
+});
+
+async function isFromGoogleChat(event: any): Promise<boolean> {
+  const token = event.authorizationEventObject?.systemIdToken;
   if (!token) return false;
 
   try {
-    const { kid } = jose.decodeProtectedHeader(token);
-    const certsResponse = await fetch(CHAT_CERTS_URL);
-    const certs: Record<string, string> = await certsResponse.json();
-    const pem = kid ? certs[kid] : undefined;
-    if (!pem) return false;
-
-    const key = await jose.importX509(pem, 'RS256');
-    await jose.jwtVerify(token, key, {
-      issuer: CHAT_ISSUER,
+    const { payload } = await jose.jwtVerify(token, GOOGLE_JWKS, {
+      issuer: 'https://accounts.google.com',
       audience: Deno.env.get('GOOGLE_CHAT_AUDIENCE') ?? DEFAULT_AUDIENCE,
     });
-    return true;
+    return payload.email === ADDON_SERVICE_ACCOUNT && payload.email_verified === true;
   } catch (err) {
     console.error('Google Chat request verification failed:', err);
     return false;
@@ -40,200 +48,106 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (!(await isFromGoogleChat(req))) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-
   try {
-    const payload = await req.json();
-    console.log("Received Google Chat webhook:", JSON.stringify(payload, null, 2));
+    const event = await req.json();
 
-    const eventType = payload.type;
-
-    // ── Bot added to a space ───────────────────────────────────────────────
-    if (eventType === 'ADDED_TO_SPACE') {
-      return new Response(
-        JSON.stringify({ text: "👋 Hi! I'm connected to Donezy. Reply to any task notification thread and your message will appear as a comment directly in Donezy!" }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (!(await isFromGoogleChat(event))) {
+      return jsonResponse({ error: 'Unauthorized' }, 401);
     }
 
-    // ── Incoming message ───────────────────────────────────────────────────
-    if (eventType === 'MESSAGE') {
-      const messageText = payload.message?.text?.trim() ?? '';
-      const senderName = payload.message?.sender?.displayName ?? 'Someone';
-      const threadName = payload.message?.thread?.name ?? ''; // e.g. "spaces/AAA/threads/BBB"
-      const spaceName = payload.space?.name ?? '';
+    const chat = event.chat ?? {};
 
-      console.log("Processing message:", { messageText, senderName, threadName, spaceName });
-
-      // ── Slash commands ─────────────────────────────────────────────────
-      if (messageText.startsWith('/')) {
-        const command = messageText.split(' ')[0].toLowerCase();
-
-        switch (command) {
-          case '/help':
-            return new Response(
-              JSON.stringify({
-                text: `*Donezy Google Chat Integration*\n\n• *Reply* to any task notification → comment appears in Donezy automatically\n• */help* – show this message\n\nThat's all you need! 🎉`
-              }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-
-          default:
-            return new Response(
-              JSON.stringify({ text: "Unknown command. Type /help to see available commands." }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-        }
-      }
-
-      // ── Try to route reply to a Donezy task comment ────────────────────
-      if (threadName) {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-        const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-        // Build a list of candidate thread keys to try — Google Chat can echo
-        // back the key in different formats depending on how the message was sent.
-        const threadKeyFromPayload = payload.message?.thread?.threadKey;
-        const threadIdFromName = threadName.split('/').pop(); // last segment of "spaces/X/threads/Y"
-
-        // Derive the "task-{uuid}" key from the thread name segment if it looks like a UUID
-        const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const taskIdFromThread = threadIdFromName && uuidPattern.test(threadIdFromName ?? '')
-          ? `task-${threadIdFromName}`
-          : null;
-
-        // Collect unique candidates (filter nulls/undefined)
-        const candidates = [
-          threadKeyFromPayload,
-          threadIdFromName ? `task-${threadIdFromName}` : null,
-          threadIdFromName,
-          taskIdFromThread,
-          threadName,
-        ].filter((k): k is string => Boolean(k));
-
-        const uniqueCandidates = [...new Set(candidates)];
-        console.log("Thread key candidates:", uniqueCandidates);
-
-        let mapping: { task_id: string; project_id: string } | null = null;
-
-        for (const candidate of uniqueCandidates) {
-          const { data, error } = await supabase
-            .from('google_chat_thread_mappings')
-            .select('task_id, project_id')
-            .eq('thread_key', candidate)
-            .maybeSingle();
-
-          if (error) {
-            console.error(`DB lookup error for candidate "${candidate}":`, error);
-            continue;
-          }
-
-          if (data?.task_id) {
-            mapping = data;
-            console.log(`Found task mapping using key "${candidate}":`, data);
-            break;
-          }
-        }
-
-        // If still not found, try matching by space_name in case we stored it
-        if (!mapping && spaceName && threadName) {
-          const { data, error } = await supabase
-            .from('google_chat_thread_mappings')
-            .select('task_id, project_id, thread_key')
-            .eq('space_name', spaceName)
-            .maybeSingle();
-
-          if (!error && data?.task_id) {
-            mapping = data;
-            console.log("Found task mapping via space_name:", data);
-          }
-        }
-
-        if (mapping?.task_id) {
-          const senderEmail = payload.user?.email ?? payload.message?.sender?.email ?? null;
-          let author: { id: string; auth_user_id: string } | null = null;
-
-          if (senderEmail) {
-            const { data } = await supabase
-              .from('users')
-              .select('id, auth_user_id')
-              .ilike('email', senderEmail)
-              .maybeSingle();
-            author = data;
-          }
-
-          if (!author) {
-            const { data: adminUser } = await supabase
-              .from('users')
-              .select('auth_user_id, id')
-              .eq('role', 'admin')
-              .limit(1)
-              .maybeSingle();
-            author = adminUser;
-          }
-
-          const userId = author?.id ?? 'system';
-          const authUserId = author?.auth_user_id ?? '00000000-0000-0000-0000-000000000000';
-
-          const commentContent = `[Google Chat] ${messageText}`;
-
-          const { error: commentError } = await supabase
-            .from('comments')
-            .insert({
-              task_id: mapping.task_id,
-              user_id: userId,
-              auth_user_id: authUserId,
-              content: commentContent,
-              mentioned_user_ids: [],
-            });
-
-          if (commentError) {
-            console.error("Failed to insert comment:", commentError);
-            return new Response(
-              JSON.stringify({ text: "⚠️ Your reply was received but couldn't be saved to Donezy. Please try again." }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
-
-          console.log("Comment saved to Donezy task:", mapping.task_id);
-
-          return new Response(
-            JSON.stringify({ text: `✅ Your reply has been added as a comment in Donezy!` }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        // Thread found but no mapping — just acknowledge
-        console.log("No task mapping found for any candidate key:", uniqueCandidates);
-      }
-
-      // Default: non-threaded message or no mapping found
-      return new Response(
-        JSON.stringify({ text: "💬 I received your message! Reply directly to a task notification thread to add a comment in Donezy." }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (chat.addedToSpacePayload) {
+      return jsonResponse(chatReply("👋 Hi! I'm connected to Donezy. Reply to any task notification and your message will appear as a comment in Donezy."));
     }
 
-    // ── Unknown event ──────────────────────────────────────────────────────
-    return new Response(
-      JSON.stringify({ text: "Event received" }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    const message = chat.messagePayload?.message;
+    if (!message) {
+      return jsonResponse({});
+    }
+
+    const text = (message.argumentText ?? message.text ?? '').trim();
+    const senderName = chat.user?.displayName ?? 'Someone';
+    const senderEmail: string | null = chat.user?.email ?? null;
+    const threadName: string = message.thread?.name ?? '';
+
+    if (text.startsWith('/')) {
+      const command = text.split(' ')[0].toLowerCase();
+      if (command === '/help') {
+        return jsonResponse(chatReply(
+          "*Donezy Google Chat Integration*\n\n• *Reply* to any task notification → comment appears in Donezy automatically\n• */help* – show this message"
+        ));
+      }
+      return jsonResponse(chatReply("Unknown command. Type /help to see available commands."));
+    }
+
+    if (!threadName) {
+      return jsonResponse(chatReply("💬 Reply to a task notification to add a comment in Donezy."));
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    const { data: mapping } = await supabase
+      .from('google_chat_thread_mappings')
+      .select('task_id, project_id')
+      .eq('thread_key', threadName)
+      .maybeSingle();
+
+    if (!mapping?.task_id) {
+      return jsonResponse(chatReply(
+        "⚠️ I couldn't find the Donezy task for this thread. Reply to a task notification to add a comment.",
+        threadName
+      ));
+    }
+
+    let author: { id: string; auth_user_id: string } | null = null;
+    if (senderEmail) {
+      const { data } = await supabase
+        .from('users')
+        .select('id, auth_user_id')
+        .ilike('email', senderEmail)
+        .maybeSingle();
+      author = data;
+    }
+
+    if (!author) {
+      const { data: adminUser } = await supabase
+        .from('users')
+        .select('id, auth_user_id')
+        .eq('role', 'admin')
+        .limit(1)
+        .maybeSingle();
+      author = adminUser;
+    }
+
+    const content = author
+      ? `[Google Chat] ${text}`
+      : `[Google Chat] ${senderName}: ${text}`;
+
+    const { error: commentError } = await supabase
+      .from('comments')
+      .insert({
+        task_id: mapping.task_id,
+        user_id: author?.id ?? 'system',
+        auth_user_id: author?.auth_user_id ?? '00000000-0000-0000-0000-000000000000',
+        content,
+        mentioned_user_ids: [],
+      });
+
+    if (commentError) {
+      console.error('Failed to insert comment:', commentError);
+      return jsonResponse(chatReply(
+        "⚠️ Your reply was received but couldn't be saved to Donezy. Please try again.",
+        threadName
+      ));
+    }
+
+    return jsonResponse(chatReply("✅ Added as a comment in Donezy.", threadName));
   } catch (error) {
-    console.error("Error in google-chat-webhook:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    console.error('Error in google-chat-webhook:', error);
+    return jsonResponse({ error: error.message }, 500);
   }
 });
