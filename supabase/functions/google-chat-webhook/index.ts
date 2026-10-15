@@ -1,14 +1,50 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import * as jose from 'https://esm.sh/jose@5.2.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const CHAT_ISSUER = 'chat@system.gserviceaccount.com';
+const CHAT_CERTS_URL = `https://www.googleapis.com/service_accounts/v1/metadata/x509/${CHAT_ISSUER}`;
+const DEFAULT_AUDIENCE = 'https://puwxkygdlclcbyxrtppd.supabase.co/functions/v1/google-chat-webhook';
+
+async function isFromGoogleChat(req: Request): Promise<boolean> {
+  const authHeader = req.headers.get('authorization') ?? '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  if (!token) return false;
+
+  try {
+    const { kid } = jose.decodeProtectedHeader(token);
+    const certsResponse = await fetch(CHAT_CERTS_URL);
+    const certs: Record<string, string> = await certsResponse.json();
+    const pem = kid ? certs[kid] : undefined;
+    if (!pem) return false;
+
+    const key = await jose.importX509(pem, 'RS256');
+    await jose.jwtVerify(token, key, {
+      issuer: CHAT_ISSUER,
+      audience: Deno.env.get('GOOGLE_CHAT_AUDIENCE') ?? DEFAULT_AUDIENCE,
+    });
+    return true;
+  } catch (err) {
+    console.error('Google Chat request verification failed:', err);
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (!(await isFromGoogleChat(req))) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   try {
@@ -120,19 +156,32 @@ serve(async (req) => {
         }
 
         if (mapping?.task_id) {
-          // Find the first admin/owner user to attach the comment to
-          const { data: adminUser } = await supabase
-            .from('users')
-            .select('auth_user_id, id')
-            .eq('role', 'admin')
-            .limit(1)
-            .maybeSingle();
+          const senderEmail = payload.user?.email ?? payload.message?.sender?.email ?? null;
+          let author: { id: string; auth_user_id: string } | null = null;
 
-          const userId = adminUser?.id ?? 'system';
-          const authUserId = adminUser?.auth_user_id ?? '00000000-0000-0000-0000-000000000000';
+          if (senderEmail) {
+            const { data } = await supabase
+              .from('users')
+              .select('id, auth_user_id')
+              .ilike('email', senderEmail)
+              .maybeSingle();
+            author = data;
+          }
 
-          // Format the comment content so it's clearly from Google Chat
-          const commentContent = `[Google Chat] *${senderName}*: ${messageText}`;
+          if (!author) {
+            const { data: adminUser } = await supabase
+              .from('users')
+              .select('auth_user_id, id')
+              .eq('role', 'admin')
+              .limit(1)
+              .maybeSingle();
+            author = adminUser;
+          }
+
+          const userId = author?.id ?? 'system';
+          const authUserId = author?.auth_user_id ?? '00000000-0000-0000-0000-000000000000';
+
+          const commentContent = `[Google Chat] ${messageText}`;
 
           const { error: commentError } = await supabase
             .from('comments')
