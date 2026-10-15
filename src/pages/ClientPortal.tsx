@@ -22,6 +22,7 @@ import type { DateRange } from "react-day-picker";
 interface PortalTask {
   id: string;
   title: string;
+  description: string | null;
   status: string;
   priority: string;
   due_date: string | null;
@@ -74,6 +75,8 @@ const STATUS_TABS = [
   { value: "todo", label: "To Do" },
   { value: "in-progress", label: "In Progress" },
   { value: "awaiting-feedback", label: "Awaiting Feedback" },
+  { value: "awaiting-ext", label: "Awaiting External" },
+  { value: "awaiting-feedback-(internal)", label: "Awaiting Internal" },
   { value: "review", label: "Review" },
   { value: "done", label: "Done" },
   { value: "backlog", label: "Backlog" },
@@ -84,6 +87,8 @@ const statusColors: Record<string, string> = {
   "in-progress": "bg-blue-100 text-blue-700 border-blue-200",
   review: "bg-amber-100 text-amber-700 border-amber-200",
   "awaiting-feedback": "bg-gray-100 text-gray-700 border-gray-200",
+  "awaiting-ext": "bg-indigo-100 text-indigo-700 border-indigo-200",
+  "awaiting-feedback-(internal)": "bg-violet-100 text-violet-700 border-violet-200",
   todo: "bg-slate-100 text-slate-700 border-slate-200",
   backlog: "bg-gray-100 text-gray-600 border-gray-200",
 };
@@ -610,6 +615,11 @@ export default function ClientPortal() {
                               <p className={`text-sm font-medium ${task.status === "done" ? "line-through text-slate-400" : "text-slate-800"}`}>
                                 {task.title}
                               </p>
+                              {task.description && (
+                                <p className="text-xs text-slate-500 mt-1 whitespace-pre-wrap break-words">
+                                  {task.description}
+                                </p>
+                              )}
                               <div className="flex flex-wrap items-center gap-3 mt-1">
                                 {task.due_date && (
                                   <span className="flex items-center gap-1 text-xs text-slate-400">
