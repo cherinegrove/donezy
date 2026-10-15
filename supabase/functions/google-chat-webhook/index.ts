@@ -108,12 +108,21 @@ serve(async (req) => {
       ));
     }
 
-    let author: { id: string; auth_user_id: string } | null = null;
+    let author: { auth_user_id: string } | null = null;
     if (senderEmail) {
       const { data } = await supabase
         .from('users')
-        .select('id, auth_user_id')
+        .select('auth_user_id')
         .ilike('email', senderEmail)
+        .maybeSingle();
+      author = data;
+    }
+
+    if (!author) {
+      const { data } = await supabase
+        .from('users')
+        .select('auth_user_id')
+        .ilike('name', senderName)
         .maybeSingle();
       author = data;
     }
@@ -121,7 +130,7 @@ serve(async (req) => {
     if (!author) {
       const { data: adminUser } = await supabase
         .from('users')
-        .select('id, auth_user_id')
+        .select('auth_user_id')
         .eq('role', 'admin')
         .limit(1)
         .maybeSingle();
@@ -143,7 +152,7 @@ serve(async (req) => {
       .from('comments')
       .insert({
         task_id: mapping.task_id,
-        user_id: author?.id ?? 'system',
+        user_id: author?.auth_user_id ?? 'system',
         auth_user_id: author?.auth_user_id ?? '00000000-0000-0000-0000-000000000000',
         content,
         mentioned_user_ids: mentionedAuthIds,
