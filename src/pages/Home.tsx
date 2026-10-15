@@ -18,12 +18,16 @@ import { MonthlyComparisonChart } from "@/components/dashboard/cards/MonthlyComp
 import { MentionsCard } from "@/components/dashboard/cards/MentionsCard";
 import { ProjectWarningsCard } from "@/components/dashboard/cards/ProjectWarningsCard";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+type StatDetail = "due-today" | "overdue" | "in-progress" | "mentions";
 
 const Home = () => {
   const { tasks, projects, users, currentUser } = useAppContext();
   const navigate = useNavigate();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [statDetail, setStatDetail] = useState<StatDetail | null>(null);
 
   const today = startOfToday();
 
@@ -73,9 +77,22 @@ const Home = () => {
   const activeTasks = filteredTasks.filter(task => task.status !== "done");
 
   const handleTaskClick = (task: Task) => {
+    setStatDetail(null);
     setSelectedTask(task);
     setIsEditDialogOpen(true);
   };
+
+  const inProgressTasks = activeTasks.filter(t => t.status === "in-progress");
+
+  const myMentions = useMemo(() => {
+    return tasks
+      .flatMap(task =>
+        (task.comments || [])
+          .filter(c => c.mentionedUserIds?.includes(currentUser?.auth_user_id) && c.userId !== currentUser?.auth_user_id)
+          .map(comment => ({ comment, task }))
+      )
+      .sort((a, b) => new Date(b.comment.timestamp).getTime() - new Date(a.comment.timestamp).getTime());
+  }, [tasks, currentUser?.auth_user_id]);
 
   const getProjectStatusColor = (status: string) => {
     switch (status) {
@@ -119,9 +136,20 @@ const Home = () => {
     );
   });
 
-  // Count active tasks
-  const inProgressTasks = activeTasks.filter(t => t.status === "in-progress").length;
-  const mentionCount = 2; // This would come from notifications data
+  const inProgressCount = inProgressTasks.length;
+  const mentionCount = myMentions.length;
+
+  const detailTasks =
+    statDetail === "due-today" ? tasksDueToday
+    : statDetail === "overdue" ? overdueTasks
+    : statDetail === "in-progress" ? inProgressTasks
+    : [];
+  const detailTitle: Record<StatDetail, string> = {
+    "due-today": `Due Today (${tasksDueToday.length})`,
+    "overdue": `Overdue (${overdueTasks.length})`,
+    "in-progress": `In Progress (${inProgressCount})`,
+    "mentions": `Mentions (${mentionCount})`,
+  };
 
   return (
     <div className="space-y-6">
@@ -141,7 +169,7 @@ const Home = () => {
 
       {/* Row 2: Quick Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="bg-gradient-to-br from-green-50 to-green-50/30 dark:from-green-950/40 dark:to-green-950/20 border-l-4 border-l-green-500">
+        <Card onClick={() => setStatDetail("due-today")} className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-green-50 to-green-50/30 dark:from-green-950/40 dark:to-green-950/20 border-l-4 border-l-green-500">
           <CardContent className="p-4">
             <div className="text-xs font-medium text-muted-foreground mb-1">Due Today</div>
             <div className="text-2xl font-bold text-foreground">{tasksDueToday.length}</div>
@@ -149,7 +177,7 @@ const Home = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-50/30 dark:from-yellow-950/40 dark:to-yellow-950/20 border-l-4 border-l-yellow-500">
+        <Card onClick={() => setStatDetail("overdue")} className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-yellow-50 to-yellow-50/30 dark:from-yellow-950/40 dark:to-yellow-950/20 border-l-4 border-l-yellow-500">
           <CardContent className="p-4">
             <div className="text-xs font-medium text-muted-foreground mb-1">Overdue</div>
             <div className="text-2xl font-bold text-foreground">{overdueTasks.length}</div>
@@ -157,15 +185,15 @@ const Home = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-50/30 dark:from-blue-950/40 dark:to-blue-950/20 border-l-4 border-l-blue-500">
+        <Card onClick={() => setStatDetail("in-progress")} className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-blue-50 to-blue-50/30 dark:from-blue-950/40 dark:to-blue-950/20 border-l-4 border-l-blue-500">
           <CardContent className="p-4">
             <div className="text-xs font-medium text-muted-foreground mb-1">In Progress</div>
-            <div className="text-2xl font-bold text-foreground">{inProgressTasks}</div>
+            <div className="text-2xl font-bold text-foreground">{inProgressCount}</div>
             <div className="text-xs text-muted-foreground mt-2">active</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-red-50 to-red-50/30 dark:from-red-950/40 dark:to-red-950/20 border-l-4 border-l-red-500">
+        <Card onClick={() => setStatDetail("mentions")} className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-red-50 to-red-50/30 dark:from-red-950/40 dark:to-red-950/20 border-l-4 border-l-red-500">
           <CardContent className="p-4">
             <div className="text-xs font-medium text-muted-foreground mb-1">Mentions</div>
             <div className="text-2xl font-bold text-foreground">{mentionCount}</div>
@@ -268,6 +296,45 @@ const Home = () => {
           <RecentTasksCard />
         </CardContent>
       </Card>
+
+      <Dialog open={statDetail !== null} onOpenChange={(open) => { if (!open) setStatDetail(null); }}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>{statDetail ? detailTitle[statDetail] : ""}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto divide-y divide-border">
+            {statDetail === "mentions" ? (
+              myMentions.length > 0 ? (
+                myMentions.map(({ comment, task }) => {
+                  const author = users.find(u => u.auth_user_id === comment.userId);
+                  const preview = comment.content.replace(/<[^>]*>/g, "").trim();
+                  return (
+                    <div
+                      key={comment.id}
+                      onClick={() => handleTaskClick(task)}
+                      className="py-3 px-2 hover:bg-muted/50 rounded cursor-pointer"
+                    >
+                      <p className="text-sm font-medium">{task.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {author?.name || "Unknown"} · {format(new Date(comment.timestamp), "MMM d, p")}
+                      </p>
+                      <p className="text-sm mt-1">{preview.length > 160 ? `${preview.slice(0, 160)}...` : preview}</p>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-center py-6 text-muted-foreground">No mentions</p>
+              )
+            ) : detailTasks.length > 0 ? (
+              detailTasks.map((task) => (
+                <CompactTaskRow key={task.id} task={task} />
+              ))
+            ) : (
+              <p className="text-sm text-center py-6 text-muted-foreground">No tasks</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {selectedTask && (
         <EditTaskDialog
