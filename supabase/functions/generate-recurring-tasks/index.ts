@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
             priority: recurringTask.priority,
             collaborator_ids: recurringTask.collaborator_ids,
             estimated_hours: recurringTask.estimated_hours,
-            status: recurringTask.status || 'backlog',
+            status: 'todo',
             due_date: dueDate.toISOString(),
             auth_user_id: recurringTask.auth_user_id
           })
