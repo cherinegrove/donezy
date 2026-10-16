@@ -1,5 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { useAutoGrowTextarea } from "@/hooks/useAutoGrowTextarea";
+import { uploadDescriptionImage, imageMarkdown } from "@/lib/taskDescriptionImages";
+import { DescriptionImages } from "./DescriptionImages";
 import { Task } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { useToast } from "@/hooks/use-toast";
@@ -45,7 +47,7 @@ interface TaskSidebarPanelProps {
 }
 
 export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
-  const { deleteTask, updateTask, projects, users, taskStatuses } = useAppContext();
+  const { deleteTask, updateTask, projects, users, taskStatuses, currentUser } = useAppContext();
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
@@ -53,6 +55,24 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
   // Editable state
   const [description, setDescription] = useState(task.description || "");
   const descriptionRef = useAutoGrowTextarea(description);
+
+  const handleDescriptionPaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const imageItem = Array.from(e.clipboardData?.items ?? []).find((item) => item.type.startsWith("image/"));
+    const file = imageItem?.getAsFile();
+    if (!file || !currentUser?.auth_user_id) return;
+    e.preventDefault();
+
+    const start = e.currentTarget.selectionStart ?? 0;
+    const end = e.currentTarget.selectionEnd ?? start;
+    try {
+      const url = await uploadDescriptionImage(file, currentUser.auth_user_id);
+      const insert = "\n" + imageMarkdown(url) + "\n";
+      setDescription((prev) => prev.slice(0, start) + insert + prev.slice(end));
+    } catch (err) {
+      console.error("Error uploading description image:", err);
+      toast({ title: "Error", description: "Failed to upload image", variant: "destructive" });
+    }
+  };
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState(task.priority);
   const [assigneeId, setAssigneeId] = useState(task.assigneeId);
@@ -133,8 +153,10 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Add description..."
             rows={1}
-            className="text-sm min-h-0 resize-none"
+            className="text-sm resize-none"
+            onPaste={handleDescriptionPaste}
           />
+          <DescriptionImages text={description} />
         </div>
 
         {/* Editable Fields */}
