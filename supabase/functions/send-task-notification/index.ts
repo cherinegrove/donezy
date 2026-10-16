@@ -192,6 +192,7 @@ serve(async (req) => {
       .replace(/{changes}/g, changesSummary)
       .replace(/{task_link}/g, taskUrl);
 
+
     // Unique key per message so each update posts as its own message; the mapping
     // still routes replies back to the task.
     const threadKey = `task-${taskId}-${crypto.randomUUID()}`;
@@ -209,7 +210,7 @@ serve(async (req) => {
         },
         sections: [{
           widgets: [
-            { textParagraph: { text: toCardHtml(cardBody) } },
+            ...(cardBody ? [{ textParagraph: { text: toCardHtml(cardBody) } }] : []),
             { buttonList: { buttons: [{ text: 'Open in Donezy', onClick: { openLink: { url: taskUrl } } }] } },
           ],
         }],
@@ -228,7 +229,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         webhookUrl: config.webhook_url,
-        message,
+        message: eventType === 'task_completed' ? '' : message,
         cards,
         threadKey,
         taskId,

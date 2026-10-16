@@ -21,7 +21,7 @@ serve(async (req) => {
     console.log("Sending message to Google Chat:", { webhookUrl, message, threadKey, taskId });
 
     // Build payload — always use threadKey if provided so replies stay in the same thread
-    const payload: any = { text: message };
+    const payload: any = message ? { text: message } : {};
     if (cards) {
       payload.cardsV2 = cards;
     }
