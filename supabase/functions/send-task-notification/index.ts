@@ -192,9 +192,10 @@ serve(async (req) => {
       .replace(/{changes}/g, changesSummary)
       .replace(/{task_link}/g, taskUrl);
 
-    // Each task gets a stable threadKey so all its notifications live in one thread
-    // and replies can be routed back to the correct task in Donezy.
-    const threadKey = `task-${taskId}`;
+
+    // Unique key per message so each update posts as its own message; the mapping
+    // still routes replies back to the task.
+    const threadKey = `task-${taskId}-${crypto.randomUUID()}`;
 
     const header = CARD_HEADERS[eventType] ?? { title: 'Donezy update', icon: 'task-updated' };
     const cardBody = message.replace(taskUrl, '').replace(/🔗\s*$/, '').trim();
@@ -209,7 +210,7 @@ serve(async (req) => {
         },
         sections: [{
           widgets: [
-            { textParagraph: { text: toCardHtml(cardBody) } },
+            ...(cardBody ? [{ textParagraph: { text: toCardHtml(cardBody) } }] : []),
             { buttonList: { buttons: [{ text: 'Open in Donezy', onClick: { openLink: { url: taskUrl } } }] } },
           ],
         }],
@@ -228,7 +229,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         webhookUrl: config.webhook_url,
-        message,
+        message: eventType === 'task_completed' ? '' : message,
         cards,
         threadKey,
         taskId,
