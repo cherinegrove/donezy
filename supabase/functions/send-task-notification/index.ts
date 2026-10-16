@@ -229,7 +229,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         webhookUrl: config.webhook_url,
-        message: eventType === 'task_completed' ? '' : message,
+        message: '',
         cards,
         threadKey,
         taskId,
