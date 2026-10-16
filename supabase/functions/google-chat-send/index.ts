@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { webhookUrl, message, threadKey, taskId, projectId } = await req.json();
+    const { webhookUrl, message, cards, threadKey, taskId, projectId } = await req.json();
     
     if (!webhookUrl || !message) {
       throw new Error("webhookUrl and message are required");
@@ -22,6 +22,9 @@ serve(async (req) => {
 
     // Build payload — always use threadKey if provided so replies stay in the same thread
     const payload: any = { text: message };
+    if (cards) {
+      payload.cardsV2 = cards;
+    }
 
     if (threadKey) {
       payload.thread = { threadKey };

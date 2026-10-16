@@ -196,6 +196,26 @@ serve(async (req) => {
     // still routes replies back to the task.
     const threadKey = `task-${taskId}-${crypto.randomUUID()}`;
 
+    const header = CARD_HEADERS[eventType] ?? { title: 'Donezy update', icon: 'task-updated' };
+    const cardBody = message.replace(taskUrl, '').replace(/🔗\s*$/, '').trim();
+    const cards = [{
+      cardId: crypto.randomUUID(),
+      card: {
+        header: {
+          title: header.title,
+          subtitle: task.title || 'Untitled',
+          imageUrl: `${appUrl}/chat-icons/${header.icon}.png`,
+          imageType: 'CIRCLE',
+        },
+        sections: [{
+          widgets: [
+            { textParagraph: { text: toCardHtml(cardBody) } },
+            { buttonList: { buttons: [{ text: 'Open in Donezy', onClick: { openLink: { url: taskUrl } } }] } },
+          ],
+        }],
+      },
+    }];
+
     console.log('Sending message to Google Chat via google-chat-send:', message);
 
     // Route through google-chat-send so thread mappings are saved automatically
@@ -209,6 +229,7 @@ serve(async (req) => {
       body: JSON.stringify({
         webhookUrl: config.webhook_url,
         message,
+        cards,
         threadKey,
         taskId,
         projectId,
@@ -239,6 +260,23 @@ serve(async (req) => {
     );
   }
 });
+
+const CARD_HEADERS: Record<string, { title: string; icon: string }> = {
+  task_created: { title: 'New task', icon: 'new-task' },
+  status_changed: { title: 'Status changed', icon: 'status-changed' },
+  task_commented: { title: 'New comment', icon: 'comment' },
+  task_updated: { title: 'Task updated', icon: 'task-updated' },
+  task_completed: { title: 'Task completed', icon: 'task-completed' },
+};
+
+function toCardHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*([^*\n]+)\*/g, '<b>$1</b>')
+    .replace(/\n/g, '<br>');
+}
 
 function getDefaultTemplate(eventType: string): string {
   const templates: Record<string, string> = {
