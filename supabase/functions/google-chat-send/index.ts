@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     const { webhookUrl, message, cards, threadKey, taskId, projectId } = await req.json();
     
-    if (!webhookUrl || !message) {
+    if (!webhookUrl || (!message && !cards)) {
       throw new Error("webhookUrl and message are required");
     }
 
