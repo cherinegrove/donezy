@@ -379,7 +379,8 @@ export function AIChatbot() {
 
       const data = await response.json();
 
-      if (!data || !data.message) {
+      const replyText: string | undefined = data?.response ?? data?.message;
+      if (!replyText) {
         throw new Error('No response from chatbot');
       }
 
@@ -387,7 +388,7 @@ export function AIChatbot() {
       let proposedAction: ProposedAction | undefined;
       if (data.tasks && Array.isArray(data.tasks) && data.tasks.length > 0) {
         const projectName = data.projectName || "Unknown Project";
-        const projectId = projects.find(p => p.name === projectName)?.id;
+        const projectId = allProjects.find(p => p.name === projectName)?.id;
 
         if (projectId) {
           proposedAction = {
@@ -407,10 +408,28 @@ export function AIChatbot() {
         }
       }
 
+      if (!proposedAction && data.proposedAction?.type === "create_task") {
+        const pa = data.proposedAction;
+        proposedAction = {
+          type: "create_tasks",
+          tasks: [{
+            id: `task-0-${Date.now()}`,
+            title: pa.title || "",
+            description: pa.description || "",
+            projectId: pa.projectId,
+            projectName: allProjects.find(p => p.id === pa.projectId)?.name || "Unknown Project",
+            assigneeId: pa.assigneeId,
+            assigneeName: pa.assigneeName,
+            dueDate: pa.dueDate,
+            priority: pa.priority || "medium",
+          }],
+        };
+      }
+
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: data.message,
+        content: replyText,
         timestamp: new Date(),
         ...(proposedAction
           ? { proposedAction, actionStatus: "pending" as ActionStatus }
@@ -608,12 +627,18 @@ export function AIChatbot() {
 
       <form onSubmit={handleSubmit} className="p-4 pt-3">
         <div className="flex gap-2">
-          <input
-            type="text"
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask me..."
-            className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                sendMessage(input);
+              }
+            }}
+            placeholder="Ask me... (Enter for a new line, Ctrl+Enter to send)"
+            rows={2}
+            className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background resize-none"
             disabled={isLoading}
           />
           <VoiceDescriptionButton
