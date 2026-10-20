@@ -48,40 +48,6 @@ async function isFromGoogleChat(event: any): Promise<boolean> {
   }
 }
 
-const CHAT_BOT_SCOPE = 'https://www.googleapis.com/auth/chat.bot';
-
-async function getChatAccessToken(): Promise<string> {
-  const keyBase64 = Deno.env.get('GOOGLE_CHAT_BOT_KEY_B64') ?? '';
-  const keyJson = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(keyBase64), (c) => c.charCodeAt(0))));
-  const privateKey = await jose.importPKCS8(keyJson.private_key, 'RS256');
-  const assertion = await new jose.SignJWT({ scope: CHAT_BOT_SCOPE })
-    .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
-    .setIssuer(keyJson.client_email)
-    .setSubject(keyJson.client_email)
-    .setAudience('https://oauth2.googleapis.com/token')
-    .setIssuedAt()
-    .setExpirationTime('1h')
-    .sign(privateKey);
-
-  const response = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }),
-  });
-  if (!response.ok) throw new Error(`token request failed: ${response.status} ${await response.text()}`);
-  return (await response.json()).access_token;
-}
-
-async function addReaction(messageName: string, emoji: string): Promise<void> {
-  const token = await getChatAccessToken();
-  const response = await fetch(`https://chat.googleapis.com/v1/${messageName}/reactions`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ emoji: { unicode: emoji } }),
-  });
-  if (!response.ok) throw new Error(`reaction failed: ${response.status} ${await response.text()}`);
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -245,12 +211,6 @@ serve(async (req) => {
     }
 
     console.log('Comment saved from Google Chat:', insertedComment?.id, 'mentions:', mentionedAuthIds.length);
-
-    try {
-      await addReaction(message.name, '✅');
-    } catch (reactionErr) {
-      console.error('Could not add confirmation reaction:', reactionErr);
-    }
 
     return jsonResponse({});
   } catch (error) {
