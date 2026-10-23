@@ -20,6 +20,14 @@ export default function TaskDetails() {
   const [isLoading, setIsLoading] = useState(true);
   const hasFetched = useRef(false);
 
+  const goBack = () => {
+    if (window.history.state?.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/tasks');
+    }
+  };
+
   // Always fetch from DB immediately on mount for reliable deep-linking.
   // This avoids depending on the app context tasks array being populated first.
   useEffect(() => {
@@ -115,7 +123,7 @@ export default function TaskDetails() {
   return (
     <>
       <div className="p-4">
-        <Button variant="ghost" onClick={() => navigate(-1)}>
+        <Button variant="ghost" onClick={goBack}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
@@ -129,7 +137,7 @@ export default function TaskDetails() {
           task={task}
           open={true}
           onOpenChange={(open) => {
-            if (!open) navigate(-1);
+            if (!open) goBack();
           }}
         />
       </Suspense>
