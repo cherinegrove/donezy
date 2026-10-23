@@ -3803,6 +3803,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         console.log('✅ Task updated:', update.id);
       }
 
+      if (newStatus && newStatus !== task.status && currentUser && session?.user) {
+        await supabase
+          .from('task_logs')
+          .insert({
+            task_id: taskId,
+            user_id: currentUser.id,
+            auth_user_id: session.user.id,
+            action: 'status_changed',
+            details: { oldStatus: task.status, newStatus },
+            timestamp: new Date().toISOString()
+          });
+      }
+
       // Send notification for task updates if status changed
       console.log('DEBUG reorderTasks - newStatus:', newStatus, 'task.status:', task.status, 'taskId:', taskId);
       if (newStatus && newStatus !== task.status && task.projectId && session?.user?.id) {
