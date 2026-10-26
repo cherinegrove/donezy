@@ -262,7 +262,7 @@ export function StartTimerDialog({
           
           <div className="grid gap-2">
             <Label htmlFor="task">Task (Optional)</Label>
-            <Popover open={taskComboOpen} onOpenChange={setTaskComboOpen}>
+            <Popover modal open={taskComboOpen} onOpenChange={setTaskComboOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
