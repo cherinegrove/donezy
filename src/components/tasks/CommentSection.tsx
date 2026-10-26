@@ -286,7 +286,9 @@ export function CommentSection({ taskId }: CommentSectionProps) {
       <ScrollArea className="overflow-auto max-h-[250px] pr-4">
         <div className="space-y-2">
           {task.comments && task.comments.length > 0 ? (
-            [...task.comments].reverse().map((commentItem) => {
+            [...task.comments]
+              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+              .map((commentItem) => {
               const commentUser = users.find((u) => u.auth_user_id === commentItem.userId);
               const commentImages = commentItem.images || [];
               const isOwnComment = currentUser?.auth_user_id === commentItem.userId;
