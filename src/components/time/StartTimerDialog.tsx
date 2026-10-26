@@ -262,48 +262,20 @@ export function StartTimerDialog({
           
           <div className="grid gap-2">
             <Label htmlFor="task">Task (Optional)</Label>
-            <Popover modal open={taskComboOpen} onOpenChange={setTaskComboOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={taskComboOpen}
-                  className="w-full justify-between font-normal"
-                  disabled={!selectedProjectId}
-                >
-                  {selectedTask ? selectedTask.title : "Search and select task..."}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Search tasks..." />
-                  <CommandList>
-                    <CommandEmpty>No tasks found.</CommandEmpty>
-                    <CommandGroup>
-                      {projectTasks.map((task) => (
-                        <CommandItem
-                          key={task.id}
-                          value={task.title}
-                          onSelect={() => {
-                            setSelectedTaskId(task.id);
-                            setTaskComboOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedTaskId === task.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {task.title}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <select
+              id="task"
+              value={selectedTaskId}
+              onChange={(e) => setSelectedTaskId(e.target.value)}
+              disabled={!selectedProjectId}
+              className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">No task</option>
+              {projectTasks.map((task) => (
+                <option key={task.id} value={task.id}>
+                  {task.title}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid gap-2">
