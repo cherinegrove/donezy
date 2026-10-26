@@ -126,7 +126,7 @@ export function TopBar() {
           </Button>
 
           {/* Quick Action Plus Button */}
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="default" 
