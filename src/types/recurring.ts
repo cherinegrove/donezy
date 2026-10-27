@@ -12,6 +12,8 @@ export interface RecurringTask {
   recurrence_interval: number;
   days_of_week: number[] | null;
   day_of_month: number | null;
+  recurrence_time?: string;
+  status?: string;
   start_date: string;
   end_date: string | null;
   next_generation_date: string;

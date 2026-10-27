@@ -54,7 +54,8 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
   const [estimatedHours, setEstimatedHours] = useState<number | undefined>();
   const [fileIds, setFileIds] = useState<string[]>([]);
 
-  const [status, setStatus] = useState("new");
+  const [status, setStatus] = useState("todo");
+  const [recurrenceTime, setRecurrenceTime] = useState("08:00");
   const [recurrencePattern, setRecurrencePattern] = useState("daily");
   const [recurrenceInterval, setRecurrenceInterval] = useState(1);
   const [selectedDaysOfWeek, setSelectedDaysOfWeek] = useState<number[]>([]);
@@ -74,7 +75,8 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
       setCollaboratorIds(taskData.collaborator_ids || []);
       setEstimatedHours(taskData.estimated_hours);
       setFileIds(taskData.file_ids || []);
-      setStatus(taskData.status || "new");
+      setStatus(taskData.status || "todo");
+      setRecurrenceTime(taskData.recurrence_time || "08:00");
       setRecurrencePattern(taskData.recurrence_pattern || "daily");
       setRecurrenceInterval(taskData.recurrence_interval || 1);
       setSelectedDaysOfWeek(taskData.days_of_week || []);
@@ -92,7 +94,8 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
       setCollaboratorIds([]);
       setEstimatedHours(undefined);
       setFileIds([]);
-      setStatus("new");
+      setStatus("todo");
+      setRecurrenceTime("08:00");
       setRecurrencePattern("daily");
       setRecurrenceInterval(1);
       setSelectedDaysOfWeek([]);
@@ -138,6 +141,7 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
         recurrence_interval: recurrenceInterval,
         days_of_week: (recurrencePattern === 'weekly' || recurrencePattern === 'daily') ? selectedDaysOfWeek : null,
         day_of_month: recurrencePattern === 'monthly' ? dayOfMonth : null,
+        recurrence_time: recurrenceTime,
         start_date: startDate.toISOString(),
         end_date: hasEndDate && endDate ? endDate.toISOString() : null,
         next_generation_date: nextGenDate.toISOString(),
@@ -398,6 +402,16 @@ export function RecurringTaskDialog({ open, onOpenChange, onSuccess, editTask, i
                 />
               </div>
             )}
+
+            <div className="mt-4 space-y-2">
+              <Label htmlFor="recurrence-time">Time (South Africa)</Label>
+              <Input
+                id="recurrence-time"
+                type="time"
+                value={recurrenceTime}
+                onChange={(e) => setRecurrenceTime(e.target.value || "08:00")}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div>

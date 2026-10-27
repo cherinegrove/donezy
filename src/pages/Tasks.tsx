@@ -49,22 +49,6 @@ export default function Tasks() {
   const { tasks, projects, users, clients, currentUser, taskStatuses } = useAppContext();
   const navigate = useNavigate();
   
-  // Auto-generate recurring tasks on page load
-  useEffect(() => {
-    const generateRecurringTasks = async () => {
-      try {
-        const { supabase } = await import("@/integrations/supabase/client");
-        const { data } = await supabase.functions.invoke('generate-recurring-tasks');
-        if (data?.processed > 0) {
-          console.log('Generated recurring tasks:', data);
-        }
-      } catch (err) {
-        console.error('Error generating recurring tasks:', err);
-      }
-    };
-    const timer = setTimeout(generateRecurringTasks, 1000);
-    return () => clearTimeout(timer);
-  }, []);
   
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
