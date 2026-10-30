@@ -165,6 +165,7 @@ export interface Task {
   title: string;
   description: string;
   projectId: string;
+  clientId?: string;
   assigneeId?: string;
   collaboratorIds?: string[];
   status: TaskStatus;

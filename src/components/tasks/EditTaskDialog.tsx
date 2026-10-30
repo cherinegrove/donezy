@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { CalendarIcon, Trash } from "lucide-react";
 import { VoiceDescriptionButton } from "./VoiceDescriptionButton";
 import { ProjectSelect } from "./ProjectSelect";
+import { ClientSelect } from "./ClientSelect";
 import { Assignee2Select } from "./Assignee2Select";
 import { CollaboratorSelect } from "./CollaboratorSelect";
 import {
@@ -54,7 +55,7 @@ interface EditTaskDialogProps {
 }
 
 export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: EditTaskDialogProps) {
-  const { updateTask, deleteTask, users, currentUser } = useAppContext();
+  const { updateTask, deleteTask, users, currentUser, projects } = useAppContext();
   const { toast } = useToast();
   const { isFieldRequired } = useNativeFieldConfigs("tasks");
 
@@ -97,6 +98,9 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   const [assigneeId, setAssigneeId] = useState(task.assigneeId);
   const [collaboratorIds, setCollaboratorIds] = useState(task.collaboratorIds || []);
   const [projectId, setProjectId] = useState(task.projectId);
+  const [clientId, setClientId] = useState<string | undefined>(
+    task.clientId || projects.find(p => p.id === task.projectId)?.clientId
+  );
   const [dueDate, setDueDate] = useState<string | undefined>(task.dueDate);
   const [reminderDate, setReminderDate] = useState<string | undefined>(task.reminderDate);
   const [estimatedHours, setEstimatedHours] = useState<number | undefined>(task.estimatedHours);
@@ -131,6 +135,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     setAssigneeId(task.assigneeId);
     setCollaboratorIds(task.collaboratorIds || []);
     setProjectId(task.projectId);
+    setClientId(task.clientId || projects.find(p => p.id === task.projectId)?.clientId);
     setDueDate(task.dueDate);
     setReminderDate(task.reminderDate);
     setEstimatedHours(task.estimatedHours);
@@ -164,6 +169,14 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       });
       return;
     }
+    if (!projectId) {
+      toast({
+        title: "Project required",
+        description: "Choose a project for this task",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const updates: any = {
       title,
@@ -173,6 +186,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       assigneeId,
       collaboratorIds,
       projectId,
+      clientId,
       dueDate: dueDate || undefined,
       reminderDate: reminderDate || undefined,
       estimatedHours,
@@ -263,7 +277,21 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
 
   const handleProjectChange = (value: string) => {
     setProjectId(value);
+    const project = projects.find(p => p.id === value);
+    if (project) setClientId(project.clientId);
   };
+
+  const handleClientChange = (value: string) => {
+    setClientId(value);
+    // Keep the project only if it belongs to the newly chosen client
+    if (projectId && projects.find(p => p.id === projectId)?.clientId !== value) {
+      setProjectId("");
+    }
+  };
+
+  const clientProjects = clientId
+    ? projects.filter(p => p.clientId === clientId)
+    : projects;
 
   const handleAssigneeChange = (value: string | undefined) => {
     setAssigneeId(value);
@@ -324,12 +352,23 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label>Client</Label>
+                  <ClientSelect
+                    value={clientId}
+                    onChange={handleClientChange}
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label>Project</Label>
                   <ProjectSelect
                     field={{ value: projectId, onChange: handleProjectChange }}
+                    projectList={clientProjects}
                   />
                 </div>
-                
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Owner</Label>
                   <AssigneeSelect
@@ -337,7 +376,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Collaborators</Label>

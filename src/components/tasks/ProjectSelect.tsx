@@ -16,9 +16,11 @@ interface ProjectSelectProps {
   };
   value?: string;
   onChange?: (projectId: string) => void;
+  projectList?: { id: string; name: string }[];
+  className?: string;
 }
 
-export function ProjectSelect({ field, value, onChange }: ProjectSelectProps) {
+export function ProjectSelect({ field, value, onChange, projectList, className }: ProjectSelectProps) {
   const { projects } = useAppContext();
   
   // Use either field props or direct value/onChange props
@@ -35,11 +37,11 @@ export function ProjectSelect({ field, value, onChange }: ProjectSelectProps) {
       onValueChange={handleChange}
       defaultValue={actualValue}
     >
-      <SelectTrigger>
+      <SelectTrigger className={className}>
         <SelectValue placeholder="Select project" />
       </SelectTrigger>
       <SelectContent>
-        {projects.map(project => (
+        {(projectList ?? projects).map(project => (
           <SelectItem key={project.id} value={project.id}>
             {project.name}
           </SelectItem>

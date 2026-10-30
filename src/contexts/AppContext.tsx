@@ -2019,6 +2019,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.projectId !== undefined && updates.projectId !== currentTask.projectId) {
         dbUpdates.project_id = updates.projectId;
         changes.push('changed project');
+        // A task's client follows its project unless a client is set explicitly
+        const newProject = projects.find(p => p.id === updates.projectId);
+        if (updates.clientId === undefined && newProject) {
+          dbUpdates.client_id = newProject.clientId;
+        }
+      }
+      if (updates.clientId !== undefined && updates.clientId !== currentTask.clientId) {
+        dbUpdates.client_id = updates.clientId || null;
+        changes.push('changed client');
       }
       if (updates.assigneeId !== undefined && updates.assigneeId !== currentTask.assigneeId) {
         dbUpdates.assignee_id = updates.assigneeId;

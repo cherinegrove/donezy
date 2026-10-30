@@ -28,6 +28,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { FileSection } from "./FileSection";
+import { ProjectSelect } from "./ProjectSelect";
+import { ClientSelect } from "./ClientSelect";
 import { TimerSection } from "./TimerSection";
 import { TaskActivityLog } from "./TaskActivityLog";
 import { ChecklistSection } from "./ChecklistSection";
@@ -48,6 +50,7 @@ interface TaskSidebarPanelProps {
 
 export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
   const { deleteTask, updateTask, projects, users, taskStatuses, currentUser } = useAppContext();
+  const [title, setTitle] = useState(task.title);
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
@@ -77,6 +80,10 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
   const [priority, setPriority] = useState(task.priority);
   const [assigneeId, setAssigneeId] = useState(task.assigneeId);
   const [collaboratorIds, setCollaboratorIds] = useState(task.collaboratorIds || []);
+  const [projectId, setProjectId] = useState(task.projectId);
+  const [clientId, setClientId] = useState<string | undefined>(
+    task.clientId || projects.find(p => p.id === task.projectId)?.clientId
+  );
 
   // Safe date parsing to prevent "Invalid time value" errors
   const parseDate = (dateStr: string | undefined): Date | undefined => {
@@ -93,12 +100,41 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
   const [reminderDate, setReminderDate] = useState<Date | undefined>(parseDate(task.reminderDate));
   const [estimatedHours, setEstimatedHours] = useState<number | undefined>(task.estimatedHours);
 
-  const project = projects.find(p => p.id === task.projectId);
   const assignee = users.find(u => u.id === assigneeId);
 
+  const clientProjects = clientId
+    ? projects.filter(p => p.clientId === clientId)
+    : projects;
+
+  const handleProjectChange = (value: string) => {
+    setProjectId(value);
+    const selected = projects.find(p => p.id === value);
+    if (selected) setClientId(selected.clientId);
+  };
+
+  const handleClientChange = (value: string) => {
+    setClientId(value);
+    // Keep the project only if it belongs to the newly chosen client
+    if (projectId && projects.find(p => p.id === projectId)?.clientId !== value) {
+      setProjectId("");
+    }
+  };
+
   const handleSaveChanges = async () => {
+    if (!title.trim()) {
+      toast({ title: "Title required", description: "The task title cannot be empty", variant: "destructive" });
+      return;
+    }
+    if (!projectId) {
+      toast({ title: "Project required", description: "Choose a project for this task", variant: "destructive" });
+      return;
+    }
+
     try {
       await updateTask(task.id, {
+        title,
+        projectId,
+        clientId,
         description,
         status,
         priority,
@@ -146,7 +182,12 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
       <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         <div>
-          <h2 className="text-2xl font-bold mb-2">{task.title}</h2>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Task title"
+            className="text-2xl font-bold h-auto py-1 mb-2 border-transparent hover:border-input focus-visible:border-input"
+          />
           <Textarea
             ref={descriptionRef}
             value={description}
@@ -161,6 +202,21 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
 
         {/* Editable Fields */}
         <div className="space-y-2 pb-3 border-b">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Client</Label>
+              <ClientSelect value={clientId} onChange={handleClientChange} className="h-8 text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Project</Label>
+              <ProjectSelect
+                field={{ value: projectId, onChange: handleProjectChange }}
+                projectList={clientProjects}
+                className="h-8 text-sm"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Status</Label>
