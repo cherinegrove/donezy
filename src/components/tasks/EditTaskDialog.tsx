@@ -186,7 +186,6 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       assigneeId,
       collaboratorIds,
       projectId,
-      clientId,
       dueDate: dueDate || undefined,
       reminderDate: reminderDate || undefined,
       estimatedHours,

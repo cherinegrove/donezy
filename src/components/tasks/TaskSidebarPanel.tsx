@@ -134,7 +134,6 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
       await updateTask(task.id, {
         title,
         projectId,
-        clientId,
         description,
         status,
         priority,
