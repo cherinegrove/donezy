@@ -571,7 +571,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             }
             
             const lastEvent = allEvents[allEvents.length - 1];
-            if (lastEvent.event_type === 'paused') {
+            // A timer paused automatically by starting another one is still paused
+            if (lastEvent.event_type === 'paused' || lastEvent.event_type === 'auto_paused') {
               setIsTimerPaused(true);
               const pausedAtStr = (lastEvent.details as any)?.pausedAt;
               if (pausedAtStr) setPausedAt(new Date(pausedAtStr));
