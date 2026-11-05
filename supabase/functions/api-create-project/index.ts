@@ -16,6 +16,12 @@ interface ProjectRequest {
   team_ids?: string[]
 }
 
+async function hashApiKey(key: string): Promise<string> {
+  const data = new TextEncoder().encode(key)
+  const digest = await crypto.subtle.digest('SHA-256', data)
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -27,10 +33,10 @@ Deno.serve(async (req) => {
     const apiKey = req.headers.get('x-api-key')
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: 'API key required' }), 
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        JSON.stringify({ error: 'API key required' }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -40,29 +46,42 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Verify API key belongs to a valid user
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id, auth_user_id')
-      .eq('id', apiKey)
+    // Verify API key: hash the provided secret and look up a non-revoked match.
+    // Keys are scoped to an organization, not a single user.
+    const keyHash = await hashApiKey(apiKey)
+    const { data: apiKeyRow, error: apiKeyError } = await supabase
+      .from('api_keys')
+      .select('id, organization_id, user_id, revoked_at')
+      .eq('key_hash', keyHash)
+      .is('revoked_at', null)
       .single()
 
-    if (userError || !user) {
+    if (apiKeyError || !apiKeyRow) {
       return new Response(
-        JSON.stringify({ error: 'Invalid API key' }), 
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        JSON.stringify({ error: 'Invalid or revoked API key' }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    if (!apiKeyRow.user_id) {
+      return new Response(
+        JSON.stringify({ error: 'API key has no associated user and cannot create records' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
 
     if (req.method !== 'POST') {
       return new Response(
-        JSON.stringify({ error: 'Method not allowed' }), 
-        { 
-          status: 405, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        JSON.stringify({ error: 'Method not allowed' }),
+        {
+          status: 405,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -72,29 +91,29 @@ Deno.serve(async (req) => {
     // Validate required fields
     if (!projectData.name) {
       return new Response(
-        JSON.stringify({ error: 'Project name is required' }), 
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        JSON.stringify({ error: 'Project name is required' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
 
-    // Verify client exists if client_id is provided
+    // Verify client exists within this organization if client_id is provided
     if (projectData.client_id) {
       const { data: client, error: clientError } = await supabase
         .from('clients')
         .select('id')
         .eq('id', projectData.client_id)
-        .eq('auth_user_id', user.auth_user_id)
+        .eq('organization_id', apiKeyRow.organization_id)
         .single()
 
       if (clientError || !client) {
         return new Response(
-          JSON.stringify({ error: 'Client not found or access denied' }), 
-          { 
-            status: 404, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          JSON.stringify({ error: 'Client not found or access denied' }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         )
       }
@@ -112,7 +131,8 @@ Deno.serve(async (req) => {
         start_date: projectData.start_date || null,
         end_date: projectData.end_date || null,
         team_ids: projectData.team_ids || [],
-        auth_user_id: user.auth_user_id
+        auth_user_id: apiKeyRow.user_id,
+        organization_id: apiKeyRow.organization_id
       })
       .select()
       .single()
@@ -120,33 +140,33 @@ Deno.serve(async (req) => {
     if (projectError) {
       console.error('Project creation error:', projectError)
       return new Response(
-        JSON.stringify({ error: 'Failed to create project', details: projectError.message }), 
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        JSON.stringify({ error: 'Failed to create project', details: projectError.message }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         project: project,
-        message: 'Project created successfully' 
-      }), 
-      { 
-        status: 201, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        message: 'Project created successfully'
+      }),
+      {
+        status: 201,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
 
   } catch (error) {
     console.error('API error:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }), 
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      JSON.stringify({ error: 'Internal server error' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
   }
