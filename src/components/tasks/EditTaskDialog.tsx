@@ -211,24 +211,8 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       }
     }
 
-    const taskId = await updateTask(task.id, updates);
-
-    // Only send notification if assignee has been changed
-    if (taskId && assigneeId && currentUser && assigneeId !== task.assigneeId) {
-      const { data: notifData, error } = await supabase.functions.invoke('send-task-assignment-notification', {
-        body: {
-          assignedUserId: assigneeId,
-          taskId,
-          mentionerName: currentUser.name
-        }
-      });
-
-      if (error) {
-        console.error('Error calling edge function:', error);
-      } else {
-        console.log('Edge function called successfully:', notifData);
-      }
-    }
+    // Assignment alerts are sent by dispatch-notification (in-app, per user preference)
+    await updateTask(task.id, updates);
 
     toast({
       title: "Task Updated",

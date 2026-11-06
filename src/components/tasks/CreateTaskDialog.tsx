@@ -358,20 +358,6 @@ export function CreateTaskDialog({
         }
       }
 
-      if (taskId && data.assigneeId && currentUser) {
-        const { error } = await supabase.functions.invoke('send-task-assignment-notification', {
-          body: {
-            assignedUserId: data.assigneeId,
-            taskId,
-            mentionerName: currentUser.name
-          }
-        });
-
-        if (error) {
-          console.error('Error calling edge function:', error);
-        }
-      }
-
       await updateTemplateUsage(selectedTemplate);
 
       const viewTaskAction = taskId
