@@ -168,12 +168,14 @@ serve(async (req) => {
       ));
     }
 
+    let taskTitle: string | undefined;
     try {
       const { data: taskRow } = await supabase
         .from('tasks')
         .select('title, project_id')
         .eq('id', mapping.task_id)
         .maybeSingle();
+      taskTitle = taskRow?.title;
       const { data: projectRow } = taskRow?.project_id
         ? await supabase.from('projects').select('name').eq('id', taskRow.project_id).maybeSingle()
         : { data: null };
@@ -212,7 +214,11 @@ serve(async (req) => {
 
     console.log('Comment saved from Google Chat:', insertedComment?.id, 'mentions:', mentionedAuthIds.length);
 
-    return jsonResponse({});
+    // Confirm in the thread so the sender knows the comment reached the task
+    return jsonResponse(chatReply(
+      taskTitle ? `✅ Added to Donezy on "${taskTitle}"` : '✅ Added to Donezy',
+      threadName
+    ));
   } catch (error) {
     console.error('Error in google-chat-webhook:', error);
     return jsonResponse({ error: error.message }, 500);
