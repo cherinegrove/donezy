@@ -56,6 +56,8 @@ export function StartTimerDialog({
   const [selectedProjectId, setSelectedProjectId] = useState<string>(defaultProjectId || "");
   const [selectedTaskId, setSelectedTaskId] = useState<string>(defaultTaskId || "");
   const [taskComboOpen, setTaskComboOpen] = useState(false);
+  // True while a start is in progress, so a second click can't start a duplicate timer
+  const [isStarting, setIsStarting] = useState(false);
   const [notes, setNotes] = useState<string>("");
   
   // Reset form when dialog opens (only depend on open state, not data changes)
@@ -138,6 +140,8 @@ export function StartTimerDialog({
   };
 
   const handleStartTimer = async () => {
+    if (isStarting) return;
+
     console.log('🎯 StartTimerDialog: handleStartTimer called with:', {
       selectedClientId,
       effectiveClientId,
@@ -167,6 +171,7 @@ export function StartTimerDialog({
     }
 
     if (effectiveClientId) {
+      setIsStarting(true);
       try {
         console.log('🚀 StartTimerDialog: Calling AppContext startTimeTracking...');
         await startTimeTracking(selectedTaskId || undefined, selectedProjectId, effectiveClientId, undefined, notes || undefined);
@@ -184,6 +189,8 @@ export function StartTimerDialog({
         toast.error('Failed to start timer', {
           description: errorMsg,
         });
+      } finally {
+        setIsStarting(false);
       }
     } else {
       console.error('❌ StartTimerDialog: No client selected!');
@@ -293,8 +300,8 @@ export function StartTimerDialog({
           <Button onClick={() => onOpenChange(false)} variant="outline">
             Cancel
           </Button>
-          <Button onClick={handleStartTimer} disabled={!canStartTimer}>
-            Start Timer
+          <Button onClick={handleStartTimer} disabled={!canStartTimer || isStarting}>
+            {isStarting ? "Starting..." : "Start Timer"}
           </Button>
         </DialogFooter>
       </DialogContent>
