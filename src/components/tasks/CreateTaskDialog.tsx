@@ -600,6 +600,44 @@ export function CreateTaskDialog({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {!isFieldHidden('startDate') && (
+                    <FormField
+                      control={form.control}
+                      name="startDate"
+                      render={({ field }) => (
+                        <div className="space-y-2">
+                          <Label>Start Date</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full justify-start text-left font-normal"
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {field.value ? format(new Date(field.value + "T00:00:00"), "PPP") : "No start date"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <Calendar
+                                mode="single"
+                                selected={field.value ? new Date(field.value + "T00:00:00") : undefined}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    const year = date.getFullYear();
+                                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                                    const day = String(date.getDate()).padStart(2, '0');
+                                    field.onChange(`${year}-${month}-${day}`);
+                                  }
+                                }}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </div>
+                      )}
+                    />
+                  )}
                   {!isFieldHidden('dueDate') && (
                     <FormField
                       control={form.control}
@@ -639,6 +677,28 @@ export function CreateTaskDialog({
                     />
                   )}
 
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="estimatedHours"
+                    render={({ field }) => (
+                      <div className="space-y-2">
+                        <Label htmlFor="estimatedHours">Estimated Hours</Label>
+                        <Input
+                          id="estimatedHours"
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          placeholder="Enter estimated hours"
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                        />
+                        <FormMessage />
+                      </div>
+                    )}
+                  />
                   {!isFieldHidden('reminderDate') && (
                     <FormField
                       control={form.control}
@@ -680,28 +740,6 @@ export function CreateTaskDialog({
                       )}
                     />
                   )}
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="estimatedHours"
-                    render={({ field }) => (
-                      <div className="space-y-2">
-                        <Label htmlFor="estimatedHours">Estimated Hours</Label>
-                        <Input
-                          id="estimatedHours"
-                          type="number"
-                          min="0"
-                          step="0.5"
-                          placeholder="Enter estimated hours"
-                          value={field.value ?? ""}
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                        />
-                        <FormMessage />
-                      </div>
-                    )}
-                  />
                 </div>
 
                 {/* Checklist Section */}

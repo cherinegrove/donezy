@@ -4,7 +4,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Calendar, Clock, MessageCircle, Bell, Timer, History } from "lucide-react";
+import { AlertTriangle, Calendar, Clock, MessageCircle, Bell, Timer, History, Play } from "lucide-react";
 const EditTaskDialog = lazy(() => import("@/components/tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
 import { Task } from "@/types";
 import { TaskCard } from "@/components/tasks/TaskCard";
@@ -20,7 +20,7 @@ import { ProjectWarningsCard } from "@/components/dashboard/cards/ProjectWarning
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-type StatDetail = "due-today" | "overdue" | "in-progress" | "mentions";
+type StatDetail = "start-today" | "due-today" | "overdue" | "in-progress" | "mentions";
 
 const Home = () => {
   const { tasks, projects, users, currentUser } = useAppContext();
@@ -60,6 +60,12 @@ const Home = () => {
       (task.assigneeId === currentUser?.id || task.collaboratorIds?.includes(currentUser?.id))
     )
   );
+
+  // Tasks to start today (start date is today and not done)
+  const tasksStartToday = filteredTasks.filter(task => {
+    const startDate = safeParseDate(task.startDate);
+    return startDate && isToday(startDate) && task.status !== "done";
+  });
 
   // Tasks due today
   const tasksDueToday = filteredTasks.filter(task => {
@@ -140,11 +146,13 @@ const Home = () => {
   const mentionCount = myMentions.length;
 
   const detailTasks =
-    statDetail === "due-today" ? tasksDueToday
+    statDetail === "start-today" ? tasksStartToday
+    : statDetail === "due-today" ? tasksDueToday
     : statDetail === "overdue" ? overdueTasks
     : statDetail === "in-progress" ? inProgressTasks
     : [];
   const detailTitle: Record<StatDetail, string> = {
+    "start-today": `Start Today (${tasksStartToday.length})`,
     "due-today": `Due Today (${tasksDueToday.length})`,
     "overdue": `Overdue (${overdueTasks.length})`,
     "in-progress": `In Progress (${inProgressCount})`,
@@ -169,19 +177,19 @@ const Home = () => {
 
       {/* Row 2: Quick Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card onClick={() => setStatDetail("start-today")} className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-blue-50 to-blue-50/30 dark:from-blue-950/40 dark:to-blue-950/20 border-l-4 border-l-blue-400">
+          <CardContent className="p-4">
+            <div className="text-xs font-medium text-muted-foreground mb-1">Start Today</div>
+            <div className="text-2xl font-bold text-foreground">{tasksStartToday.length}</div>
+            <div className="text-xs text-muted-foreground mt-2">tasks</div>
+          </CardContent>
+        </Card>
+
         <Card onClick={() => setStatDetail("due-today")} className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-green-50 to-green-50/30 dark:from-green-950/40 dark:to-green-950/20 border-l-4 border-l-green-500">
           <CardContent className="p-4">
             <div className="text-xs font-medium text-muted-foreground mb-1">Due Today</div>
             <div className="text-2xl font-bold text-foreground">{tasksDueToday.length}</div>
             <div className="text-xs text-muted-foreground mt-2">tasks</div>
-          </CardContent>
-        </Card>
-
-        <Card onClick={() => setStatDetail("overdue")} className="cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br from-yellow-50 to-yellow-50/30 dark:from-yellow-950/40 dark:to-yellow-950/20 border-l-4 border-l-yellow-500">
-          <CardContent className="p-4">
-            <div className="text-xs font-medium text-muted-foreground mb-1">Overdue</div>
-            <div className="text-2xl font-bold text-foreground">{overdueTasks.length}</div>
-            <div className="text-xs text-muted-foreground mt-2">urgent</div>
           </CardContent>
         </Card>
 
@@ -202,24 +210,24 @@ const Home = () => {
         </Card>
       </div>
 
-      {/* Row 3: Task Lists - Overdue & Due Today */}
+      {/* Row 3: Start Today & Due Today, with Overdue as the full-width list below */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="border-l-4 border-l-yellow-500 shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="pb-3 bg-yellow-50/50 dark:bg-yellow-950/20">
+        <Card className="border-l-4 border-l-blue-400 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-3 bg-blue-50/50 dark:bg-blue-950/20">
             <CardTitle className="text-sm flex items-center gap-2 text-foreground">
-              <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-              Overdue ({overdueTasks.length})
+              <Play className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              Start Today ({tasksStartToday.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-0 p-0">
-            {overdueTasks.length > 0 ? (
+            {tasksStartToday.length > 0 ? (
               <div className="max-h-48 overflow-y-auto divide-y divide-border">
-                {overdueTasks.map((task) => (
+                {tasksStartToday.map((task) => (
                   <CompactTaskRow key={task.id} task={task} />
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-center py-6 text-muted-foreground">No overdue tasks</p>
+              <p className="text-xs text-center py-6 text-muted-foreground">No tasks to start today</p>
             )}
           </CardContent>
         </Card>
@@ -244,6 +252,27 @@ const Home = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Overdue: full-width and larger, at the bottom of the task lists */}
+      <Card className="border-l-4 border-l-yellow-500 shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="pb-3 bg-yellow-50/50 dark:bg-yellow-950/20">
+          <CardTitle className="text-base flex items-center gap-2 text-foreground">
+            <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+            Overdue ({overdueTasks.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-0 p-0">
+          {overdueTasks.length > 0 ? (
+            <div className="max-h-96 overflow-y-auto divide-y divide-border">
+              {overdueTasks.map((task) => (
+                <CompactTaskRow key={task.id} task={task} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-center py-8 text-muted-foreground">No overdue tasks</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Row 4: Mentions, Notifications, Reminders */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

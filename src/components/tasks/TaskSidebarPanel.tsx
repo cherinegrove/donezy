@@ -96,6 +96,7 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
     }
   };
 
+  const [startDate, setStartDate] = useState<Date | undefined>(parseDate(task.startDate));
   const [dueDate, setDueDate] = useState<Date | undefined>(parseDate(task.dueDate));
   const [reminderDate, setReminderDate] = useState<Date | undefined>(parseDate(task.reminderDate));
   const [estimatedHours, setEstimatedHours] = useState<number | undefined>(task.estimatedHours);
@@ -129,6 +130,10 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
       toast({ title: "Project required", description: "Choose a project for this task", variant: "destructive" });
       return;
     }
+    if (startDate && dueDate && startDate > dueDate) {
+      toast({ title: "Dates don't match", description: "The start date can't be after the due date", variant: "destructive" });
+      return;
+    }
 
     try {
       await updateTask(task.id, {
@@ -139,6 +144,7 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
         priority,
         assigneeId,
         collaboratorIds,
+        startDate: startDate ? startDate.toISOString() : null,
         dueDate: dueDate ? dueDate.toISOString() : null,
         reminderDate: reminderDate ? reminderDate.toISOString() : null,
         estimatedHours,
@@ -286,6 +292,32 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
 
           <div className="grid grid-cols-2 gap-2">
             <div>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Start Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start text-left font-normal h-8 text-xs",
+                      !startDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                    {startDate ? format(startDate, "MMM dd") : "Set"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div>
               <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Due Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -311,34 +343,9 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
                 </PopoverContent>
               </Popover>
             </div>
-            <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Reminder</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      "w-full justify-start text-left font-normal h-8 text-xs",
-                      !reminderDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="h-3 w-3 mr-1 flex-shrink-0" />
-                    {reminderDate ? format(reminderDate, "MMM dd") : "Set"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={reminderDate}
-                    onSelect={setReminderDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-2">
           <div>
             <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Collaborators</Label>
             <Popover>
@@ -375,6 +382,33 @@ export function TaskSidebarPanel({ task, onClose }: TaskSidebarPanelProps) {
                 </div>
               </PopoverContent>
             </Popover>
+          </div>
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Reminder</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start text-left font-normal h-8 text-xs",
+                      !reminderDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                    {reminderDate ? format(reminderDate, "MMM dd") : "Set"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={reminderDate}
+                    onSelect={setReminderDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
 

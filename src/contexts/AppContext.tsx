@@ -1079,6 +1079,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                 assigneeId: fullTask.assignee_id || undefined,
                 status: fullTask.status || 'backlog',
                 priority: fullTask.priority || 'medium',
+                startDate: fullTask.start_date || undefined,
                 dueDate: fullTask.due_date || undefined,
                 estimatedHours: fullTask.estimated_hours || undefined,
                 actualHours: fullTask.actual_hours || undefined,
@@ -1129,6 +1130,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                     status: updated.status || task.status,
                     priority: updated.priority || task.priority,
                     assigneeId: updated.assignee_id || undefined,
+                    startDate: updated.start_date || undefined,
                     dueDate: updated.due_date || undefined,
                     estimatedHours: updated.estimated_hours || undefined,
                     actualHours: updated.actual_hours || undefined,
@@ -1871,6 +1873,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         assignee_id: task.assigneeId || session.user.id,
         status: task.status,
         priority: task.priority,
+        start_date: task.startDate || null,
         due_date: task.dueDate || null,
         reminder_date: task.reminderDate || null,
         estimated_hours: task.estimatedHours,
@@ -1917,6 +1920,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           assigneeId: data.assignee_id || undefined,
           status: (data.status as TaskStatus) || 'backlog',
           priority: (data.priority as 'low' | 'medium' | 'high' | 'urgent') || 'medium',
+          startDate: data.start_date || undefined,
           dueDate: data.due_date || undefined,
           estimatedHours: data.estimated_hours || undefined,
           actualHours: data.actual_hours || undefined,
@@ -2033,6 +2037,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (updates.priority !== undefined && updates.priority !== currentTask.priority) {
         dbUpdates.priority = updates.priority;
         changes.push(`changed priority from "${currentTask.priority}" to "${updates.priority}"`);
+      }
+      if (updates.startDate !== undefined && updates.startDate !== currentTask.startDate) {
+        dbUpdates.start_date = updates.startDate || null;
+        changes.push('updated start date');
       }
       if (updates.dueDate !== undefined && updates.dueDate !== currentTask.dueDate) {
         dbUpdates.due_date = updates.dueDate;

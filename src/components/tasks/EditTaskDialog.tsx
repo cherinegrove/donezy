@@ -101,6 +101,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
   const [clientId, setClientId] = useState<string | undefined>(
     task.clientId || projects.find(p => p.id === task.projectId)?.clientId
   );
+  const [startDate, setStartDate] = useState<string | undefined>(task.startDate);
   const [dueDate, setDueDate] = useState<string | undefined>(task.dueDate);
   const [reminderDate, setReminderDate] = useState<string | undefined>(task.reminderDate);
   const [estimatedHours, setEstimatedHours] = useState<number | undefined>(task.estimatedHours);
@@ -136,6 +137,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
     setCollaboratorIds(task.collaboratorIds || []);
     setProjectId(task.projectId);
     setClientId(task.clientId || projects.find(p => p.id === task.projectId)?.clientId);
+    setStartDate(task.startDate);
     setDueDate(task.dueDate);
     setReminderDate(task.reminderDate);
     setEstimatedHours(task.estimatedHours);
@@ -178,6 +180,15 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       return;
     }
 
+    if (startDate && dueDate && startDate.slice(0, 10) > dueDate.slice(0, 10)) {
+      toast({
+        title: "Dates don't match",
+        description: "The start date can't be after the due date",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const updates: any = {
       title,
       description,
@@ -186,6 +197,7 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
       assigneeId,
       collaboratorIds,
       projectId,
+      startDate: startDate || undefined,
       dueDate: dueDate || undefined,
       reminderDate: reminderDate || undefined,
       estimatedHours,
@@ -358,24 +370,48 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                     field={{ value: assigneeId, onChange: handleAssigneeChange }}
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Collaborators</Label>
-                  <CollaboratorSelect
-                    field={{ value: collaboratorIds, onChange: handleCollaboratorChange }}
-                  />
-                </div>
-                
                 <div className="space-y-2 flex items-end pb-2">
                   <UrgentSelect
                     field={{ value: priority, onChange: handlePriorityChange }}
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {parseDate(startDate) ? format(parseDate(startDate)!, "PPP") : "No start date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={parseDate(startDate)}
+                        onSelect={(date) => {
+                          if (date) {
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, '0');
+                            setStartDate(`${year}-${month}-${day}`);
+                          }
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <p className="text-xs text-muted-foreground">
+                    When work on this task should begin
+                  </p>
+                </div>
+
                 <div className="space-y-2">
                   <Label>Due Date</Label>
                   <Popover>
@@ -405,16 +441,38 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                     </PopoverContent>
                   </Popover>
                 </div>
-                
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Status</Label>
                   <StatusSelect
                     field={{ value: status, onChange: handleStatusChange }}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="estimatedHours">Estimated Hours</Label>
+                  <Input
+                    id="estimatedHours"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="Enter estimated hours"
+                    value={estimatedHours ?? ""}
+                    onChange={(e) => setEstimatedHours(e.target.value ? parseFloat(e.target.value) : undefined)}
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Collaborators</Label>
+                  <CollaboratorSelect
+                    field={{ value: collaboratorIds, onChange: handleCollaboratorChange }}
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label>Reminder Date</Label>
                   <Popover>
@@ -446,19 +504,6 @@ export function EditTaskDialog({ task, isOpen, onClose, open, onOpenChange }: Ed
                   <p className="text-xs text-muted-foreground">
                     Get an email reminder on this date
                   </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="estimatedHours">Estimated Hours</Label>
-                  <Input
-                    id="estimatedHours"
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    placeholder="Enter estimated hours"
-                    value={estimatedHours ?? ""}
-                    onChange={(e) => setEstimatedHours(e.target.value ? parseFloat(e.target.value) : undefined)}
-                  />
                 </div>
               </div>
 
