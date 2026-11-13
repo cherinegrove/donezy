@@ -8,23 +8,37 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowDown, ArrowUp, Columns3, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type ColumnKey = "id" | "status" | "title" | "assignee" | "client" | "project" | "due" | "priority" | "estimated";
+type ColumnKey =
+  | "id"
+  | "status"
+  | "title"
+  | "assignee"
+  | "collaborators"
+  | "client"
+  | "project"
+  | "start"
+  | "due"
+  | "priority"
+  | "estimated";
 
 const COLUMNS: { key: ColumnKey; label: string; defaultVisible: boolean }[] = [
   { key: "id", label: "ID", defaultVisible: false },
   { key: "status", label: "Status", defaultVisible: true },
   { key: "title", label: "Task", defaultVisible: true },
   { key: "assignee", label: "Assignee", defaultVisible: true },
+  { key: "collaborators", label: "Collaborators", defaultVisible: true },
   { key: "client", label: "Client", defaultVisible: true },
-  { key: "project", label: "Project", defaultVisible: false },
+  { key: "project", label: "Project", defaultVisible: true },
+  { key: "start", label: "Start", defaultVisible: true },
   { key: "due", label: "Due", defaultVisible: true },
   { key: "priority", label: "Priority", defaultVisible: true },
   { key: "estimated", label: "Est. hours", defaultVisible: true },
 ];
 
 const COLUMNS_STORAGE_KEY = "donezy.taskTable.columns";
-const PRIORITY_OPTIONS = ["low", "medium", "high", "urgent"] as const;
-const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+// "normal" exists on older tasks, so it is offered alongside the current levels
+const PRIORITY_OPTIONS = ["low", "normal", "medium", "high", "urgent"] as const;
+const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, normal: 2, low: 3 };
 
 function loadVisibleColumns(): ColumnKey[] {
   try {
@@ -93,8 +107,15 @@ export function TaskTable({ tasks, onTaskOpen }: TaskTableProps) {
         return userMap.get(task.assigneeId ?? "")?.name?.toLowerCase() ?? "";
       case "client":
         return clientNameFor(task).toLowerCase();
+      case "collaborators":
+        return (task.collaboratorIds ?? [])
+          .map((id) => userMap.get(id)?.name ?? "")
+          .join(", ")
+          .toLowerCase();
       case "project":
         return projectMap.get(task.projectId)?.name?.toLowerCase() ?? "";
+      case "start":
+        return task.startDate ? task.startDate.slice(0, 10) : "9999-12-31";
       case "due":
         return task.dueDate ? task.dueDate.slice(0, 10) : "9999-12-31";
       case "priority":
@@ -153,7 +174,8 @@ export function TaskTable({ tasks, onTaskOpen }: TaskTableProps) {
       case "id":
         return <span className="font-mono text-xs text-muted-foreground">{task.id.slice(0, 8)}</span>;
 
-      case "status":
+      case "status": {
+        const known = statusOptions.some((s) => s.value === task.status);
         return (
           <select
             className={selectClass}
@@ -165,8 +187,11 @@ export function TaskTable({ tasks, onTaskOpen }: TaskTableProps) {
                 {s.label}
               </option>
             ))}
+            {/* Keep statuses the list doesn't define (e.g. "review") visible instead of blank */}
+            {!known && <option value={task.status}>{task.status}</option>}
           </select>
         );
+      }
 
       case "title":
         return (
@@ -202,7 +227,27 @@ export function TaskTable({ tasks, onTaskOpen }: TaskTableProps) {
                 {u.name}
               </option>
             ))}
+            {task.assigneeId && !userMap.has(task.assigneeId) && (
+              <option value={task.assigneeId}>Unknown user</option>
+            )}
           </select>
+        );
+
+      case "collaborators":
+        return (
+          <span className="text-sm text-muted-foreground">
+            {(task.collaboratorIds ?? []).map((id) => userMap.get(id)?.name ?? "Unknown user").join(", ") || "—"}
+          </span>
+        );
+
+      case "start":
+        return (
+          <input
+            type="date"
+            className={selectClass}
+            value={task.startDate ? task.startDate.slice(0, 10) : ""}
+            onChange={(e) => commit(task.id, { startDate: (e.target.value || null) as unknown as string })}
+          />
         );
 
       case "client":
