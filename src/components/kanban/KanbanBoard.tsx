@@ -1,6 +1,7 @@
 import { Task, TaskStatus } from "@/types";
 import { useAppContext } from "@/contexts/AppContext";
 import { TaskCard } from "../tasks/TaskCard";
+import { TaskTable } from "../tasks/TaskTable";
 import { KanbanTaskCardWithComment } from "./KanbanTaskCardWithComment";
 import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from "react";
 const EditTaskDialog = lazy(() => import("../tasks/EditTaskDialog").then(m => ({ default: m.EditTaskDialog })));
@@ -431,85 +432,12 @@ export function KanbanBoard({ tasks: propTasks, projectId, viewMode = "kanban", 
     );
   };
   
-  // Render list view with drag-and-drop
+  // Render list view as an editable table
   if (viewMode === "list") {
-    // Sort tasks by due date (soonest first)
-    const sortedTasks = [...tasks].sort(getSortFunction(true));
-    
     return (
       <div className="w-full">
         {renderToolbar()}
-        
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="list-view">
-            {(provided) => (
-              <div 
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="space-y-2"
-              >
-                {sortedTasks.map((task, index) => (
-                  <Draggable 
-                    key={task.id} 
-                    draggableId={task.id} 
-                    index={index}
-                    isDragDisabled={selectedTaskIds.length > 0}
-                  >
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        className={`group ${snapshot.isDragging ? 'opacity-50' : ''}`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div 
-                            {...provided.dragHandleProps}
-                            className="cursor-move p-1 hover:bg-muted rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <GripVertical className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1">
-                            <KanbanTaskCardWithComment
-                              task={task}
-                              onClick={(e) => handleTaskClick(task, e)}
-                              displayOptions={displayOptions}
-                              isSelected={selectedTaskIds.includes(task.id)}
-                              onSelectionChange={handleTaskSelection}
-                              showSelection={true}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-                
-                {sortedTasks.length === 0 && (
-                  <div className="border-2 border-dashed border-muted rounded-md p-8 flex items-center justify-center bg-background/40">
-                    <p className="text-sm text-muted-foreground">No tasks found</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
-        
-        {selectedTask && (
-          <EditTaskDialog
-            task={selectedTask}
-            open={isEditDialogOpen}
-            onOpenChange={setIsEditDialogOpen}
-          />
-        )}
-        
-        {nestedSelectedTask && (
-          <EditTaskDialog
-            task={nestedSelectedTask}
-            open={isNestedDialogOpen}
-            onOpenChange={setIsNestedDialogOpen}
-          />
-        )}
+        <TaskTable tasks={tasks} onTaskOpen={onTaskOpen} />
       </div>
     );
   }
