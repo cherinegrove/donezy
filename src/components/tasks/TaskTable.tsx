@@ -35,23 +35,27 @@ const COLUMNS: { key: ColumnKey; label: string; defaultVisible: boolean }[] = [
   { key: "estimated", label: "Est. hours", defaultVisible: true },
 ];
 
-const COLUMNS_STORAGE_KEY = "donezy.taskTable.columns";
+const COLUMNS_STORAGE_KEY = "donezy.taskTable.columns.v2";
 // "normal" exists on older tasks, so it is offered alongside the current levels
 const PRIORITY_OPTIONS = ["low", "normal", "medium", "high", "urgent"] as const;
 const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, normal: 2, low: 3 };
 
 function loadVisibleColumns(): ColumnKey[] {
+  const defaults = COLUMNS.filter((c) => c.defaultVisible).map((c) => c.key);
   try {
     const saved = localStorage.getItem(COLUMNS_STORAGE_KEY);
     if (saved) {
-      const parsed = JSON.parse(saved) as ColumnKey[];
-      const valid = parsed.filter((key) => COLUMNS.some((c) => c.key === key));
-      if (valid.length > 0) return valid;
+      const { visible, known } = JSON.parse(saved) as { visible: ColumnKey[]; known: ColumnKey[] };
+      // Columns added after the choice was saved show with their default setting
+      const result = COLUMNS.filter(
+        (c) => (visible.includes(c.key) || (c.defaultVisible && !known.includes(c.key)))
+      ).map((c) => c.key);
+      if (result.length > 0) return result;
     }
   } catch {
     // Unreadable or unavailable storage: fall back to the defaults
   }
-  return COLUMNS.filter((c) => c.defaultVisible).map((c) => c.key);
+  return defaults;
 }
 
 interface TaskTableProps {
@@ -69,7 +73,7 @@ export function TaskTable({ tasks, onTaskOpen }: TaskTableProps) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(visible));
+      localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify({ visible, known: COLUMNS.map((c) => c.key) }));
     } catch {
       // Storage unavailable: the choice lasts for this visit only
     }
@@ -265,6 +269,9 @@ export function TaskTable({ tasks, onTaskOpen }: TaskTableProps) {
                 {c.name}
               </option>
             ))}
+            {clientIdFor(task) && !clientMap.has(clientIdFor(task)) && (
+              <option value={clientIdFor(task)}>Client not loaded</option>
+            )}
           </select>
         );
 
@@ -280,6 +287,7 @@ export function TaskTable({ tasks, onTaskOpen }: TaskTableProps) {
                 {p.name}
               </option>
             ))}
+            {!projectMap.has(task.projectId) && <option value={task.projectId}>Project not loaded</option>}
           </select>
         );
 
