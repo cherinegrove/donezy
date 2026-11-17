@@ -5,7 +5,7 @@ import { Task } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowDown, ArrowUp, Columns3, ExternalLink } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Columns3, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ColumnKey =
@@ -56,6 +56,57 @@ function loadVisibleColumns(): ColumnKey[] {
     // Unreadable or unavailable storage: fall back to the defaults
   }
   return defaults;
+}
+
+interface TableOption {
+  value: string;
+  label: string;
+}
+
+// A plain button that opens a list of options. Uses no native <select>, so the value always shows.
+function TableSelect({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: TableOption[];
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = options.find((o) => o.value === value)?.label ?? (value || "—");
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="h-8 w-full flex items-center justify-between gap-1 rounded-md border border-input bg-background px-2 text-sm text-left text-foreground hover:bg-muted/40"
+        >
+          <span className="truncate">{current}</span>
+          <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 max-h-72 overflow-y-auto p-1" align="start">
+        {options.map((o) => (
+          <button
+            key={`${o.value}-${o.label}`}
+            type="button"
+            className={cn(
+              "w-full text-left text-sm px-2 py-1.5 rounded hover:bg-muted",
+              o.value === value && "font-medium"
+            )}
+            onClick={() => {
+              setOpen(false);
+              if (o.value !== value) onChange(o.value);
+            }}
+          >
+            {o.label}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 interface TaskTableProps {
@@ -173,29 +224,22 @@ export function TaskTable({ tasks, onTaskOpen }: TaskTableProps) {
   };
 
   const renderCell = (task: Task, key: ColumnKey) => {
-    // Text and background are set explicitly so dropdown values stay readable in light and dark themes
-    const selectClass =
-      "h-8 w-full rounded-md border border-input bg-background text-foreground px-2 text-sm [&_option]:bg-background [&_option]:text-foreground";
+    const inputClass =
+      "h-8 w-full rounded-md border border-input bg-background text-foreground px-2 text-sm";
     switch (key) {
       case "id":
         return <span className="font-mono text-xs text-muted-foreground">{task.id.slice(0, 8)}</span>;
 
       case "status": {
-        const known = statusOptions.some((s) => s.value === task.status);
+        const options: TableOption[] = statusOptions.map((s) => ({ value: s.value, label: s.label }));
+        // Keep statuses the list doesn't define (e.g. "review") visible instead of blank
+        if (!options.some((o) => o.value === task.status)) options.push({ value: task.status, label: task.status });
         return (
-          <select
-            className={selectClass}
+          <TableSelect
             value={task.status}
-            onChange={(e) => commit(task.id, { status: e.target.value as Task["status"] })}
-          >
-            {statusOptions.map((s) => (
-              <option key={s.id} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-            {/* Keep statuses the list doesn't define (e.g. "review") visible instead of blank */}
-            {!known && <option value={task.status}>{task.status}</option>}
-          </select>
+            options={options}
+            onChange={(value) => commit(task.id, { status: value as Task["status"] })}
+          />
         );
       }
 
@@ -203,7 +247,7 @@ export function TaskTable({ tasks, onTaskOpen }: TaskTableProps) {
         return (
           <input
             key={task.title}
-            className={cn(selectClass, "font-medium")}
+            className={cn(inputClass, "font-medium")}
             defaultValue={task.title}
             onBlur={(e) => {
               const next = e.target.value.trim();
@@ -220,24 +264,22 @@ export function TaskTable({ tasks, onTaskOpen }: TaskTableProps) {
           />
         );
 
-      case "assignee":
+      case "assignee": {
+        const options: TableOption[] = [
+          { value: "", label: "Unassigned" },
+          ...users.map((u) => ({ value: u.id, label: u.name })),
+        ];
+        if (task.assigneeId && !userMap.has(task.assigneeId)) {
+          options.push({ value: task.assigneeId, label: "Unknown user" });
+        }
         return (
-          <select
-            className={selectClass}
+          <TableSelect
             value={task.assigneeId ?? ""}
-            onChange={(e) => commit(task.id, { assigneeId: e.target.value || undefined })}
-          >
-            <option value="">Unassigned</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-            {task.assigneeId && !userMap.has(task.assigneeId) && (
-              <option value={task.assigneeId}>Unknown user</option>
-            )}
-          </select>
+            options={options}
+            onChange={(value) => commit(task.id, { assigneeId: value || undefined })}
+          />
         );
+      }
 
       case "collaborators":
         return (
@@ -250,71 +292,55 @@ export function TaskTable({ tasks, onTaskOpen }: TaskTableProps) {
         return (
           <input
             type="date"
-            className={selectClass}
+            className={inputClass}
             value={task.startDate ? task.startDate.slice(0, 10) : ""}
             onChange={(e) => commit(task.id, { startDate: (e.target.value || null) as unknown as string })}
           />
         );
 
-      case "client":
-        return (
-          <select
-            className={selectClass}
-            value={clientIdFor(task)}
-            onChange={(e) => changeClient(task, e.target.value)}
-          >
-            {!clientIdFor(task) && <option value="">No client</option>}
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-            {clientIdFor(task) && !clientMap.has(clientIdFor(task)) && (
-              <option value={clientIdFor(task)}>Client not loaded</option>
-            )}
-          </select>
-        );
+      case "client": {
+        const currentClientId = clientIdFor(task);
+        const options: TableOption[] = clients.map((c) => ({ value: c.id, label: c.name }));
+        if (!currentClientId) options.unshift({ value: "", label: "No client" });
+        else if (!clientMap.has(currentClientId)) options.push({ value: currentClientId, label: "Client not loaded" });
+        return <TableSelect value={currentClientId} options={options} onChange={(value) => changeClient(task, value)} />;
+      }
 
-      case "project":
+      case "project": {
+        const options: TableOption[] = projects.map((p) => ({ value: p.id, label: p.name }));
+        if (!projectMap.has(task.projectId)) options.push({ value: task.projectId, label: "Project not loaded" });
         return (
-          <select
-            className={selectClass}
+          <TableSelect
             value={task.projectId}
-            onChange={(e) => commit(task.id, { projectId: e.target.value })}
-          >
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-            {!projectMap.has(task.projectId) && <option value={task.projectId}>Project not loaded</option>}
-          </select>
+            options={options}
+            onChange={(value) => commit(task.id, { projectId: value })}
+          />
         );
+      }
 
       case "due":
         return (
           <input
             type="date"
-            className={selectClass}
+            className={inputClass}
             value={task.dueDate ? task.dueDate.slice(0, 10) : ""}
             onChange={(e) => commit(task.id, { dueDate: (e.target.value || null) as unknown as string })}
           />
         );
 
-      case "priority":
+      case "priority": {
+        const options: TableOption[] = PRIORITY_OPTIONS.map((p) => ({
+          value: p,
+          label: p.charAt(0).toUpperCase() + p.slice(1),
+        }));
         return (
-          <select
-            className={selectClass}
+          <TableSelect
             value={task.priority}
-            onChange={(e) => commit(task.id, { priority: e.target.value as Task["priority"] })}
-          >
-            {PRIORITY_OPTIONS.map((p) => (
-              <option key={p} value={p}>
-                {p.charAt(0).toUpperCase() + p.slice(1)}
-              </option>
-            ))}
-          </select>
+            options={options}
+            onChange={(value) => commit(task.id, { priority: value as Task["priority"] })}
+          />
         );
+      }
 
       case "estimated":
         return (
@@ -323,7 +349,7 @@ export function TaskTable({ tasks, onTaskOpen }: TaskTableProps) {
             type="number"
             min="0"
             step="0.5"
-            className={selectClass}
+            className={inputClass}
             defaultValue={task.estimatedHours ?? ""}
             onBlur={(e) => {
               const next = e.target.value ? parseFloat(e.target.value) : undefined;
