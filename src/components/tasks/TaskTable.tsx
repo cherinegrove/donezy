@@ -169,7 +169,9 @@ export function TaskTable({ tasks, onTaskOpen }: TaskTableProps) {
   };
 
   const renderCell = (task: Task, key: ColumnKey) => {
-    const selectClass = "h-8 w-full rounded-md border border-input bg-background px-2 text-sm";
+    // Text and background are set explicitly so dropdown values stay readable in light and dark themes
+    const selectClass =
+      "h-8 w-full rounded-md border border-input bg-background text-foreground px-2 text-sm [&_option]:bg-background [&_option]:text-foreground";
     switch (key) {
       case "id":
         return <span className="font-mono text-xs text-muted-foreground">{task.id.slice(0, 8)}</span>;
