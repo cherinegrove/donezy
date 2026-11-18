@@ -322,6 +322,8 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
         usedHours: 0,
         templateId: selectedTemplate !== "system-default" ? selectedTemplate : undefined,
         customFields: data.customFieldValues,
+        ownerId: data.ownerId || undefined,
+        collaboratorIds: data.collaboratorIds || [],
       });
 
       console.log("Project created with ID:", projectId);
